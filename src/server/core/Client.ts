@@ -22,7 +22,11 @@ export class Client {
     public clientEntID: number = 0;
     public entities: Map<number, any> = new Map();
     public currentLevel: string = "";
+    public currentRoomId: number = -1;
+    public lastDoorId: number = -1;
+    public lastDoorTargetLevel: string = "";
     public playerSpawned: boolean = false;
+    public startedRoomEvents: Set<string> = new Set();
 
     constructor(socket: net.Socket, router: PacketRouter) {
         this.socket = socket;
@@ -76,6 +80,21 @@ export class Client {
     }
 
     private onClose(): void {
+        const { GlobalState } = require('./GlobalState') as typeof import('./GlobalState');
+        const { EntityHandler } = require('../handlers/EntityHandler') as typeof import('../handlers/EntityHandler');
+
+        EntityHandler.removeOwnedEntities(this);
+
+        if (this.token && GlobalState.sessionsByToken.get(this.token) === this) {
+            GlobalState.sessionsByToken.delete(this.token);
+        }
+        if (this.userId && GlobalState.sessionsByUserId.get(this.userId) === this) {
+            GlobalState.sessionsByUserId.delete(this.userId);
+        }
+
+        this.playerSpawned = false;
+        this.entities.clear();
+
         console.log(`[Client] Disconnected`);
     }
 

@@ -82,6 +82,8 @@ export class SocialHandler {
         const bb = new BitBuffer();
         bb.writeMethod4(999); // Door ID 999 -> CraftTown logic
         bb.writeMethod13("CraftTown");
+        client.lastDoorId = 999;
+        client.lastDoorTargetLevel = "CraftTown";
 
         const payload = bb.toBuffer(); // Check BitBuffer implementation if it has toBuffer() or similar
         // BitBuffer usually has `buf` or `buffer` property, or `getBuffer()`?

@@ -12,6 +12,72 @@ import { JsonAdapter } from '../database/JsonAdapter';
 const db = new JsonAdapter();
 
 export class LevelHandler {
+    private static forLevelRecipients(client: Client, includeSender: boolean = false): Client[] {
+        const levelName = client.currentLevel;
+        if (!levelName) {
+            return [];
+        }
+
+        const recipients: Client[] = [];
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || other.currentLevel !== levelName) {
+                continue;
+            }
+            if (!includeSender && other === client) {
+                continue;
+            }
+            recipients.push(other);
+        }
+
+        return recipients;
+    }
+
+    private static relayToLevel(client: Client, packetId: number, data: Buffer, includeSender: boolean = false): void {
+        for (const other of LevelHandler.forLevelRecipients(client, includeSender)) {
+            other.send(packetId, data);
+        }
+    }
+
+    private static cacheRoomId(client: Client, roomId: number): void {
+        if (Number.isFinite(roomId) && roomId >= 0) {
+            client.currentRoomId = roomId;
+        }
+    }
+
+    private static markRoomEventStarted(client: Client, roomId: number): void {
+        if (!client.currentLevel) {
+            return;
+        }
+        client.startedRoomEvents.add(`${client.currentLevel}:${roomId}`);
+    }
+
+    private static hasRoomEventStarted(client: Client, roomId: number): boolean {
+        if (!client.currentLevel) {
+            return false;
+        }
+        return client.startedRoomEvents.has(`${client.currentLevel}:${roomId}`);
+    }
+
+    static sendRoomEventStart(client: Client, roomId: number, flag: boolean): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod9(roomId);
+        bb.writeMethod15(flag);
+        client.sendBitBuffer(0xA5, bb);
+        LevelHandler.markRoomEventStarted(client, roomId);
+    }
+
+    static primeTutorialRoomEvents(client: Client): void {
+        if (!['TutorialBoat', 'TutorialDungeon', 'CraftTownTutorial'].includes(client.currentLevel)) {
+            return;
+        }
+
+        for (const roomId of [0, 1]) {
+            if (!LevelHandler.hasRoomEventStarted(client, roomId)) {
+                LevelHandler.sendRoomEventStart(client, roomId, true);
+            }
+        }
+    }
+
     static handleRequestDoorState(client: Client, data: Buffer): void {
         const br = new BitReader(data);
         const doorId = br.readMethod9();
@@ -45,8 +111,8 @@ export class LevelHandler {
         const br = new BitReader(data);
         const doorId = br.readMethod9();
 
-        const currentLevel = client.currentLevel || "NewbieRoad";
-        let targetLevel = LevelConfig.getDoorTarget(currentLevel, doorId);
+        const currentLevel = LevelConfig.normalizeLevelName(client.currentLevel || "NewbieRoad") || "NewbieRoad";
+        let targetLevel = LevelConfig.normalizeLevelName(LevelConfig.getDoorTarget(currentLevel, doorId));
 
         // Fallback for dungeons: use entry level? 
         // For now, simpler logic.
@@ -55,10 +121,16 @@ export class LevelHandler {
             targetLevel = "CraftTown";
         }
 
+        if (!targetLevel) {
+            targetLevel = currentLevel;
+        }
+
         console.log(`[Level] Open Door ${doorId} in ${currentLevel} -> ${targetLevel}`);
 
         // Send 0x2E Door Target
         if (targetLevel) {
+            client.lastDoorId = doorId;
+            client.lastDoorTargetLevel = targetLevel;
             const bb = new BitBuffer();
             bb.writeMethod4(doorId);
             bb.writeMethod13(targetLevel);
@@ -66,13 +138,112 @@ export class LevelHandler {
         }
     }
 
+    static handleQuestProgressUpdate(client: Client, data: Buffer): void {
+        const br = new BitReader(data);
+        const progress = br.readMethod4();
+
+        if (client.character) {
+            client.character.questTrackerState = progress;
+        }
+
+        LevelHandler.relayToLevel(client, 0xB7, data);
+    }
+
+    static handlePlaySound(client: Client, data: Buffer): void {
+        const br = new BitReader(data);
+        const roomId = br.readMethod9();
+        LevelHandler.cacheRoomId(client, roomId);
+        br.readMethod26();
+        br.readMethod9();
+
+        LevelHandler.relayToLevel(client, 0xA8, data);
+    }
+
+    static handleActionUpdate(client: Client, data: Buffer): void {
+        const br = new BitReader(data);
+        const roomId = br.readMethod9();
+        LevelHandler.cacheRoomId(client, roomId);
+        br.readMethod9();
+
+        LevelHandler.relayToLevel(client, 0xAA, data);
+    }
+
+    static handleRoomStateUpdate(client: Client, data: Buffer): void {
+        const br = new BitReader(data);
+        const roomId = br.readMethod9();
+        LevelHandler.cacheRoomId(client, roomId);
+        br.readMethod9();
+
+        LevelHandler.relayToLevel(client, 0xA9, data);
+    }
+
+    static handleRoomEventStart(client: Client, data: Buffer): void {
+        const br = new BitReader(data);
+        const roomId = br.readMethod9();
+        LevelHandler.cacheRoomId(client, roomId);
+        br.readMethod15();
+        LevelHandler.markRoomEventStarted(client, roomId);
+
+        LevelHandler.relayToLevel(client, 0xA5, data);
+    }
+
+    static handleRoomInfoUpdate(client: Client, data: Buffer): void {
+        const br = new BitReader(data);
+        const roomId = br.readMethod9();
+        LevelHandler.cacheRoomId(client, roomId);
+        br.readMethod9();
+        br.readMethod26();
+        br.readMethod9();
+        br.readMethod26();
+
+        LevelHandler.relayToLevel(client, 0xAB, data);
+    }
+
+    static handleRoomClose(client: Client, data: Buffer): void {
+        const br = new BitReader(data);
+        const roomId = br.readMethod9();
+        LevelHandler.cacheRoomId(client, roomId);
+
+        LevelHandler.relayToLevel(client, 0xA6, data);
+    }
+
+    static handleRoomUnlock(client: Client, data: Buffer): void {
+        const br = new BitReader(data);
+        const roomId = br.readMethod9();
+        LevelHandler.cacheRoomId(client, roomId);
+
+        LevelHandler.relayToLevel(client, 0xAD, data);
+    }
+
+    static handleRoomBossInfo(client: Client, data: Buffer): void {
+        const br = new BitReader(data);
+        const roomId = br.readMethod9();
+        LevelHandler.cacheRoomId(client, roomId);
+        br.readMethod9();
+        br.readMethod26();
+        br.readMethod9();
+        br.readMethod26();
+
+        LevelHandler.relayToLevel(client, 0xAC, data);
+    }
+
+    static handleSetUntargetable(client: Client, data: Buffer): void {
+        const br = new BitReader(data);
+        br.readMethod4();
+        br.readMethod15();
+
+        LevelHandler.relayToLevel(client, 0xAE, data);
+    }
+
     // 0x1D: Level Transfer Request
     static async handleLevelTransferRequest(client: Client, data: Buffer): Promise<void> {
         const br = new BitReader(data);
         const token = br.readMethod9();
-        const requestedLevel = br.readMethod13();
+        const requestedLevelRaw = br.readMethod13();
+        const requestedLevel = LevelConfig.normalizeLevelName(requestedLevelRaw);
+        const lastDoorTarget = LevelConfig.normalizeLevelName(client.lastDoorTargetLevel);
 
-        console.log(`[Level] Transfer Request (0x1D): Token=${token}, Level=${requestedLevel}`);
+        console.log(`[Level] Transfer Request (0x1D): Token=${token}, Level=${requestedLevelRaw}`);
 
         // Safety: ensure client is authenticated or token matches
         if (!client.character) {
@@ -92,11 +263,25 @@ export class LevelHandler {
         // 1. Determine Target Level
         let targetLevel = requestedLevel;
         if (!targetLevel || targetLevel === "None") {
-            targetLevel = "NewbieRoad"; 
+            if (lastDoorTarget && LevelConfig.has(lastDoorTarget)) {
+                targetLevel = lastDoorTarget;
+                console.log(`[Level] Using last door target for transfer: ${targetLevel}`);
+            } else {
+                targetLevel = "NewbieRoad";
+            }
+        } else if (!LevelConfig.has(targetLevel) && lastDoorTarget && LevelConfig.has(lastDoorTarget)) {
+            console.log(`[Level] Invalid transfer target '${targetLevel}', falling back to last door target ${lastDoorTarget}`);
+            targetLevel = lastDoorTarget;
+        }
+
+        if (!LevelConfig.has(targetLevel)) {
+            const safeFallback = LevelConfig.normalizeLevelName(client.currentLevel || "NewbieRoad") || "NewbieRoad";
+            console.log(`[Level] Unresolved transfer target '${targetLevel}', staying in ${safeFallback}`);
+            targetLevel = safeFallback;
         }
 
         // 2. Get Old Position
-        const oldLevel = client.currentLevel || "NewbieRoad";
+        const oldLevel = LevelConfig.normalizeLevelName(client.currentLevel || "NewbieRoad") || "NewbieRoad";
         const ent = client.entities.get(client.clientEntID);
         let oldX = 0, oldY = 0;
 
@@ -107,6 +292,7 @@ export class LevelHandler {
 
         // 3. Calculate New Spawn
         // Default spawn from config
+        const targetSpec = LevelConfig.get(targetLevel);
         const spawn = LevelConfig.getSpawn(targetLevel);
         const newX = spawn.x;
         const newY = spawn.y;
@@ -168,7 +354,7 @@ export class LevelHandler {
         // 8. Send Enter World (0x21)
         const levelSpec = LevelConfig.get(targetLevel);
         const isHard = targetLevel.endsWith("Hard");
-        const newHasCoord = true;
+        const newHasCoord = !targetSpec.isDungeon;
         
         const pkt = WorldEnter.buildEnterWorldPacket(
             newToken,

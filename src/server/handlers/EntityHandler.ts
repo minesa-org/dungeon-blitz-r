@@ -6,6 +6,21 @@ import { GlobalState } from '../core/GlobalState';
 import { Entity, EntityProps, EntityState } from '../core/Entity';
 
 export class EntityHandler {
+    private static readonly CLIENT_SPAWN_LEVELS = new Set<string>([
+        'NewbieRoad',
+        'NewbieRoadHard'
+    ]);
+
+    private static normalizeIdentityName(value: unknown): string {
+        return String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '');
+    }
+
+    private static usesClientSpawn(levelName: string): boolean {
+        return EntityHandler.CLIENT_SPAWN_LEVELS.has(levelName);
+    }
     
     // Server -> Client: Spawn Entity (Packet 0xF)
     static sendEntity(client: Client, entity: EntityProps | any): void {
@@ -76,11 +91,15 @@ export class EntityHandler {
         const bDropping = br.readMethod15();
         const bBackpedal = br.readMethod15();
 
-        if (isPlayer && client.clientEntID === 0) {
+        const entNameNorm = EntityHandler.normalizeIdentityName(entName);
+        const charNameNorm = EntityHandler.normalizeIdentityName(client.character?.name);
+        const isSelfPacket = Boolean(isPlayer && entNameNorm && charNameNorm && entNameNorm === charNameNorm);
+
+        if (isPlayer && (client.clientEntID === 0 || (isSelfPacket && client.clientEntID !== entityId))) {
             client.clientEntID = entityId;
         }
 
-        const props: EntityProps = {
+        const props: EntityProps & { clientSpawned?: boolean; ownerToken?: number; ownerUserId?: number } = {
             id: entityId,
             name: entName,
             isPlayer: isPlayer,
@@ -95,7 +114,10 @@ export class EntityHandler {
             summonerId: summonerId,
             powerId: powerId,
             entState: entState,
-            facingLeft: bLeft
+            facingLeft: bLeft,
+            clientSpawned: !isPlayer,
+            ownerToken: client.token || 0,
+            ownerUserId: client.userId || 0
             // bRunning etc are flags
         };
 
@@ -116,8 +138,8 @@ export class EntityHandler {
 
         if (isPlayer && !client.playerSpawned) {
              client.playerSpawned = true;
-             // Send existing entities (packet 0xF) to the new joiner
-             EntityHandler.sendInitialLevelEntities(client, client.currentLevel || "NewbieRoad");
+             EntityHandler.sendExistingPlayersToJoiner(client);
+             EntityHandler.broadcastPlayerSpawn(client, props);
         }
     }
 
@@ -128,32 +150,103 @@ export class EntityHandler {
         if (!levelMap) {
             levelMap = new Map();
             GlobalState.levelEntities.set(levelName, levelMap);
-            
-            const npcs = NpcLoader.getNpcsForLevel(levelName);
-            console.log(`[EntityHandler] Initializing ${npcs.length} NPCs for ${levelName}`);
-            
-            for (const npc of npcs) {
-                const entityProps = Entity.fromNpc(npc);
-                levelMap.set(npc.id, entityProps);
+
+            if (EntityHandler.usesClientSpawn(levelName)) {
+                console.log(`[EntityHandler] Skipping server NPC init for client-spawn level ${levelName}`);
+            } else {
+                const npcs = NpcLoader.getNpcsForLevel(levelName);
+                console.log(`[EntityHandler] Initializing ${npcs.length} NPCs for ${levelName}`);
+
+                for (const npc of npcs) {
+                    const entityProps = Entity.fromNpc(npc);
+                    levelMap.set(npc.id, entityProps);
+                }
             }
+        }
+
+        if (EntityHandler.usesClientSpawn(levelName)) {
+            return;
         }
 
         for (const [id, entityProps] of levelMap.entries()) {
             if (id === client.clientEntID) continue;
+            if (entityProps?.isPlayer) continue;
+            if (entityProps?.clientSpawned) continue;
             EntityHandler.sendEntity(client, entityProps);
+        }
+    }
+
+    static removeOwnedEntities(client: Client): void {
+        const levelName = client.currentLevel;
+        if (!levelName) {
+            return;
+        }
+
+        const levelMap = GlobalState.levelEntities.get(levelName);
+        if (!levelMap) {
+            return;
+        }
+
+        const charNameNorm = EntityHandler.normalizeIdentityName(client.character?.name);
+        for (const [entityId, entityProps] of Array.from(levelMap.entries())) {
+            const entityNameNorm = EntityHandler.normalizeIdentityName(entityProps?.name);
+            const isOwnedPlayer = Boolean(entityProps?.isPlayer) && (
+                (client.clientEntID > 0 && entityId === client.clientEntID) ||
+                (charNameNorm && entityNameNorm === charNameNorm)
+            );
+            const isOwnedClientSpawn = Boolean(entityProps?.clientSpawned) && Number(entityProps?.ownerToken ?? 0) === client.token;
+
+            if (isOwnedPlayer || isOwnedClientSpawn) {
+                levelMap.delete(entityId);
+            }
+        }
+
+        if (levelMap.size === 0) {
+            GlobalState.levelEntities.delete(levelName);
+        }
+    }
+
+    private static sendExistingPlayersToJoiner(joiner: Client): void {
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (other === joiner) {
+                continue;
+            }
+            if (!other.playerSpawned || other.currentLevel !== joiner.currentLevel) {
+                continue;
+            }
+            if (other.userId && joiner.userId && other.userId === joiner.userId && other.character?.name === joiner.character?.name) {
+                continue;
+            }
+            if (!other.character || other.clientEntID <= 0) {
+                continue;
+            }
+
+            const otherProps = other.entities.get(other.clientEntID);
+            if (!otherProps) {
+                continue;
+            }
+
+            EntityHandler.sendEntity(joiner, Entity.fromCharacter(other.clientEntID, other.character, otherProps));
+        }
+    }
+
+    private static broadcastPlayerSpawn(client: Client, props: EntityProps): void {
+        if (!client.character || !client.currentLevel) {
+            return;
+        }
+
+        const playerEntity = Entity.fromCharacter(props.id, client.character, props);
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (other === client || !other.playerSpawned || other.currentLevel !== client.currentLevel) {
+                continue;
+            }
+            EntityHandler.sendEntity(other, playerEntity);
         }
     }
 
     private static broadcastToLevel(sender: Client, data: Buffer): void {
         const myLevel = sender.currentLevel;
         if (!myLevel || !sender.playerSpawned) return;
-        
-        // If this is the FIRST 0x8 from a player, we might want to send 0xF to OTHERS?
-        // But broadcastToLevel sends 0x8. 
-        // If other clients didn't receive 0xF for this player yet, 0x8 might be ignored or might cause spawn?
-        // Let's rely on 0x8 for now (as per original code), 
-        // OR we can explicitly send 0xF to others if this is new spawn?
-        // For now, sticking to 0x8 broadcast.
 
         for (const other of GlobalState.sessionsByToken.values()) {
             if (other !== sender && other.playerSpawned && other.currentLevel === myLevel) {

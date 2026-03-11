@@ -88,13 +88,14 @@ export class Entity {
             id: eid,
             name: char.name || props.ent_name || "",
             isPlayer: true,
-            x: props.pos_x || 0,
-            y: props.pos_y || 0,
-            v: props.velocity_x || 0,
-            team: props.team || EntityTeam.PLAYER,
-            facingLeft: !!props.b_left,
+            x: Number(props.x ?? props.pos_x ?? char.CurrentLevel?.x ?? 0),
+            y: Number(props.y ?? props.pos_y ?? char.CurrentLevel?.y ?? 0),
+            v: Number(props.v ?? props.velocity_x ?? 0),
+            team: Number(props.team ?? EntityTeam.PLAYER),
+            entState: Number(props.entState ?? props.ent_state ?? EntityState.ACTIVE),
+            facingLeft: Boolean(props.facingLeft ?? props.b_left),
+            renderDepthOffset: Number(props.renderDepthOffset ?? props.render_depth_offset ?? 0),
             buffs: props.buffs || [],
-            status: undefined // ?
         } as any;
 
         // Player specific fields

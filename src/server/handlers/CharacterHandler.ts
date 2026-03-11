@@ -13,6 +13,47 @@ import { Character } from '../database/Database';
 const db = new JsonAdapter();
 
 export class CharacterHandler {
+    private static purgeSameCharacterGhosts(activeClient: Client, userId: number, characterName: string): void {
+        const normalizedCharName = String(characterName || '').trim().toLowerCase();
+
+        for (const [levelName, levelMap] of Array.from(GlobalState.levelEntities.entries())) {
+            for (const [entityId, entityProps] of Array.from(levelMap.entries())) {
+                if (!entityProps?.isPlayer) {
+                    continue;
+                }
+                if (String(entityProps?.name || '').trim().toLowerCase() !== normalizedCharName) {
+                    continue;
+                }
+                if (activeClient.currentLevel === levelName && activeClient.clientEntID > 0 && activeClient.clientEntID === entityId) {
+                    continue;
+                }
+                levelMap.delete(entityId);
+            }
+
+            if (levelMap.size === 0) {
+                GlobalState.levelEntities.delete(levelName);
+            }
+        }
+
+        for (const [token, other] of Array.from(GlobalState.sessionsByToken.entries())) {
+            if (other === activeClient) {
+                continue;
+            }
+            if (other.userId !== userId) {
+                continue;
+            }
+            if (other.character?.name !== characterName) {
+                continue;
+            }
+
+            GlobalState.sessionsByToken.delete(token);
+            if (GlobalState.sessionsByUserId.get(userId) === other) {
+                GlobalState.sessionsByUserId.delete(userId);
+            }
+            other.socket.destroy();
+        }
+    }
+
     static async handleLoginCharacterCreate(client: Client, data: Buffer): Promise<void> {
         const br = new BitReader(data);
         const name = br.readMethod26();
@@ -124,6 +165,7 @@ export class CharacterHandler {
                 previousLevel: char.PreviousLevel?.name || "NewbieRoad", 
                 userId: client.userId
             });
+            GlobalState.pendingExtended.set(token, true);
         }
 
         // Get Level Config
@@ -168,13 +210,21 @@ export class CharacterHandler {
             return;
         }
 
+        const sendExtended = firstLogin || Boolean(GlobalState.pendingExtended.get(token));
+
         client.character = entry.character;
         client.userId = entry.userId;
         client.token = token;
-        client.clientEntID = token; // Client uses token as Entity ID
+        client.clientEntID = 0;
         client.currentLevel = entry.targetLevel;
+        client.currentRoomId = -1;
+        client.lastDoorId = -1;
+        client.lastDoorTargetLevel = '';
         client.playerSpawned = false;
         client.entities.clear();
+        client.startedRoomEvents.clear();
+
+        CharacterHandler.purgeSameCharacterGhosts(client, entry.userId, entry.character.name);
         
         GlobalState.sessionsByToken.set(token, client);
         if (client.userId) {
@@ -183,6 +233,7 @@ export class CharacterHandler {
             GlobalState.tokenChar.set(token, { character: entry.character, userId: client.userId });
         }
         GlobalState.pendingWorld.delete(token);
+        GlobalState.pendingExtended.delete(token);
         
         console.log(`[GameLogin] Client logged in with token ${token} as ${client.character.name}`);
 
@@ -200,7 +251,7 @@ export class CharacterHandler {
             spawn.x,
             spawn.y,
             true, // newHasCoord
-            firstLogin // sendExtended
+            sendExtended
         );
         
         client.sendBitBuffer(0x10, pdPkt);
@@ -208,5 +259,6 @@ export class CharacterHandler {
         
         // Spawn NPCs
         LevelHandler.spawnLevelNpcs(client, entry.targetLevel);
+        LevelHandler.primeTutorialRoomEvents(client);
     }
 }

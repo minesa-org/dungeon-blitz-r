@@ -58,9 +58,9 @@
     }
   ],
   "CurrentLevel": {
-    "name": "TutorialBoat",
-    "x": 0,
-    "y": 0
+    "name": "NewbieRoad",
+    "x": 1422,
+    "y": 827
   },
   "PreviousLevel": {
     "name": "NewbieRoad",
@@ -94,12 +94,8 @@
   ],
   "OwnedDyes": [],
   "consumables": [],
-  "missions": {
-    "1": {
-      "state": 1,
-      "currCount": 0
-    }
-  },
+  "missions": {},
+  "questTrackerState": 0,
   "friends": [],
   "learnedAbilities": [
     {

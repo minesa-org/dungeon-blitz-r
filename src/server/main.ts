@@ -21,6 +21,9 @@ import { CombatHandler } from './handlers/CombatHandler';
 import { BuildingHandler } from './handlers/BuildingHandler';
 import { SystemHandler } from './handlers/SystemHandler';
 import { AILogic } from './core/AILogic';
+import { MissionHandler } from './handlers/MissionHandler';
+import { NpcHandler } from './handlers/NpcHandler';
+import { RewardHandler } from './handlers/RewardHandler';
 import * as path from 'path';
 
 import { StaticServer } from './core/StaticServer';
@@ -49,11 +52,24 @@ router.register(0x1f, CharacterHandler.handleGameServerLogin); // Game Server Lo
 router.register(0x8, EntityHandler.handleEntityFullUpdate); // Entity Full Update
 router.register(0xA2, CommandHandler.handleLinkUpdater); // Link Updater
 router.register(0x10E, CommandHandler.handleQueuePotion); // Queue Potion
+router.register(0x2A, RewardHandler.handleGrantReward); // Grant Reward
 router.register(0x41, LevelHandler.handleRequestDoorState); // Request Door State
+router.register(0x3F, MissionHandler.handleSetLevelComplete); // Level Complete
+router.register(0xB7, LevelHandler.handleQuestProgressUpdate); // Quest Progress Update
+router.register(0xA5, LevelHandler.handleRoomEventStart); // Room Event Start
+router.register(0xA6, LevelHandler.handleRoomClose); // Room Close
+router.register(0xA8, LevelHandler.handlePlaySound); // Play Sound
+router.register(0xA9, LevelHandler.handleRoomStateUpdate); // Room State Update
+router.register(0xAA, LevelHandler.handleActionUpdate); // Action Update
+router.register(0xAB, LevelHandler.handleRoomInfoUpdate); // Room Info Update
+router.register(0xAC, LevelHandler.handleRoomBossInfo); // Room Boss Info
+router.register(0xAD, LevelHandler.handleRoomUnlock); // Room Unlock
+router.register(0xAE, LevelHandler.handleSetUntargetable); // Set Untargetable
 router.register(0x40, SocialHandler.handleLevelState); // Level State
 router.register(0x76, SocialHandler.handleRoomThought); // Room Thought
 router.register(0x7E, SocialHandler.handleEmoteBegin); // Emote Begin
 router.register(0x7F, SocialHandler.handleEmoteEnd); // Emote End
+router.register(0x7A, NpcHandler.handleTalkToNpc); // Talk To NPC
 router.register(0xA7, SocialHandler.handleEmote); // Emote
 router.register(0xC5, SocialHandler.handleStartSkit); // Start Skit
 

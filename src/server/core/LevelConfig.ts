@@ -18,6 +18,18 @@ export class LevelConfig {
     private static LEVELS: Record<string, LevelSpec> = {};
     private static SPAWN_POINTS: Record<string, SpawnPoint> = {}; // We'll hardcode some defaults or parse if available
     private static DOOR_MAP: Map<string, string> = new Map(); // Key: "LevelName_DoorID"
+    private static LEVEL_NAME_CANONICAL: Record<string, string> = {};
+    private static readonly LEVEL_ALIASES: Record<string, string> = {
+        "blackrosemire": "SwampRoadNorth",
+        "blackrosemirehard": "SwampRoadNorthHard",
+        "wolfsend": "NewbieRoad",
+        "wolfsendhard": "NewbieRoadHard",
+        "newbieroad": "NewbieRoad",
+        "newbieroadhard": "NewbieRoadHard"
+    };
+    private static readonly DOOR_FALLBACKS: Record<string, string> = {
+        "TutorialBoat_2": "NewbieRoad"
+    };
 
     // Hardcoded spawns from Python
     private static DEFAULT_SPAWNS: Record<string, SpawnPoint> = {
@@ -50,6 +62,7 @@ export class LevelConfig {
                     const isHard = parts.length > 4 && parts[4] === 'Hard';
 
                     LevelConfig.LEVELS[name] = { swf, mapId, baseId, isDungeon, isHard };
+                    LevelConfig.LEVEL_NAME_CANONICAL[name.toLowerCase()] = name;
                 }
             }
             console.log(`[LevelConfig] Loaded ${Object.keys(LevelConfig.LEVELS).length} levels.`);
@@ -85,6 +98,33 @@ export class LevelConfig {
         return this.LEVELS[levelName] || { swf: "", mapId: 0, baseId: 0, isDungeon: false, isHard: false };
     }
 
+    static has(levelName: string): boolean {
+        return Boolean(levelName) && Boolean(this.LEVELS[levelName]);
+    }
+
+    static normalizeLevelName(levelName: string | null | undefined): string {
+        if (levelName == null) {
+            return "";
+        }
+
+        const raw = String(levelName).trim();
+        if (!raw) {
+            return "";
+        }
+
+        if (this.LEVELS[raw]) {
+            return raw;
+        }
+
+        const canonical = this.LEVEL_NAME_CANONICAL[raw.toLowerCase()];
+        if (canonical) {
+            return canonical;
+        }
+
+        const compact = raw.toLowerCase().replace(/[^a-z0-9]+/g, "");
+        return this.LEVEL_ALIASES[compact] || raw;
+    }
+
     static getSpawn(levelName: string): SpawnPoint {
         // Check hardcoded defaults
         if (this.DEFAULT_SPAWNS[levelName]) {
@@ -99,6 +139,6 @@ export class LevelConfig {
         if (doorId === 999) return "CraftTown";
         
         const key = `${level}_${doorId}`;
-        return this.DOOR_MAP.get(key) || null;
+        return this.DOOR_MAP.get(key) || this.DOOR_FALLBACKS[key] || null;
     }
 }

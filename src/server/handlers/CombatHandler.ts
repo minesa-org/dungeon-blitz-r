@@ -63,6 +63,14 @@ export class CombatHandler {
         if (client.entities.has(entityId)) {
             client.entities.delete(entityId);
         }
+
+        if (client.currentLevel) {
+            const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+            levelMap?.delete(entityId);
+            if (levelMap && levelMap.size === 0) {
+                GlobalState.levelEntities.delete(client.currentLevel);
+            }
+        }
         
         // Broadcast
         CombatHandler.broadcastToLevel(client, 0x0D, data);
@@ -119,4 +127,3 @@ export class CombatHandler {
         }
     }
 }
-
