@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { MageGear, PaladinGear, RogueGear } from '../data/runtime';
 
 export class GameData {
     static readonly MONSTER_GOLD_TABLE: number[] = [0, 43, 46, 49, 53, 57, 61, 65, 70, 75, 80, 86, 92, 98, 106, 113, 121, 130, 139, 149, 160, 171, 184, 197, 211, 226, 243, 260, 279, 299, 320, 343, 368, 394, 422, 453, 485, 520, 557, 597, 640, 686, 735, 788, 844, 905, 970, 1040, 1114, 1194, 1280];
@@ -15,6 +16,11 @@ export class GameData {
         realm_drops: {},
         boss_drops: {},
         global_drops: []
+    };
+    private static readonly CLASS_GEAR_IDS: Record<string, Set<number>> = {
+        paladin: GameData.buildEnumValueSet(PaladinGear),
+        rogue: GameData.buildEnumValueSet(RogueGear),
+        mage: GameData.buildEnumValueSet(MageGear)
     };
 
     static load(dataDir: string) {
@@ -120,6 +126,39 @@ export class GameData {
         return { ...resolved, ...item };
     }
 
+    private static buildEnumValueSet(enumObject: Record<string, string | number>): Set<number> {
+        const ids = new Set<number>();
+        for (const value of Object.values(enumObject)) {
+            if (typeof value === 'number' && Number.isFinite(value)) {
+                ids.add(value);
+            }
+        }
+        return ids;
+    }
+
+    private static filterGearDropsForClass(dropIds: number[] | undefined, className: string | null | undefined): number[] {
+        if (!Array.isArray(dropIds) || dropIds.length === 0) {
+            return [];
+        }
+
+        const allowedIds = GameData.CLASS_GEAR_IDS[String(className ?? '').trim().toLowerCase()];
+        if (!allowedIds) {
+            return dropIds.filter((id) => Number.isFinite(Number(id))).map((id) => Number(id));
+        }
+
+        return dropIds
+            .map((id) => Number(id))
+            .filter((id) => Number.isFinite(id) && allowedIds.has(id));
+    }
+
+    private static pickRandomGearId(dropIds: number[] | undefined, className: string | null | undefined): number {
+        const filtered = GameData.filterGearDropsForClass(dropIds, className);
+        if (filtered.length === 0) {
+            return 0;
+        }
+        return filtered[Math.floor(Math.random() * filtered.length)] ?? 0;
+    }
+
     static getEntType(name: string): any {
         return GameData.ENTTYPES[name] || null;
     }
@@ -181,26 +220,29 @@ export class GameData {
         return Math.round(GameData.MONSTER_EXP_TABLE[index] * expMult);
     }
 
-    static getGearIdForEntity(entName: string): number {
+    static getGearIdForEntity(entName: string, className?: string): number {
         const entType = GameData.getEntType(entName);
         if (!entType) {
             return 0;
         }
 
         const bossDrops = GameData.GEAR_DATA.boss_drops?.[entName];
-        if (Array.isArray(bossDrops) && bossDrops.length > 0) {
-            return Number(bossDrops[Math.floor(Math.random() * bossDrops.length)] ?? 0);
+        const bossGearId = GameData.pickRandomGearId(bossDrops, className);
+        if (bossGearId > 0) {
+            return bossGearId;
         }
 
         const realm = String(entType.Realm ?? '');
         const realmDrops = GameData.GEAR_DATA.realm_drops?.[realm];
-        if (Array.isArray(realmDrops) && realmDrops.length > 0) {
-            return Number(realmDrops[Math.floor(Math.random() * realmDrops.length)] ?? 0);
+        const realmGearId = GameData.pickRandomGearId(realmDrops, className);
+        if (realmGearId > 0) {
+            return realmGearId;
         }
 
         const globalDrops = GameData.GEAR_DATA.global_drops;
-        if (Array.isArray(globalDrops) && globalDrops.length > 0) {
-            return Number(globalDrops[Math.floor(Math.random() * globalDrops.length)] ?? 0);
+        const globalGearId = GameData.pickRandomGearId(globalDrops, className);
+        if (globalGearId > 0) {
+            return globalGearId;
         }
 
         return 0;

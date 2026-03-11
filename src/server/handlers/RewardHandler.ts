@@ -215,12 +215,13 @@ export class RewardHandler {
         const entName = String(sourceEntity?.name ?? '');
         const entType = entName ? GameData.getEntType(entName) : null;
         const entLevel = Math.max(1, Number(entType?.Level ?? 1));
+        const playerClass = String(client.character?.class ?? '');
 
         if (reward.dropMaterial && entType?.Realm) {
             materialId = GameData.getRandomMaterialForRealm(String(entType.Realm));
         }
         if (reward.dropGear) {
-            gearId = GameData.getGearIdForEntity(entName);
+            gearId = GameData.getGearIdForEntity(entName, playerClass);
             gearTier = RewardHandler.resolveGearTier(entName, entLevel);
         }
 
@@ -253,7 +254,7 @@ export class RewardHandler {
         }
 
         if (!gearId && entName && Math.random() < 0.10) {
-            gearId = GameData.getGearIdForEntity(entName);
+            gearId = GameData.getGearIdForEntity(entName, playerClass);
             gearTier = RewardHandler.resolveGearTier(entName, entLevel);
         }
 

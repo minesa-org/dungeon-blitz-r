@@ -9,6 +9,7 @@ export interface MissionDef {
     highscore?: number;
     CompleteCount?: number;
     ReturnName?: string;
+    ReturnText?: string;
     ContactName?: string;
     Dungeon?: string;
     ZoneSet?: string;
@@ -65,6 +66,7 @@ export class MissionLoader {
                         highscore: completeCount,
                         CompleteCount: completeCount,
                         ReturnName: item.ReturnName || "",
+                        ReturnText: item.ReturnText || "",
                         ContactName: item.ContactName || "",
                         Dungeon: item.Dungeon || "",
                         ZoneSet: item.ZoneSet || "",
