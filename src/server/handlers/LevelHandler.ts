@@ -6,13 +6,14 @@ import { GlobalState } from '../core/GlobalState';
 import { WorldEnter } from '../utils/WorldEnter';
 import { Config } from '../core/config';
 import { NpcLoader, NpcDef } from '../data/NpcLoader';
+import { MissionID } from '../data/runtime';
 import { EntityHandler } from './EntityHandler';
 import { JsonAdapter } from '../database/JsonAdapter';
 
 const db = new JsonAdapter();
 
 export class LevelHandler {
-    private static readonly FIRST_KEEP_MISSION_ID = 5;
+    private static readonly FIRST_KEEP_MISSION_ID = MissionID.ClearYourHouse;
     private static readonly MISSION_NOT_STARTED = 0;
     private static readonly MISSION_IN_PROGRESS = 1;
 

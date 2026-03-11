@@ -3,6 +3,7 @@ import { LevelConfig } from '../core/LevelConfig';
 import { Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { MissionDef, MissionLoader } from '../data/MissionLoader';
+import { MissionID } from '../data/runtime';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 
@@ -26,8 +27,8 @@ export class MissionHandler {
         let didMutate = false;
         let addedMissionId = 0;
 
-        const mission1State = MissionHandler.getMissionState(character, 1);
-        const mission2State = MissionHandler.getMissionState(character, 2);
+        const mission1State = MissionHandler.getMissionState(character, MissionID.DefendTheShip);
+        const mission2State = MissionHandler.getMissionState(character, MissionID.MeetTheTown);
 
         const shouldBootstrapMission1 =
             mission1State === MissionHandler.MISSION_NOT_STARTED &&
@@ -43,16 +44,16 @@ export class MissionHandler {
         if (shouldBootstrapMission1) {
             MissionHandler.setMissionState(
                 character,
-                1,
+                MissionID.DefendTheShip,
                 MissionHandler.MISSION_IN_PROGRESS,
-                MissionLoader.getMissionDef(1),
+                MissionLoader.getMissionDef(MissionID.DefendTheShip),
                 { currCount: 0 }
             );
             if (character.questTrackerState == null) {
                 character.questTrackerState = 0;
             }
             didMutate = true;
-            addedMissionId = 1;
+            addedMissionId = MissionID.DefendTheShip;
         }
 
         if (
@@ -64,9 +65,9 @@ export class MissionHandler {
         ) {
             MissionHandler.setMissionState(
                 character,
-                1,
+                MissionID.DefendTheShip,
                 MissionHandler.MISSION_READY_TO_TURN_IN,
-                MissionLoader.getMissionDef(1),
+                MissionLoader.getMissionDef(MissionID.DefendTheShip),
                 { currCount: 1 }
             );
             didMutate = true;
@@ -114,14 +115,14 @@ export class MissionHandler {
         if (
             clearedDungeon &&
             currentLevel === 'TutorialBoat' &&
-            MissionHandler.getMissionState(client.character, 1) === MissionHandler.MISSION_NOT_STARTED &&
-            MissionHandler.getMissionState(client.character, 2) === MissionHandler.MISSION_NOT_STARTED
+            MissionHandler.getMissionState(client.character, MissionID.DefendTheShip) === MissionHandler.MISSION_NOT_STARTED &&
+            MissionHandler.getMissionState(client.character, MissionID.MeetTheTown) === MissionHandler.MISSION_NOT_STARTED
         ) {
             MissionHandler.setMissionState(
                 client.character,
-                1,
+                MissionID.DefendTheShip,
                 MissionHandler.MISSION_IN_PROGRESS,
-                MissionLoader.getMissionDef(1),
+                MissionLoader.getMissionDef(MissionID.DefendTheShip),
                 { currCount: 0 }
             );
             didMutate = true;
@@ -134,7 +135,7 @@ export class MissionHandler {
                 didMutate = true;
                 MissionHandler.sendMissionComplete(client, completedMissionId);
 
-                if (completedMissionId === 3) {
+                if (completedMissionId === MissionID.RescueAnna) {
                     const contactNpc = 'Anna';
                     const addedMissionId = MissionHandler.autoAcceptFollowupMission(
                         client.character,
@@ -151,7 +152,7 @@ export class MissionHandler {
                     }
                 }
 
-                if (completedMissionId !== 1) {
+                if (completedMissionId !== MissionID.DefendTheShip) {
                     MissionHandler.sendMissionCompleteUi(
                         client,
                         completedMissionId,

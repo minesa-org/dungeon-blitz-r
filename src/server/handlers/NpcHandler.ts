@@ -3,6 +3,7 @@ import { GlobalState } from '../core/GlobalState';
 import { Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { MissionDef, MissionLoader } from '../data/MissionLoader';
+import { MissionID } from '../data/runtime';
 import { NpcLoader } from '../data/NpcLoader';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
@@ -17,7 +18,7 @@ export class NpcHandler {
     private static readonly MISSION_IN_PROGRESS = 1;
     private static readonly MISSION_READY_TO_TURN_IN = 2;
     private static readonly MISSION_CLAIMED = 3;
-    private static readonly FIRST_MISSION_ID = 1;
+    private static readonly FIRST_MISSION_ID = MissionID.DefendTheShip;
     private static readonly FIRST_MISSION_NPC_KEY = 'captainfink';
     private static readonly RETURN_DIALOGUE_BASE_MS = 2000;
     private static readonly RETURN_DIALOGUE_CHAR_MS = 50;
