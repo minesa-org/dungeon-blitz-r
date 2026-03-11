@@ -65,21 +65,10 @@ export class MissionHandler {
             MissionHandler.setMissionState(
                 character,
                 1,
-                MissionHandler.MISSION_CLAIMED,
+                MissionHandler.MISSION_READY_TO_TURN_IN,
                 MissionLoader.getMissionDef(1),
                 { currCount: 1 }
             );
-            const mission2Def = MissionLoader.getMissionDef(2);
-            if (mission2Def && MissionHandler.canStartMission(character, mission2Def)) {
-                MissionHandler.setMissionState(
-                    character,
-                    2,
-                    MissionHandler.MISSION_IN_PROGRESS,
-                    mission2Def,
-                    { currCount: 0 }
-                );
-                addedMissionId = 2;
-            }
             didMutate = true;
         }
 
@@ -141,8 +130,8 @@ export class MissionHandler {
                 didMutate = true;
                 MissionHandler.sendMissionComplete(client, completedMissionId);
 
-                if (completedMissionId === 1 || completedMissionId === 3) {
-                    const contactNpc = completedMissionId === 1 ? 'CaptainFink' : 'Anna';
+                if (completedMissionId === 3) {
+                    const contactNpc = 'Anna';
                     const addedMissionId = MissionHandler.autoAcceptFollowupMission(
                         client.character,
                         contactNpc,
@@ -154,12 +143,14 @@ export class MissionHandler {
                     }
                 }
 
-                MissionHandler.sendMissionCompleteUi(
-                    client,
-                    completedMissionId,
-                    levelWidthScore || 3,
-                    bonusScoreTotal
-                );
+                if (completedMissionId !== 1) {
+                    MissionHandler.sendMissionCompleteUi(
+                        client,
+                        completedMissionId,
+                        levelWidthScore || 3,
+                        bonusScoreTotal
+                    );
+                }
             }
 
             if (MissionHandler.moveCharacterBackToSafeLevel(client.character, currentLevel)) {
@@ -198,11 +189,7 @@ export class MissionHandler {
             }
 
             const completionState = MissionHandler.missionRequiresTurnIn(missionDef)
-                ? (
-                    missionDef.Dungeon === 'TutorialBoat'
-                        ? MissionHandler.MISSION_CLAIMED
-                        : MissionHandler.MISSION_READY_TO_TURN_IN
-                )
+                ? MissionHandler.MISSION_READY_TO_TURN_IN
                 : MissionHandler.MISSION_CLAIMED;
 
             MissionHandler.setMissionState(character, missionId, completionState, missionDef, {

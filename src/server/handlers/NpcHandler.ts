@@ -17,6 +17,11 @@ export class NpcHandler {
     private static readonly MISSION_IN_PROGRESS = 1;
     private static readonly MISSION_READY_TO_TURN_IN = 2;
     private static readonly MISSION_CLAIMED = 3;
+    private static readonly FIRST_MISSION_ID = 1;
+    private static readonly FIRST_MISSION_NPC_KEY = 'captainfink';
+    private static readonly RETURN_DIALOGUE_BASE_MS = 2000;
+    private static readonly RETURN_DIALOGUE_CHAR_MS = 50;
+    private static readonly DEFAULT_TURN_IN_STARS = 3;
 
     static async handleTalkToNpc(client: Client, data: Buffer): Promise<void> {
         if (!client.character) {
@@ -32,6 +37,7 @@ export class NpcHandler {
         let missionId = 0;
         let didMutate = false;
         let npcKey = '';
+        let delayedFirstMissionTurnIn = false;
 
         if (npc) {
             npcKey = NpcHandler.normalizeNpcKey(
@@ -43,6 +49,13 @@ export class NpcHandler {
                     ''
                 )
             );
+
+            if (
+                npcKey === NpcHandler.FIRST_MISSION_NPC_KEY &&
+                client.pendingMissionTurnIns.has(NpcHandler.FIRST_MISSION_ID)
+            ) {
+                return;
+            }
 
             const matched = NpcHandler.findBestMission(client.character, npcKey);
             if (matched) {
@@ -62,23 +75,28 @@ export class NpcHandler {
                     (matched.state === NpcHandler.MISSION_IN_PROGRESS ||
                         matched.state === NpcHandler.MISSION_READY_TO_TURN_IN)
                 ) {
-                    NpcHandler.setMissionState(
-                        client.character,
-                        missionId,
-                        NpcHandler.MISSION_CLAIMED
-                    );
-                    NpcHandler.sendMissionComplete(client, missionId);
+                    if (missionId === NpcHandler.FIRST_MISSION_ID) {
+                        client.pendingMissionTurnIns.add(NpcHandler.FIRST_MISSION_ID);
+                        delayedFirstMissionTurnIn = true;
+                    } else {
+                        NpcHandler.setMissionState(
+                            client.character,
+                            missionId,
+                            NpcHandler.MISSION_CLAIMED
+                        );
+                        NpcHandler.sendMissionComplete(client, missionId);
 
-                    const followupMissionId = NpcHandler.autoAcceptFollowupMission(
-                        client.character,
-                        npcKey,
-                        missionId
-                    );
-                    if (followupMissionId) {
-                        NpcHandler.sendMissionAdded(client, followupMissionId);
+                        const followupMissionId = NpcHandler.autoAcceptFollowupMission(
+                            client.character,
+                            npcKey,
+                            missionId
+                        );
+                        if (followupMissionId) {
+                            NpcHandler.sendMissionAdded(client, followupMissionId);
+                        }
+
+                        didMutate = true;
                     }
-
-                    didMutate = true;
                 }
             }
         }
@@ -93,6 +111,9 @@ export class NpcHandler {
         }
 
         NpcHandler.sendStartSkit(client, npcId, dialogueId, missionId);
+        if (delayedFirstMissionTurnIn) {
+            NpcHandler.scheduleFirstMissionFollowup(client, npcKey);
+        }
     }
 
     private static findNpc(client: Client, levelName: string, npcId: number): ResolvedNpc | null {
@@ -274,6 +295,15 @@ export class NpcHandler {
         client.sendBitBuffer(0x86, bb);
     }
 
+    private static sendMissionCompleteUi(client: Client, missionId: number, stars: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(missionId);
+        bb.writeMethod11(1, 1);
+        bb.writeMethod6(Math.max(0, Math.min(stars, 15)), 4);
+        bb.writeMethod4(0);
+        client.sendBitBuffer(0x84, bb);
+    }
+
     private static sendStartSkit(client: Client, npcId: number, dialogueId: number, missionId: number): void {
         const bb = new BitBuffer();
         bb.writeMethod4(npcId);
@@ -287,6 +317,65 @@ export class NpcHandler {
         bb.writeMethod4(npcId);
         bb.writeMethod13(text);
         client.sendBitBuffer(0x76, bb);
+    }
+
+    private static scheduleFirstMissionFollowup(client: Client, npcKey: string): void {
+        const missionDef = MissionLoader.getMissionDef(NpcHandler.FIRST_MISSION_ID);
+        const delayMs = NpcHandler.estimateDialogueDelay(missionDef?.ReturnText ?? '');
+
+        setTimeout(() => {
+            void NpcHandler.finalizeFirstMissionTurnIn(client, npcKey);
+        }, delayMs);
+    }
+
+    private static async finalizeFirstMissionTurnIn(client: Client, npcKey: string): Promise<void> {
+        try {
+            if (!client.character) {
+                return;
+            }
+
+            NpcHandler.setMissionState(
+                client.character,
+                NpcHandler.FIRST_MISSION_ID,
+                NpcHandler.MISSION_CLAIMED
+            );
+
+            const followupMissionId = NpcHandler.autoAcceptFollowupMission(
+                client.character,
+                npcKey,
+                NpcHandler.FIRST_MISSION_ID
+            );
+
+            if (client.userId) {
+                await db.saveCharacters(client.userId, client.characters);
+            }
+
+            if (!client.socket.destroyed) {
+                NpcHandler.sendMissionCompleteUi(
+                    client,
+                    NpcHandler.FIRST_MISSION_ID,
+                    NpcHandler.DEFAULT_TURN_IN_STARS
+                );
+                if (followupMissionId) {
+                    NpcHandler.sendMissionAdded(client, followupMissionId);
+                }
+            }
+        } finally {
+            client.pendingMissionTurnIns.delete(NpcHandler.FIRST_MISSION_ID);
+        }
+    }
+
+    private static estimateDialogueDelay(text: string): number {
+        const firstLine = String(text ?? '')
+            .split('=')
+            .map((segment) => segment.trim())
+            .find(Boolean);
+
+        if (!firstLine) {
+            return 0;
+        }
+
+        return NpcHandler.RETURN_DIALOGUE_BASE_MS + firstLine.length * NpcHandler.RETURN_DIALOGUE_CHAR_MS;
     }
 
     private static getFallbackLine(npcKey: string): string {

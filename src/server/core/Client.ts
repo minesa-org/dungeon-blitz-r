@@ -37,6 +37,7 @@ export class Client {
     public startedRoomEvents: Set<string> = new Set();
     public pendingLoot: Map<number, PendingLootDrop> = new Map();
     public processedRewardSources: Set<string> = new Set();
+    public pendingMissionTurnIns: Set<number> = new Set();
     public authoritativeMaxHp: number = 100;
     public authoritativeCurrentHp: number = 100;
 
@@ -108,6 +109,7 @@ export class Client {
         this.entities.clear();
         this.pendingLoot.clear();
         this.processedRewardSources.clear();
+        this.pendingMissionTurnIns.clear();
 
         console.log(`[Client] Disconnected`);
     }
