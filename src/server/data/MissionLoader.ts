@@ -4,15 +4,28 @@ import path from 'path';
 export interface MissionDef {
     MissionName: string;
     MissionID: number;
-    Tier?: number;
-    Time?: number;
-    highscore?: number; // Lowercase to match usage
+    Tier?: boolean;
+    Time?: boolean;
+    highscore?: number;
     CompleteCount?: number;
+    ReturnName?: string;
 }
 
 export class MissionLoader {
     private static missions: Map<number, MissionDef> = new Map();
     private static maxId: number = 0;
+
+    private static isTruthy(value: unknown): boolean {
+        if (typeof value === 'boolean') {
+            return value;
+        }
+        if (value === null || value === undefined) {
+            return false;
+        }
+
+        const normalized = String(value).trim().toLowerCase();
+        return ["1", "true", "yes", "y", "t"].includes(normalized);
+    }
 
     static load(dataDir: string): void {
         const filePath = path.join(dataDir, 'MissionTypes.json');
@@ -23,13 +36,15 @@ export class MissionLoader {
             for (const item of json) {
                 const id = parseInt(item.MissionID);
                 if (!isNaN(id)) {
+                    const completeCount = Math.max(1, parseInt(item.CompleteCount ?? "1", 10) || 1);
                     this.missions.set(id, {
                         MissionName: item.MissionName,
                         MissionID: id,
-                        Tier: item.Tier ? parseInt(item.Tier) : 0,
-                        Time: item.Time ? parseInt(item.Time) : 0,
-                        highscore: item.Highscore ? parseInt(item.Highscore) : (item.highscore ? parseInt(item.highscore) : 0),
-                        CompleteCount: item.CompleteCount ? parseInt(item.CompleteCount) : 1
+                        Tier: this.isTruthy(item.Achievement),
+                        Time: this.isTruthy(item.Timed) || Boolean(item.Dungeon),
+                        highscore: completeCount,
+                        CompleteCount: completeCount,
+                        ReturnName: item.ReturnName || ""
                     });
                     if (id > this.maxId) this.maxId = id;
                 }

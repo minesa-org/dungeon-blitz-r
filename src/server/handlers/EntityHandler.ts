@@ -133,18 +133,7 @@ export class EntityHandler {
             console.log(`[EntityHandler] Initializing ${npcs.length} NPCs for ${levelName}`);
             
             for (const npc of npcs) {
-                const entityProps: any = {
-                    id: npc.id,
-                    name: npc.name,
-                    isPlayer: false,
-                    x: npc.x,
-                    y: npc.y,
-                    v: 0,
-                    team: 2, // Enemy
-                    renderDepthOffset: 0,
-                    entState: 0,
-                    facingLeft: false,
-                };
+                const entityProps = Entity.fromNpc(npc);
                 levelMap.set(npc.id, entityProps);
             }
         }

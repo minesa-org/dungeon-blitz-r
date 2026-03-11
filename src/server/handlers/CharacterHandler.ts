@@ -172,6 +172,9 @@ export class CharacterHandler {
         client.userId = entry.userId;
         client.token = token;
         client.clientEntID = token; // Client uses token as Entity ID
+        client.currentLevel = entry.targetLevel;
+        client.playerSpawned = false;
+        client.entities.clear();
         
         GlobalState.sessionsByToken.set(token, client);
         if (client.userId) {
@@ -179,6 +182,7 @@ export class CharacterHandler {
             // Ensure persistence mapping exists
             GlobalState.tokenChar.set(token, { character: entry.character, userId: client.userId });
         }
+        GlobalState.pendingWorld.delete(token);
         
         console.log(`[GameLogin] Client logged in with token ${token} as ${client.character.name}`);
 
@@ -204,12 +208,5 @@ export class CharacterHandler {
         
         // Spawn NPCs
         LevelHandler.spawnLevelNpcs(client, entry.targetLevel);
-
-        // Spawn Pet
-        // We need to import PetHandler but circular dependency might be issue if top-level. 
-        // CharacterHandler imports PetHandler? Let's check imports.
-        // It's not imported at top.
-        const { PetHandler } = require('./PetHandler');
-        PetHandler.spawnPet(client);
     }
 }

@@ -121,26 +121,52 @@ export class Entity {
     }
 
     static fromNpc(npc: any): EntityProps {
+        const cueData = (npc && typeof npc.cue_data === 'object') ? npc.cue_data : {};
+        const isPlayer = Boolean(npc?.is_player);
         return {
-            id: npc.id,
-            name: npc.name,
-            isPlayer: false,
-            x: npc.x,
-            y: npc.y,
-            v: npc.v || 0,
-            team: npc.team,
-            renderDepthOffset: npc.render_depth_offset || 0,
-            characterName: npc.character_name,
-            dramaAnim: npc.DramaAnim,
-            sleepAnim: npc.SleepAnim,
-            summonerId: npc.summonerId,
-            powerId: npc.power_id,
-            entState: npc.entState,
-            facingLeft: !!npc.facing_left,
-            untargetable: !!npc.untargetable,
-            behaviorSpeed: npc.behavior_speed || 0,
-            healthDelta: npc.health_delta || 0,
-            buffs: npc.buffs || []
+            id: Number(npc?.id ?? 0),
+            name: String(npc?.name ?? ''),
+            isPlayer,
+            x: Number(npc?.x ?? npc?.pos_x ?? 0),
+            y: Number(npc?.y ?? npc?.pos_y ?? 0),
+            v: Number(npc?.v ?? npc?.velocity_x ?? 0),
+            team: Number(npc?.team ?? 0),
+            renderDepthOffset: Number(npc?.render_depth_offset ?? 0),
+            characterName: String(npc?.character_name ?? cueData.character_name ?? ''),
+            dramaAnim: String(npc?.DramaAnim ?? cueData.DramaAnim ?? ''),
+            sleepAnim: String(npc?.SleepAnim ?? cueData.SleepAnim ?? ''),
+            summonerId: Number(npc?.summonerId ?? 0),
+            powerId: Number(npc?.power_id ?? 0),
+            entState: Number(npc?.entState ?? 0),
+            facingLeft: Boolean(npc?.facing_left),
+            noJumpAttack: Boolean(npc?.noJumpAttack),
+            untargetable: Boolean(npc?.untargetable),
+            behaviorSpeed: Number(npc?.behavior_speed ?? 0),
+            healthDelta: Number(npc?.health_delta ?? 0),
+            buffs: Array.isArray(npc?.buffs) ? npc.buffs : [],
+            idleReset: Boolean(npc?.idle_reset),
+            spawnFx: Boolean(npc?.spawn_fx),
+            class: String(npc?.class ?? ''),
+            gender: String(npc?.gender ?? ''),
+            headSet: String(npc?.headSet ?? ''),
+            hairSet: String(npc?.hairSet ?? ''),
+            mouthSet: String(npc?.mouthSet ?? ''),
+            faceSet: String(npc?.faceSet ?? ''),
+            hairColor: Number(npc?.hairColor ?? 0),
+            skinColor: Number(npc?.skinColor ?? 0),
+            shirtColor: Number(npc?.shirtColor ?? 0),
+            pantColor: Number(npc?.pantColor ?? 0),
+            equippedGears: Array.isArray(npc?.equippedGears) ? npc.equippedGears : [],
+            abilities: Array.isArray(npc?.abilities) ? npc.abilities : [],
+            level: Number(npc?.level ?? 1),
+            masterClass: Number(npc?.MasterClass ?? 0),
+            talents: Array.isArray(npc?.talents) ? npc.talents : [],
+            equippedMount: Number(npc?.equippedMount ?? npc?.MountID ?? 0),
+            activeConsumableId: Number(npc?.activeConsumableID ?? 0),
+            activePet: {
+                petID: 0,
+                special_id: 0
+            }
         };
     }
 

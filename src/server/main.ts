@@ -48,7 +48,14 @@ router.register(0x1f, CharacterHandler.handleGameServerLogin); // Game Server Lo
 // Missing Packets
 router.register(0x8, EntityHandler.handleEntityFullUpdate); // Entity Full Update
 router.register(0xA2, CommandHandler.handleLinkUpdater); // Link Updater
+router.register(0x10E, CommandHandler.handleQueuePotion); // Queue Potion
 router.register(0x41, LevelHandler.handleRequestDoorState); // Request Door State
+router.register(0x40, SocialHandler.handleLevelState); // Level State
+router.register(0x76, SocialHandler.handleRoomThought); // Room Thought
+router.register(0x7E, SocialHandler.handleEmoteBegin); // Emote Begin
+router.register(0x7F, SocialHandler.handleEmoteEnd); // Emote End
+router.register(0xA7, SocialHandler.handleEmote); // Emote
+router.register(0xC5, SocialHandler.handleStartSkit); // Start Skit
 
 router.register(0xF3, SocialHandler.handleRequestVisitPlayerHouse); // Visit House
 router.register(0x2D, LevelHandler.handleOpenDoor); // Open Door
@@ -108,4 +115,3 @@ staticServer.start();
 const gameServer = new GameServer(Config.PORTS[0], router);
 AILogic.start();
 gameServer.start();
-

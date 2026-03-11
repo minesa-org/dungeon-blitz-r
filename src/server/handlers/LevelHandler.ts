@@ -187,13 +187,6 @@ export class LevelHandler {
         );
 
         client.sendBitBuffer(0x21, pkt);
-        
-        // Spawn Entities for new level?
-        // Moved to EntityHandler.handleEntityFullUpdate (triggered by client 0x8)
-        
-        // However, we must spawn the user's pet again for the new level
-        const { PetHandler } = require('./PetHandler');
-        PetHandler.spawnPet(client);
     }
 
     // 0x07: Incremental Update (Movement)
