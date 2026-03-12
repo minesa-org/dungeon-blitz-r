@@ -72,6 +72,7 @@ router.register(0xAD, LevelHandler.handleRoomUnlock); // Room Unlock
 router.register(0xAE, LevelHandler.handleSetUntargetable); // Set Untargetable
 router.register(0x40, SocialHandler.handleLevelState); // Level State
 router.register(0x76, SocialHandler.handleRoomThought); // Room Thought
+router.register(0x7D, LevelHandler.handleChangeOffsetY); // Change Offset Y
 router.register(0x7E, SocialHandler.handleEmoteBegin); // Emote Begin
 router.register(0x7F, SocialHandler.handleEmoteEnd); // Emote End
 router.register(0x7A, NpcHandler.handleTalkToNpc); // Talk To NPC

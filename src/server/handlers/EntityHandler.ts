@@ -1,6 +1,6 @@
 import { NpcLoader, NpcDef } from '../data/NpcLoader';
 import { BitBuffer } from '../network/protocol/bitBuffer';
-import { Client } from '../core/Client';
+import { Client, createKeepTutorialState } from '../core/Client';
 import { BitReader } from '../network/protocol/bitReader';
 import { GlobalState } from '../core/GlobalState';
 import { Entity, EntityProps, EntityState } from '../core/Entity';
@@ -8,7 +8,6 @@ import { PetHandler } from './PetHandler';
 
 export class EntityHandler {
     private static readonly CLIENT_SPAWN_LEVELS = new Set<string>([
-        'CraftTownTutorial',
         'NewbieRoad',
         'NewbieRoadHard'
     ]);
@@ -22,6 +21,113 @@ export class EntityHandler {
 
     private static usesClientSpawn(levelName: string): boolean {
         return EntityHandler.CLIENT_SPAWN_LEVELS.has(levelName);
+    }
+
+    private static getCraftTownTutorialState(client: Client) {
+        if (client.currentLevel !== 'CraftTownTutorial') {
+            return null;
+        }
+
+        if (!client.keepTutorialState) {
+            client.keepTutorialState = createKeepTutorialState();
+        }
+
+        return client.keepTutorialState;
+    }
+
+    private static sendStartSkit(client: Client, entityId: number, dialogueId: number, missionId: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(entityId);
+        bb.writeMethod6(dialogueId, 3);
+        bb.writeMethod4(missionId);
+        client.sendBitBuffer(0x7B, bb);
+    }
+
+    private static sendRoomBossInfo(levelName: string, roomId: number, bossId: number, bossName: string): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(Math.max(0, roomId));
+        bb.writeMethod4(bossId);
+        bb.writeMethod26(bossName);
+        bb.writeMethod4(0);
+        bb.writeMethod26('');
+        const payload = bb.toBuffer();
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || other.currentLevel !== levelName) {
+                continue;
+            }
+            other.send(0xAC, payload);
+        }
+    }
+
+    private static sendRoomSound(levelName: string, roomId: number, soundName: string, volume: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(Math.max(0, roomId));
+        bb.writeMethod13(soundName);
+        bb.writeMethod4(Math.max(0, Math.min(100, Math.round(volume * 100))));
+        const payload = bb.toBuffer();
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || other.currentLevel !== levelName) {
+                continue;
+            }
+            other.send(0xA8, payload);
+        }
+    }
+
+    private static sendNpcState(client: Client, entityId: number, entState: number, facingLeft: boolean): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(entityId);
+        bb.writeMethod45(0);
+        bb.writeMethod45(0);
+        bb.writeMethod45(0);
+        bb.writeMethod6(entState, 2);
+        bb.writeMethod15(facingLeft);
+        bb.writeMethod15(false);
+        bb.writeMethod15(false);
+        bb.writeMethod15(false);
+        bb.writeMethod15(false);
+        bb.writeMethod15(false);
+        client.sendBitBuffer(0x07, bb);
+    }
+
+    private static sendSetUntargetable(client: Client, entityId: number, untargetable: boolean): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(entityId);
+        bb.writeMethod15(untargetable);
+        client.sendBitBuffer(0xAE, bb);
+    }
+
+    private static sendDestroyEntity(client: Client, entityId: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(entityId);
+        bb.writeMethod15(false);
+        client.send(0x0D, bb.toBuffer());
+    }
+
+    private static suppressCraftTownTutorialBoss(client: Client, entityId: number): void {
+        client.entities.delete(entityId);
+        GlobalState.levelEntities.get(client.currentLevel)?.delete(entityId);
+        EntityHandler.sendDestroyEntity(client, entityId);
+    }
+
+    private static handleCraftTownTutorialEntitySeen(client: Client, entityId: number, entityName: string): void {
+        const state = EntityHandler.getCraftTownTutorialState(client);
+        if (!state) {
+            return;
+        }
+
+        if (entityName === 'IntroParrot' && !state.introSkitSent) {
+            EntityHandler.sendStartSkit(client, entityId, 0, 5);
+            state.introSkitSent = true;
+        }
+
+        if (entityName !== 'GoblinShamanHood' && entityName !== 'IntroGoblinShamanHood') {
+            return;
+        }
+
+        // Keep tutorial boss should only appear through the scripted server intro.
+        EntityHandler.suppressCraftTownTutorialBoss(client, entityId);
     }
     
     // Server -> Client: Spawn Entity (Packet 0xF)
@@ -150,6 +256,13 @@ export class EntityHandler {
             };
 
         client.entities.set(entityId, props);
+
+        if (!isPlayer) {
+            client.clientSpawnConfirmed = true;
+            if (client.currentLevel === 'CraftTownTutorial') {
+                EntityHandler.handleCraftTownTutorialEntitySeen(client, entityId, String(props.name ?? ''));
+            }
+        }
 
         // Update GlobalState
         if (client.currentLevel) {

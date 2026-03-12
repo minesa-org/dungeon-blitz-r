@@ -11,6 +11,54 @@ export interface PendingLootDrop {
     material?: number;
 }
 
+export interface KeepTutorialState {
+    phase: number;
+    bossDefeated: boolean;
+    bossIntroForced: boolean;
+    bossRecoveryArmed: boolean;
+    forcedLastGuyId: number | null;
+    bossEntitySeen: number | null;
+    bossEntitySource: 'client' | 'fallback' | null;
+    introSkitSent: boolean;
+    bossMusicStarted: boolean;
+    bossInfoSentIds: Set<number>;
+    recoverySpawnTimer: NodeJS.Timeout | null;
+    recoveryActivateTimer: NodeJS.Timeout | null;
+}
+
+export function createKeepTutorialState(): KeepTutorialState {
+    return {
+        phase: 0,
+        bossDefeated: false,
+        bossIntroForced: false,
+        bossRecoveryArmed: false,
+        forcedLastGuyId: null,
+        bossEntitySeen: null,
+        bossEntitySource: null,
+        introSkitSent: false,
+        bossMusicStarted: false,
+        bossInfoSentIds: new Set<number>(),
+        recoverySpawnTimer: null,
+        recoveryActivateTimer: null
+    };
+}
+
+export function clearKeepTutorialTimers(state: KeepTutorialState | null | undefined): void {
+    if (!state) {
+        return;
+    }
+
+    if (state.recoverySpawnTimer) {
+        clearTimeout(state.recoverySpawnTimer);
+        state.recoverySpawnTimer = null;
+    }
+
+    if (state.recoveryActivateTimer) {
+        clearTimeout(state.recoveryActivateTimer);
+        state.recoveryActivateTimer = null;
+    }
+}
+
 export class Client {
     public socket: net.Socket;
     public router: PacketRouter;
@@ -41,6 +89,8 @@ export class Client {
     public pendingMissionTurnIns: Set<number> = new Set();
     public authoritativeMaxHp: number = 100;
     public authoritativeCurrentHp: number = 100;
+    public clientSpawnConfirmed: boolean = false;
+    public keepTutorialState: KeepTutorialState | null = null;
 
     constructor(socket: net.Socket, router: PacketRouter) {
         this.socket = socket;
@@ -108,6 +158,9 @@ export class Client {
         this.pendingLoot.clear();
         this.processedRewardSources.clear();
         this.pendingMissionTurnIns.clear();
+        this.clientSpawnConfirmed = false;
+        clearKeepTutorialTimers(this.keepTutorialState);
+        this.keepTutorialState = null;
 
         console.log(`[Client] Disconnected`);
     }

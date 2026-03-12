@@ -1,4 +1,4 @@
-import { Client } from '../core/Client';
+import { Client, clearKeepTutorialTimers, createKeepTutorialState } from '../core/Client';
 import { CharacterTemplates } from '../core/CharacterTemplates';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
@@ -291,6 +291,9 @@ export class CharacterHandler {
         client.lastDoorTargetLevel = '';
         client.playerSpawned = false;
         client.entities.clear();
+        client.clientSpawnConfirmed = false;
+        clearKeepTutorialTimers(client.keepTutorialState);
+        client.keepTutorialState = entry.targetLevel === 'CraftTownTutorial' ? createKeepTutorialState() : null;
         client.startedRoomEvents.clear();
         client.pendingLoot.clear();
         client.processedRewardSources.clear();
@@ -350,5 +353,6 @@ export class CharacterHandler {
         // Spawn NPCs
         LevelHandler.spawnLevelNpcs(client, entry.targetLevel);
         LevelHandler.primeTutorialRoomEvents(client);
+        await LevelHandler.prepareCraftTownTutorialEntry(client);
     }
 }

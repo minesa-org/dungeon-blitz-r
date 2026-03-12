@@ -88,6 +88,14 @@ export class CombatHandler {
     static async handleEntityDestroy(client: Client, data: Buffer): Promise<void> {
         const br = new BitReader(data);
         const entityId = br.readMethod9();
+        const destroyedEntity = client.entities.get(entityId);
+
+        if (client.currentLevel === 'CraftTownTutorial' && client.keepTutorialState) {
+            const entityName = String(destroyedEntity?.name ?? '');
+            if (entityName === 'GoblinShamanHood' || entityName === 'IntroGoblinShamanHood') {
+                client.keepTutorialState.bossDefeated = true;
+            }
+        }
         
         // Remove from server session map if present
         if (client.entities.has(entityId)) {

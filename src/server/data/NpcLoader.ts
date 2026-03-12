@@ -23,6 +23,7 @@ export interface NpcDef {
 }
 
 export class NpcLoader {
+    private static levelsFiltered: Map<string, NpcDef[]> = new Map();
     private static levelsRaw: Map<string, NpcDef[]> = new Map();
 
     private static filterLevelNpcs(levelName: string, npcs: any[]): any[] {
@@ -41,6 +42,29 @@ export class NpcLoader {
         }
 
         return filtered;
+    }
+
+    private static normalizeNpcList(npcs: any[]): NpcDef[] {
+        return npcs.map((item: any) => ({
+            ...item,
+            id: Number(item.id ?? 0),
+            name: String(item.name ?? ""),
+            x: Number(item.x ?? item.pos_x ?? 0),
+            y: Number(item.y ?? item.pos_y ?? 0),
+            v: Number(item.v ?? item.velocity_x ?? 0),
+            team: Number(item.team ?? 0),
+            untargetable: Boolean(item.untargetable),
+            render_depth_offset: Number(item.render_depth_offset ?? 0),
+            character_name: String(item.character_name ?? ""),
+            DramaAnim: String(item.DramaAnim ?? ""),
+            SleepAnim: String(item.SleepAnim ?? ""),
+            summonerId: Number(item.summonerId ?? 0),
+            power_id: Number(item.power_id ?? 0),
+            entState: Number(item.entState ?? 0),
+            facing_left: Boolean(item.facing_left),
+            health_delta: Number(item.health_delta ?? 0),
+            buffs: Array.isArray(item.buffs) ? item.buffs : []
+        }));
     }
 
     static load(serverDataDir: string) {
@@ -63,30 +87,11 @@ export class NpcLoader {
                         const content = fs.readFileSync(filePath, 'utf-8');
                         const data = JSON.parse(content);
                         if (Array.isArray(data)) {
-                             const filtered = this.filterLevelNpcs(levelName, data);
-                             // Map ensures numeric types where needed
-                             const cached: NpcDef[] = filtered.map((item: any) => ({
-                                 ...item,
-                                 id: Number(item.id ?? 0),
-                                 name: String(item.name ?? ""),
-                                 x: Number(item.x ?? 0),
-                                 y: Number(item.y ?? 0),
-                                 v: Number(item.v ?? 0),
-                                 team: Number(item.team ?? 0),
-                                 untargetable: Boolean(item.untargetable),
-                                 render_depth_offset: Number(item.render_depth_offset ?? 0),
-                                 character_name: String(item.character_name ?? ""),
-                                 DramaAnim: String(item.DramaAnim ?? ""),
-                                 SleepAnim: String(item.SleepAnim ?? ""),
-                                 summonerId: Number(item.summonerId ?? 0),
-                                 power_id: Number(item.power_id ?? 0),
-                                 entState: Number(item.entState ?? 0),
-                                 facing_left: Boolean(item.facing_left),
-                                 health_delta: Number(item.health_delta ?? 0),
-                                 buffs: Array.isArray(item.buffs) ? item.buffs : []
-                             }));
-                             
-                             this.levelsRaw.set(levelName, cached);
+                             this.levelsRaw.set(levelName, this.normalizeNpcList(data));
+                             this.levelsFiltered.set(
+                                 levelName,
+                                 this.normalizeNpcList(this.filterLevelNpcs(levelName, data))
+                             );
                         }
                     } catch (err) {
                         console.error(`[NpcLoader] Error loading ${file}:`, err);
@@ -100,6 +105,10 @@ export class NpcLoader {
     }
 
     static getNpcsForLevel(levelName: string): NpcDef[] {
+        return this.levelsFiltered.get(levelName) || [];
+    }
+
+    static getRawNpcsForLevel(levelName: string): NpcDef[] {
         return this.levelsRaw.get(levelName) || [];
     }
 }
