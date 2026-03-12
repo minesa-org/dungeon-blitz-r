@@ -5,6 +5,36 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 
 
 export class CombatHandler {
+    private static readonly RESPAWN_ENEMY_HEAL = 1_000_000;
+
+    private static sendCharRegen(client: Client, entityId: number, amount: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(entityId);
+        bb.writeMethod24(amount);
+        client.sendBitBuffer(0x3B, bb);
+    }
+
+    private static resetLevelEnemiesForRespawn(client: Client): void {
+        if (!client.currentLevel) {
+            return;
+        }
+
+        const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        if (!levelMap) {
+            return;
+        }
+
+        for (const [entityId, entity] of levelMap.entries()) {
+            if (entityId <= 0 || entityId === client.clientEntID) {
+                continue;
+            }
+            if (Boolean(entity?.isPlayer) || Number(entity?.team ?? 0) !== 2) {
+                continue;
+            }
+
+            CombatHandler.sendCharRegen(client, entityId, CombatHandler.RESPAWN_ENEMY_HEAL);
+        }
+    }
 
     
     // 0x9: Power Cast
@@ -81,8 +111,10 @@ export class CombatHandler {
         const br = new BitReader(data);
         const usePotion = br.readMethod15();
         
-        // Logic to consume potion?
-        // For now, just send RespawnComplete (0x80)
+        if (!usePotion) {
+            client.processedRewardSources.clear();
+            CombatHandler.resetLevelEnemiesForRespawn(client);
+        }
         
         const healAmount = 100; // Placeholder or calculate from level
         

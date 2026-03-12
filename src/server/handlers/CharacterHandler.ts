@@ -183,6 +183,13 @@ export class CharacterHandler {
             console.log(`[CharacterSelect] Placeholder name '${charName || '(empty)'}' received for user ${client.userId}; falling back to ${char.name}`);
         }
 
+        if (!char && client.characters.length === 1) {
+            char = client.characters[0];
+            console.log(
+                `[CharacterSelect] Requested '${charName || '(empty)'}' for user ${client.userId} did not match the only saved character; falling back to ${char.name}`
+            );
+        }
+
         if (!char) {
             const availableNames = client.characters.map((entry) => entry.name).filter(Boolean);
             console.log(`[CharacterSelect] Character ${charName} not found for user ${client.userId}. Available: ${availableNames.join(', ') || '(none)'}`);

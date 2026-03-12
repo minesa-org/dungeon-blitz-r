@@ -13,7 +13,7 @@ interface RewardRequest {
     dropItem: boolean;
     itemMultiplier: number;
     dropGear: boolean;
-    gearMultiplier: number;
+    gearMultiplier: number; // Legacy packet field; client fills this with material-find multiplier.
     dropMaterial: boolean;
     dropTrove: boolean;
     exp: number;
@@ -35,6 +35,12 @@ interface LootReward {
 
 export class RewardHandler {
     private static nextLootId = 900000;
+    private static readonly MATERIAL_DROP_CHANCE_BY_RANK: Record<string, number> = {
+        Minion: 0.2,
+        Lieutenant: 0.6,
+        MiniBoss: 0.8,
+        Boss: 1
+    };
     private static readonly DUNGEON_REALM_MAP: Record<string, string> = {
         GoblinRiverDungeon: 'Goblin',
         GoblinRiverDungeonHard: 'Goblin',
@@ -180,6 +186,17 @@ export class RewardHandler {
         return 0;
     }
 
+    private static sanitizeDropMultiplier(value: number | undefined): number {
+        return Number.isFinite(value) && Number(value) > 0 ? Number(value) : 1;
+    }
+
+    private static resolveMaterialDropChance(entType: any, reward: RewardRequest): number {
+        const rank = String(entType?.EntRank ?? 'Minion');
+        const baseChance = RewardHandler.MATERIAL_DROP_CHANCE_BY_RANK[rank] ?? RewardHandler.MATERIAL_DROP_CHANCE_BY_RANK.Minion;
+        const multiplier = RewardHandler.sanitizeDropMultiplier(reward.gearMultiplier);
+        return Math.max(0, Math.min(1, baseChance * multiplier));
+    }
+
     private static spawnLoot(client: Client, x: number, y: number, reward: LootReward, offsetX: number = 0, offsetY: number = 0): void {
         const lootId = ++RewardHandler.nextLootId;
         client.pendingLoot.set(lootId, reward);
@@ -216,9 +233,11 @@ export class RewardHandler {
         const entType = entName ? GameData.getEntType(entName) : null;
         const entLevel = Math.max(1, Number(entType?.Level ?? 1));
         const playerClass = String(client.character?.class ?? '');
+        const realm = String(entType?.Realm ?? RewardHandler.DUNGEON_REALM_MAP[client.currentLevel] ?? '');
+        const materialChance = realm ? RewardHandler.resolveMaterialDropChance(entType, reward) : 0;
 
-        if (reward.dropMaterial && entType?.Realm) {
-            materialId = GameData.getRandomMaterialForRealm(String(entType.Realm));
+        if (realm && materialChance > 0 && Math.random() < materialChance) {
+            materialId = GameData.getRandomMaterialForRealm(realm);
         }
         if (reward.dropGear) {
             gearId = GameData.getGearIdForEntity(entName, playerClass);
@@ -243,13 +262,6 @@ export class RewardHandler {
                 const baseGold = GameData.MONSTER_GOLD_TABLE[index];
                 const rollBase = 0.4 * baseGold * 0.5;
                 gold = Math.max(1, Math.floor(rollBase + (rollBase * 2 + 1) * Math.random()));
-            }
-        }
-
-        if (!materialId) {
-            const realm = String(entType?.Realm ?? RewardHandler.DUNGEON_REALM_MAP[client.currentLevel] ?? '');
-            if (realm && Math.random() < 0.30) {
-                materialId = GameData.getRandomMaterialForRealm(realm);
             }
         }
 

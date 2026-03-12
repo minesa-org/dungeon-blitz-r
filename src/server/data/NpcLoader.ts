@@ -36,7 +36,7 @@ export class NpcLoader {
         }
 
         if (levelName === 'TutorialDungeon') {
-            const bakedNpcs = new Set(['IntroParrot', 'IntroGoblinNPC']);
+            const bakedNpcs = new Set(['IntroParrot', 'IntroGoblinNPC', 'NPCAnna']);
             filtered = filtered.filter((npc) => !bakedNpcs.has(String(npc?.name ?? '')));
         }
 
