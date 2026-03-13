@@ -26,9 +26,8 @@ export class LevelHandler {
     private static readonly MISSION_NOT_STARTED = 0;
     private static readonly MISSION_IN_PROGRESS = 1;
     private static readonly KEEP_TUTORIAL_BOSS_TRIGGER_X = -3200;
-    private static readonly KEEP_TUTORIAL_RECOVERY_PRESPAWN_MS = 250;
-    private static readonly KEEP_TUTORIAL_RECOVERY_CUTSCENE_MS = 5900;
-    private static readonly KEEP_TUTORIAL_RECOVERY_POST_MS = 5000;
+    private static readonly KEEP_TUTORIAL_CUTSCENE_STEP_MS = 250;
+    private static readonly KEEP_TUTORIAL_BOSS_INTRO_TOTAL_MS = 14750;
     private static readonly KEEP_TUTORIAL_BOSS_SOUND = 'D02_MoodLoop_GoblinHideout';
     private static readonly KEEP_TUTORIAL_BOSS_NAME = 'Ranik, The Geomancer';
     private static readonly KEEP_TUTORIAL_FIRST_PARROT_X = -965;
@@ -117,6 +116,61 @@ export class LevelHandler {
         }
     }
 
+    private static sendRoomThought(levelName: string, entityId: number, text: string): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(entityId);
+        bb.writeMethod13(text);
+        const payload = bb.toBuffer();
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || other.currentLevel !== levelName) {
+                continue;
+            }
+            other.send(0x76, payload);
+        }
+    }
+
+    private static sendRoomCutSceneStart(levelName: string, roomId: number, allowRoomInput: boolean): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod9(Math.max(0, roomId));
+        bb.writeMethod15(allowRoomInput);
+        const payload = bb.toBuffer();
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || other.currentLevel !== levelName) {
+                continue;
+            }
+            other.send(0xA5, payload);
+        }
+    }
+
+    private static sendRoomCutSceneEnd(levelName: string, roomId: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod9(Math.max(0, roomId));
+        const payload = bb.toBuffer();
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || other.currentLevel !== levelName) {
+                continue;
+            }
+            other.send(0xA6, payload);
+        }
+    }
+
+    private static sendRoomCamera(levelName: string, roomId: number, cameraId: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod9(Math.max(0, roomId));
+        bb.writeMethod9(Math.max(0, cameraId));
+        const payload = bb.toBuffer();
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || other.currentLevel !== levelName) {
+                continue;
+            }
+            other.send(0xA9, payload);
+        }
+    }
+
     private static sendNpcState(client: Client, entityId: number, entState: number, facingLeft: boolean): void {
         const bb = new BitBuffer(false);
         bb.writeMethod4(entityId);
@@ -138,6 +192,65 @@ export class LevelHandler {
         bb.writeMethod4(entityId);
         bb.writeMethod15(untargetable);
         client.sendBitBuffer(0xAE, bb);
+    }
+
+    private static scheduleCraftTownTutorialIntroLine(
+        client: Client,
+        state: KeepTutorialState,
+        delayMs: number,
+        entityId: number | null,
+        text: string
+    ): void {
+        if (entityId === null || !client.currentLevel) {
+            return;
+        }
+
+        const levelName = client.currentLevel;
+        const timer = setTimeout(() => {
+            if (client.currentLevel !== levelName || state.bossDefeated) {
+                return;
+            }
+            LevelHandler.sendRoomThought(levelName, entityId, text);
+        }, delayMs);
+
+        state.introTimers.push(timer);
+    }
+
+    private static sendCraftTownTutorialBossIntroSkit(
+        client: Client,
+        state: KeepTutorialState,
+        bossId: number | null
+    ): void {
+        const playerX = Number(client.character?.CurrentLevel?.x ?? 0);
+        const playerY = Number(client.character?.CurrentLevel?.y ?? 0);
+        const oldManId = LevelHandler.findNearestCraftTownTutorialEntity(
+            client,
+            new Set(['NPCHomeGemMerchant']),
+            playerX,
+            playerY
+        ).entityId;
+        const parrotId = LevelHandler.findCraftTownTutorialParrotId(client, playerX);
+
+        let elapsedUnits = 0;
+        const introSteps: Array<{ delayUnits: number; entityId: number | null; text: string }> = [
+            { delayUnits: 5, entityId: oldManId, text: "Thank the stars you're here!" },
+            { delayUnits: 14, entityId: oldManId, text: 'The goblins have ruined the keep.' },
+            { delayUnits: 14, entityId: oldManId, text: 'I was the caretaker here...' },
+            { delayUnits: 6, entityId: parrotId, text: '<Goto Red 1> Look out!' },
+            { delayUnits: 4, entityId: bossId, text: '<Goto Red 2> Stop the human!' },
+            { delayUnits: 10, entityId: bossId, text: "Don't let him|her take our home!" }
+        ];
+
+        for (const step of introSteps) {
+            elapsedUnits += step.delayUnits;
+            LevelHandler.scheduleCraftTownTutorialIntroLine(
+                client,
+                state,
+                elapsedUnits * LevelHandler.KEEP_TUTORIAL_CUTSCENE_STEP_MS,
+                step.entityId,
+                step.text
+            );
+        }
     }
 
     private static markCraftTownTutorialBossSeen(client: Client, entityId: number, source: 'client' | 'fallback'): void {
@@ -272,7 +385,31 @@ export class LevelHandler {
         LevelHandler.sendNpcState(client, bossId, 0, Boolean(boss.facing_left ?? boss.facingLeft));
     }
 
-    private static armCraftTownTutorialBossRecovery(client: Client): void {
+    private static lockCraftTownTutorialBoss(client: Client, bossId: number): void {
+        if (!client.currentLevel) {
+            return;
+        }
+
+        const boss = client.entities.get(bossId);
+        if (!boss) {
+            return;
+        }
+
+        boss.untargetable = true;
+        boss.entState = 2;
+
+        const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        const levelBoss = levelMap?.get(bossId);
+        if (levelBoss) {
+            levelBoss.untargetable = true;
+            levelBoss.entState = 2;
+        }
+
+        LevelHandler.sendSetUntargetable(client, bossId, true);
+        LevelHandler.sendNpcState(client, bossId, 2, Boolean(boss.facing_left ?? boss.facingLeft));
+    }
+
+    private static armCraftTownTutorialBossRecovery(client: Client, introBossId: number | null): void {
         const state = LevelHandler.getCraftTownTutorialState(client);
         if (!state || state.bossRecoveryArmed || state.bossDefeated) {
             return;
@@ -282,19 +419,25 @@ export class LevelHandler {
         clearKeepTutorialTimers(state);
 
         const levelName = client.currentLevel;
-        state.recoverySpawnTimer = setTimeout(() => {
-            if (client.currentLevel !== levelName || state.bossDefeated) {
-                return;
-            }
-            LevelHandler.spawnCraftTownTutorialFallbackBoss(client);
-        }, LevelHandler.KEEP_TUTORIAL_RECOVERY_PRESPAWN_MS);
+        const roomId = Math.max(0, client.currentRoomId);
+        if (levelName) {
+            LevelHandler.sendRoomCutSceneStart(levelName, roomId, false);
+            LevelHandler.sendRoomCamera(levelName, roomId, 1);
+        }
+
+        LevelHandler.sendCraftTownTutorialBossIntroSkit(client, state, introBossId);
 
         state.recoveryActivateTimer = setTimeout(() => {
             if (client.currentLevel !== levelName || state.bossDefeated) {
                 return;
             }
 
-            const bossId = state.bossEntitySeen ?? LevelHandler.spawnCraftTownTutorialFallbackBoss(client);
+            if (levelName) {
+                LevelHandler.sendRoomCamera(levelName, roomId, 0);
+                LevelHandler.sendRoomCutSceneEnd(levelName, roomId);
+            }
+
+            const bossId = state.bossEntitySeen ?? introBossId ?? LevelHandler.spawnCraftTownTutorialFallbackBoss(client);
             if (!bossId) {
                 return;
             }
@@ -304,9 +447,34 @@ export class LevelHandler {
             if (state.bossEntitySource === 'fallback' || stillLocked) {
                 LevelHandler.activateCraftTownTutorialBoss(client, bossId);
             }
-        }, LevelHandler.KEEP_TUTORIAL_RECOVERY_PRESPAWN_MS +
-            LevelHandler.KEEP_TUTORIAL_RECOVERY_CUTSCENE_MS +
-            LevelHandler.KEEP_TUTORIAL_RECOVERY_POST_MS);
+        }, LevelHandler.KEEP_TUTORIAL_BOSS_INTRO_TOTAL_MS);
+    }
+
+    private static killCraftTownTutorialLastGuy(client: Client, lastGuyId: number | null): void {
+        if (lastGuyId === null || !client.currentLevel) {
+            return;
+        }
+
+        LevelHandler.sendHpUpdate(client, lastGuyId, -999999);
+
+        const ent = client.entities.get(lastGuyId);
+        if (ent) {
+            ent.entState = 6;
+            ent.ent_state = 6;
+            ent.dead = true;
+            ent.hp = 0;
+        }
+
+        const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        const levelEnt = levelMap?.get(lastGuyId);
+        if (levelEnt) {
+            levelEnt.entState = 6;
+            levelEnt.ent_state = 6;
+            levelEnt.dead = true;
+            levelEnt.hp = 0;
+        }
+
+        LevelHandler.sendDestroyEntity(client.currentLevel, lastGuyId);
     }
 
     private static selectCraftTownTutorialLastGuyId(client: Client): number | null {
@@ -637,18 +805,23 @@ export class LevelHandler {
             playerY
         );
 
+        const distanceToOldMan = Number(oldMan.distance ?? 999999);
         const reachedBossTrigger =
             newX <= LevelHandler.KEEP_TUTORIAL_BOSS_TRIGGER_X ||
-            (state.phase >= 2 && oldMan.entityId !== null && Number(oldMan.distance ?? 999999) <= 700);
+            (state.phase >= 2 && oldMan.entityId !== null && distanceToOldMan <= 700);
 
         if (reachedBossTrigger) {
-            LevelHandler.maybeTriggerCraftTownTutorialBossIntro(client, newX);
+            LevelHandler.maybeTriggerCraftTownTutorialBossIntro(client);
         }
     }
 
-    private static maybeTriggerCraftTownTutorialBossIntro(client: Client, newX: number): void {
+    private static maybeTriggerCraftTownTutorialBossIntro(client: Client): void {
         const state = LevelHandler.getCraftTownTutorialState(client);
         if (!state || state.bossDefeated || state.bossIntroForced) {
+            return;
+        }
+
+        if (client.clientSpawnConfirmed) {
             return;
         }
 
@@ -657,16 +830,18 @@ export class LevelHandler {
         state.bossIntroForced = true;
         state.forcedLastGuyId = lastGuyId;
 
-        if (lastGuyId !== null) {
-            // Only deal lethal damage — do NOT destroy the entity.
-            // The client's ActionScript room script (a_Room_MainTutorial.UpdateRoom)
-            // needs to detect am_LastGuy.Health() == 0 to trigger the boss cutscene.
-            // Destroying the entity prematurely prevents this detection.
-            LevelHandler.sendHpUpdate(client, lastGuyId, -999999);
-            console.log(`[CraftTownTutorial] Forced am_LastGuy death (${lastGuyId}) for boss intro.`);
+        LevelHandler.killCraftTownTutorialLastGuy(client, lastGuyId);
+
+        const bossId = state.bossEntitySeen ?? LevelHandler.spawnCraftTownTutorialFallbackBoss(client);
+        if (bossId !== null) {
+            LevelHandler.lockCraftTownTutorialBoss(client, bossId);
         }
 
-        LevelHandler.armCraftTownTutorialBossRecovery(client);
+        console.log(
+            `[CraftTownTutorial] Starting forced boss intro; lastGuy=${lastGuyId ?? 'missing'}, boss=${bossId ?? 'missing'}.`
+        );
+
+        LevelHandler.armCraftTownTutorialBossRecovery(client, bossId);
     }
 
     /**

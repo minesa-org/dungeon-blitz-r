@@ -131,6 +131,15 @@ export class EntityHandler {
             return;
         }
 
+        if (
+            state.bossEntitySource === 'fallback' &&
+            state.bossEntitySeen !== null &&
+            state.bossEntitySeen !== entityId
+        ) {
+            EntityHandler.suppressCraftTownTutorialBoss(client, entityId);
+            return;
+        }
+
         if (entityName === 'GoblinShamanHood' && !state.bossIntroForced) {
             // The plain boss art should not be visible before the keep intro begins.
             EntityHandler.suppressCraftTownTutorialBoss(client, entityId);

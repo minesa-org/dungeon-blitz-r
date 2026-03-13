@@ -22,6 +22,7 @@ export interface KeepTutorialState {
     introSkitSent: boolean;
     bossMusicStarted: boolean;
     bossInfoSentIds: Set<number>;
+    introTimers: NodeJS.Timeout[];
     recoverySpawnTimer: NodeJS.Timeout | null;
     recoveryActivateTimer: NodeJS.Timeout | null;
     bossWounded60: boolean;
@@ -41,6 +42,7 @@ export function createKeepTutorialState(): KeepTutorialState {
         introSkitSent: false,
         bossMusicStarted: false,
         bossInfoSentIds: new Set<number>(),
+        introTimers: [],
         recoverySpawnTimer: null,
         recoveryActivateTimer: null,
         bossWounded60: false,
@@ -58,6 +60,11 @@ export function clearKeepTutorialTimers(state: KeepTutorialState | null | undefi
         clearTimeout(state.recoverySpawnTimer);
         state.recoverySpawnTimer = null;
     }
+
+    for (const timer of state.introTimers) {
+        clearTimeout(timer);
+    }
+    state.introTimers = [];
 
     if (state.recoveryActivateTimer) {
         clearTimeout(state.recoveryActivateTimer);
