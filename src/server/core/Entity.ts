@@ -275,7 +275,7 @@ export class Entity {
         } else {
             bb.writeMethod6(0, 1);
             bb.writeMethod6(entity.untargetable ? 1 : 0, 1);
-            bb.writeMethod706(entity.renderDepthOffset || 0);
+            bb.writeMethod739(entity.renderDepthOffset || 0);
             
             const speed = entity.behaviorSpeed || 0;
             if (speed > 0) {

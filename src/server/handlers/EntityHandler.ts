@@ -1,6 +1,6 @@
 import { NpcLoader, NpcDef } from '../data/NpcLoader';
 import { BitBuffer } from '../network/protocol/bitBuffer';
-import { Client, createKeepTutorialState } from '../core/Client';
+import { Client, clearClientSpawnFallbackTimer, createKeepTutorialState } from '../core/Client';
 import { BitReader } from '../network/protocol/bitReader';
 import { GlobalState } from '../core/GlobalState';
 import { Entity, EntityProps, EntityState } from '../core/Entity';
@@ -8,6 +8,7 @@ import { PetHandler } from './PetHandler';
 
 export class EntityHandler {
     private static readonly CLIENT_SPAWN_LEVELS = new Set<string>([
+        'CraftTownTutorial',
         'NewbieRoad',
         'NewbieRoadHard'
     ]);
@@ -21,6 +22,10 @@ export class EntityHandler {
 
     private static usesClientSpawn(levelName: string): boolean {
         return EntityHandler.CLIENT_SPAWN_LEVELS.has(levelName);
+    }
+
+    static isClientSpawnLevel(levelName: string): boolean {
+        return EntityHandler.usesClientSpawn(levelName);
     }
 
     private static getCraftTownTutorialState(client: Client) {
@@ -126,8 +131,34 @@ export class EntityHandler {
             return;
         }
 
-        // Keep tutorial boss should only appear through the scripted server intro.
-        EntityHandler.suppressCraftTownTutorialBoss(client, entityId);
+        if (entityName === 'GoblinShamanHood' && !state.bossIntroForced) {
+            // The plain boss art should not be visible before the keep intro begins.
+            EntityHandler.suppressCraftTownTutorialBoss(client, entityId);
+            return;
+        }
+
+        state.bossEntitySeen = entityId;
+        state.bossEntitySource = 'client';
+
+        if (!state.bossInfoSentIds.has(entityId)) {
+            EntityHandler.sendRoomBossInfo(
+                client.currentLevel,
+                client.currentRoomId,
+                entityId,
+                'Ranik, The Geomancer'
+            );
+            state.bossInfoSentIds.add(entityId);
+        }
+
+        if (!state.bossMusicStarted) {
+            EntityHandler.sendRoomSound(
+                client.currentLevel,
+                client.currentRoomId,
+                'D02_MoodLoop_GoblinHideout',
+                0.9
+            );
+            state.bossMusicStarted = true;
+        }
     }
     
     // Server -> Client: Spawn Entity (Packet 0xF)
@@ -158,7 +189,7 @@ export class EntityHandler {
         const posX = br.readMethod24();
         const posY = br.readMethod24();
         const velocityX = br.readMethod24();
-        const entName = br.readMethod26();
+        let entName = br.readMethod26();
 
         const team = br.readMethod20(Entity.TEAM_BITS);
         const isPlayer = br.readMethod15(); // bool
@@ -170,6 +201,14 @@ export class EntityHandler {
         if (hasCue) {
             if (br.readMethod15()) {
                 cueData["character_name"] = br.readMethod13();
+                // Comma-prefixed character_name overrides entity type for server identification
+                const cname = String(cueData["character_name"] ?? '');
+                if (cname.startsWith(',')) {
+                    const overrideName = cname.substring(1);
+                    if (overrideName) {
+                        entName = overrideName;
+                    }
+                }
             }
             if (br.readMethod15()) {
                 cueData["DramaAnim"] = br.readMethod13();
@@ -259,6 +298,7 @@ export class EntityHandler {
 
         if (!isPlayer) {
             client.clientSpawnConfirmed = true;
+            clearClientSpawnFallbackTimer(client);
             if (client.currentLevel === 'CraftTownTutorial') {
                 EntityHandler.handleCraftTownTutorialEntitySeen(client, entityId, String(props.name ?? ''));
             }
@@ -318,6 +358,7 @@ export class EntityHandler {
             if (id === client.clientEntID) continue;
             if (entityProps?.isPlayer) continue;
             if (entityProps?.clientSpawned) continue;
+            client.entities.set(id, { ...entityProps });
             EntityHandler.sendEntity(client, entityProps);
         }
     }

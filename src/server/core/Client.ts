@@ -24,6 +24,9 @@ export interface KeepTutorialState {
     bossInfoSentIds: Set<number>;
     recoverySpawnTimer: NodeJS.Timeout | null;
     recoveryActivateTimer: NodeJS.Timeout | null;
+    bossWounded60: boolean;
+    bossWounded30: boolean;
+    helperEntityIds: number[];
 }
 
 export function createKeepTutorialState(): KeepTutorialState {
@@ -39,7 +42,10 @@ export function createKeepTutorialState(): KeepTutorialState {
         bossMusicStarted: false,
         bossInfoSentIds: new Set<number>(),
         recoverySpawnTimer: null,
-        recoveryActivateTimer: null
+        recoveryActivateTimer: null,
+        bossWounded60: false,
+        bossWounded30: false,
+        helperEntityIds: [],
     };
 }
 
@@ -56,6 +62,13 @@ export function clearKeepTutorialTimers(state: KeepTutorialState | null | undefi
     if (state.recoveryActivateTimer) {
         clearTimeout(state.recoveryActivateTimer);
         state.recoveryActivateTimer = null;
+    }
+}
+
+export function clearClientSpawnFallbackTimer(client: Pick<Client, 'clientSpawnFallbackTimer'>): void {
+    if (client.clientSpawnFallbackTimer) {
+        clearTimeout(client.clientSpawnFallbackTimer);
+        client.clientSpawnFallbackTimer = null;
     }
 }
 
@@ -90,6 +103,7 @@ export class Client {
     public authoritativeMaxHp: number = 100;
     public authoritativeCurrentHp: number = 100;
     public clientSpawnConfirmed: boolean = false;
+    public clientSpawnFallbackTimer: NodeJS.Timeout | null = null;
     public keepTutorialState: KeepTutorialState | null = null;
 
     constructor(socket: net.Socket, router: PacketRouter) {
@@ -159,6 +173,7 @@ export class Client {
         this.processedRewardSources.clear();
         this.pendingMissionTurnIns.clear();
         this.clientSpawnConfirmed = false;
+        clearClientSpawnFallbackTimer(this);
         clearKeepTutorialTimers(this.keepTutorialState);
         this.keepTutorialState = null;
 

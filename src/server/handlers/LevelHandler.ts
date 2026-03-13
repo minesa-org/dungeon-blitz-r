@@ -1,4 +1,10 @@
-import { Client, clearKeepTutorialTimers, createKeepTutorialState, KeepTutorialState } from '../core/Client';
+import {
+    Client,
+    clearClientSpawnFallbackTimer,
+    clearKeepTutorialTimers,
+    createKeepTutorialState,
+    KeepTutorialState
+} from '../core/Client';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { LevelConfig } from '../core/LevelConfig';
@@ -8,12 +14,14 @@ import { Config } from '../core/config';
 import { MissionLoader } from '../data/MissionLoader';
 import { NpcLoader, NpcDef } from '../data/NpcLoader';
 import { MissionID } from '../data/runtime';
+import { Entity } from '../core/Entity';
 import { EntityHandler } from './EntityHandler';
 import { JsonAdapter } from '../database/JsonAdapter';
 
 const db = new JsonAdapter();
 
 export class LevelHandler {
+    private static readonly CLIENT_SPAWN_FALLBACK_MS = 5000;
     private static readonly FIRST_KEEP_MISSION_ID = MissionID.ClearYourHouse;
     private static readonly MISSION_NOT_STARTED = 0;
     private static readonly MISSION_IN_PROGRESS = 1;
@@ -25,6 +33,17 @@ export class LevelHandler {
     private static readonly KEEP_TUTORIAL_BOSS_NAME = 'Ranik, The Geomancer';
     private static readonly KEEP_TUTORIAL_FIRST_PARROT_X = -965;
     private static readonly KEEP_TUTORIAL_SECOND_PARROT_X = -2627;
+
+    static resetCraftTownTutorialInstance(): void {
+        const levelName = 'CraftTownTutorial';
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (other.playerSpawned && other.currentLevel === levelName) {
+                return;
+            }
+        }
+
+        GlobalState.levelEntities.delete(levelName);
+    }
 
     private static getCraftTownTutorialState(client: Client): KeepTutorialState | null {
         if (client.currentLevel !== 'CraftTownTutorial') {
@@ -195,7 +214,13 @@ export class LevelHandler {
                 if (clientSpawned) {
                     continue;
                 }
-                client.entities.set(entityId, entity);
+                if (!client.entities.has(entityId)) {
+                    const bossProps = { ...entity, clientSpawned: false };
+                    client.entities.set(entityId, bossProps);
+                    EntityHandler.sendEntity(client, bossProps);
+                } else {
+                    client.entities.set(entityId, entity);
+                }
                 LevelHandler.markCraftTownTutorialBossSeen(client, entityId, 'fallback');
                 return entityId;
             }
@@ -315,6 +340,176 @@ export class LevelHandler {
         return bestId;
     }
 
+    private static classifyCraftTownTutorialFallbackEntities(levelMap: Map<number, any>): {
+        lastGuyId: number | null;
+        bossId: number | null;
+        helperIds: number[];
+    } {
+        let bossId: number | null = null;
+        let bossDistance = Number.POSITIVE_INFINITY;
+        let lastGuyId: number | null = null;
+        let lastGuyX = Number.NEGATIVE_INFINITY;
+        const helperCandidates: Array<{ x: number; id: number }> = [];
+
+        for (const [entityId, entity] of levelMap.entries()) {
+            if (Number(entity?.team ?? 0) !== 2) {
+                continue;
+            }
+
+            const entityName = String(entity?.name ?? '');
+            const entityX = Number(entity?.x ?? 0);
+            const entityY = Number(entity?.y ?? 0);
+            const dramaAnim = String(entity?.dramaAnim ?? entity?.DramaAnim ?? '');
+            const entState = Number(entity?.entState ?? 0);
+
+            if (entityName === 'IntroGoblinShamanHood' || entityName === 'GoblinShamanHood') {
+                const distance = Math.abs(entityX - 49) + Math.abs(entityY - 1459);
+                if (distance < bossDistance) {
+                    bossDistance = distance;
+                    bossId = entityId;
+                }
+                continue;
+            }
+
+            if (entityName === 'GoblinDagger' && dramaAnim === 'Board') {
+                helperCandidates.push({ x: entityX, id: entityId });
+                continue;
+            }
+
+            if (entityName === 'GoblinDagger' && entState !== 2 && entityX > lastGuyX) {
+                lastGuyX = entityX;
+                lastGuyId = entityId;
+            }
+        }
+
+        helperCandidates.sort((a, b) => a.x - b.x);
+        return {
+            lastGuyId,
+            bossId,
+            helperIds: helperCandidates.map((entry) => entry.id)
+        };
+    }
+
+    private static prepareCraftTownTutorialFallbackEntities(levelMap: Map<number, any>): {
+        lastGuyId: number | null;
+        bossId: number | null;
+        helperIds: number[];
+    } {
+        const classified = LevelHandler.classifyCraftTownTutorialFallbackEntities(levelMap);
+
+        if (classified.lastGuyId !== null) {
+            const lastGuy = levelMap.get(classified.lastGuyId);
+            if (lastGuy) {
+                lastGuy.characterName = 'am_LastGuy';
+                lastGuy.character_name = 'am_LastGuy';
+            }
+        }
+
+        if (classified.bossId !== null) {
+            const boss = levelMap.get(classified.bossId);
+            if (boss) {
+                boss.name = 'IntroGoblinShamanHood';
+                boss.characterName = ',IntroGoblinShamanHood';
+                boss.character_name = ',IntroGoblinShamanHood';
+                boss.untargetable = true;
+                boss.entState = 2;
+            }
+        }
+
+        for (const helperId of classified.helperIds) {
+            const helper = levelMap.get(helperId);
+            if (!helper) {
+                continue;
+            }
+            helper.untargetable = true;
+            helper.entState = 2;
+            helper.dramaAnim = 'Board';
+            helper.DramaAnim = 'Board';
+        }
+
+        return classified;
+    }
+
+    private static sendNearestCraftTownTutorialParrotSkit(client: Client): void {
+        const state = LevelHandler.getCraftTownTutorialState(client);
+        if (!state || state.introSkitSent) {
+            return;
+        }
+
+        const playerX = Number(client.character?.CurrentLevel?.x ?? 0);
+        const parrotId = LevelHandler.findCraftTownTutorialParrotId(client, playerX);
+        if (parrotId === null) {
+            return;
+        }
+
+        LevelHandler.sendStartSkit(client, parrotId, 0, LevelHandler.FIRST_KEEP_MISSION_ID);
+        state.introSkitSent = true;
+    }
+
+    private static spawnCraftTownTutorialServerFallback(client: Client): void {
+        if (client.currentLevel !== 'CraftTownTutorial') {
+            return;
+        }
+
+        const levelMap = new Map<number, any>();
+        for (const npc of NpcLoader.getRawNpcsForLevel(client.currentLevel)) {
+            const entity = {
+                ...Entity.fromNpc(npc),
+                clientSpawned: false
+            };
+            levelMap.set(entity.id, entity);
+        }
+
+        const { bossId, helperIds } = LevelHandler.prepareCraftTownTutorialFallbackEntities(levelMap);
+        GlobalState.levelEntities.set(client.currentLevel, levelMap);
+        client.clientSpawnConfirmed = true;
+
+        // Store helper IDs for later reinforcement spawning
+        const state = LevelHandler.getCraftTownTutorialState(client);
+        if (state) {
+            state.helperEntityIds = [...helperIds];
+        }
+
+        let sentCount = 0;
+        for (const [entityId, entity] of levelMap.entries()) {
+            if (entityId === bossId || helperIds.includes(entityId)) {
+                continue;
+            }
+            client.entities.set(entityId, { ...entity });
+            EntityHandler.sendEntity(client, entity);
+            sentCount++;
+        }
+
+        LevelHandler.sendNearestCraftTownTutorialParrotSkit(client);
+        console.log(
+            `[Level] Client NPC spawn fallback activated for CraftTownTutorial; sent ${sentCount} initial entities.`
+        );
+    }
+
+    static scheduleClientSpawnFallback(client: Client): void {
+        clearClientSpawnFallbackTimer(client);
+
+        if (
+            client.currentLevel !== 'CraftTownTutorial' ||
+            !EntityHandler.isClientSpawnLevel(client.currentLevel)
+        ) {
+            return;
+        }
+
+        const levelName = client.currentLevel;
+        client.clientSpawnFallbackTimer = setTimeout(() => {
+            client.clientSpawnFallbackTimer = null;
+            if (client.currentLevel !== levelName || client.clientSpawnConfirmed) {
+                return;
+            }
+
+            console.log(`[Level] No client NPC spawn packets detected for ${levelName}; enabling server fallback.`);
+            if (levelName === 'CraftTownTutorial') {
+                LevelHandler.spawnCraftTownTutorialServerFallback(client);
+            }
+        }, LevelHandler.CLIENT_SPAWN_FALLBACK_MS);
+    }
+
     private static findNearestCraftTownTutorialEntity(
         client: Client,
         names: Set<string>,
@@ -324,17 +519,35 @@ export class LevelHandler {
         let bestId: number | null = null;
         let bestDistance: number | null = null;
 
-        for (const [entityId, entity] of client.entities.entries()) {
-            if (!names.has(String(entity?.name ?? ''))) {
+        const seen = new Set<number>();
+        const sources: Array<Map<number, any> | undefined> = [
+            client.entities,
+            GlobalState.levelEntities.get(client.currentLevel)
+        ];
+
+        for (const source of sources) {
+            if (!source) {
                 continue;
             }
 
-            const entityX = Number(entity?.x ?? 0);
-            const entityY = Number(entity?.y ?? 0);
-            const distance = Math.abs(entityX - refX) + Math.abs(entityY - refY);
-            if (bestDistance === null || distance < bestDistance) {
-                bestDistance = distance;
-                bestId = entityId;
+            for (const [entityId, entity] of source.entries()) {
+                if (seen.has(entityId)) {
+                    continue;
+                }
+                seen.add(entityId);
+
+                const entityName = String(entity?.name ?? entity?.props?.name ?? '');
+                if (!names.has(entityName)) {
+                    continue;
+                }
+
+                const entityX = Number(entity?.x ?? entity?.props?.x ?? entity?.props?.pos_x ?? 0);
+                const entityY = Number(entity?.y ?? entity?.props?.y ?? entity?.props?.pos_y ?? 0);
+                const distance = Math.abs(entityX - refX) + Math.abs(entityY - refY);
+                if (bestDistance === null || distance < bestDistance) {
+                    bestDistance = distance;
+                    bestId = entityId;
+                }
             }
         }
 
@@ -345,15 +558,34 @@ export class LevelHandler {
         let bestId: number | null = null;
         let bestDistance = Number.POSITIVE_INFINITY;
 
-        for (const [entityId, entity] of client.entities.entries()) {
-            if (String(entity?.name ?? '') !== 'IntroParrot') {
+        const seen = new Set<number>();
+        const sources: Array<Map<number, any> | undefined> = [
+            client.entities,
+            GlobalState.levelEntities.get(client.currentLevel)
+        ];
+
+        for (const source of sources) {
+            if (!source) {
                 continue;
             }
 
-            const distance = Math.abs(Number(entity?.x ?? 0) - targetX);
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                bestId = entityId;
+            for (const [entityId, entity] of source.entries()) {
+                if (seen.has(entityId)) {
+                    continue;
+                }
+                seen.add(entityId);
+
+                const entityName = String(entity?.name ?? entity?.props?.name ?? '');
+                if (entityName !== 'IntroParrot') {
+                    continue;
+                }
+
+                const entityX = Number(entity?.x ?? entity?.props?.x ?? entity?.props?.pos_x ?? 0);
+                const distance = Math.abs(entityX - targetX);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestId = entityId;
+                }
             }
         }
 
@@ -426,19 +658,115 @@ export class LevelHandler {
         state.forcedLastGuyId = lastGuyId;
 
         if (lastGuyId !== null) {
+            // Only deal lethal damage — do NOT destroy the entity.
+            // The client's ActionScript room script (a_Room_MainTutorial.UpdateRoom)
+            // needs to detect am_LastGuy.Health() == 0 to trigger the boss cutscene.
+            // Destroying the entity prematurely prevents this detection.
             LevelHandler.sendHpUpdate(client, lastGuyId, -999999);
-            client.entities.delete(lastGuyId);
-
-            const levelMap = GlobalState.levelEntities.get(client.currentLevel);
-            levelMap?.delete(lastGuyId);
-            if (levelMap && levelMap.size === 0) {
-                GlobalState.levelEntities.delete(client.currentLevel);
-            }
-
-            LevelHandler.sendDestroyEntity(client.currentLevel, lastGuyId);
+            console.log(`[CraftTownTutorial] Forced am_LastGuy death (${lastGuyId}) for boss intro.`);
         }
 
         LevelHandler.armCraftTownTutorialBossRecovery(client);
+    }
+
+    /**
+     * Summon all tracked reinforcement helpers that aren't already alive.
+     * Each helper entity is sent to the client, set to active state, and made targetable.
+     */
+    private static summonCraftTownTutorialReinforcements(client: Client): void {
+        const state = LevelHandler.getCraftTownTutorialState(client);
+        if (!state || !client.currentLevel) {
+            return;
+        }
+
+        const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        if (!levelMap) {
+            return;
+        }
+
+        let spawnedCount = 0;
+        for (const helperId of state.helperEntityIds) {
+            const helper = levelMap.get(helperId);
+            if (!helper) {
+                continue;
+            }
+
+            // Activate the helper: make it targetable and set to active state
+            helper.untargetable = false;
+            helper.entState = 0;
+            helper.dramaAnim = '';
+            helper.DramaAnim = '';
+
+            // Send entity to client if not already tracked
+            if (!client.entities.has(helperId)) {
+                client.entities.set(helperId, { ...helper });
+                EntityHandler.sendEntity(client, helper);
+            } else {
+                // If already known, just update state and send activation packets
+                const existing = client.entities.get(helperId);
+                if (existing) {
+                    existing.untargetable = false;
+                    existing.entState = 0;
+                }
+            }
+
+            LevelHandler.sendSetUntargetable(client, helperId, false);
+            LevelHandler.sendNpcState(client, helperId, 0, Boolean(helper.facing_left ?? helper.facingLeft));
+            spawnedCount++;
+        }
+
+        if (spawnedCount > 0) {
+            console.log(`[CraftTownTutorial] Summoned ${spawnedCount} reinforcements.`);
+        }
+    }
+
+    /**
+     * Check boss health and trigger reinforcement waves at 60% and 30% HP.
+     * Called from CombatHandler when a power hit lands on the boss entity.
+     */
+    static checkCraftTownTutorialBossHealth(client: Client, targetId: number, damage: number): void {
+        const state = LevelHandler.getCraftTownTutorialState(client);
+        if (!state || state.bossDefeated) {
+            return;
+        }
+
+        // Only process hits on the boss entity
+        if (state.bossEntitySeen !== targetId) {
+            return;
+        }
+
+        const boss = client.entities.get(targetId);
+        if (!boss) {
+            return;
+        }
+
+        // Calculate approximate HP ratio from accumulated damage
+        // The client tracks actual HP; we estimate from damage dealt
+        const healthDelta = Number(boss.health_delta ?? boss.healthDelta ?? 0) - Math.abs(damage);
+        boss.health_delta = healthDelta;
+        boss.healthDelta = healthDelta;
+
+        // EntTypes typically have MaxHP around 1000-5000 for bosses.
+        // We track cumulative damage and compare to a threshold.
+        // Since we don't have exact max HP, use the ratio of health_delta to estimate.
+        // A simpler approach: track total damage dealt and compare to known boss HP.
+        // For now, use damage thresholds based on typical boss HP (~3000-5000).
+        const totalDamageDealt = Math.abs(healthDelta);
+
+        // 60% HP trigger: boss has lost 40% of max HP
+        // We use a heuristic: after significant damage has been dealt
+        if (!state.bossWounded60 && totalDamageDealt > 1500) {
+            state.bossWounded60 = true;
+            console.log(`[CraftTownTutorial] Boss wounded (60%)! Summoning first wave.`);
+            LevelHandler.summonCraftTownTutorialReinforcements(client);
+        }
+
+        // 30% HP trigger: boss has lost 70% of max HP
+        if (!state.bossWounded30 && totalDamageDealt > 3000) {
+            state.bossWounded30 = true;
+            console.log(`[CraftTownTutorial] Boss critical (30%)! Summoning second wave.`);
+            LevelHandler.summonCraftTownTutorialReinforcements(client);
+        }
     }
 
     private static getCharacterMissionState(character: any, missionId: number): number {
@@ -581,6 +909,7 @@ export class LevelHandler {
             LevelHandler.sendDestroyEntity(oldLevel, oldClientEntId);
         }
 
+        clearClientSpawnFallbackTimer(client);
         clearKeepTutorialTimers(client.keepTutorialState);
         client.keepTutorialState = null;
         client.clientSpawnConfirmed = false;

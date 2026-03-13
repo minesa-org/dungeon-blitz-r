@@ -298,6 +298,10 @@ export class CharacterHandler {
         client.pendingLoot.clear();
         client.processedRewardSources.clear();
 
+        if (entry.targetLevel === 'CraftTownTutorial') {
+            LevelHandler.resetCraftTownTutorialInstance();
+        }
+
         if (client.userId) {
             const loadedCharacters = await db.loadCharacters(client.userId);
             client.characters = CharacterHandler.upsertCharacterList(loadedCharacters, client.character);
@@ -354,5 +358,6 @@ export class CharacterHandler {
         LevelHandler.spawnLevelNpcs(client, entry.targetLevel);
         LevelHandler.primeTutorialRoomEvents(client);
         await LevelHandler.prepareCraftTownTutorialEntry(client);
+        LevelHandler.scheduleClientSpawnFallback(client);
     }
 }

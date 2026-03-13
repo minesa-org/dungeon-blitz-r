@@ -2,6 +2,7 @@ import { Client } from '../core/Client';
 import { BitReader } from '../network/protocol/bitReader';
 import { GlobalState } from '../core/GlobalState';
 import { BitBuffer } from '../network/protocol/bitBuffer';
+import { LevelHandler } from './LevelHandler';
 
 
 export class CombatHandler {
@@ -70,6 +71,11 @@ export class CombatHandler {
         
         // Note: Python handles "Client-side entity" vs "Server entity".
         // If unknown entity, it just broadcasts.
+
+        // Check if this hit targets the CraftTownTutorial boss for reinforcement spawning
+        if (client.currentLevel === 'CraftTownTutorial' && client.keepTutorialState) {
+            LevelHandler.checkCraftTownTutorialBossHealth(client, targetId, damage);
+        }
         
         CombatHandler.broadcastToLevel(client, 0x0A, data);
         
