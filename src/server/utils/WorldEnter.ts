@@ -1,6 +1,6 @@
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { Character } from '../database/Database';
-import { MissionLoader } from '../data/MissionLoader';
+import { MissionDef, MissionLoader } from '../data/MissionLoader';
 import { BuildingID, ClassID, MasterClassID } from '../core/Enums';
 import { GlobalState } from '../core/GlobalState';
 
@@ -63,6 +63,10 @@ export class WorldEnter {
 
     private static asArray(value: unknown): any[] {
         return Array.isArray(value) ? value : [];
+    }
+
+    private static missionHasDungeonProgress(missionDef: MissionDef | undefined): boolean {
+        return Boolean(String(missionDef?.Dungeon ?? '').trim());
     }
 
     private static getClassId(className: string): ClassID {
@@ -492,8 +496,8 @@ export class WorldEnter {
                     continue;
                 }
 
-                bb.writeMethod11(state >= 3 ? 1 : 0, 1);
-                if (missionDef?.Time) {
+                bb.writeMethod11(state === 2 ? 1 : 0, 1);
+                if (WorldEnter.missionHasDungeonProgress(missionDef)) {
                     bb.writeMethod11(Number(missionState.Tier ?? 0), 4);
                     bb.writeMethod4(Number(missionState.highscore ?? 0));
                     bb.writeMethod4(Number(missionState.Time ?? 0));
