@@ -115,7 +115,7 @@ export class RewardHandler {
         client.sendBitBuffer(0x2B, bb);
     }
 
-    private static sendGoldReward(client: Client, amount: number, suppress: boolean): void {
+    public static sendGoldReward(client: Client, amount: number, suppress: boolean): void {
         const bb = new BitBuffer(false);
         bb.writeMethod4(amount);
         bb.writeMethod15(suppress);

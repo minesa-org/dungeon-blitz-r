@@ -1,5 +1,6 @@
 import { Client } from '../core/Client';
 import { GlobalState } from '../core/GlobalState';
+import { GameData } from '../core/GameData';
 import { Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { MissionDef, MissionLoader } from '../data/MissionLoader';
@@ -7,6 +8,7 @@ import { MissionID } from '../data/runtime';
 import { NpcLoader } from '../data/NpcLoader';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
+import { RewardHandler } from './RewardHandler';
 
 const db = new JsonAdapter();
 
@@ -82,16 +84,43 @@ export class NpcHandler {
                         client.pendingMissionTurnIns.add(NpcHandler.FIRST_MISSION_ID);
                         delayedFirstMissionTurnIn = true;
                     } else {
-                        NpcHandler.setMissionState(
-                            client.character,
-                            missionId,
-                            NpcHandler.MISSION_CLAIMED
-                        );
+                        // Сначала показываем UI завершения миссии
                         NpcHandler.sendMissionCompleteUi(
                             client,
                             missionId,
                             NpcHandler.DEFAULT_TURN_IN_STARS
                         );
+
+                        // Затем начисляем награды
+                        const missionDef = MissionLoader.getMissionDef(missionId);
+                        if (missionDef) {
+                            const expReward = missionDef.ExpRewardValue ?? 0;
+                            const goldReward = missionDef.GoldRewardValue ?? 0;
+
+                            // Начисление опыта
+                            if (expReward > 0) {
+                                client.character.xp = Number(client.character.xp ?? 0) + expReward;
+                                client.character.level = GameData.getPlayerLevelFromXp(Number(client.character.xp ?? 0));
+                                NpcHandler.sendXpReward(client, expReward);
+                            }
+
+                            // Начисление золота
+                            if (goldReward > 0) {
+                                client.character.gold = Number(client.character.gold ?? 0) + goldReward;
+                                RewardHandler.sendGoldReward(client, goldReward, false);
+                            }
+                        }
+
+                        NpcHandler.setMissionState(
+                            client.character,
+                            missionId,
+                            NpcHandler.MISSION_CLAIMED
+                        );
+
+                        // Сохраняем прогресс
+                        if (client.userId) {
+                            await db.saveCharacters(client.userId, client.characters);
+                        }
 
                         const followupMissionId = NpcHandler.autoAcceptFollowupMission(
                             client.character,
@@ -343,6 +372,12 @@ export class NpcHandler {
         client.sendBitBuffer(0x84, bb);
     }
 
+    private static sendXpReward(client: Client, amount: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(amount);
+        client.sendBitBuffer(0x2B, bb);
+    }
+
     private static sendStartSkit(client: Client, npcId: number, dialogueId: number, missionId: number): void {
         const bb = new BitBuffer();
         bb.writeMethod4(npcId);
@@ -373,6 +408,33 @@ export class NpcHandler {
                 return;
             }
 
+            // Сначала показываем UI завершения миссии
+            NpcHandler.sendMissionCompleteUi(
+                client,
+                NpcHandler.FIRST_MISSION_ID,
+                NpcHandler.DEFAULT_TURN_IN_STARS
+            );
+
+            // Затем начисляем награды
+            const missionDef = MissionLoader.getMissionDef(NpcHandler.FIRST_MISSION_ID);
+            if (missionDef) {
+                const expReward = missionDef.ExpRewardValue ?? 0;
+                const goldReward = missionDef.GoldRewardValue ?? 0;
+
+                // Начисление опыта
+                if (expReward > 0) {
+                    client.character.xp = Number(client.character.xp ?? 0) + expReward;
+                    client.character.level = GameData.getPlayerLevelFromXp(Number(client.character.xp ?? 0));
+                    NpcHandler.sendXpReward(client, expReward);
+                }
+
+                // Начисление золота
+                if (goldReward > 0) {
+                    client.character.gold = Number(client.character.gold ?? 0) + goldReward;
+                    RewardHandler.sendGoldReward(client, goldReward, false);
+                }
+            }
+
             NpcHandler.setMissionState(
                 client.character,
                 NpcHandler.FIRST_MISSION_ID,
@@ -385,16 +447,12 @@ export class NpcHandler {
                 NpcHandler.FIRST_MISSION_ID
             );
 
+            // Сохраняем прогресс
             if (client.userId) {
                 await db.saveCharacters(client.userId, client.characters);
             }
 
             if (!client.socket.destroyed) {
-                NpcHandler.sendMissionCompleteUi(
-                    client,
-                    NpcHandler.FIRST_MISSION_ID,
-                    NpcHandler.DEFAULT_TURN_IN_STARS
-                );
                 if (followupMissionId) {
                     NpcHandler.sendMissionAdded(
                         client,

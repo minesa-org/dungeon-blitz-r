@@ -209,6 +209,25 @@
     "buffs": []
   },
   {
+    "id": 778979,
+    "name": "IntroGoblinNPC",
+    "x": 6100,
+    "y": 530,
+    "v": 0,
+    "team": 3,
+    "untargetable": false,
+    "render_depth_offset": 0,
+    "character_name": "CaptainFink",
+    "DramaAnim": "",
+    "SleepAnim": "",
+    "summonerId": 0,
+    "power_id": 0,
+    "entState": 1,
+    "facing_left": false,
+    "health_delta": 0,
+    "buffs": []
+  },
+  {
     "id": 844514,
     "name": "IntroDummyFlier",
     "x": 7111,
