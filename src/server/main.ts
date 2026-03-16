@@ -27,6 +27,7 @@ import { RewardHandler } from './handlers/RewardHandler';
 import { EquipmentHandler } from './handlers/EquipmentHandler';
 import { AbilityHandler } from './handlers/AbilityHandler';
 import { DebugLogger } from './core/Debug';
+import { GuildHandler } from './handlers/GuildHandler';
 import * as path from 'path';
 
 import { StaticServer } from './core/StaticServer';
@@ -101,6 +102,16 @@ router.register(0x6B, SocialHandler.handleTeleportToPlayer); // Teleport To Part
 router.register(0x90, SocialHandler.handleFriendRequest); // Friend Request / Accept
 router.register(0x91, SocialHandler.handleUnfriend); // Unfriend / Decline
 router.register(0xC9, SocialHandler.handleRequestFriendList); // Friend List Request
+router.register(0x4D, GuildHandler.handleCreateGuild); // Create Guild
+router.register(0x4E, GuildHandler.handleDisbandGuild); // Disband Guild
+router.register(0x4F, GuildHandler.handleInviteGuildMember); // Guild Invite
+router.register(0x50, GuildHandler.handleKickGuildMember); // Guild Kick
+router.register(0x51, GuildHandler.handlePromoteGuildMember); // Guild Promote
+router.register(0x52, GuildHandler.handleDemoteGuildMember); // Guild Demote
+router.register(0x53, GuildHandler.handleTransferGuildLeadership); // Guild Leader Transfer
+router.register(0x54, GuildHandler.handleQuitGuild); // Guild Leave
+router.register(0x5F, GuildHandler.handleGuildChat); // Guild Chat
+router.register(0x61, GuildHandler.handleOfficerChat); // Officer Chat
 
 router.register(0xF3, SocialHandler.handleRequestVisitPlayerHouse); // Visit House
 router.register(0x2D, LevelHandler.handleOpenDoor); // Open Door

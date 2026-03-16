@@ -101,6 +101,39 @@ export class JsonAdapter implements IDatabase {
         return save.characters;
     }
 
+    public async loadAllCharacterRecords(): Promise<UserSaveData[]> {
+        const records: UserSaveData[] = [];
+
+        try {
+            const files = await fs.readdir(this.savesDir);
+            for (const file of files) {
+                if (!file.endsWith('.json')) {
+                    continue;
+                }
+
+                try {
+                    const data = await fs.readFile(path.join(this.savesDir, file), 'utf8');
+                    if (!data.trim()) {
+                        continue;
+                    }
+
+                    const save = JSON.parse(data) as UserSaveData;
+                    if (!Array.isArray(save.characters)) {
+                        continue;
+                    }
+
+                    records.push(save);
+                } catch {
+                    continue;
+                }
+            }
+        } catch {
+            return [];
+        }
+
+        return records;
+    }
+
     public async saveCharacters(userId: number, characters: Character[]): Promise<void> {
         await this.ensureSavesDir();
         const savePath = path.join(this.savesDir, `${userId}.json`);

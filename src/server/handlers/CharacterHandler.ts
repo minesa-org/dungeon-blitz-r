@@ -13,6 +13,7 @@ import { Character } from '../database/Database';
 import { LoginHandler } from './LoginHandler';
 import { AbilityHandler } from './AbilityHandler';
 import { SocialHandler } from './SocialHandler';
+import { GuildHandler } from './GuildHandler';
 import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
 
 const db = new JsonAdapter();
@@ -378,6 +379,8 @@ export class CharacterHandler {
         } else {
             client.characters = CharacterHandler.upsertCharacterList(client.characters, client.character);
         }
+
+        await GuildHandler.refreshClientGuildState(client);
 
         const socialRepairDidMutate = ensureCharacterSocialState(client.character);
         const abilityRepairDidMutate = AbilityHandler.repairCharacterAbilityState(client.character);

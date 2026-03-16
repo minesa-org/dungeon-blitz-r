@@ -5,6 +5,7 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 import { GlobalState } from '../core/GlobalState';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { LevelConfig } from '../core/LevelConfig';
+import { GuildHandler } from './GuildHandler';
 import {
     ensureCharacterSocialState,
     FriendEntry,
@@ -593,6 +594,7 @@ export class SocialHandler {
 
         SocialHandler.notifyFriendsAboutStatus(client, true);
         SocialHandler.broadcastPartyUpdateForMember(client.character.name);
+        GuildHandler.handleSessionReady(client);
     }
 
     static handleSessionClose(client: Client, transferInProgress: boolean): void {
@@ -602,6 +604,7 @@ export class SocialHandler {
 
         SocialHandler.notifyFriendsAboutStatus(client, false);
         SocialHandler.broadcastPartyUpdateForMember(client.character.name);
+        GuildHandler.handleSessionClose(client);
     }
 
     static handleZonePanelRequest(client: Client, _data: Buffer): void {
@@ -860,7 +863,7 @@ export class SocialHandler {
         );
     }
 
-    static handleQueryMessageAnswer(client: Client, data: Buffer): void {
+    static async handleQueryMessageAnswer(client: Client, data: Buffer): Promise<void> {
         if (!client.character) {
             return;
         }
@@ -869,6 +872,10 @@ export class SocialHandler {
         const inviterEntityId = br.readMethod9();
         br.readMethod26();
         const accepted = br.readMethod15();
+
+        if (await GuildHandler.tryHandleInviteAnswer(client, inviterEntityId, accepted)) {
+            return;
+        }
 
         const inviter = SocialHandler.findSessionByEntityId(inviterEntityId);
         if (!inviter?.character) {
