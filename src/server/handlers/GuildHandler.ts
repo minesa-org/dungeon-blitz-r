@@ -4,7 +4,7 @@ import { Client } from '../core/Client';
 import { BitReader } from '../network/protocol/bitReader';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { GlobalState } from '../core/GlobalState';
-import { normalizeCharacterKey } from '../core/SocialState';
+import { isCharacterIgnoring, normalizeCharacterKey } from '../core/SocialState';
 
 const db = new JsonAdapter();
 
@@ -334,6 +334,10 @@ export class GuildHandler {
         const payload = bb.toBuffer();
 
         for (const target of targets) {
+            if (!target.character || isCharacterIgnoring(target.character, senderName)) {
+                continue;
+            }
+
             target.send(packetId, payload);
         }
     }

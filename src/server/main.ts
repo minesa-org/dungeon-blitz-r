@@ -101,6 +101,8 @@ router.register(0x63, SocialHandler.handleSendGroupChat); // Group Chat
 router.register(0x6B, SocialHandler.handleTeleportToPlayer); // Teleport To Party Member
 router.register(0x90, SocialHandler.handleFriendRequest); // Friend Request / Accept
 router.register(0x91, SocialHandler.handleUnfriend); // Unfriend / Decline
+router.register(0x43, SocialHandler.handleToggleIgnore); // Ignore Toggle
+router.register(0x9E, SocialHandler.handleRequestIgnoreList); // Ignore List Request
 router.register(0xC9, SocialHandler.handleRequestFriendList); // Friend List Request
 router.register(0x4D, GuildHandler.handleCreateGuild); // Create Guild
 router.register(0x4E, GuildHandler.handleDisbandGuild); // Disband Guild

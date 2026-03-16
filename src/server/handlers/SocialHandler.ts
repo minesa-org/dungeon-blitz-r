@@ -9,6 +9,8 @@ import { GuildHandler } from './GuildHandler';
 import {
     ensureCharacterSocialState,
     FriendEntry,
+    getCharacterIgnoredEntries,
+    isCharacterIgnoring,
     normalizeCharacterKey,
     PartyGroup,
     PendingTeleport
@@ -240,6 +242,93 @@ export class SocialHandler {
         client.sendBitBuffer(0xCA, bb);
     }
 
+    private static getIgnoredEntries(character: Character | null | undefined): string[] {
+        return getCharacterIgnoredEntries(character);
+    }
+
+    private static findIgnoredIndex(character: Character | null | undefined, targetName: string): number {
+        const targetKey = SocialHandler.normalizeName(targetName);
+        return SocialHandler.getIgnoredEntries(character).findIndex((entry) =>
+            SocialHandler.normalizeName(entry) === targetKey
+        );
+    }
+
+    private static addIgnoredEntry(character: Character | null | undefined, targetName: string): boolean {
+        if (!character) {
+            return false;
+        }
+
+        const ignored = SocialHandler.getIgnoredEntries(character);
+        if (SocialHandler.findIgnoredIndex(character, targetName) >= 0) {
+            return false;
+        }
+
+        character.ignored = [...ignored, String(targetName ?? '').trim()];
+        return true;
+    }
+
+    private static removeIgnoredEntry(character: Character | null | undefined, targetName: string): boolean {
+        if (!character) {
+            return false;
+        }
+
+        const ignored = SocialHandler.getIgnoredEntries(character);
+        const index = SocialHandler.findIgnoredIndex(character, targetName);
+        if (index < 0) {
+            return false;
+        }
+
+        const nextIgnored = [...ignored];
+        nextIgnored.splice(index, 1);
+        character.ignored = nextIgnored;
+        return true;
+    }
+
+    private static buildIgnoreNamePayload(targetName: string): Buffer {
+        const bb = new BitBuffer(false);
+        bb.writeMethod13(targetName);
+        return bb.toBuffer();
+    }
+
+    private static sendIgnoreAdded(target: Client | null | undefined, targetName: string): void {
+        if (!target) {
+            return;
+        }
+
+        target.send(0x9d, SocialHandler.buildIgnoreNamePayload(targetName));
+    }
+
+    private static sendIgnoreRemoved(target: Client | null | undefined, targetName: string): void {
+        if (!target) {
+            return;
+        }
+
+        target.send(0x9c, SocialHandler.buildIgnoreNamePayload(targetName));
+    }
+
+    private static sendFullIgnoreList(client: Client): void {
+        if (!client.character) {
+            return;
+        }
+
+        const ignored = SocialHandler.getIgnoredEntries(client.character);
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(ignored.length);
+        for (const entry of ignored) {
+            bb.writeMethod13(entry);
+        }
+
+        client.sendBitBuffer(0x9f, bb);
+    }
+
+    private static canReceiveChatFrom(recipient: Client | null | undefined, senderName: string): boolean {
+        if (!recipient?.character) {
+            return false;
+        }
+
+        return !isCharacterIgnoring(recipient.character, senderName);
+    }
+
     private static upsertCharacter(characters: Character[], character: Character): Character[] {
         const normalizedName = SocialHandler.normalizeName(character.name);
         const nextCharacters = Array.isArray(characters) ? [...characters] : [];
@@ -356,8 +445,18 @@ export class SocialHandler {
         return recipients;
     }
 
-    private static relayToLevel(client: Client, packetId: number, data: Buffer, includeSender: boolean = false): void {
+    private static relayToLevel(
+        client: Client,
+        packetId: number,
+        data: Buffer,
+        includeSender: boolean = false,
+        filterIgnored: boolean = false
+    ): void {
         for (const other of SocialHandler.forLevelRecipients(client, includeSender)) {
+            if (filterIgnored && !SocialHandler.canReceiveChatFrom(other, SocialHandler.getCharacterName(client))) {
+                continue;
+            }
+
             other.send(packetId, data);
         }
     }
@@ -616,7 +715,7 @@ export class SocialHandler {
         br.readMethod9();
         br.readMethod13();
 
-        SocialHandler.relayToLevel(client, 0x2c, data);
+        SocialHandler.relayToLevel(client, 0x2c, data, false, true);
     }
 
     static handlePrivateMessage(client: Client, data: Buffer): void {
@@ -634,7 +733,9 @@ export class SocialHandler {
         const received = new BitBuffer(false);
         received.writeMethod13(senderName);
         received.writeMethod13(message);
-        recipient.sendBitBuffer(0x47, received);
+        if (SocialHandler.canReceiveChatFrom(recipient, senderName)) {
+            recipient.sendBitBuffer(0x47, received);
+        }
 
         const echoed = new BitBuffer(false);
         echoed.writeMethod13(recipient.character.name);
@@ -817,6 +918,51 @@ export class SocialHandler {
 
     static handleRequestFriendList(client: Client, _data: Buffer): void {
         SocialHandler.sendFullFriendList(client);
+    }
+
+    static async handleToggleIgnore(client: Client, data: Buffer): Promise<void> {
+        if (!client.character) {
+            return;
+        }
+
+        const br = new BitReader(data);
+        const targetNameRaw = br.readMethod26();
+        const targetName = String(targetNameRaw ?? '').trim();
+        const senderName = client.character.name;
+
+        if (!targetName) {
+            return;
+        }
+        if (SocialHandler.normalizeName(targetName) === SocialHandler.normalizeName(senderName)) {
+            SocialHandler.sendChatStatus(client, 'You cannot ignore yourself.');
+            return;
+        }
+
+        const targetSession = SocialHandler.getOnlineSession(targetName);
+        const targetRecord = targetSession ? null : await SocialHandler.loadCharacterRecordByName(targetName);
+        const displayName = targetSession?.character?.name ?? targetRecord?.character?.name ?? targetName;
+
+        if (!targetSession && !targetRecord) {
+            SocialHandler.sendChatStatus(client, `Player ${targetName} not found.`);
+            return;
+        }
+
+        if (SocialHandler.findIgnoredIndex(client.character, displayName) >= 0) {
+            if (SocialHandler.removeIgnoredEntry(client.character, displayName)) {
+                await SocialHandler.persistClientCharacter(client);
+            }
+            SocialHandler.sendIgnoreRemoved(client, displayName);
+            return;
+        }
+
+        if (SocialHandler.addIgnoredEntry(client.character, displayName)) {
+            await SocialHandler.persistClientCharacter(client);
+        }
+        SocialHandler.sendIgnoreAdded(client, displayName);
+    }
+
+    static handleRequestIgnoreList(client: Client, _data: Buffer): void {
+        SocialHandler.sendFullIgnoreList(client);
     }
 
     static handleGroupInvite(client: Client, data: Buffer): void {
@@ -1155,7 +1301,7 @@ export class SocialHandler {
         const payload = SocialHandler.buildGroupChatPayload(client.character.name, message);
         for (const member of party.group.members) {
             const session = SocialHandler.getOnlineSession(member);
-            if (!session) {
+            if (!session || !SocialHandler.canReceiveChatFrom(session, client.character.name)) {
                 continue;
             }
 

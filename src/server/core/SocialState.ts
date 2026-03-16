@@ -70,6 +70,60 @@ export function normalizeFriendEntries(value: unknown): FriendEntry[] {
     return Array.from(deduped.values());
 }
 
+export function normalizeIgnoredEntry(value: unknown): string | null {
+    if (typeof value === 'string') {
+        const name = String(value).trim();
+        return name || null;
+    }
+
+    if (!value || typeof value !== 'object') {
+        return null;
+    }
+
+    const raw = value as Record<string, unknown>;
+    const name = String(raw.name ?? raw.charName ?? '').trim();
+    return name || null;
+}
+
+export function normalizeIgnoredEntries(value: unknown): string[] {
+    const items = Array.isArray(value) ? value : [];
+    const deduped = new Map<string, string>();
+
+    for (const item of items) {
+        const entry = normalizeIgnoredEntry(item);
+        if (!entry) {
+            continue;
+        }
+
+        const key = normalizeCharacterKey(entry);
+        if (!key || deduped.has(key)) {
+            continue;
+        }
+
+        deduped.set(key, entry);
+    }
+
+    return Array.from(deduped.values());
+}
+
+export function getCharacterIgnoredEntries(character: Character | null | undefined): string[] {
+    if (!character) {
+        return [];
+    }
+
+    ensureCharacterSocialState(character);
+    return Array.isArray(character.ignored) ? (character.ignored as string[]) : [];
+}
+
+export function isCharacterIgnoring(character: Character | null | undefined, name: string): boolean {
+    const targetKey = normalizeCharacterKey(name);
+    if (!targetKey) {
+        return false;
+    }
+
+    return getCharacterIgnoredEntries(character).some((entry) => normalizeCharacterKey(entry) === targetKey);
+}
+
 export function ensureCharacterSocialState(character: Character | null | undefined): boolean {
     if (!character) {
         return false;
@@ -94,6 +148,27 @@ export function ensureCharacterSocialState(character: Character | null | undefin
 
     if (!Array.isArray(character.friends)) {
         character.friends = [];
+        mutated = true;
+    }
+
+    const normalizedIgnored = normalizeIgnoredEntries(character.ignored);
+    if (!Array.isArray(character.ignored) || character.ignored.length !== normalizedIgnored.length) {
+        character.ignored = normalizedIgnored;
+        mutated = true;
+    } else {
+        for (let index = 0; index < normalizedIgnored.length; index++) {
+            const current = normalizeIgnoredEntry(character.ignored[index]);
+            const next = normalizedIgnored[index];
+            if (!current || current !== next) {
+                character.ignored = normalizedIgnored;
+                mutated = true;
+                break;
+            }
+        }
+    }
+
+    if (!Array.isArray(character.ignored)) {
+        character.ignored = [];
         mutated = true;
     }
 
