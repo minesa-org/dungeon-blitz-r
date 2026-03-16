@@ -198,7 +198,7 @@ export class Client {
             });
         }
 
-        EntityHandler.removeOwnedEntities(this);
+        EntityHandler.removeOwnedEntities(this, true);
 
         if (this.token && GlobalState.sessionsByToken.get(this.token) === this) {
             GlobalState.sessionsByToken.delete(this.token);
