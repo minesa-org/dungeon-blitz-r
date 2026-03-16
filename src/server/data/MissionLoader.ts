@@ -15,12 +15,34 @@ export interface MissionDef {
     ZoneSet?: string;
     MissionLevel?: number;
     PreReqMissions?: string[];
+    ExpReward?: string;
+    GoldReward?: string;
+    ExpRewardValue?: number;
+    GoldRewardValue?: number;
 }
 
 export class MissionLoader {
     private static missions: Map<number, MissionDef> = new Map();
     private static missionIdsByName: Map<string, number> = new Map();
     private static maxId: number = 0;
+
+    private static readonly REWARD_EXP_VALUES: Record<string, number> = {
+        'S': 5,
+        'M': 5,
+        'L': 10
+    };
+
+    private static readonly REWARD_GOLD_VALUES: Record<string, number> = {
+        'S': 5,
+        'M': 5,
+        'L': 10
+    };
+
+    private static parseNumericReward(value: string): number | null {
+        const trimmed = String(value ?? '').trim();
+        const parsed = parseInt(trimmed, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    }
 
     private static isTruthy(value: unknown): boolean {
         if (typeof value === 'boolean') {
@@ -61,6 +83,13 @@ export class MissionLoader {
                         .map((entry) => entry.trim())
                         .filter(Boolean);
 
+                    const expRewardKey = String(item.ExpReward || "M").toUpperCase().trim();
+                    const goldRewardKey = String(item.GoldReward || "M").toUpperCase().trim();
+
+                    // Проверяем, являются ли награды числовыми значениями
+                    const expRewardNumeric = MissionLoader.parseNumericReward(String(item.ExpReward || ''));
+                    const goldRewardNumeric = MissionLoader.parseNumericReward(String(item.GoldReward || ''));
+
                     this.missions.set(id, {
                         MissionName: missionName,
                         MissionID: id,
@@ -74,7 +103,11 @@ export class MissionLoader {
                         Dungeon: item.Dungeon || "",
                         ZoneSet: item.ZoneSet || "",
                         MissionLevel: parseInt(item.MissionLevel ?? "0", 10) || 0,
-                        PreReqMissions: preReqMissions
+                        PreReqMissions: preReqMissions,
+                        ExpReward: item.ExpReward || "",
+                        GoldReward: item.GoldReward || "",
+                        ExpRewardValue: expRewardNumeric ?? (this.REWARD_EXP_VALUES[expRewardKey] ?? this.REWARD_EXP_VALUES['M']),
+                        GoldRewardValue: goldRewardNumeric ?? (this.REWARD_GOLD_VALUES[goldRewardKey] ?? this.REWARD_GOLD_VALUES['M'])
                     });
                     const normalizedName = this.normalizeMissionName(missionName);
                     if (normalizedName) {
