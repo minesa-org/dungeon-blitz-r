@@ -1124,8 +1124,14 @@ export class SocialHandler {
             return;
         }
 
+        const wasLocked = Boolean(party.group.locked);
         party.group.locked = locked;
         GlobalState.partyGroups.set(party.partyId, party.group);
+        if (locked && !wasLocked) {
+            for (const member of party.group.members) {
+                SocialHandler.sendChatStatus(SocialHandler.getOnlineSession(member), 'Party is locked.');
+            }
+        }
         SocialHandler.broadcastPartyUpdateById(party.partyId);
     }
 
