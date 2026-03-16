@@ -42,8 +42,21 @@ export class StaticServer {
         this.setupRoutes();
     }
 
+    private getSelectedSwfPath(): string {
+        const swfName = Config.MULTIPLAYER_MODE ? 'DungeonBlitz.multiplayer.swf' : 'DungeonBlitz.localhost.swf';
+        return path.join(this.contentDir, 'p', 'cbp', swfName);
+    }
+
+    private renderDevSettings(devSettingsPath: string): string {
+        const contents = fs.readFileSync(devSettingsPath, 'utf8');
+        return contents.replace(
+            /value="(?:100\.100\.146\.54|127\.0\.0\.1|localhost)"/g,
+            `value="${Config.HOST}"`
+        );
+    }
+
     private setupRoutes(): void {
-        const remoteSwfPath = path.join(this.contentDir, 'p', 'cbp', 'DungeonBlitz.swf');
+        const devSettingsPath = path.join(this.contentDir, 'p', 'cbq', 'devSettings.xml');
 
         this.app.use((req, res, next) => {
             const shouldLog =
@@ -93,12 +106,22 @@ export class StaticServer {
 
         this.app.get('/', (_req, res) => {
             res.type('application/x-shockwave-flash');
-            res.sendFile(remoteSwfPath);
+            res.sendFile(this.getSelectedSwfPath());
+        });
+
+        this.app.get('/p/cbp/DungeonBlitz.swf', (_req, res) => {
+            res.type('application/x-shockwave-flash');
+            res.sendFile(this.getSelectedSwfPath());
         });
 
         this.app.get('/DungeonBlitzRemote.swf', (_req, res) => {
             res.type('application/x-shockwave-flash');
-            res.sendFile(remoteSwfPath);
+            res.sendFile(this.getSelectedSwfPath());
+        });
+
+        this.app.get('/p/cbq/devSettings.xml', (_req, res) => {
+            res.type('application/xml');
+            res.send(this.renderDevSettings(devSettingsPath));
         });
 
         // Serve static files
@@ -120,7 +143,8 @@ export class StaticServer {
     public start(): void {
         this.app.listen(this.port, this.host, () => {
             console.log(`[StaticServer] Serving ${this.contentDir} on http://${this.host}:${this.port}`);
-            console.log(`[StaticServer] Remote Flash: http://${Config.HOST}/p/cbp/DungeonBlitz.swf`);
+            console.log(`[StaticServer] Multiplayer mode: ${Config.MULTIPLAYER_MODE}`);
+            console.log(`[StaticServer] Flash URL: http://${Config.HOST}/p/cbp/DungeonBlitz.swf`);
         });
     }
 }
