@@ -109,6 +109,8 @@ export class Client {
     public lastDoorId: number = -1;
     public lastDoorTargetLevel: string = "";
     public playerSpawned: boolean = false;
+    public partyMapX: number = 0;
+    public partyMapY: number = 0;
     public mountTransferGraceUntil: number = 0;
     public startedRoomEvents: Set<string> = new Set();
     public pendingLoot: Map<number, PendingLootDrop> = new Map();
@@ -186,7 +188,9 @@ export class Client {
     private onClose(hadError: boolean): void {
         const { GlobalState } = require('./GlobalState') as typeof import('./GlobalState');
         const { EntityHandler } = require('../handlers/EntityHandler') as typeof import('../handlers/EntityHandler');
+        const { SocialHandler } = require('../handlers/SocialHandler') as typeof import('../handlers/SocialHandler');
         const addr = `${this.socket.remoteAddress}:${this.socket.remotePort}`;
+        const normalizedCharName = String(this.character?.name ?? '').trim().toLowerCase();
 
         if (this.userId && this.character) {
             void db.saveCharacterSnapshot(this.userId, this.character).catch((err) => {
@@ -199,11 +203,30 @@ export class Client {
         if (this.token && GlobalState.sessionsByToken.get(this.token) === this) {
             GlobalState.sessionsByToken.delete(this.token);
         }
+        if (this.token) {
+            GlobalState.pendingTeleports.delete(this.token);
+        }
         if (this.userId && GlobalState.sessionsByUserId.get(this.userId) === this) {
             GlobalState.sessionsByUserId.delete(this.userId);
         }
+        if (normalizedCharName && GlobalState.sessionsByCharacterName.get(normalizedCharName) === this) {
+            GlobalState.sessionsByCharacterName.delete(normalizedCharName);
+        }
+
+        const transferInProgress = Boolean(
+            this.userId &&
+            normalizedCharName &&
+            Array.from(GlobalState.pendingWorld.values()).some((entry) =>
+                entry.userId === this.userId &&
+                String(entry.character?.name ?? '').trim().toLowerCase() === normalizedCharName
+            )
+        );
+
+        SocialHandler.handleSessionClose(this, transferInProgress);
 
         this.playerSpawned = false;
+        this.partyMapX = 0;
+        this.partyMapY = 0;
         this.mountTransferGraceUntil = 0;
         this.entities.clear();
         this.pendingLoot.clear();

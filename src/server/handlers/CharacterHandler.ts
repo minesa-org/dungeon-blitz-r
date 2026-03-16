@@ -12,6 +12,8 @@ import { JsonAdapter } from '../database/JsonAdapter';
 import { Character } from '../database/Database';
 import { LoginHandler } from './LoginHandler';
 import { AbilityHandler } from './AbilityHandler';
+import { SocialHandler } from './SocialHandler';
+import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
 
 const db = new JsonAdapter();
 
@@ -81,6 +83,7 @@ export class CharacterHandler {
 
     private static upsertCharacterList(characters: Character[], character: Character): Character[] {
         const next = Array.isArray(characters) ? [...characters] : [];
+        ensureCharacterSocialState(character);
         const normalizedName = CharacterHandler.normalizeCharacterName(character?.name);
         const index = next.findIndex((entry) => CharacterHandler.normalizeCharacterName(entry?.name) === normalizedName);
 
@@ -376,9 +379,10 @@ export class CharacterHandler {
             client.characters = CharacterHandler.upsertCharacterList(client.characters, client.character);
         }
 
+        const socialRepairDidMutate = ensureCharacterSocialState(client.character);
         const abilityRepairDidMutate = AbilityHandler.repairCharacterAbilityState(client.character);
         const storyRepair = MissionHandler.repairEarlyStoryOnLogin(client.character, entry.targetLevel);
-        if ((abilityRepairDidMutate || storyRepair.didMutate) && client.userId) {
+        if ((socialRepairDidMutate || abilityRepairDidMutate || storyRepair.didMutate) && client.userId) {
             client.characters = CharacterHandler.upsertCharacterList(client.characters, client.character);
             void db.saveCharacters(client.userId, client.characters);
         }
@@ -390,6 +394,10 @@ export class CharacterHandler {
             GlobalState.sessionsByUserId.set(client.userId, client);
             // Ensure persistence mapping exists
             GlobalState.tokenChar.set(token, { character: entry.character, userId: client.userId });
+        }
+        const characterKey = normalizeCharacterKey(client.character.name);
+        if (characterKey) {
+            GlobalState.sessionsByCharacterName.set(characterKey, client);
         }
         GlobalState.pendingWorld.delete(token);
         GlobalState.pendingExtended.delete(token);
@@ -417,6 +425,8 @@ export class CharacterHandler {
         
         client.sendBitBuffer(0x10, pdPkt);
         console.log(`[GameLogin] Sent 0x10 (Player Data)`);
+
+        SocialHandler.handleSessionReady(client);
 
         if (storyRepair.addedMissionId > 0) {
             MissionHandler.sendMissionAdded(client, storyRepair.addedMissionId);
