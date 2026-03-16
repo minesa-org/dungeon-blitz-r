@@ -26,6 +26,7 @@ import { NpcHandler } from './handlers/NpcHandler';
 import { RewardHandler } from './handlers/RewardHandler';
 import { EquipmentHandler } from './handlers/EquipmentHandler';
 import { AbilityHandler } from './handlers/AbilityHandler';
+import { DebugLogger } from './core/Debug';
 import * as path from 'path';
 
 import { StaticServer } from './core/StaticServer';
@@ -38,6 +39,7 @@ PetConfig.load(dataDir);
 GameData.load(dataDir);
 MissionLoader.load(dataDir);
 NpcLoader.load(dataDir);
+DebugLogger.logStartup();
 
 // Initialize Router
 const router = new PacketRouter();
@@ -137,13 +139,13 @@ router.register(0xDF, TalentHandler.handleClearTalentResearch);
 router.register(0x106, SigilHandler.handleRoyalSigilStorePurchase);
 
 // Start Servers
-const policyServer = new PolicyServer(Config.POLICY_PORT);
+const policyServer = new PolicyServer(Config.POLICY_PORT, Config.BIND_HOST);
 policyServer.start();
 
-const staticServer = new StaticServer(80, '../../client/content/localhost');
+const staticServer = new StaticServer(Config.STATIC_PORT, '../client/content/localhost', Config.BIND_HOST);
 staticServer.start();
 
 
-const gameServer = new GameServer(Config.PORTS[0], router);
+const gameServer = new GameServer(Config.PORTS[0], router, Config.BIND_HOST);
 AILogic.start();
 gameServer.start();

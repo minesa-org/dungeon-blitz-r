@@ -4,7 +4,7 @@ import { BitReader } from '../network/protocol/bitReader';
 
 const client = new net.Socket();
 const PORT = 8080;
-const HOST = '127.0.0.1';
+const HOST = '100.107.83.49';
 
 // Buffer for incoming data
 let buffer = Buffer.alloc(0);

@@ -3,6 +3,7 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 import { PacketRouter } from '../network/packetRouter';
 import { UserAccount, Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
+import { DebugLogger } from './Debug';
 
 const db = new JsonAdapter();
 
@@ -143,6 +144,7 @@ export class Client {
 
             const payload = Buffer.from(this.buffer.subarray(4, total));
             this.buffer = this.buffer.subarray(total);
+            DebugLogger.logPacket('IN', this, packetId, payload);
 
             this.packetQueue = this.packetQueue
                 .then(async () => {
@@ -158,6 +160,7 @@ export class Client {
         const header = Buffer.alloc(4);
         header.writeUInt16BE(packetId, 0);
         header.writeUInt16BE(buffer.length, 2);
+        DebugLogger.logPacket('OUT', this, packetId, buffer);
         this.socket.write(Buffer.concat([header, buffer]));
     }
 

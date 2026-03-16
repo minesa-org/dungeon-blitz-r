@@ -19,7 +19,9 @@ function resolveServerDataDir(): string {
 }
 
 export const Config = {
-    HOST: '127.0.0.1',
+    HOST: '100.107.83.49',
+    BIND_HOST: '0.0.0.0',
+    STATIC_PORT: 80,
     PORTS: [8080],
     POLICY_PORT: 843,
     SECRET: "815bfb010cd7b1b4e6aa90abc7679028", // Matches Python Global
