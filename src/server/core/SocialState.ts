@@ -123,7 +123,6 @@ export function isCharacterIgnoring(character: Character | null | undefined, nam
 
     return getCharacterIgnoredEntries(character).some((entry) => normalizeCharacterKey(entry) === targetKey);
 }
-
 export function ensureCharacterSocialState(character: Character | null | undefined): boolean {
     if (!character) {
         return false;
@@ -171,6 +170,5 @@ export function ensureCharacterSocialState(character: Character | null | undefin
         character.ignored = [];
         mutated = true;
     }
-
     return mutated;
 }

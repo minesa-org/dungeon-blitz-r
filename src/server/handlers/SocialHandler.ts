@@ -338,7 +338,6 @@ export class SocialHandler {
 
         return !isCharacterIgnoring(recipient.character, senderName);
     }
-
     private static upsertCharacter(characters: Character[], character: Character): Character[] {
         const normalizedName = SocialHandler.normalizeName(character.name);
         const nextCharacters = Array.isArray(characters) ? [...characters] : [];

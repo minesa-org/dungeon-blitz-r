@@ -14,6 +14,7 @@ import { LoginHandler } from './LoginHandler';
 import { AbilityHandler } from './AbilityHandler';
 import { SocialHandler } from './SocialHandler';
 import { GuildHandler } from './GuildHandler';
+import { EntityHandler } from './EntityHandler';
 import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
 
 const db = new JsonAdapter();
@@ -41,21 +42,72 @@ export class CharacterHandler {
         return normalized === '' || normalized === 'player';
     }
 
+    private static allocateTransferToken(userId: number | null, characterName: string): number {
+        let token = 0;
+        do {
+            token = Math.floor(Math.random() * 0x10000);
+        } while (
+            token <= 0 ||
+            GlobalState.pendingWorld.has(token) ||
+            GlobalState.pendingExtended.has(token) ||
+            GlobalState.sessionsByToken.has(token) ||
+            GlobalState.tokenChar.has(token)
+        );
+
+        return token;
+    }
+
+    private static isSessionStale(session: Client): boolean {
+        return session.socket.destroyed || session.socket.readyState !== 'open';
+    }
+
     private static purgeSameCharacterGhosts(activeClient: Client, userId: number, characterName: string): void {
         const normalizedCharName = String(characterName || '').trim().toLowerCase();
 
         for (const [levelName, levelMap] of Array.from(GlobalState.levelEntities.entries())) {
-            for (const [entityId, entityProps] of Array.from(levelMap.entries())) {
-                if (!entityProps?.isPlayer) {
+            const liveEntityIds = new Set<number>();
+            const liveOwnerTokens = new Set<number>();
+
+            for (const session of GlobalState.sessionsByToken.values()) {
+                if (session === activeClient || CharacterHandler.isSessionStale(session)) {
                     continue;
                 }
-                if (String(entityProps?.name || '').trim().toLowerCase() !== normalizedCharName) {
+                if (!session.playerSpawned || session.currentLevel !== levelName) {
+                    continue;
+                }
+
+                if (session.clientEntID > 0) {
+                    liveEntityIds.add(session.clientEntID);
+                }
+                if (session.token > 0) {
+                    liveOwnerTokens.add(session.token);
+                }
+            }
+
+            for (const [entityId, entityProps] of Array.from(levelMap.entries())) {
+                const normalizedEntityName = String(entityProps?.name || '').trim().toLowerCase();
+                const ownerUserId = Number(entityProps?.ownerUserId ?? 0);
+                const ownerToken = Number(entityProps?.ownerToken ?? 0);
+                const isSameUser = ownerUserId > 0 && ownerUserId === userId;
+                const isSameCharacter = normalizedEntityName === normalizedCharName;
+                const isDuplicatePlayer = Boolean(entityProps?.isPlayer) && (isSameUser || isSameCharacter);
+                const isDuplicateOwnedSpawn = Boolean(entityProps?.clientSpawned) && isSameUser;
+
+                if (!isDuplicatePlayer && !isDuplicateOwnedSpawn) {
                     continue;
                 }
                 if (activeClient.currentLevel === levelName && activeClient.clientEntID > 0 && activeClient.clientEntID === entityId) {
                     continue;
                 }
+                if (liveEntityIds.has(entityId)) {
+                    continue;
+                }
+                if (Boolean(entityProps?.clientSpawned) && ownerToken > 0 && liveOwnerTokens.has(ownerToken)) {
+                    continue;
+                }
+
                 levelMap.delete(entityId);
+                EntityHandler.broadcastDestroyEntity(levelName, entityId);
             }
 
             if (levelMap.size === 0) {
@@ -70,15 +122,22 @@ export class CharacterHandler {
             if (other.userId !== userId) {
                 continue;
             }
-            if (other.character?.name !== characterName) {
+            if (!CharacterHandler.isSessionStale(other)) {
                 continue;
             }
 
+            EntityHandler.removeOwnedEntities(other, true);
             GlobalState.sessionsByToken.delete(token);
             if (GlobalState.sessionsByUserId.get(userId) === other) {
                 GlobalState.sessionsByUserId.delete(userId);
             }
-            other.socket.destroy();
+            GlobalState.pendingTeleports.delete(token);
+            GlobalState.tokenChar.delete(token);
+            const otherCharacterKey = normalizeCharacterKey(other.character?.name);
+            if (otherCharacterKey && GlobalState.sessionsByCharacterName.get(otherCharacterKey) === other) {
+                GlobalState.sessionsByCharacterName.delete(otherCharacterKey);
+            }
+            other.playerSpawned = false;
         }
     }
 
@@ -288,7 +347,7 @@ export class CharacterHandler {
         const spawn = LevelConfig.getSpawnCoordinates(char, previousLevelName, currentLevelName);
 
         // Generate Transfer Token
-        const token = Math.floor(Math.random() * 0xFFFF); 
+        const token = CharacterHandler.allocateTransferToken(client.userId, char.name);
         
         // Store Pending State
         if (client.userId) {
@@ -381,7 +440,6 @@ export class CharacterHandler {
         }
 
         await GuildHandler.refreshClientGuildState(client);
-
         const socialRepairDidMutate = ensureCharacterSocialState(client.character);
         const abilityRepairDidMutate = AbilityHandler.repairCharacterAbilityState(client.character);
         const storyRepair = MissionHandler.repairEarlyStoryOnLogin(client.character, entry.targetLevel);
