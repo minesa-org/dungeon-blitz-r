@@ -41,6 +41,14 @@ export interface KeepTutorialState {
     helperEntityIds: number[];
 }
 
+interface SessionCleanupSnapshot {
+    userId: number | null;
+    token: number;
+    authenticated: boolean;
+    characterName: string;
+    normalizedCharName: string;
+}
+
 export function createKeepTutorialState(): KeepTutorialState {
     return {
         phase: 0,
@@ -207,6 +215,169 @@ export class Client {
         this.send(packetId, bb.toBuffer());
     }
 
+    private createSessionCleanupSnapshot(): SessionCleanupSnapshot {
+        const characterName = String(this.character?.name ?? '').trim();
+
+        return {
+            userId: this.userId,
+            token: this.token,
+            authenticated: this.authenticated,
+            characterName,
+            normalizedCharName: characterName.toLowerCase()
+        };
+    }
+
+    private hasReusableSessionState(): boolean {
+        if (
+            this.authenticated ||
+            this.userId !== null ||
+            this.character !== null ||
+            this.characters.length > 0 ||
+            this.token > 0 ||
+            this.playerSpawned ||
+            this.currentLevel.length > 0 ||
+            this.entities.size > 0
+        ) {
+            return true;
+        }
+
+        const { GlobalState } = require('./GlobalState') as typeof import('./GlobalState');
+        return (
+            Array.from(GlobalState.sessionsByToken.values()).some((session) => session === this) ||
+            Array.from(GlobalState.sessionsByUserId.values()).some((session) => session === this) ||
+            Array.from(GlobalState.sessionsByCharacterName.values()).some((session) => session === this)
+        );
+    }
+
+    private clearGameplayState(): void {
+        this.token = 0;
+        this.clientEntID = 0;
+        this.entities.clear();
+        this.currentLevel = "";
+        this.entryLevel = "";
+        this.currentRoomId = -1;
+        this.lastDoorId = -1;
+        this.lastDoorTargetLevel = "";
+        this.playerSpawned = false;
+        this.partyMapX = 0;
+        this.partyMapY = 0;
+        this.mountTransferGraceUntil = 0;
+        this.startedRoomEvents.clear();
+        this.pendingLoot.clear();
+        this.processedRewardSources.clear();
+        this.pendingMissionTurnIns.clear();
+        this.authoritativeMaxHp = 100;
+        this.authoritativeCurrentHp = 100;
+        this.clientSpawnConfirmed = false;
+        clearClientSpawnFallbackTimer(this);
+        clearKeepTutorialTimers(this.keepTutorialState);
+        this.keepTutorialState = null;
+    }
+
+    private clearIdentityState(): void {
+        this.userId = null;
+        this.authenticated = false;
+        this.account = null;
+        this.characters = [];
+        this.character = null;
+        this.challengeStr = "";
+    }
+
+    private cleanupSessionState(snapshot: SessionCleanupSnapshot, transferInProgress: boolean): void {
+        const { GlobalState } = require('./GlobalState') as typeof import('./GlobalState');
+        const { EntityHandler } = require('../handlers/EntityHandler') as typeof import('../handlers/EntityHandler');
+        const { SocialHandler } = require('../handlers/SocialHandler') as typeof import('../handlers/SocialHandler');
+
+        EntityHandler.removeOwnedEntities(this);
+
+        const sessionTokens = new Set<number>();
+        if (snapshot.token > 0) {
+            sessionTokens.add(snapshot.token);
+        }
+
+        for (const [token, session] of Array.from(GlobalState.sessionsByToken.entries())) {
+            if (session === this) {
+                sessionTokens.add(token);
+            }
+        }
+
+        for (const token of sessionTokens) {
+            GlobalState.sessionsByToken.delete(token);
+            GlobalState.pendingTeleports.delete(token);
+
+            if (!transferInProgress) {
+                GlobalState.pendingWorld.delete(token);
+                GlobalState.pendingExtended.delete(token);
+                GlobalState.tokenChar.delete(token);
+                GlobalState.houseVisits.delete(token);
+            }
+        }
+
+        if (!transferInProgress && snapshot.userId && snapshot.normalizedCharName) {
+            for (const [token, entry] of Array.from(GlobalState.pendingWorld.entries())) {
+                const entryCharName = String(entry.character?.name ?? '').trim().toLowerCase();
+                if (entry.userId !== snapshot.userId || entryCharName !== snapshot.normalizedCharName) {
+                    continue;
+                }
+
+                GlobalState.pendingWorld.delete(token);
+                GlobalState.pendingExtended.delete(token);
+                GlobalState.tokenChar.delete(token);
+                GlobalState.pendingTeleports.delete(token);
+                GlobalState.houseVisits.delete(token);
+            }
+
+            for (const [token, entry] of Array.from(GlobalState.tokenChar.entries())) {
+                const entryCharName = String(entry.character?.name ?? '').trim().toLowerCase();
+                if (entry.userId !== snapshot.userId || entryCharName !== snapshot.normalizedCharName) {
+                    continue;
+                }
+
+                GlobalState.tokenChar.delete(token);
+                GlobalState.pendingTeleports.delete(token);
+                GlobalState.houseVisits.delete(token);
+            }
+        }
+
+        for (const [userId, session] of Array.from(GlobalState.sessionsByUserId.entries())) {
+            if (session === this) {
+                GlobalState.sessionsByUserId.delete(userId);
+            }
+        }
+
+        for (const [characterKey, session] of Array.from(GlobalState.sessionsByCharacterName.entries())) {
+            if (session === this) {
+                GlobalState.sessionsByCharacterName.delete(characterKey);
+            }
+        }
+
+        SocialHandler.handleSessionClose(this, transferInProgress);
+
+        this.clearGameplayState();
+        this.clearIdentityState();
+    }
+
+    public async resetForLoginCycle(reason: string, options?: { persistSnapshot?: boolean }): Promise<void> {
+        if (!this.hasReusableSessionState()) {
+            return;
+        }
+
+        const snapshot = this.createSessionCleanupSnapshot();
+        const persistSnapshot = options?.persistSnapshot !== false;
+
+        if (persistSnapshot && snapshot.userId && this.character) {
+            await db.saveCharacterSnapshot(snapshot.userId, this.character).catch((err) => {
+                console.error(`[Client] Failed to persist character before ${reason}:`, err);
+            });
+        }
+
+        this.cleanupSessionState(snapshot, false);
+
+        console.log(
+            `[Client] Reset for ${reason}: userId=${snapshot.userId ?? 0} authenticated=${snapshot.authenticated} char=${snapshot.characterName || '(none)'} token=${snapshot.token}`
+        );
+    }
+
     private onEnd(): void {
         const addr = `${this.socket.remoteAddress}:${this.socket.remotePort}`;
         console.log(
@@ -216,58 +387,27 @@ export class Client {
 
     private onClose(hadError: boolean): void {
         const { GlobalState } = require('./GlobalState') as typeof import('./GlobalState');
-        const { EntityHandler } = require('../handlers/EntityHandler') as typeof import('../handlers/EntityHandler');
-        const { SocialHandler } = require('../handlers/SocialHandler') as typeof import('../handlers/SocialHandler');
         const addr = `${this.socket.remoteAddress}:${this.socket.remotePort}`;
-        const normalizedCharName = String(this.character?.name ?? '').trim().toLowerCase();
+        const snapshot = this.createSessionCleanupSnapshot();
 
-        if (this.userId && this.character) {
-            void db.saveCharacterSnapshot(this.userId, this.character).catch((err) => {
+        if (snapshot.userId && this.character) {
+            void db.saveCharacterSnapshot(snapshot.userId, this.character).catch((err) => {
                 console.error('[Client] Failed to persist character on disconnect:', err);
             });
         }
-
-        EntityHandler.removeOwnedEntities(this, true);
-
-        if (this.token && GlobalState.sessionsByToken.get(this.token) === this) {
-            GlobalState.sessionsByToken.delete(this.token);
-        }
-        if (this.token) {
-            GlobalState.pendingTeleports.delete(this.token);
-        }
-        if (this.userId && GlobalState.sessionsByUserId.get(this.userId) === this) {
-            GlobalState.sessionsByUserId.delete(this.userId);
-        }
-        if (normalizedCharName && GlobalState.sessionsByCharacterName.get(normalizedCharName) === this) {
-            GlobalState.sessionsByCharacterName.delete(normalizedCharName);
-        }
-
         const transferInProgress = Boolean(
-            this.userId &&
-            normalizedCharName &&
+            snapshot.userId &&
+            snapshot.normalizedCharName &&
             Array.from(GlobalState.pendingWorld.values()).some((entry) =>
-                entry.userId === this.userId &&
-                String(entry.character?.name ?? '').trim().toLowerCase() === normalizedCharName
+                entry.userId === snapshot.userId &&
+                String(entry.character?.name ?? '').trim().toLowerCase() === snapshot.normalizedCharName
             )
         );
 
-        SocialHandler.handleSessionClose(this, transferInProgress);
-
-        this.playerSpawned = false;
-        this.partyMapX = 0;
-        this.partyMapY = 0;
-        this.mountTransferGraceUntil = 0;
-        this.entities.clear();
-        this.pendingLoot.clear();
-        this.processedRewardSources.clear();
-        this.pendingMissionTurnIns.clear();
-        this.clientSpawnConfirmed = false;
-        clearClientSpawnFallbackTimer(this);
-        clearKeepTutorialTimers(this.keepTutorialState);
-        this.keepTutorialState = null;
+        this.cleanupSessionState(snapshot, transferInProgress);
 
         console.log(
-            `[Client] Disconnected: ${addr} hadError=${hadError} bytesIn=${this.rawBytesIn} bytesOut=${this.rawBytesOut} authenticated=${this.authenticated} token=${this.token}`
+            `[Client] Disconnected: ${addr} hadError=${hadError} bytesIn=${this.rawBytesIn} bytesOut=${this.rawBytesOut} authenticated=${snapshot.authenticated} token=${snapshot.token} char=${snapshot.characterName || '(none)'}`
         );
     }
 

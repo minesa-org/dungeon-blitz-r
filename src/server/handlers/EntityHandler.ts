@@ -4,13 +4,33 @@ import { Client, clearClientSpawnFallbackTimer, createKeepTutorialState } from '
 import { BitReader } from '../network/protocol/bitReader';
 import { GlobalState } from '../core/GlobalState';
 import { Entity, EntityProps, EntityState } from '../core/Entity';
+import { LevelConfig } from '../core/LevelConfig';
 import { PetHandler } from './PetHandler';
 
 export class EntityHandler {
     private static readonly CLIENT_SPAWN_LEVELS = new Set<string>([
         'CraftTownTutorial',
+        'CraftTown',
         'NewbieRoad',
-        'NewbieRoadHard'
+        'NewbieRoadHard',
+        'SwampRoadNorth',
+        'SwampRoadNorthHard',
+        'SwampRoadConnection',
+        'SwampRoadConnectionHard',
+        'BridgeTown',
+        'BridgeTownHard',
+        'CemeteryHill',
+        'CemeteryHillHard',
+        'OldMineMountain',
+        'OldMineMountainHard',
+        'EmeraldGlades',
+        'EmeraldGladesHard',
+        'Castle',
+        'CastleHard',
+        'ShazariDesert',
+        'ShazariDesertHard',
+        'JadeCity',
+        'JadeCityHard'
     ]);
     private static readonly MOUNT_SYNC_RETRY_DELAYS_MS = [0, 300, 1200, 2500, 4000];
 
@@ -27,6 +47,25 @@ export class EntityHandler {
 
     static isClientSpawnLevel(levelName: string): boolean {
         return EntityHandler.usesClientSpawn(levelName);
+    }
+
+    private static isServerAuthoritativeDungeon(levelName: string): boolean {
+        return LevelConfig.isDungeonLevel(levelName) && !EntityHandler.usesClientSpawn(levelName);
+    }
+
+    private static pruneStaleServerNpcs(levelMap: Map<number, any>): number {
+        let removedCount = 0;
+
+        for (const [entityId, entityProps] of Array.from(levelMap.entries())) {
+            if (entityProps?.isPlayer || entityProps?.clientSpawned) {
+                continue;
+            }
+
+            levelMap.delete(entityId);
+            removedCount++;
+        }
+
+        return removedCount;
     }
 
     private static getCraftTownTutorialState(client: Client) {
@@ -122,7 +161,12 @@ export class EntityHandler {
 
         const payload = EntityHandler.buildDestroyEntityPayload(entityId);
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (other === excludedClient || !other.playerSpawned || other.currentLevel !== levelName) {
+            if (
+                other === excludedClient ||
+                !other.playerSpawned ||
+                other.currentLevel !== levelName ||
+                other.socket?.destroyed
+            ) {
                 continue;
             }
 
@@ -326,6 +370,22 @@ export class EntityHandler {
         const bDropping = br.readMethod15();
         const bBackpedal = br.readMethod15();
 
+        const levelName = client.currentLevel;
+        const existingLevelMap = levelName ? GlobalState.levelEntities.get(levelName) : null;
+        const isUnknownHostileClientSpawn = Boolean(
+            !isPlayer &&
+            team === 2 &&
+            levelName &&
+            EntityHandler.isServerAuthoritativeDungeon(levelName) &&
+            !existingLevelMap?.has(entityId)
+        );
+        if (isUnknownHostileClientSpawn) {
+            console.log(
+                `[EntityHandler] Ignoring client-spawn hostile NPC in server-authoritative dungeon ${levelName}: ${entName} (${entityId})`
+            );
+            return;
+        }
+
         const entNameNorm = EntityHandler.normalizeIdentityName(entName);
         const charNameNorm = EntityHandler.normalizeIdentityName(client.character?.name);
         const isSelfPacket = Boolean(isPlayer && entNameNorm && charNameNorm && entNameNorm === charNameNorm);
@@ -393,11 +453,11 @@ export class EntityHandler {
         }
 
         // Update GlobalState
-        if (client.currentLevel) {
-            let levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        if (levelName) {
+            let levelMap = existingLevelMap;
             if (!levelMap) {
                 levelMap = new Map();
-                GlobalState.levelEntities.set(client.currentLevel, levelMap);
+                GlobalState.levelEntities.set(levelName, levelMap);
             }
             levelMap.set(entityId, props);
         }
@@ -440,6 +500,12 @@ export class EntityHandler {
         }
 
         if (EntityHandler.usesClientSpawn(levelName)) {
+            const removedCount = EntityHandler.pruneStaleServerNpcs(levelMap);
+            if (removedCount > 0) {
+                console.log(
+                    `[EntityHandler] Removed ${removedCount} stale server NPCs from client-spawn level ${levelName}`
+                );
+            }
             return;
         }
 
@@ -452,44 +518,45 @@ export class EntityHandler {
         }
     }
 
-    static removeOwnedEntities(client: Client, broadcastDestroy: boolean = false): number[] {
+    static removeOwnedEntities(client: Client): number[] {
         const levelName = client.currentLevel;
         if (!levelName) {
             return [];
         }
 
+        const removedEntityIds = new Set<number>();
         const levelMap = GlobalState.levelEntities.get(levelName);
-        if (!levelMap) {
-            return [];
-        }
-
         const charNameNorm = EntityHandler.normalizeIdentityName(client.character?.name);
-        const removedEntityIds: number[] = [];
-        for (const [entityId, entityProps] of Array.from(levelMap.entries())) {
-            const entityNameNorm = EntityHandler.normalizeIdentityName(entityProps?.name);
-            const isOwnedPlayer = Boolean(entityProps?.isPlayer) && (
-                (client.clientEntID > 0 && entityId === client.clientEntID) ||
-                (charNameNorm && entityNameNorm === charNameNorm)
-            );
-            const isOwnedClientSpawn = Boolean(entityProps?.clientSpawned) && Number(entityProps?.ownerToken ?? 0) === client.token;
 
-            if (isOwnedPlayer || isOwnedClientSpawn) {
-                levelMap.delete(entityId);
-                removedEntityIds.push(entityId);
+        if (levelMap) {
+            for (const [entityId, entityProps] of Array.from(levelMap.entries())) {
+                const entityNameNorm = EntityHandler.normalizeIdentityName(entityProps?.name);
+                const isOwnedPlayer = Boolean(entityProps?.isPlayer) && (
+                    (client.clientEntID > 0 && entityId === client.clientEntID) ||
+                    (charNameNorm && entityNameNorm === charNameNorm)
+                );
+                const isOwnedClientSpawn = Boolean(entityProps?.clientSpawned) && Number(entityProps?.ownerToken ?? 0) === client.token;
+
+                if (isOwnedPlayer || isOwnedClientSpawn) {
+                    levelMap.delete(entityId);
+                    removedEntityIds.add(entityId);
+                }
+            }
+
+            if (levelMap.size === 0) {
+                GlobalState.levelEntities.delete(levelName);
             }
         }
 
-        if (broadcastDestroy) {
-            for (const entityId of removedEntityIds) {
-                EntityHandler.broadcastDestroyEntity(levelName, entityId, client);
-            }
+        if (client.playerSpawned && client.clientEntID > 0) {
+            removedEntityIds.add(client.clientEntID);
         }
 
-        if (levelMap.size === 0) {
-            GlobalState.levelEntities.delete(levelName);
+        for (const entityId of removedEntityIds) {
+            EntityHandler.broadcastDestroyEntity(levelName, entityId, client);
         }
 
-        return removedEntityIds;
+        return Array.from(removedEntityIds);
     }
 
     private static sendExistingPlayersToJoiner(joiner: Client): void {

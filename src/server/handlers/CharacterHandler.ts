@@ -126,7 +126,7 @@ export class CharacterHandler {
                 continue;
             }
 
-            EntityHandler.removeOwnedEntities(other, true);
+            EntityHandler.removeOwnedEntities(other);
             GlobalState.sessionsByToken.delete(token);
             if (GlobalState.sessionsByUserId.get(userId) === other) {
                 GlobalState.sessionsByUserId.delete(userId);

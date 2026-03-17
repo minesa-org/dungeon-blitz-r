@@ -1074,24 +1074,10 @@ export class LevelHandler {
     }
 
     private static sendDestroyEntity(levelName: string, entityId: number): void {
-        const bb = new BitBuffer(false);
-        bb.writeMethod4(entityId);
-        bb.writeMethod15(false);
-        const payload = bb.toBuffer();
-
-        for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
-                continue;
-            }
-            other.send(0x0D, payload);
-        }
+        EntityHandler.broadcastDestroyEntity(levelName, entityId);
     }
 
     private static clearTransferState(client: Client, oldLevel: string, oldClientEntId: number): void {
-        if (oldClientEntId > 0 && oldLevel) {
-            LevelHandler.sendDestroyEntity(oldLevel, oldClientEntId);
-        }
-
         clearClientSpawnFallbackTimer(client);
         clearKeepTutorialTimers(client.keepTutorialState);
         client.keepTutorialState = null;
