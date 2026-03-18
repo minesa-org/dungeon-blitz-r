@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "MULTIPLAYER_MODE=false STATIC_PORT=8000 ENABLE_POLICY_SERVER=false nodemon --ext ts --exec ts-node main.ts",
     "build": "tsc",
-    "start:multiplayer": "sudo env MULTIPLAYER_MODE=true ENABLE_POLICY_SERVER=true node dist/main.js"
+    "start:multiplayer": "sudo env MULTIPLAYER_MODE=true ENABLE_POLICY_SERVER=true node dist/main.js",
+    "start:discord-bridge": "node dist/tools/discordLocalBridge.js"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,7 @@
   },
   "dependencies": {
     "@types/express": "^5.0.6",
+    "discord-rpc": "^4.0.1",
     "express": "^5.2.1"
   }
 }

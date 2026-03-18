@@ -1,7 +1,9 @@
 import express from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { Request } from 'express';
 import { Config } from './config';
+import { PresenceService } from './PresenceService';
 
 function resolveContentDir(relativeContentPath: string): string {
     const candidates = [
@@ -59,6 +61,19 @@ export class StaticServer {
             /value="(?:100\.100\.146\.54|127\.0\.0\.1|localhost)"/g,
             `value="${Config.HOST}"`
         );
+    }
+
+    private resolveRequesterAddress(req: Request): string {
+        const forwardedFor = req.headers['x-forwarded-for'];
+        if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+            return forwardedFor.split(',')[0]?.trim() ?? '';
+        }
+
+        if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
+            return String(forwardedFor[0] ?? '').trim();
+        }
+
+        return req.socket.remoteAddress ?? '';
     }
 
     private setupRoutes(): void {
@@ -127,6 +142,53 @@ export class StaticServer {
         this.app.get('/p/cbq/devSettings.xml', (_req, res) => {
             res.type('application/xml');
             res.send(this.renderDevSettings(devSettingsPath));
+        });
+
+        this.app.get('/api/presence/sessions', (req, res) => {
+            const requestedCharacter = String(req.query.character ?? '').trim();
+            const sessions = PresenceService.listSessions().filter((session) => {
+                if (!requestedCharacter) {
+                    return true;
+                }
+                return session.characterName.localeCompare(requestedCharacter, undefined, { sensitivity: 'accent' }) === 0;
+            });
+
+            res.setHeader('Cache-Control', 'no-store');
+            res.json({
+                serverTime: new Date().toISOString(),
+                count: sessions.length,
+                sessions
+            });
+        });
+
+        this.app.get('/api/presence/discord-target', (req, res) => {
+            const requestedCharacter = String(req.query.character ?? '').trim();
+            const selection = PresenceService.selectDiscordTarget(requestedCharacter);
+            const statusCode =
+                selection.reason === 'ok' ? 200 : selection.reason === 'ambiguous' ? 409 : 404;
+
+            res.setHeader('Cache-Control', 'no-store');
+            res.status(statusCode).json({
+                serverTime: new Date().toISOString(),
+                reason: selection.reason,
+                availableCharacters: selection.availableCharacters,
+                session: selection.snapshot
+            });
+        });
+
+        this.app.get('/api/presence/self', (req, res) => {
+            const selection = PresenceService.selectRequesterSession(this.resolveRequesterAddress(req));
+            const statusCode =
+                selection.reason === 'ok' ? 200 : selection.reason === 'ambiguous' ? 409 : 404;
+
+            res.setHeader('Cache-Control', 'no-store');
+            res.status(statusCode).json({
+                serverTime: new Date().toISOString(),
+                reason: selection.reason,
+                remoteAddress: selection.remoteAddress,
+                availableCharacters: selection.availableCharacters,
+                session: selection.snapshot
+            });
         });
 
         // Serve static files
