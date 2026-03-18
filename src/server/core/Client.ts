@@ -129,6 +129,9 @@ export class Client {
     public playerSpawned: boolean = false;
     public partyMapX: number = 0;
     public partyMapY: number = 0;
+    public syncAnchorStartedAt: number = 0;
+    public syncAnchorToken: number = 0;
+    public syncAnchorCharacterName: string = "";
     public pendingTransferUntil: number = 0;
     public mountTransferGraceUntil: number = 0;
     public startedRoomEvents: Set<string> = new Set();
@@ -271,6 +274,9 @@ export class Client {
         this.playerSpawned = false;
         this.partyMapX = 0;
         this.partyMapY = 0;
+        this.syncAnchorStartedAt = 0;
+        this.syncAnchorToken = 0;
+        this.syncAnchorCharacterName = "";
         this.pendingTransferUntil = 0;
         this.mountTransferGraceUntil = 0;
         this.startedRoomEvents.clear();
@@ -352,6 +358,9 @@ export class Client {
             newX: newHasCoord ? Math.round(newX) : undefined,
             newY: newHasCoord ? Math.round(newY) : undefined,
             newHasCoord,
+            syncAnchorStartedAt: this.syncAnchorStartedAt > 0 ? this.syncAnchorStartedAt : undefined,
+            syncAnchorToken: this.syncAnchorToken > 0 ? this.syncAnchorToken : undefined,
+            syncAnchorCharacterName: this.syncAnchorCharacterName || undefined,
             syncEntryLevel: previousLevel,
             syncRoomId,
             syncStartedRoomIds

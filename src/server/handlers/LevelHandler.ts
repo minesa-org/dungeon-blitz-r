@@ -8,7 +8,7 @@ import {
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { LevelConfig } from '../core/LevelConfig';
-import { GlobalState } from '../core/GlobalState';
+import { GlobalState, PendingTransfer } from '../core/GlobalState';
 import { WorldEnter } from '../utils/WorldEnter';
 import { Config } from '../core/config';
 import { MissionLoader } from '../data/MissionLoader';
@@ -19,7 +19,7 @@ import { EntityHandler } from './EntityHandler';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { normalizeCharacterKey, PendingTeleport } from '../core/SocialState';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
-import { areClientsInSameParty } from '../core/PartySync';
+import { areClientsInSameParty, getPartyIdForClient } from '../core/PartySync';
 import {
     areClientsInSameLevelScope,
     createDungeonInstanceId,
@@ -35,11 +35,19 @@ type LevelSyncState = {
     y: number;
     hasCoord: boolean;
     levelInstanceId?: string;
+    syncAnchorStartedAt?: number;
     syncAnchorToken?: number;
     syncAnchorCharacterName?: string;
     syncEntryLevel?: string;
     syncRoomId?: number;
     syncStartedRoomIds?: number[];
+};
+
+type TransferSyncAnchorCandidate = {
+    source: 'active' | 'pending';
+    token?: number;
+    characterKey: string;
+    state: LevelSyncState;
 };
 
 export class LevelHandler {
@@ -56,6 +64,9 @@ export class LevelHandler {
         target.clientEntID = source.clientEntID;
         target.token = source.token;
         target.playerSpawned = source.playerSpawned;
+        target.syncAnchorStartedAt = LevelHandler.normalizeSyncAnchorStartedAt(source.syncAnchorStartedAt) ?? 0;
+        target.syncAnchorToken = Number(source.syncAnchorToken ?? 0) > 0 ? Math.round(Number(source.syncAnchorToken)) : 0;
+        target.syncAnchorCharacterName = String(source.syncAnchorCharacterName ?? '').trim();
         target.entities = new Map(source.entities);
         target.startedRoomEvents = new Set(source.startedRoomEvents);
     }
@@ -141,22 +152,271 @@ export class LevelHandler {
         return Array.from(startedRoomIds.values()).sort((left, right) => left - right);
     }
 
+    private static normalizeSyncAnchorStartedAt(value: unknown): number | undefined {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue) || numericValue <= 0) {
+            return undefined;
+        }
+
+        return Math.round(numericValue);
+    }
+
+    private static buildActiveTransferSyncAnchorCandidate(
+        session: Client,
+        targetLevel: string
+    ): TransferSyncAnchorCandidate | null {
+        if (
+            !session.playerSpawned ||
+            !session.character ||
+            LevelConfig.normalizeLevelName(session.currentLevel) !== targetLevel
+        ) {
+            return null;
+        }
+
+        let x = 0;
+        let y = 0;
+        let hasCoord = false;
+        const entity = session.entities.get(session.clientEntID);
+        if (entity && Number.isFinite(entity.x) && Number.isFinite(entity.y)) {
+            x = Math.round(Number(entity.x));
+            y = Math.round(Number(entity.y));
+            hasCoord = true;
+        } else {
+            const savedLevel = session.character.CurrentLevel;
+            if (
+                LevelConfig.normalizeLevelName(savedLevel?.name) === targetLevel &&
+                Number.isFinite(savedLevel?.x) &&
+                Number.isFinite(savedLevel?.y)
+            ) {
+                x = Math.round(Number(savedLevel.x));
+                y = Math.round(Number(savedLevel.y));
+                hasCoord = true;
+            }
+        }
+
+        const startedRoomIds = LevelHandler.getStartedRoomIdsForLevel(session, targetLevel);
+        return {
+            source: 'active',
+            token: session.token > 0 ? session.token : undefined,
+            characterKey: normalizeCharacterKey(session.character.name),
+            state: {
+                x,
+                y,
+                hasCoord,
+                levelInstanceId: normalizeLevelInstanceId(session.levelInstanceId) || undefined,
+                syncAnchorStartedAt: LevelHandler.normalizeSyncAnchorStartedAt(session.syncAnchorStartedAt),
+                syncAnchorToken: Number(session.syncAnchorToken ?? 0) > 0
+                    ? Math.round(Number(session.syncAnchorToken))
+                    : (session.token > 0 ? session.token : undefined),
+                syncAnchorCharacterName: String(session.syncAnchorCharacterName ?? session.character.name).trim() || undefined,
+                syncEntryLevel: LevelConfig.normalizeLevelName(session.entryLevel) || undefined,
+                syncRoomId: Number.isFinite(Number(session.currentRoomId)) && session.currentRoomId >= 0
+                    ? Math.round(Number(session.currentRoomId))
+                    : undefined,
+                syncStartedRoomIds: startedRoomIds
+            }
+        };
+    }
+
+    private static buildPendingTransferSyncAnchorCandidate(
+        token: number,
+        entry: PendingTransfer,
+        targetLevel: string
+    ): TransferSyncAnchorCandidate | null {
+        if (
+            !entry.character ||
+            LevelConfig.normalizeLevelName(entry.targetLevel) !== targetLevel
+        ) {
+            return null;
+        }
+
+        const newX = Number(entry.newX ?? 0);
+        const newY = Number(entry.newY ?? 0);
+        const hasCoord = Boolean(entry.newHasCoord) && Number.isFinite(newX) && Number.isFinite(newY);
+        return {
+            source: 'pending',
+            token: token > 0 ? token : undefined,
+            characterKey: normalizeCharacterKey(entry.character.name),
+            state: {
+                x: hasCoord ? Math.round(newX) : 0,
+                y: hasCoord ? Math.round(newY) : 0,
+                hasCoord,
+                levelInstanceId: normalizeLevelInstanceId(entry.levelInstanceId) || undefined,
+                syncAnchorStartedAt: LevelHandler.normalizeSyncAnchorStartedAt(entry.syncAnchorStartedAt),
+                syncAnchorToken: Number(entry.syncAnchorToken ?? 0) > 0
+                    ? Math.round(Number(entry.syncAnchorToken))
+                    : (token > 0 ? token : undefined),
+                syncAnchorCharacterName: String(entry.syncAnchorCharacterName ?? entry.character.name).trim() || undefined,
+                syncEntryLevel: LevelConfig.normalizeLevelName(entry.syncEntryLevel ?? entry.previousLevel) || undefined,
+                syncRoomId: Number.isFinite(Number(entry.syncRoomId)) && Number(entry.syncRoomId) >= 0
+                    ? Math.round(Number(entry.syncRoomId))
+                    : undefined,
+                syncStartedRoomIds: LevelHandler.normalizeStartedRoomIds(targetLevel, entry.syncStartedRoomIds)
+            }
+        };
+    }
+
+    private static compareTransferSyncAnchorCandidates(
+        left: TransferSyncAnchorCandidate,
+        right: TransferSyncAnchorCandidate
+    ): number {
+        const leftStartedAt = LevelHandler.normalizeSyncAnchorStartedAt(left.state.syncAnchorStartedAt) ?? Number.MAX_SAFE_INTEGER;
+        const rightStartedAt = LevelHandler.normalizeSyncAnchorStartedAt(right.state.syncAnchorStartedAt) ?? Number.MAX_SAFE_INTEGER;
+        if (leftStartedAt !== rightStartedAt) {
+            return leftStartedAt - rightStartedAt;
+        }
+
+        const leftIsRootAuthority = Boolean(left.token && left.state.syncAnchorToken && left.token === left.state.syncAnchorToken);
+        const rightIsRootAuthority = Boolean(right.token && right.state.syncAnchorToken && right.token === right.state.syncAnchorToken);
+        if (leftIsRootAuthority !== rightIsRootAuthority) {
+            return leftIsRootAuthority ? -1 : 1;
+        }
+
+        if (left.source !== right.source) {
+            return left.source === 'active' ? -1 : 1;
+        }
+
+        const leftToken = left.token ?? Number.MAX_SAFE_INTEGER;
+        const rightToken = right.token ?? Number.MAX_SAFE_INTEGER;
+        if (leftToken !== rightToken) {
+            return leftToken - rightToken;
+        }
+
+        return left.characterKey.localeCompare(right.characterKey);
+    }
+
+    private static resolveExplicitSyncAnchor(
+        targetLevel: string,
+        teleportOverride: PendingTeleport | null
+    ): TransferSyncAnchorCandidate | null {
+        if (!teleportOverride) {
+            return null;
+        }
+
+        const desiredLevel = LevelConfig.normalizeLevelName(targetLevel);
+        if (!desiredLevel) {
+            return null;
+        }
+
+        const explicitToken = Number(teleportOverride.syncAnchorToken ?? 0) > 0
+            ? Math.round(Number(teleportOverride.syncAnchorToken))
+            : 0;
+        const explicitNameKey = normalizeCharacterKey(teleportOverride.syncAnchorCharacterName);
+        if (!explicitToken && !explicitNameKey) {
+            return null;
+        }
+
+        let bestCandidate: TransferSyncAnchorCandidate | null = null;
+
+        for (const session of GlobalState.sessionsByToken.values()) {
+            const candidate = LevelHandler.buildActiveTransferSyncAnchorCandidate(session, desiredLevel);
+            if (!candidate) {
+                continue;
+            }
+            if (explicitToken && candidate.token === explicitToken) {
+                return candidate;
+            }
+            if (explicitNameKey && candidate.characterKey === explicitNameKey) {
+                bestCandidate = bestCandidate && LevelHandler.compareTransferSyncAnchorCandidates(bestCandidate, candidate) <= 0
+                    ? bestCandidate
+                    : candidate;
+            }
+        }
+
+        for (const [token, entry] of GlobalState.pendingWorld.entries()) {
+            const candidate = LevelHandler.buildPendingTransferSyncAnchorCandidate(token, entry, desiredLevel);
+            if (!candidate) {
+                continue;
+            }
+            if (explicitToken && candidate.token === explicitToken) {
+                return candidate;
+            }
+            if (explicitNameKey && candidate.characterKey === explicitNameKey) {
+                bestCandidate = bestCandidate && LevelHandler.compareTransferSyncAnchorCandidates(bestCandidate, candidate) <= 0
+                    ? bestCandidate
+                    : candidate;
+            }
+        }
+
+        return bestCandidate;
+    }
+
+    private static collectPartyTransferSyncAnchorCandidates(
+        client: Client,
+        targetLevel: string
+    ): TransferSyncAnchorCandidate[] {
+        const partyId = getPartyIdForClient(client);
+        if (partyId <= 0) {
+            return [];
+        }
+
+        const ownCharacterKey = normalizeCharacterKey(client.character?.name);
+        const candidates: TransferSyncAnchorCandidate[] = [];
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (other === client || !areClientsInSameParty(client, other)) {
+                continue;
+            }
+
+            const candidate = LevelHandler.buildActiveTransferSyncAnchorCandidate(other, targetLevel);
+            if (!candidate || candidate.characterKey === ownCharacterKey) {
+                continue;
+            }
+
+            candidates.push(candidate);
+        }
+
+        for (const [token, entry] of GlobalState.pendingWorld.entries()) {
+            const candidate = LevelHandler.buildPendingTransferSyncAnchorCandidate(token, entry, targetLevel);
+            if (!candidate || candidate.characterKey === ownCharacterKey) {
+                continue;
+            }
+
+            if (Number(GlobalState.partyByMember.get(candidate.characterKey) ?? 0) !== partyId) {
+                continue;
+            }
+
+            candidates.push(candidate);
+        }
+
+        candidates.sort((left, right) => LevelHandler.compareTransferSyncAnchorCandidates(left, right));
+        return candidates;
+    }
+
+    private static resolveTransferSyncAnchor(
+        client: Client,
+        targetLevel: string,
+        teleportOverride: PendingTeleport | null
+    ): TransferSyncAnchorCandidate | null {
+        const explicitAnchor = LevelHandler.resolveExplicitSyncAnchor(targetLevel, teleportOverride);
+        if (explicitAnchor && explicitAnchor.characterKey !== normalizeCharacterKey(client.character?.name)) {
+            return explicitAnchor;
+        }
+
+        if (!LevelConfig.isDungeonLevel(targetLevel)) {
+            return null;
+        }
+
+        return LevelHandler.collectPartyTransferSyncAnchorCandidates(client, targetLevel)[0] ?? null;
+    }
+
     private static applyStoredRoomProgressState(
         client: Client,
         levelName: string,
         syncRoomId?: number,
         syncStartedRoomIds?: number[],
         replayPackets: boolean = false
-    ): void {
+    ): boolean {
         const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
         if (!normalizedLevel) {
-            return;
+            return false;
         }
 
         const startedRoomIds = LevelHandler.normalizeStartedRoomIds(normalizedLevel, syncStartedRoomIds);
         const roomId = Number.isFinite(Number(syncRoomId)) && Number(syncRoomId) >= 0
             ? Math.round(Number(syncRoomId))
             : -1;
+        const didApplyState = roomId >= 0 || startedRoomIds.length > 0;
 
         if (roomId >= 0 && !startedRoomIds.includes(roomId)) {
             startedRoomIds.push(roomId);
@@ -172,7 +432,7 @@ export class LevelHandler {
         }
 
         if (!replayPackets) {
-            return;
+            return didApplyState;
         }
 
         for (const startedRoomId of startedRoomIds) {
@@ -185,69 +445,8 @@ export class LevelHandler {
                 client.sendBitBuffer(0xA5, bb);
             }
         }
-    }
 
-    private static resolveExplicitSyncAnchor(targetLevel: string, teleportOverride: PendingTeleport | null): Client | null {
-        if (!teleportOverride) {
-            return null;
-        }
-
-        const desiredLevel = LevelConfig.normalizeLevelName(targetLevel);
-        if (!desiredLevel) {
-            return null;
-        }
-
-        const anchorToken = Number(teleportOverride.syncAnchorToken ?? 0);
-        if (anchorToken > 0) {
-            const tokenSession = GlobalState.sessionsByToken.get(anchorToken);
-            if (tokenSession?.playerSpawned && LevelConfig.normalizeLevelName(tokenSession.currentLevel) === desiredLevel) {
-                return tokenSession;
-            }
-        }
-
-        const anchorNameKey = normalizeCharacterKey(teleportOverride.syncAnchorCharacterName);
-        if (!anchorNameKey) {
-            return null;
-        }
-
-        const namedSession = GlobalState.sessionsByCharacterName.get(anchorNameKey);
-        if (namedSession?.playerSpawned && LevelConfig.normalizeLevelName(namedSession.currentLevel) === desiredLevel) {
-            return namedSession;
-        }
-
-        return null;
-    }
-
-    private static resolveTransferSyncAnchor(
-        client: Client,
-        targetLevel: string,
-        teleportOverride: PendingTeleport | null
-    ): Client | null {
-        const explicitAnchor = LevelHandler.resolveExplicitSyncAnchor(targetLevel, teleportOverride);
-        if (explicitAnchor && explicitAnchor !== client) {
-            return explicitAnchor;
-        }
-
-        if (!LevelConfig.isDungeonLevel(targetLevel)) {
-            return null;
-        }
-
-        for (const other of GlobalState.sessionsByToken.values()) {
-            if (
-                other === client ||
-                !other.playerSpawned ||
-                !other.character ||
-                LevelConfig.normalizeLevelName(other.currentLevel) !== targetLevel
-            ) {
-                continue;
-            }
-
-            if (client.character && areClientsInSameParty(client, other)) {
-                return other;
-            }
-        }
-
-        return null;
+        return didApplyState;
     }
 
     private static buildTransferSyncState(
@@ -268,6 +467,9 @@ export class LevelHandler {
         let levelInstanceId = shouldSyncDungeonProgress
             ? normalizeLevelInstanceId(teleportOverride?.levelInstanceId)
             : '';
+        let syncAnchorStartedAt = shouldSyncDungeonProgress
+            ? LevelHandler.normalizeSyncAnchorStartedAt(client.syncAnchorStartedAt)
+            : undefined;
         let syncEntryLevel = shouldSyncDungeonProgress ? LevelConfig.normalizeLevelName(teleportOverride?.syncEntryLevel) : undefined;
         let syncRoomId = shouldSyncDungeonProgress &&
             Number.isFinite(Number(teleportOverride?.syncRoomId)) &&
@@ -277,46 +479,55 @@ export class LevelHandler {
         let syncStartedRoomIds = shouldSyncDungeonProgress
             ? LevelHandler.normalizeStartedRoomIds(normalizedTargetLevel, teleportOverride?.syncStartedRoomIds)
             : [];
-        let syncAnchorToken = Number(teleportOverride?.syncAnchorToken ?? 0) > 0
-            ? Math.round(Number(teleportOverride?.syncAnchorToken))
+        const fallbackSyncAnchorToken = shouldSyncDungeonProgress ? client.syncAnchorToken : 0;
+        let syncAnchorToken = Number(teleportOverride?.syncAnchorToken ?? fallbackSyncAnchorToken ?? 0) > 0
+            ? Math.round(Number(teleportOverride?.syncAnchorToken ?? fallbackSyncAnchorToken ?? 0))
             : undefined;
-        let syncAnchorCharacterName = String(teleportOverride?.syncAnchorCharacterName ?? '').trim() || undefined;
+        let syncAnchorCharacterName = String(
+            teleportOverride?.syncAnchorCharacterName ??
+            (shouldSyncDungeonProgress ? client.syncAnchorCharacterName : '') ??
+            ''
+        ).trim() || undefined;
 
         if (anchor) {
-            const anchorEntity = anchor.entities.get(anchor.clientEntID);
-            if (anchorEntity && Number.isFinite(anchorEntity.x) && Number.isFinite(anchorEntity.y)) {
-                x = Math.round(Number(anchorEntity.x));
-                y = Math.round(Number(anchorEntity.y));
+            const anchorState = anchor.state;
+            if (anchorState.hasCoord) {
+                x = Math.round(Number(anchorState.x ?? 0));
+                y = Math.round(Number(anchorState.y ?? 0));
                 hasCoord = true;
-            } else {
-                const savedLevel = anchor.character?.CurrentLevel;
-                if (
-                    LevelConfig.normalizeLevelName(savedLevel?.name) === normalizedTargetLevel &&
-                    Number.isFinite(savedLevel?.x) &&
-                    Number.isFinite(savedLevel?.y)
-                ) {
-                    x = Math.round(Number(savedLevel.x));
-                    y = Math.round(Number(savedLevel.y));
-                    hasCoord = true;
-                }
             }
 
-            syncAnchorToken = anchor.token > 0 ? anchor.token : syncAnchorToken;
-            syncAnchorCharacterName = anchor.character?.name ?? syncAnchorCharacterName;
+            syncAnchorToken = anchorState.syncAnchorToken ?? syncAnchorToken;
+            syncAnchorCharacterName = anchorState.syncAnchorCharacterName ?? syncAnchorCharacterName;
             if (shouldSyncDungeonProgress) {
-                levelInstanceId = normalizeLevelInstanceId(anchor.levelInstanceId) || levelInstanceId;
-                syncEntryLevel = LevelConfig.normalizeLevelName(anchor.entryLevel) || syncEntryLevel;
-                if (Number.isFinite(Number(anchor.currentRoomId)) && anchor.currentRoomId >= 0) {
-                    syncRoomId = Math.round(Number(anchor.currentRoomId));
+                levelInstanceId = normalizeLevelInstanceId(anchorState.levelInstanceId) || levelInstanceId;
+                syncAnchorStartedAt = LevelHandler.normalizeSyncAnchorStartedAt(anchorState.syncAnchorStartedAt) ?? syncAnchorStartedAt;
+                syncEntryLevel = LevelConfig.normalizeLevelName(anchorState.syncEntryLevel) || syncEntryLevel;
+                if (Number.isFinite(Number(anchorState.syncRoomId)) && Number(anchorState.syncRoomId) >= 0) {
+                    syncRoomId = Math.round(Number(anchorState.syncRoomId));
                 }
-                const anchorStartedRoomIds = LevelHandler.getStartedRoomIdsForLevel(anchor, normalizedTargetLevel);
+                const anchorStartedRoomIds = LevelHandler.normalizeStartedRoomIds(
+                    normalizedTargetLevel,
+                    anchorState.syncStartedRoomIds
+                );
                 if (anchorStartedRoomIds.length > 0) {
                     syncStartedRoomIds = anchorStartedRoomIds;
                 }
             }
         }
 
-        if (!hasCoord && !levelInstanceId && !syncStartedRoomIds.length && syncRoomId === undefined && !syncEntryLevel) {
+        if (shouldSyncDungeonProgress) {
+            syncAnchorStartedAt = syncAnchorStartedAt ?? Date.now();
+        }
+
+        if (
+            !shouldSyncDungeonProgress &&
+            !hasCoord &&
+            !levelInstanceId &&
+            !syncStartedRoomIds.length &&
+            syncRoomId === undefined &&
+            !syncEntryLevel
+        ) {
             return null;
         }
 
@@ -325,6 +536,7 @@ export class LevelHandler {
             y,
             hasCoord,
             levelInstanceId: levelInstanceId || undefined,
+            syncAnchorStartedAt,
             syncAnchorToken,
             syncAnchorCharacterName,
             syncEntryLevel,
@@ -1454,6 +1666,9 @@ export class LevelHandler {
         client.currentRoomId = 0;
         client.startedRoomEvents.clear();
         client.levelInstanceId = '';
+        client.syncAnchorStartedAt = 0;
+        client.syncAnchorToken = 0;
+        client.syncAnchorCharacterName = '';
     }
 
     private static forLevelRecipients(client: Client, includeSender: boolean = false): Client[] {
@@ -1538,9 +1753,19 @@ export class LevelHandler {
         sendExtended: boolean,
         syncState: LevelSyncState | null = null
     ): void {
-        const levelInstanceId = LevelConfig.isDungeonLevel(targetLevel)
+        const shouldSyncDungeonProgress = LevelConfig.isDungeonLevel(targetLevel);
+        const levelInstanceId = shouldSyncDungeonProgress
             ? normalizeLevelInstanceId(syncState?.levelInstanceId) || createDungeonInstanceId(token)
             : '';
+        const syncAnchorStartedAt = shouldSyncDungeonProgress
+            ? LevelHandler.normalizeSyncAnchorStartedAt(syncState?.syncAnchorStartedAt) ?? Date.now()
+            : undefined;
+        const syncAnchorToken = shouldSyncDungeonProgress
+            ? (Number(syncState?.syncAnchorToken ?? 0) > 0 ? Math.round(Number(syncState?.syncAnchorToken)) : token)
+            : (Number(syncState?.syncAnchorToken ?? 0) > 0 ? Math.round(Number(syncState?.syncAnchorToken)) : undefined);
+        const syncAnchorCharacterName = shouldSyncDungeonProgress
+            ? String(syncState?.syncAnchorCharacterName ?? character?.name ?? '').trim() || undefined
+            : String(syncState?.syncAnchorCharacterName ?? '').trim() || undefined;
 
         if (userId) {
             GlobalState.pendingWorld.set(token, {
@@ -1552,8 +1777,9 @@ export class LevelHandler {
                 newX,
                 newY,
                 newHasCoord,
-                syncAnchorToken: syncState?.syncAnchorToken,
-                syncAnchorCharacterName: syncState?.syncAnchorCharacterName,
+                syncAnchorStartedAt,
+                syncAnchorToken,
+                syncAnchorCharacterName,
                 syncEntryLevel: syncState?.syncEntryLevel,
                 syncRoomId: syncState?.syncRoomId,
                 syncStartedRoomIds: syncState?.syncStartedRoomIds
@@ -1632,6 +1858,9 @@ export class LevelHandler {
             client.currentLevel = usedEntry.targetLevel;
             client.levelInstanceId = normalizeLevelInstanceId(usedEntry.levelInstanceId);
             client.entryLevel = usedEntry.previousLevel;
+            client.syncAnchorStartedAt = LevelHandler.normalizeSyncAnchorStartedAt(usedEntry.syncAnchorStartedAt) ?? 0;
+            client.syncAnchorToken = Number(usedEntry.syncAnchorToken ?? 0) > 0 ? Math.round(Number(usedEntry.syncAnchorToken)) : 0;
+            client.syncAnchorCharacterName = String(usedEntry.syncAnchorCharacterName ?? '').trim();
             LevelHandler.applyStoredRoomProgressState(
                 client,
                 usedEntry.targetLevel,
@@ -1679,6 +1908,9 @@ export class LevelHandler {
             client.currentLevel = pendingEntry.targetLevel;
             client.levelInstanceId = normalizeLevelInstanceId(pendingEntry.levelInstanceId);
             client.entryLevel = pendingEntry.previousLevel;
+            client.syncAnchorStartedAt = LevelHandler.normalizeSyncAnchorStartedAt(pendingEntry.syncAnchorStartedAt) ?? 0;
+            client.syncAnchorToken = Number(pendingEntry.syncAnchorToken ?? 0) > 0 ? Math.round(Number(pendingEntry.syncAnchorToken)) : 0;
+            client.syncAnchorCharacterName = String(pendingEntry.syncAnchorCharacterName ?? '').trim();
             LevelHandler.applyStoredRoomProgressState(
                 client,
                 pendingEntry.targetLevel,
@@ -1742,6 +1974,9 @@ export class LevelHandler {
         if (!['TutorialBoat', 'TutorialDungeon', 'CraftTownTutorial'].includes(client.currentLevel)) {
             return;
         }
+        if (LevelHandler.getStartedRoomIdsForLevel(client, client.currentLevel).length > 0) {
+            return;
+        }
 
         for (const roomId of [0, 1]) {
             if (!LevelHandler.hasRoomEventStarted(client, roomId)) {
@@ -1753,8 +1988,8 @@ export class LevelHandler {
     static restoreTransferredRoomProgress(
         client: Client,
         entry: { targetLevel: string; syncRoomId?: number; syncStartedRoomIds?: number[] }
-    ): void {
-        LevelHandler.applyStoredRoomProgressState(
+    ): boolean {
+        return LevelHandler.applyStoredRoomProgressState(
             client,
             entry.targetLevel,
             entry.syncRoomId,

@@ -32,6 +32,9 @@ function createClient(): any {
         currentLevel: '',
         levelInstanceId: '',
         entryLevel: '',
+        syncAnchorStartedAt: 0,
+        syncAnchorToken: 0,
+        syncAnchorCharacterName: '',
         currentRoomId: 0,
         lastDoorId: -1,
         lastDoorTargetLevel: '',
@@ -71,6 +74,7 @@ function testRecoverTransferSessionStateFromActiveToken(): void {
         characters: [activeCharacter],
         currentLevel: 'CraftTown',
         entryLevel: '',
+        syncAnchorStartedAt: 1234,
         lastDoorId: 2,
         lastDoorTargetLevel: 'NewbieRoad'
     };
@@ -85,6 +89,7 @@ function testRecoverTransferSessionStateFromActiveToken(): void {
     assert.equal(client.character, activeCharacter);
     assert.equal(client.characters.length, 1);
     assert.equal(client.currentLevel, 'CraftTown');
+    assert.equal(client.syncAnchorStartedAt, 1234);
     assert.equal(client.lastDoorTargetLevel, 'NewbieRoad');
 }
 
@@ -101,6 +106,7 @@ function testRecoverTransferSessionStateFromUsedTokenAlias(): void {
         ]),
         currentLevel: 'CraftTown',
         entryLevel: '',
+        syncAnchorStartedAt: 2222,
         currentRoomId: 4,
         startedRoomEvents: new Set<string>(['CraftTown:4']),
         clientEntID: 99,
@@ -128,6 +134,7 @@ function testRecoverTransferSessionStateFromUsedTokenAlias(): void {
     assert.equal(client.character, activeCharacter);
     assert.equal(client.clientEntID, 99);
     assert.equal(client.currentLevel, 'CraftTown');
+    assert.equal(client.syncAnchorStartedAt, 2222);
     assert.equal(client.lastDoorTargetLevel, 'NewbieRoad');
     assert.equal(client.entities.get(99)?.x, 800);
     assert.equal(client.startedRoomEvents.has('CraftTown:4'), true);
@@ -146,6 +153,7 @@ function testRecoverTransferSessionStateFromLegacyAliasChain(): void {
         ]),
         currentLevel: 'TutorialDungeon',
         entryLevel: 'NewbieRoad',
+        syncAnchorStartedAt: 3333,
         currentRoomId: 1,
         startedRoomEvents: new Set<string>(['TutorialDungeon:1', 'TutorialDungeon:5']),
         clientEntID: 99,
@@ -170,6 +178,7 @@ function testRecoverTransferSessionStateFromLegacyAliasChain(): void {
     assert.equal(client.clientEntID, 99);
     assert.equal(client.currentLevel, 'TutorialDungeon');
     assert.equal(client.entryLevel, 'NewbieRoad');
+    assert.equal(client.syncAnchorStartedAt, 3333);
     assert.equal(client.entities.get(99)?.x, 640);
     assert.equal(client.startedRoomEvents.has('TutorialDungeon:5'), true);
 }
@@ -191,6 +200,7 @@ function testStorePendingTransferTokenKeepsTokenCharInSync(): void {
             x: 1421,
             y: 826,
             hasCoord: true,
+            syncAnchorStartedAt: 1700,
             syncAnchorToken: 601,
             syncAnchorCharacterName: 'Leader',
             syncEntryLevel: 'NewbieRoad',
@@ -206,6 +216,7 @@ function testStorePendingTransferTokenKeepsTokenCharInSync(): void {
     assert.equal(pendingEntry?.targetLevel, 'NewbieRoad');
     assert.equal(pendingEntry?.previousLevel, 'CraftTown');
     assert.equal(pendingEntry?.userId, 41);
+    assert.equal(pendingEntry?.syncAnchorStartedAt, undefined);
     assert.equal(pendingEntry?.syncAnchorToken, 601);
     assert.equal(pendingEntry?.syncAnchorCharacterName, 'Leader');
     assert.equal(pendingEntry?.syncEntryLevel, 'NewbieRoad');
@@ -247,6 +258,7 @@ function testBuildTransferSyncStatePrefersPartyAnchorInDungeon(): void {
         currentLevel: 'TutorialDungeon',
         levelInstanceId: 'party-run-88',
         entryLevel: 'NewbieRoad',
+        syncAnchorStartedAt: 1111,
         currentRoomId: 15,
         startedRoomEvents: new Set<string>(['TutorialDungeon:0', 'TutorialDungeon:5', 'TutorialDungeon:15']),
         clientEntID: 92,
@@ -268,6 +280,7 @@ function testBuildTransferSyncStatePrefersPartyAnchorInDungeon(): void {
     assert.equal(syncState.hasCoord, true);
     assert.equal(syncState.syncAnchorToken, leader.token);
     assert.equal(syncState.syncAnchorCharacterName, 'Leader');
+    assert.equal(syncState.syncAnchorStartedAt, 1111);
     assert.equal(syncState.levelInstanceId, 'party-run-88');
     assert.equal(syncState.syncEntryLevel, 'NewbieRoad');
     assert.equal(syncState.syncRoomId, 15);
@@ -301,7 +314,102 @@ function testBuildTransferSyncStateSkipsStrangerDungeonInstance(): void {
 
     const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'TutorialDungeon', null);
 
-    assert.equal(syncState, null, 'solo players should not inherit an unrelated dungeon instance');
+    assert.ok(syncState, 'fresh dungeon entries should still get a root sync state');
+    assert.equal(syncState.levelInstanceId, undefined, 'solo players should not inherit an unrelated dungeon instance');
+    assert.equal(syncState.syncAnchorToken, undefined);
+    assert.equal(syncState.syncAnchorCharacterName, undefined);
+    assert.ok(Number(syncState.syncAnchorStartedAt) > 0, 'fresh dungeon entries should create a root anchor timestamp');
+}
+
+function testBuildTransferSyncStateUsesPendingPartyAnchorWhenLeaderStillTransferring(): void {
+    const follower = createClient();
+    follower.character = createCharacter('Follower');
+    follower.currentLevel = 'BridgeTown';
+    follower.playerSpawned = true;
+
+    const leader = createCharacter('Leader');
+    GlobalState.pendingWorld.set(7001, {
+        character: leader,
+        userId: 52,
+        targetLevel: 'TutorialDungeon',
+        levelInstanceId: 'party-run-pending',
+        previousLevel: 'NewbieRoad',
+        newX: 1777,
+        newY: 2888,
+        newHasCoord: true,
+        syncAnchorStartedAt: 900,
+        syncRoomId: 12,
+        syncStartedRoomIds: [0, 12]
+    });
+    GlobalState.partyByMember.set('follower', 88);
+    GlobalState.partyByMember.set('leader', 88);
+
+    const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'TutorialDungeon', null);
+
+    assert.ok(syncState);
+    assert.equal(syncState.x, 1777);
+    assert.equal(syncState.y, 2888);
+    assert.equal(syncState.hasCoord, true);
+    assert.equal(syncState.levelInstanceId, 'party-run-pending');
+    assert.equal(syncState.syncAnchorStartedAt, 900);
+    assert.equal(syncState.syncAnchorToken, 7001);
+    assert.equal(syncState.syncAnchorCharacterName, 'Leader');
+    assert.equal(syncState.syncEntryLevel, 'NewbieRoad');
+    assert.equal(syncState.syncRoomId, 12);
+    assert.deepEqual(syncState.syncStartedRoomIds, [0, 12]);
+}
+
+function testBuildTransferSyncStatePrefersEarliestPartyAnchorAcrossActiveAndPending(): void {
+    const follower = createClient();
+    follower.character = createCharacter('Follower');
+    follower.currentLevel = 'BridgeTown';
+    follower.playerSpawned = true;
+
+    const lateActiveLeader = {
+        token: 7101,
+        userId: 53,
+        character: createCharacter('Leader'),
+        characters: [],
+        entities: new Map<number, any>([[94, { x: 2100, y: 3100 }]]),
+        currentLevel: 'TutorialDungeon',
+        levelInstanceId: 'party-run-late',
+        entryLevel: 'NewbieRoad',
+        syncAnchorStartedAt: 2000,
+        currentRoomId: 18,
+        startedRoomEvents: new Set<string>(['TutorialDungeon:0', 'TutorialDungeon:18']),
+        clientEntID: 94,
+        lastDoorId: 0,
+        lastDoorTargetLevel: '',
+        playerSpawned: true
+    };
+
+    GlobalState.sessionsByToken.set(lateActiveLeader.token, lateActiveLeader as never);
+    GlobalState.pendingWorld.set(7102, {
+        character: createCharacter('Scout'),
+        userId: 54,
+        targetLevel: 'TutorialDungeon',
+        levelInstanceId: 'party-run-early',
+        previousLevel: 'NewbieRoad',
+        newX: 1500,
+        newY: 2500,
+        newHasCoord: true,
+        syncAnchorStartedAt: 1000,
+        syncRoomId: 9,
+        syncStartedRoomIds: [0, 9]
+    });
+    GlobalState.partyByMember.set('follower', 99);
+    GlobalState.partyByMember.set('leader', 99);
+    GlobalState.partyByMember.set('scout', 99);
+
+    const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'TutorialDungeon', null);
+
+    assert.ok(syncState);
+    assert.equal(syncState.levelInstanceId, 'party-run-early');
+    assert.equal(syncState.syncAnchorStartedAt, 1000);
+    assert.equal(syncState.syncAnchorToken, 7102);
+    assert.equal(syncState.syncAnchorCharacterName, 'Scout');
+    assert.equal(syncState.syncRoomId, 9);
+    assert.deepEqual(syncState.syncStartedRoomIds, [0, 9]);
 }
 
 function testStorePendingTransferTokenCreatesSoloDungeonInstance(): void {
@@ -321,22 +429,44 @@ function testStorePendingTransferTokenCreatesSoloDungeonInstance(): void {
     );
 
     assert.equal(GlobalState.pendingWorld.get(50002)?.levelInstanceId, '50002');
+    assert.ok(
+        Number(GlobalState.pendingWorld.get(50002)?.syncAnchorStartedAt) > 0,
+        'solo dungeon transfers should create a root anchor timestamp'
+    );
 }
 
 function testRestoreTransferredRoomProgressReplaysRoomEvents(): void {
     const client = createClient();
     client.currentLevel = 'TutorialDungeon';
 
-    LevelHandler.restoreTransferredRoomProgress(client as never, {
+    const restored = LevelHandler.restoreTransferredRoomProgress(client as never, {
         targetLevel: 'TutorialDungeon',
         syncRoomId: 7,
         syncStartedRoomIds: [1, 7]
     });
 
+    assert.equal(restored, true);
     assert.equal(client.currentRoomId, 7);
     assert.equal(client.startedRoomEvents.has('TutorialDungeon:1'), true);
     assert.equal(client.startedRoomEvents.has('TutorialDungeon:7'), true);
     assert.deepEqual(client.sentPackets.map((packet: { id: number }) => packet.id), [0xA5, 0xA5]);
+}
+
+function testPrimeTutorialRoomEventsSkipsSyncedProgress(): void {
+    const client = createClient();
+    client.currentLevel = 'TutorialDungeon';
+
+    const restored = LevelHandler.restoreTransferredRoomProgress(client as never, {
+        targetLevel: 'TutorialDungeon',
+        syncRoomId: 15,
+        syncStartedRoomIds: [0, 5, 15]
+    });
+
+    assert.equal(restored, true);
+    LevelHandler.primeTutorialRoomEvents(client as never);
+
+    assert.equal(client.startedRoomEvents.has('TutorialDungeon:1'), false, 'synced tutorial progress should not re-prime room 1');
+    assert.deepEqual(client.sentPackets.map((packet: { id: number }) => packet.id), [0xA5, 0xA5, 0xA5]);
 }
 
 function testDisconnectDuringDoorTransferPreservesRecoveryState(): void {
@@ -382,6 +512,7 @@ function testDisconnectDuringDoorTransferPreservesRecoveryState(): void {
     assert.equal(usedEntry?.newX, 512);
     assert.equal(usedEntry?.newY, 768);
     assert.equal(usedEntry?.newHasCoord, true);
+    assert.equal(usedEntry?.syncAnchorStartedAt, undefined);
 }
 
 function testEnterWorldTokenSkipsTargetLevelEntityIds(): void {
@@ -553,11 +684,25 @@ function main(): void {
         testBuildTransferSyncStatePrefersPartyAnchorInDungeon();
 
         GlobalState.sessionsByToken.clear();
+        GlobalState.pendingWorld.clear();
         GlobalState.partyByMember.clear();
 
         testBuildTransferSyncStateSkipsStrangerDungeonInstance();
 
         GlobalState.sessionsByToken.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.partyByMember.clear();
+
+        testBuildTransferSyncStateUsesPendingPartyAnchorWhenLeaderStillTransferring();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.partyByMember.clear();
+
+        testBuildTransferSyncStatePrefersEarliestPartyAnchorAcrossActiveAndPending();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.pendingWorld.clear();
         GlobalState.partyByMember.clear();
 
         testStorePendingTransferTokenCreatesSoloDungeonInstance();
@@ -567,6 +712,8 @@ function main(): void {
         GlobalState.tokenChar.clear();
 
         testRestoreTransferredRoomProgressReplaysRoomEvents();
+
+        testPrimeTutorialRoomEventsSkipsSyncedProgress();
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.sessionsByUserId = sessionsByUserId;

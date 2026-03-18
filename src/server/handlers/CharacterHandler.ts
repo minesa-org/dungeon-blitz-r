@@ -347,13 +347,14 @@ export class CharacterHandler {
         const currentLevelName = char.CurrentLevel?.name || "NewbieRoad";
         const previousLevelName = char.PreviousLevel?.name || "NewbieRoad";
         const spawn = LevelConfig.getSpawnCoordinates(char, previousLevelName, currentLevelName);
+        const isDungeonLevel = LevelConfig.isDungeonLevel(currentLevelName);
 
         // Generate Transfer Token
         const token = CharacterHandler.allocateTransferToken(currentLevelName);
         
         // Store Pending State
         if (client.userId) {
-             const levelInstanceId = LevelConfig.isDungeonLevel(currentLevelName)
+             const levelInstanceId = isDungeonLevel
                 ? createDungeonInstanceId(token)
                 : '';
              GlobalState.pendingWorld.set(token, {
@@ -364,7 +365,10 @@ export class CharacterHandler {
                 userId: client.userId,
                 newX: spawn.x,
                 newY: spawn.y,
-                newHasCoord: spawn.hasCoord
+                newHasCoord: spawn.hasCoord,
+                syncAnchorStartedAt: isDungeonLevel ? Date.now() : undefined,
+                syncAnchorToken: isDungeonLevel ? token : undefined,
+                syncAnchorCharacterName: isDungeonLevel ? char.name : undefined
             });
             GlobalState.pendingExtended.set(token, true);
         }
@@ -424,6 +428,16 @@ export class CharacterHandler {
             ? normalizeLevelInstanceId(entry.levelInstanceId) || createDungeonInstanceId(token)
             : '';
         client.entryLevel = LevelConfig.get(entry.targetLevel).isDungeon ? entry.previousLevel : '';
+        client.syncAnchorStartedAt = Number.isFinite(Number(entry.syncAnchorStartedAt)) && Number(entry.syncAnchorStartedAt) > 0
+            ? Math.round(Number(entry.syncAnchorStartedAt))
+            : 0;
+        client.syncAnchorToken = Number.isFinite(Number(entry.syncAnchorToken)) && Number(entry.syncAnchorToken) > 0
+            ? Math.round(Number(entry.syncAnchorToken))
+            : (LevelConfig.isDungeonLevel(entry.targetLevel) ? token : 0);
+        client.syncAnchorCharacterName = String(
+            entry.syncAnchorCharacterName ??
+            (LevelConfig.isDungeonLevel(entry.targetLevel) ? entry.character.name : '')
+        ).trim();
         client.currentRoomId = Number.isFinite(Number(entry.syncRoomId)) && Number(entry.syncRoomId) >= 0
             ? Math.round(Number(entry.syncRoomId))
             : 0;
@@ -476,8 +490,9 @@ export class CharacterHandler {
             newX: entry.newX,
             newY: entry.newY,
             newHasCoord: entry.newHasCoord,
-            syncAnchorToken: entry.syncAnchorToken,
-            syncAnchorCharacterName: entry.syncAnchorCharacterName,
+            syncAnchorStartedAt: entry.syncAnchorStartedAt,
+            syncAnchorToken: client.syncAnchorToken > 0 ? client.syncAnchorToken : undefined,
+            syncAnchorCharacterName: client.syncAnchorCharacterName || undefined,
             syncEntryLevel: entry.syncEntryLevel,
             syncRoomId: entry.syncRoomId,
             syncStartedRoomIds: entry.syncStartedRoomIds
@@ -521,8 +536,10 @@ export class CharacterHandler {
         
         // Spawn NPCs
         LevelHandler.spawnLevelNpcs(client, entry.targetLevel);
-        LevelHandler.restoreTransferredRoomProgress(client, entry);
-        LevelHandler.primeTutorialRoomEvents(client);
+        const restoredRoomProgress = LevelHandler.restoreTransferredRoomProgress(client, entry);
+        if (!restoredRoomProgress) {
+            LevelHandler.primeTutorialRoomEvents(client);
+        }
         await LevelHandler.prepareCraftTownTutorialEntry(client);
         LevelHandler.scheduleClientSpawnFallback(client);
     }

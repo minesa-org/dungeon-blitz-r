@@ -336,6 +336,65 @@ function testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns(): void {
     assert.equal(follower.entities.has(3401), false);
 }
 
+function testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns(): void {
+    const owner = createFakeClient('Alpha');
+    const follower = createFakeClient('Beta');
+
+    owner.currentLevel = 'TutorialDungeon';
+    follower.currentLevel = 'TutorialDungeon';
+    owner.currentRoomId = 1;
+    follower.currentRoomId = 1;
+
+    const canonical = {
+        id: 2450,
+        name: 'IntroDummy1',
+        isPlayer: false,
+        x: 4000,
+        y: 2099,
+        v: 0,
+        team: 2,
+        entState: 0,
+        clientSpawned: true,
+        ownerToken: owner.token,
+        ownerPartyId: 94,
+        roomId: owner.currentRoomId
+    };
+
+    GlobalState.levelEntities.set('TutorialDungeon', new Map([[canonical.id, canonical]]));
+    GlobalState.sessionsByToken.set(owner.token, owner as never);
+    GlobalState.sessionsByToken.set(follower.token, follower as never);
+    GlobalState.partyByMember.set('alpha', 94);
+    GlobalState.partyByMember.set('beta', 94);
+
+    const duplicate = {
+        id: 3450,
+        name: canonical.name,
+        isPlayer: false,
+        x: 4002,
+        y: 2101,
+        v: 0,
+        team: canonical.team,
+        entState: canonical.entState,
+        clientSpawned: true,
+        ownerToken: follower.token,
+        ownerPartyId: 94,
+        roomId: follower.currentRoomId
+    };
+
+    const suppressed = (EntityHandler as any).suppressDuplicateSharedClientSpawn(
+        follower as never,
+        'TutorialDungeon',
+        GlobalState.levelEntities.get('TutorialDungeon'),
+        duplicate
+    );
+
+    assert.equal(suppressed, true, 'target dummy spawns should collapse to the first shared authority');
+    assert.deepEqual(follower.sentPackets.map((packet) => packet.id), [0x0D, 0x0F]);
+    assert.equal(parseDestroyEntityId(follower.sentPackets[0]!.payload), 3450);
+    assert.equal(follower.knownEntityIds.has(canonical.id), true);
+    assert.equal(follower.entities.has(3450), false);
+}
+
 function testCraftTownTutorialSameIdDuplicateDoesNotForceDestroyRespawn(): void {
     const owner = createFakeClient('Alpha');
     const follower = createFakeClient('Beta');
@@ -356,15 +415,15 @@ function testCraftTownTutorialSameIdDuplicateDoesNotForceDestroyRespawn(): void 
         entState: 0,
         clientSpawned: true,
         ownerToken: owner.token,
-        ownerPartyId: 94,
+        ownerPartyId: 95,
         roomId: owner.currentRoomId
     };
 
     GlobalState.levelEntities.set('CraftTownTutorial', new Map([[canonical.id, canonical]]));
     GlobalState.sessionsByToken.set(owner.token, owner as never);
     GlobalState.sessionsByToken.set(follower.token, follower as never);
-    GlobalState.partyByMember.set('alpha', 94);
-    GlobalState.partyByMember.set('beta', 94);
+    GlobalState.partyByMember.set('alpha', 95);
+    GlobalState.partyByMember.set('beta', 95);
 
     const suppressed = (EntityHandler as any).suppressDuplicateSharedClientSpawn(
         follower as never,
@@ -634,6 +693,11 @@ function main(): void {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

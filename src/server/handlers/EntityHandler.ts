@@ -181,8 +181,7 @@ export class EntityHandler {
         client.entities.delete(duplicateId);
 
         if (canonicalId === duplicateId) {
-            // The client already has a local instance with the canonical ID.
-            // Keep it visually alive and simply ignore this session as an authority.
+            // Keep the shared canonical entity alive locally without forcing a destroy/respawn cycle.
             client.knownEntityIds.add(canonicalId);
             return true;
         }

@@ -11,6 +11,7 @@ export interface PendingTransfer {
     newX?: number;
     newY?: number;
     newHasCoord?: boolean;
+    syncAnchorStartedAt?: number;
     syncAnchorToken?: number;
     syncAnchorCharacterName?: string;
     syncEntryLevel?: string;
