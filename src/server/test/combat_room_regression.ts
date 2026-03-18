@@ -264,7 +264,7 @@ async function testDirectTargetPowerCastGetsSafeTargetPos(): Promise<void> {
 
     await CombatHandler.handlePowerCast(
         sender as never,
-        buildPowerCastPayload(sender.clientEntID, 77, {
+        buildPowerCastPayload(sender.clientEntID, 1703, {
             hasTargetEntity: true,
             hasComboData: true,
             comboIsMelee: true,
@@ -285,13 +285,48 @@ async function testDirectTargetPowerCastGetsSafeTargetPos(): Promise<void> {
 
     const partyCast = parsePowerCastPayload(partyOtherRoom.sentPackets[1]!.payload);
     assert.equal(partyCast.sourceId, sender.clientEntID);
-    assert.equal(partyCast.powerId, 77);
+    assert.equal(partyCast.powerId, 1703);
     assert.equal(partyCast.hasTargetEntity, true);
     assert.equal(partyCast.hasTargetPos, true, 'direct-target cast should gain a synthetic target point');
     assert.equal(partyCast.targetX, hostile.x);
     assert.equal(partyCast.targetY, hostile.y);
     assert.equal(partyCast.comboIsMelee, true);
     assert.equal(partyCast.comboId, 2, 'melee combo data should be preserved');
+}
+
+async function testUnsafeRangedDirectTargetPowerCastStillSuppresses(): Promise<void> {
+    const sender = createFakeClient(113, 'Alpha', 3);
+    const partyOtherRoom = createFakeClient(114, 'Beta', 7);
+    const sameRoomStranger = createFakeClient(115, 'Gamma', 3);
+
+    attachPlayerEntity(sender);
+    attachPlayerEntity(partyOtherRoom);
+    attachPlayerEntity(sameRoomStranger);
+
+    GlobalState.partyByMember.set('alpha', 5);
+    GlobalState.partyByMember.set('beta', 5);
+
+    GlobalState.sessionsByToken.set(sender.token, sender as never);
+    GlobalState.sessionsByToken.set(partyOtherRoom.token, partyOtherRoom as never);
+    GlobalState.sessionsByToken.set(sameRoomStranger.token, sameRoomStranger as never);
+
+    await CombatHandler.handlePowerCast(
+        sender as never,
+        buildPowerCastPayload(sender.clientEntID, 362, {
+            hasTargetEntity: true
+        })
+    );
+
+    assert.equal(
+        partyOtherRoom.sentPackets.some((packet) => packet.id === 0x09 || packet.id === 0x0F),
+        false,
+        'target-dependent ranged powers should stay suppressed because the protocol does not include the target entity id'
+    );
+    assert.equal(
+        sameRoomStranger.sentPackets.some((packet) => packet.id === 0x09 || packet.id === 0x0F),
+        false,
+        'same-room viewers should also skip unsafe target-dependent ranged casts'
+    );
 }
 
 async function testPowerHitFollowsPartyAudience(): Promise<void> {
@@ -649,6 +684,15 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testDirectTargetPowerCastGetsSafeTargetPos();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testUnsafeRangedDirectTargetPowerCastStillSuppresses();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();

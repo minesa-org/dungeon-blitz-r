@@ -121,6 +121,42 @@ function testOutdoorHostileClientSpawnIsNotSeededToPeers(): void {
     assert.equal(client.entities.size, 1, 'existing local hostile should remain untouched');
 }
 
+function testOutdoorHostileClientSpawnSeedsToPartyPeers(): void {
+    const owner = createFakeClient('Alpha');
+    const watcher = createFakeClient('Beta');
+
+    owner.currentLevel = 'NewbieRoad';
+    watcher.currentLevel = 'NewbieRoad';
+    owner.currentRoomId = 1;
+    watcher.currentRoomId = 7;
+
+    const hostile = {
+        id: 2204,
+        name: 'IntroGoblin',
+        isPlayer: false,
+        x: 120,
+        y: 220,
+        v: 0,
+        team: 2,
+        entState: 0,
+        clientSpawned: true,
+        ownerToken: owner.token,
+        roomId: owner.currentRoomId
+    };
+
+    GlobalState.levelEntities.set('NewbieRoad', new Map([[hostile.id, hostile]]));
+    GlobalState.sessionsByToken.set(owner.token, owner as never);
+    GlobalState.sessionsByToken.set(watcher.token, watcher as never);
+    GlobalState.partyByMember.set('alpha', 77);
+    GlobalState.partyByMember.set('beta', 77);
+
+    const known = EntityHandler.ensureEntityKnown(watcher as never, 'NewbieRoad', hostile.id);
+
+    assert.equal(known, true, 'party peers should receive outdoor hostile seeds');
+    assert.deepEqual(watcher.sentPackets.map((packet) => packet.id), [0x0F]);
+    assert.equal(watcher.knownEntityIds.has(hostile.id), true);
+}
+
 function testConflictingLocalIdsStillTriggerRemotePlayerSeed(): void {
     const sender = createFakeClient('Alpha');
     const watcher = createFakeClient('Beta');
@@ -283,41 +319,103 @@ function testOutdoorHostileIncrementalUpdatesDoNotRelayToPeers(): void {
     );
 }
 
+function testOutdoorHostileIncrementalUpdatesRelayToPartyPeers(): void {
+    const sender = createFakeClient('Alpha');
+    const watcher = createFakeClient('Beta');
+
+    sender.currentLevel = 'NewbieRoad';
+    watcher.currentLevel = 'NewbieRoad';
+    sender.currentRoomId = 1;
+    watcher.currentRoomId = 7;
+
+    const hostile = {
+        id: 2205,
+        name: 'IntroGoblin',
+        isPlayer: false,
+        x: 100,
+        y: 200,
+        v: 0,
+        team: 2,
+        entState: 0,
+        clientSpawned: true,
+        ownerToken: sender.token,
+        roomId: sender.currentRoomId
+    };
+
+    sender.entities.set(hostile.id, { ...hostile });
+    sender.knownEntityIds.add(hostile.id);
+    GlobalState.levelEntities.set('NewbieRoad', new Map([[hostile.id, hostile]]));
+    GlobalState.sessionsByToken.set(sender.token, sender as never);
+    GlobalState.sessionsByToken.set(watcher.token, watcher as never);
+    GlobalState.partyByMember.set('alpha', 88);
+    GlobalState.partyByMember.set('beta', 88);
+
+    LevelHandler.handleEntityIncrementalUpdate(
+        sender as never,
+        buildIncrementalUpdatePayload(hostile.id, 12, -4, 3)
+    );
+
+    assert.deepEqual(
+        watcher.sentPackets.map((packet) => packet.id),
+        [0x0F, 0x07],
+        'party peers should receive outdoor hostile movement as shared enemy state'
+    );
+}
+
 function main(): void {
     const levelEntities = new Map(GlobalState.levelEntities);
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
+    const partyByMember = new Map(GlobalState.partyByMember);
     GlobalState.levelEntities.clear();
     GlobalState.sessionsByToken.clear();
+    GlobalState.partyByMember.clear();
 
     try {
         testOutdoorLevelsUseClientSpawn();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
         testClientSpawnLevelsDoNotSendServerNpcCopies();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
         testClientSpawnLevelsStartEmptyWithoutServerNpcInit();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
         testOutdoorHostileClientSpawnIsNotSeededToPeers();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testOutdoorHostileClientSpawnSeedsToPartyPeers();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
         testConflictingLocalIdsStillTriggerRemotePlayerSeed();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
         testSafeRemotePlayerIdsRelayMovementWithoutCollision();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
         testOutdoorHostileIncrementalUpdatesDoNotRelayToPeers();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testOutdoorHostileIncrementalUpdatesRelayToPartyPeers();
     } finally {
         GlobalState.levelEntities = levelEntities;
         GlobalState.sessionsByToken = sessionsByToken;
+        GlobalState.partyByMember = partyByMember;
     }
 
     console.log('client_spawn_level_regression: ok');

@@ -99,13 +99,36 @@ export class EntityHandler {
         return EntityHandler.shouldRelayEntityToOtherClients(levelName, entity);
     }
 
+    private static canClientUsePartySharedClientSpawnEntity(client: Client, entity: any): boolean {
+        if (!client.playerSpawned || !client.currentLevel || !entity?.clientSpawned || entity?.isPlayer) {
+            return false;
+        }
+        if (!EntityHandler.usesClientSpawn(client.currentLevel)) {
+            return false;
+        }
+
+        const ownerSession = EntityHandler.resolveEntityOwnerSession(entity);
+        if (!ownerSession || !ownerSession.playerSpawned || !areClientsInSameLevelScope(client, ownerSession)) {
+            return false;
+        }
+
+        if (ownerSession === client) {
+            return true;
+        }
+
+        return areClientsInSameParty(client, ownerSession);
+    }
+
     private static rememberEntityKnown(client: Client, levelName: string | null | undefined, entity: any): void {
         const entityId = Number(entity?.id ?? 0);
         if (entityId <= 0) {
             return;
         }
 
-        if (EntityHandler.shouldTrackKnownEntity(levelName, entity)) {
+        if (
+            EntityHandler.shouldTrackKnownEntity(levelName, entity) ||
+            EntityHandler.canClientUsePartySharedClientSpawnEntity(client, entity)
+        ) {
             client.knownEntityIds.add(entityId);
             return;
         }
@@ -116,6 +139,17 @@ export class EntityHandler {
     private static hasConflictingLocalKnownEntity(client: Client, levelName: string, entityId: number, entity: any): boolean {
         const localEntity = client.entities.get(entityId);
         if (!localEntity) {
+            return false;
+        }
+
+        if (
+            Boolean(localEntity?.clientSpawned) &&
+            Boolean(entity?.clientSpawned) &&
+            !Boolean(localEntity?.isPlayer) &&
+            !Boolean(entity?.isPlayer) &&
+            EntityHandler.normalizeIdentityName(localEntity?.name) === EntityHandler.normalizeIdentityName(entity?.name) &&
+            Number(localEntity?.team ?? 0) === Number(entity?.team ?? 0)
+        ) {
             return false;
         }
 
@@ -199,12 +233,16 @@ export class EntityHandler {
             return true;
         }
 
+        if (EntityHandler.isLocalOnlyClientSpawnEntity(client.currentLevel, entity)) {
+            return EntityHandler.canClientUsePartySharedClientSpawnEntity(client, entity);
+        }
+
         if (!EntityHandler.shouldRelayEntityToOtherClients(client.currentLevel, entity)) {
             return false;
         }
 
-        const ownerSession = EntityHandler.resolveEntityOwnerSession(entity);
         if (entity.clientSpawned) {
+            const ownerSession = EntityHandler.resolveEntityOwnerSession(entity);
             if (ownerSession && areClientsInSameLevelScope(client, ownerSession) && areClientsInSameParty(client, ownerSession)) {
                 return true;
             }

@@ -54,6 +54,13 @@ type PlayerHitResolution = {
 
 export class CombatHandler {
     private static readonly RESPAWN_ENEMY_HEAL = 1_000_000;
+    // Extracted from Game.swz power metadata: these target methods require a real target entity on the client.
+    private static readonly UNSAFE_REMOTE_DIRECT_TARGET_POWER_IDS = new Set<number>([
+        39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+        362, 363, 781, 1447, 1448, 1525, 1526, 1527, 1528, 1529, 1530, 1531, 1532, 1533, 1534,
+        1535, 1536, 1537, 1538, 1539, 1540, 1541, 1542, 1543, 1544, 1545, 1546, 1547, 1548,
+        1549, 1550, 1551, 1552, 1553, 1554, 1555, 1556, 1557, 1558
+    ]);
     private static readonly PLAYER_HITPOINTS = [
         100, 7400, 8031, 8369, 8724, 9095, 9485, 9893, 10321, 10770, 11240, 11733, 12249, 12791,
         13358, 13953, 14576, 15229, 15914, 16632, 17384, 18172, 18999, 19865, 20773, 21724,
@@ -617,9 +624,17 @@ export class CombatHandler {
         };
     }
 
-    private static maybeRewriteUnsafePowerCast(client: Client, info: PowerCastRelayInfo): Buffer | null {
-        if (!info.hasTargetEntity || info.hasTargetPos) {
+    private static normalizePowerCastRelay(client: Client, info: PowerCastRelayInfo, data: Buffer): Buffer | null {
+        if (!info.hasTargetEntity) {
+            return data;
+        }
+
+        if (CombatHandler.UNSAFE_REMOTE_DIRECT_TARGET_POWER_IDS.has(info.powerId)) {
             return null;
+        }
+
+        if (info.hasTargetPos) {
+            return data;
         }
 
         const levelScope = getClientLevelScope(client);
@@ -863,7 +878,11 @@ export class CombatHandler {
             return;
         }
 
-        const relayPayload = CombatHandler.maybeRewriteUnsafePowerCast(client, info) ?? data;
+        const relayPayload = CombatHandler.normalizePowerCastRelay(client, info, data);
+        if (!relayPayload) {
+            return;
+        }
+
         CombatHandler.broadcastCombatPacket(client, 0x09, relayPayload, {
             referencedEntityIds: CombatHandler.parseReferencedEntityIds(0x09, relayPayload)
         });
