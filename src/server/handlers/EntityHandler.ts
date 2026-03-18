@@ -6,7 +6,7 @@ import { GlobalState } from '../core/GlobalState';
 import { Entity, EntityProps, EntityState } from '../core/Entity';
 import { LevelConfig } from '../core/LevelConfig';
 import { PetHandler } from './PetHandler';
-import { areClientsInSameParty, sharesRoomIds } from '../core/PartySync';
+import { areClientsInSameParty, getPartyIdForClient, sharesRoomIds } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope, getLevelScopeKey } from '../core/LevelScope';
 
 export class EntityHandler {
@@ -47,6 +47,19 @@ export class EntityHandler {
         return EntityHandler.CLIENT_SPAWN_LEVELS.has(levelName);
     }
 
+    private static isSharedClientSpawnRegionActor(levelName: string | null | undefined, entity: any): boolean {
+        if (!levelName || !entity?.clientSpawned || entity?.isPlayer) {
+            return false;
+        }
+
+        const team = Number(entity?.team ?? 0);
+        if (team !== 2 && team !== 3) {
+            return false;
+        }
+
+        return EntityHandler.usesClientSpawn(levelName) || LevelConfig.isDungeonLevel(levelName);
+    }
+
     private static getLevelMap(
         levelName: string | null | undefined,
         levelInstanceId: string = '',
@@ -77,11 +90,107 @@ export class EntityHandler {
     }
 
     private static isPartySharedClientSpawnHostile(levelName: string | null | undefined, entity: any): boolean {
-        if (!levelName || !entity?.clientSpawned || entity?.isPlayer || Number(entity?.team ?? 0) !== 2) {
+        return EntityHandler.isSharedClientSpawnRegionActor(levelName, entity) && Number(entity?.team ?? 0) === 2;
+    }
+
+    private static getSharedClientSpawnOwnerPartyId(entity: any): number {
+        const storedPartyId = Number(entity?.ownerPartyId ?? 0);
+        if (storedPartyId > 0) {
+            return storedPartyId;
+        }
+
+        return getPartyIdForClient(EntityHandler.resolveEntityOwnerSession(entity));
+    }
+
+    private static findSharedClientSpawnCanonicalMatch(
+        levelName: string,
+        levelMap: Map<number, any>,
+        partyId: number,
+        roomId: number,
+        entity: any,
+        excludedOwnerToken: number
+    ): any | null {
+        const targetName = EntityHandler.normalizeIdentityName(entity?.name);
+        const targetTeam = Number(entity?.team ?? 0);
+        let bestMatch: any | null = null;
+        let bestDistanceSq = Number.POSITIVE_INFINITY;
+
+        for (const candidate of levelMap.values()) {
+            if (!EntityHandler.isSharedClientSpawnRegionActor(levelName, candidate)) {
+                continue;
+            }
+            if (Number(candidate?.ownerToken ?? 0) === excludedOwnerToken) {
+                continue;
+            }
+            if (partyId > 0 && EntityHandler.getSharedClientSpawnOwnerPartyId(candidate) !== partyId) {
+                continue;
+            }
+            if (!sharesRoomIds(roomId, Number(candidate?.roomId ?? -1))) {
+                continue;
+            }
+            if (EntityHandler.normalizeIdentityName(candidate?.name) !== targetName) {
+                continue;
+            }
+            if (Number(candidate?.team ?? 0) !== targetTeam) {
+                continue;
+            }
+
+            const dx = Number(candidate?.x ?? 0) - Number(entity?.x ?? 0);
+            const dy = Number(candidate?.y ?? 0) - Number(entity?.y ?? 0);
+            const distanceSq = (dx * dx) + (dy * dy);
+            if (distanceSq < bestDistanceSq) {
+                bestDistanceSq = distanceSq;
+                bestMatch = candidate;
+            }
+        }
+
+        return bestMatch;
+    }
+
+    private static suppressDuplicateSharedClientSpawn(
+        client: Client,
+        levelName: string | null | undefined,
+        levelMap: Map<number, any> | null,
+        entity: any
+    ): boolean {
+        if (!levelName || !levelMap || !EntityHandler.isSharedClientSpawnRegionActor(levelName, entity)) {
             return false;
         }
 
-        return EntityHandler.usesClientSpawn(levelName) || LevelConfig.isDungeonLevel(levelName);
+        const partyId = getPartyIdForClient(client);
+        entity.ownerPartyId = partyId;
+        if (partyId <= 0) {
+            return false;
+        }
+
+        const roomId = Number.isFinite(Number(entity?.roomId)) ? Number(entity.roomId) : -1;
+        const canonical = EntityHandler.findSharedClientSpawnCanonicalMatch(
+            levelName,
+            levelMap,
+            partyId,
+            roomId,
+            entity,
+            client.token
+        );
+        if (!canonical) {
+            return false;
+        }
+
+        const duplicateId = Number(entity?.id ?? 0);
+        const canonicalId = Number(canonical?.id ?? 0);
+        client.entities.delete(duplicateId);
+
+        if (canonicalId === duplicateId) {
+            // The client already has a local instance with the canonical ID.
+            // Keep it visually alive and simply ignore this session as an authority.
+            client.knownEntityIds.add(canonicalId);
+            return true;
+        }
+
+        client.knownEntityIds.delete(duplicateId);
+        EntityHandler.sendDestroyEntity(client, duplicateId);
+        EntityHandler.ensureEntityKnown(client, levelName, canonicalId);
+        return true;
     }
 
     static shouldRelayEntityToOtherClients(levelName: string | null | undefined, entity: any): boolean {
@@ -708,7 +817,12 @@ export class EntityHandler {
             (isSelfPacket || (client.clientEntID > 0 && client.clientEntID === entityId))
         );
 
-        const props: EntityProps & { clientSpawned?: boolean; ownerToken?: number; ownerUserId?: number } = ownsThisPlayerPacket
+        const props: EntityProps & {
+            clientSpawned?: boolean;
+            ownerToken?: number;
+            ownerUserId?: number;
+            ownerPartyId?: number;
+        } = ownsThisPlayerPacket
             ? {
                 ...Entity.fromCharacter(entityId, client.character!, {
                     x: posX,
@@ -736,6 +850,7 @@ export class EntityHandler {
                 clientSpawned: false,
                 ownerToken: client.token || 0,
                 ownerUserId: client.userId || 0,
+                ownerPartyId: getPartyIdForClient(client),
                 roomId: client.currentRoomId
             }
             : {
@@ -761,12 +876,10 @@ export class EntityHandler {
                 clientSpawned: !isPlayer,
                 ownerToken: client.token || 0,
                 ownerUserId: client.userId || 0,
+                ownerPartyId: getPartyIdForClient(client),
                 roomId: client.currentRoomId
                 // bRunning etc are flags
             };
-
-        client.entities.set(entityId, props);
-        EntityHandler.rememberEntityKnown(client, levelName, props);
 
         if (!isPlayer) {
             client.clientSpawnConfirmed = true;
@@ -776,12 +889,22 @@ export class EntityHandler {
             }
         }
 
-        // Update GlobalState
+        let levelMap = existingLevelMap;
         if (levelName) {
-            let levelMap = existingLevelMap;
             if (!levelMap) {
                 levelMap = EntityHandler.getLevelMapForClient(client, true) ?? new Map<number, any>();
             }
+        }
+
+        if (EntityHandler.suppressDuplicateSharedClientSpawn(client, levelName, levelMap, props)) {
+            return;
+        }
+
+        client.entities.set(entityId, props);
+        EntityHandler.rememberEntityKnown(client, levelName, props);
+
+        // Update GlobalState
+        if (levelMap) {
             levelMap.set(entityId, props);
         }
 
