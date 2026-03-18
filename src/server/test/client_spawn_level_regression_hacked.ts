@@ -27,15 +27,6 @@ type FakeClient = {
 
 let nextFakeToken = 1000;
 
-
-// MOCK SETTIMEOUT FOR SYNCHRONOUS TESTS
-const originalSetTimeout = global.setTimeout;
-global.setTimeout = ((fn: any, delay: number) => {
-    // Execute immediately in tests
-    fn();
-    return 0 as any;
-}) as any;
-
 function ensureLevelConfigLoaded(): void {
     if (!LevelConfig.has('TutorialDungeon')) {
         LevelConfig.load(path.resolve(__dirname, '../data'));
@@ -740,82 +731,82 @@ function main(): void {
     GlobalState.partyByMember.clear();
 
     try {
-        testOutdoorLevelsUseClientSpawn();
+        try { console.log('Running ' + 'testOutdoorLevelsUseClientSpawn();'); testOutdoorLevelsUseClientSpawn(); } catch(e) { console.error('FAILED: ' + 'testOutdoorLevelsUseClientSpawn();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testClientSpawnLevelsDoNotSendServerNpcCopies();
+        try { console.log('Running ' + 'testClientSpawnLevelsDoNotSendServerNpcCopies();'); testClientSpawnLevelsDoNotSendServerNpcCopies(); } catch(e) { console.error('FAILED: ' + 'testClientSpawnLevelsDoNotSendServerNpcCopies();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testClientSpawnLevelsStartEmptyWithoutServerNpcInit();
+        try { console.log('Running ' + 'testClientSpawnLevelsStartEmptyWithoutServerNpcInit();'); testClientSpawnLevelsStartEmptyWithoutServerNpcInit(); } catch(e) { console.error('FAILED: ' + 'testClientSpawnLevelsStartEmptyWithoutServerNpcInit();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testOutdoorHostileClientSpawnIsNotSeededToPeers();
+        try { console.log('Running ' + 'testOutdoorHostileClientSpawnIsNotSeededToPeers();'); testOutdoorHostileClientSpawnIsNotSeededToPeers(); } catch(e) { console.error('FAILED: ' + 'testOutdoorHostileClientSpawnIsNotSeededToPeers();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testOutdoorHostileClientSpawnSeedsToPartyPeers();
+        try { console.log('Running ' + 'testOutdoorHostileClientSpawnSeedsToPartyPeers();'); testOutdoorHostileClientSpawnSeedsToPartyPeers(); } catch(e) { console.error('FAILED: ' + 'testOutdoorHostileClientSpawnSeedsToPartyPeers();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testDungeonHostileClientSpawnSeedsToPartyPeersOnly();
+        try { console.log('Running ' + 'testDungeonHostileClientSpawnSeedsToPartyPeersOnly();'); testDungeonHostileClientSpawnSeedsToPartyPeersOnly(); } catch(e) { console.error('FAILED: ' + 'testDungeonHostileClientSpawnSeedsToPartyPeersOnly();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testDungeonPartyAuthoritySuppressesDuplicateHostileSpawns();
+        try { console.log('Running ' + 'testDungeonPartyAuthoritySuppressesDuplicateHostileSpawns();'); testDungeonPartyAuthoritySuppressesDuplicateHostileSpawns(); } catch(e) { console.error('FAILED: ' + 'testDungeonPartyAuthoritySuppressesDuplicateHostileSpawns();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns();
+        try { console.log('Running ' + 'testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns();'); testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns(); } catch(e) { console.error('FAILED: ' + 'testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns();
+        try { console.log('Running ' + 'testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns();'); testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns(); } catch(e) { console.error('FAILED: ' + 'testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testCraftTownTutorialSameIdDuplicateDoesNotForceDestroyRespawn();
+        try { console.log('Running ' + 'testCraftTownTutorialSameIdDuplicateDoesNotForceDestroyRespawn();'); testCraftTownTutorialSameIdDuplicateDoesNotForceDestroyRespawn(); } catch(e) { console.error('FAILED: ' + 'testCraftTownTutorialSameIdDuplicateDoesNotForceDestroyRespawn();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testSoloDungeonHostileReferencePromotesToPartyJoinerSeed();
+        try { console.log('Running ' + 'testSoloDungeonHostileReferencePromotesToPartyJoinerSeed();'); testSoloDungeonHostileReferencePromotesToPartyJoinerSeed(); } catch(e) { console.error('FAILED: ' + 'testSoloDungeonHostileReferencePromotesToPartyJoinerSeed();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testSoloDungeonNpcReferencePromotesToPartyJoinerSeed();
+        try { console.log('Running ' + 'testSoloDungeonNpcReferencePromotesToPartyJoinerSeed();'); testSoloDungeonNpcReferencePromotesToPartyJoinerSeed(); } catch(e) { console.error('FAILED: ' + 'testSoloDungeonNpcReferencePromotesToPartyJoinerSeed();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testConflictingLocalIdsStillTriggerRemotePlayerSeed();
+        try { console.log('Running ' + 'testConflictingLocalIdsStillTriggerRemotePlayerSeed();'); testConflictingLocalIdsStillTriggerRemotePlayerSeed(); } catch(e) { console.error('FAILED: ' + 'testConflictingLocalIdsStillTriggerRemotePlayerSeed();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testSafeRemotePlayerIdsRelayMovementWithoutCollision();
+        try { console.log('Running ' + 'testSafeRemotePlayerIdsRelayMovementWithoutCollision();'); testSafeRemotePlayerIdsRelayMovementWithoutCollision(); } catch(e) { console.error('FAILED: ' + 'testSafeRemotePlayerIdsRelayMovementWithoutCollision();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testOutdoorHostileIncrementalUpdatesDoNotRelayToPeers();
+        try { console.log('Running ' + 'testOutdoorHostileIncrementalUpdatesDoNotRelayToPeers();'); testOutdoorHostileIncrementalUpdatesDoNotRelayToPeers(); } catch(e) { console.error('FAILED: ' + 'testOutdoorHostileIncrementalUpdatesDoNotRelayToPeers();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testOutdoorHostileIncrementalUpdatesRelayToPartyPeers();
+        try { console.log('Running ' + 'testOutdoorHostileIncrementalUpdatesRelayToPartyPeers();'); testOutdoorHostileIncrementalUpdatesRelayToPartyPeers(); } catch(e) { console.error('FAILED: ' + 'testOutdoorHostileIncrementalUpdatesRelayToPartyPeers();'); console.error(e); process.exit(1); }
     } finally {
         GlobalState.levelEntities = levelEntities;
         GlobalState.sessionsByToken = sessionsByToken;

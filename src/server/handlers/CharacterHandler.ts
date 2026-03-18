@@ -16,6 +16,7 @@ import { SocialHandler } from './SocialHandler';
 import { GuildHandler } from './GuildHandler';
 import { EntityHandler } from './EntityHandler';
 import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
+import { getPartyIdForClient, areClientsInSameParty } from '../core/PartySync';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
 import {
     createDungeonInstanceId,
@@ -354,9 +355,44 @@ export class CharacterHandler {
         
         // Store Pending State
         if (client.userId) {
-             const levelInstanceId = isDungeonLevel
-                ? createDungeonInstanceId(token)
-                : '';
+             // For dungeon levels, try to find a party member already in the same dungeon
+             // and reuse their levelInstanceId so both players share the same level scope.
+             let levelInstanceId = '';
+             let syncAnchorStartedAt: number | undefined = isDungeonLevel ? Date.now() : undefined;
+             let syncAnchorToken: number | undefined = isDungeonLevel ? token : undefined;
+             let syncAnchorCharacterName: string | undefined = isDungeonLevel ? char.name : undefined;
+             let syncRoomId: number | undefined;
+             let syncStartedRoomIds: number[] | undefined;
+             let syncEntryLevel: string | undefined;
+
+             if (isDungeonLevel) {
+                 const normalizedTarget = LevelConfig.normalizeLevelName(currentLevelName);
+                 // Search active sessions for a party member in the same dungeon
+                 for (const other of GlobalState.sessionsByToken.values()) {
+                     if (!other.playerSpawned || !other.character) continue;
+                     if (LevelConfig.normalizeLevelName(other.currentLevel) !== normalizedTarget) continue;
+                     if (!areClientsInSameParty(client, other)) continue;
+                     if (normalizeCharacterKey(other.character.name) === normalizeCharacterKey(char.name)) continue;
+
+                     // Found a party member in the same dungeon — reuse their level scope
+                     levelInstanceId = normalizeLevelInstanceId(other.levelInstanceId) || createDungeonInstanceId(token);
+                     syncAnchorStartedAt = other.syncAnchorStartedAt > 0 ? other.syncAnchorStartedAt : Date.now();
+                     syncAnchorToken = other.syncAnchorToken > 0 ? other.syncAnchorToken : token;
+                     syncAnchorCharacterName = String(other.syncAnchorCharacterName || other.character.name).trim();
+                     // NOTE: Do NOT sync syncRoomId or syncStartedRoomIds here.
+                     // Room progress replay causes null errors in the Flash client when
+                     // it receives room event start packets before the level SWF is loaded.
+                     // Room progress will sync naturally as the Flash client loads rooms.
+                     syncEntryLevel = LevelConfig.normalizeLevelName(other.entryLevel) || undefined;
+                     console.log(`[EnterWorld] Syncing dungeon instance for ${char.name} with party anchor ${other.character.name} (instanceId=${levelInstanceId})`);
+                     break;
+                 }
+
+                 if (!levelInstanceId) {
+                     levelInstanceId = createDungeonInstanceId(token);
+                 }
+             }
+
              GlobalState.pendingWorld.set(token, {
                 character: char,
                 targetLevel: currentLevelName,
@@ -366,9 +402,12 @@ export class CharacterHandler {
                 newX: spawn.x,
                 newY: spawn.y,
                 newHasCoord: spawn.hasCoord,
-                syncAnchorStartedAt: isDungeonLevel ? Date.now() : undefined,
-                syncAnchorToken: isDungeonLevel ? token : undefined,
-                syncAnchorCharacterName: isDungeonLevel ? char.name : undefined
+                syncAnchorStartedAt,
+                syncAnchorToken,
+                syncAnchorCharacterName,
+                syncRoomId,
+                syncStartedRoomIds,
+                syncEntryLevel
             });
             GlobalState.pendingExtended.set(token, true);
         }
@@ -377,8 +416,11 @@ export class CharacterHandler {
         const levelSpec = LevelConfig.get(currentLevelName);
         const isHard = currentLevelName.endsWith("Hard");
 
+        const pendingEntry = GlobalState.pendingWorld.get(token);
+        const resolvedTransferToken = pendingEntry?.syncAnchorToken || token;
+
         const pkt = WorldEnter.buildEnterWorldPacket(
-            token,
+            resolvedTransferToken, // Ensure Flash client uses the Host's token for Room Event Generation Offset
             0, "", false, 0, 0,
             Config.HOST,
             Config.PORTS[0],
@@ -427,6 +469,7 @@ export class CharacterHandler {
         client.levelInstanceId = LevelConfig.isDungeonLevel(entry.targetLevel)
             ? normalizeLevelInstanceId(entry.levelInstanceId) || createDungeonInstanceId(token)
             : '';
+        console.log(`[GameLogin] ${entry.character.name} entering ${entry.targetLevel} with levelInstanceId='${client.levelInstanceId}' (from entry: '${entry.levelInstanceId}')`);
         client.entryLevel = LevelConfig.get(entry.targetLevel).isDungeon ? entry.previousLevel : '';
         client.syncAnchorStartedAt = Number.isFinite(Number(entry.syncAnchorStartedAt)) && Number(entry.syncAnchorStartedAt) > 0
             ? Math.round(Number(entry.syncAnchorStartedAt))

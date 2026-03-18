@@ -94,12 +94,15 @@ export class EntityHandler {
     }
 
     private static getSharedClientSpawnOwnerPartyId(entity: any): number {
-        const storedPartyId = Number(entity?.ownerPartyId ?? 0);
-        if (storedPartyId > 0) {
-            return storedPartyId;
+        const ownerSession = EntityHandler.resolveEntityOwnerSession(entity);
+        if (ownerSession?.character) {
+            const livePartyId = getPartyIdForClient(ownerSession);
+            entity.ownerPartyId = livePartyId > 0 ? livePartyId : 0;
+            return livePartyId;
         }
 
-        return getPartyIdForClient(EntityHandler.resolveEntityOwnerSession(entity));
+        const storedPartyId = Number(entity?.ownerPartyId ?? 0);
+        return storedPartyId > 0 ? storedPartyId : 0;
     }
 
     private static findSharedClientSpawnCanonicalMatch(
@@ -122,8 +125,10 @@ export class EntityHandler {
             if (Number(candidate?.ownerToken ?? 0) === excludedOwnerToken) {
                 continue;
             }
-            if (partyId > 0 && EntityHandler.getSharedClientSpawnOwnerPartyId(candidate) !== partyId) {
-                continue;
+            if (partyId > 0) {
+                if (EntityHandler.getSharedClientSpawnOwnerPartyId(candidate) !== partyId) {
+                    continue;
+                }
             }
             if (!sharesRoomIds(roomId, Number(candidate?.roomId ?? -1))) {
                 continue;
@@ -154,14 +159,12 @@ export class EntityHandler {
         entity: any
     ): boolean {
         if (!levelName || !levelMap || !EntityHandler.isSharedClientSpawnRegionActor(levelName, entity)) {
+            console.log(`[Dedup] SKIP: isSharedClientSpawnRegionActor=false for ${entity?.name} in ${levelName} (clientSpawned=${entity?.clientSpawned}, team=${entity?.team})`);
             return false;
         }
 
         const partyId = getPartyIdForClient(client);
         entity.ownerPartyId = partyId;
-        if (partyId <= 0) {
-            return false;
-        }
 
         const roomId = Number.isFinite(Number(entity?.roomId)) ? Number(entity.roomId) : -1;
         const canonical = EntityHandler.findSharedClientSpawnCanonicalMatch(
@@ -173,8 +176,16 @@ export class EntityHandler {
             client.token
         );
         if (!canonical) {
+            console.log(`[Dedup] NO MATCH for ${entity?.name} (id=${entity?.id}, team=${entity?.team}) in ${levelName}. LevelMap has ${levelMap.size} entities. PartyId=${partyId}, ownerToken=${client.token}`);
+            // List candidates for debugging
+            for (const [cId, c] of levelMap.entries()) {
+                if (c?.clientSpawned && !c?.isPlayer) {
+                    console.log(`[Dedup]   candidate id=${cId} name=${c?.name} team=${c?.team} ownerToken=${c?.ownerToken} ownerPartyId=${c?.ownerPartyId}`);
+                }
+            }
             return false;
         }
+        console.log(`[Dedup] MATCH found! ${entity?.name} (id=${entity?.id}) -> canonical id=${canonical?.id} ownerToken=${canonical?.ownerToken}`);
 
         const duplicateId = Number(entity?.id ?? 0);
         const canonicalId = Number(canonical?.id ?? 0);
@@ -187,8 +198,14 @@ export class EntityHandler {
         }
 
         client.knownEntityIds.delete(duplicateId);
+
         EntityHandler.sendDestroyEntity(client, duplicateId);
+        
+        if (client.knownEntityIds.has(canonicalId)) {
+            return true;
+        }
         EntityHandler.ensureEntityKnown(client, levelName, canonicalId);
+        
         return true;
     }
 
@@ -215,16 +232,20 @@ export class EntityHandler {
             return false;
         }
 
+        const clientPartyId = getPartyIdForClient(client);
+        const ownerPartyId = EntityHandler.getSharedClientSpawnOwnerPartyId(entity);
         const ownerSession = EntityHandler.resolveEntityOwnerSession(entity);
-        if (!ownerSession || !ownerSession.playerSpawned || !areClientsInSameLevelScope(client, ownerSession)) {
-            return false;
+        if (ownerSession?.playerSpawned && areClientsInSameLevelScope(client, ownerSession)) {
+            if (ownerSession === client) {
+                return true;
+            }
+
+            if (clientPartyId > 0 && ownerPartyId > 0 && areClientsInSameParty(client, ownerSession)) {
+                return true;
+            }
         }
 
-        if (ownerSession === client) {
-            return true;
-        }
-
-        return areClientsInSameParty(client, ownerSession);
+        return clientPartyId > 0 && ownerPartyId > 0 && clientPartyId === ownerPartyId;
     }
 
     private static rememberEntityKnown(client: Client, levelName: string | null | undefined, entity: any): void {
@@ -350,6 +371,12 @@ export class EntityHandler {
         }
 
         if (entity.clientSpawned) {
+            const clientPartyId = getPartyIdForClient(client);
+            const ownerPartyId = EntityHandler.getSharedClientSpawnOwnerPartyId(entity);
+            if (clientPartyId > 0 && ownerPartyId > 0 && clientPartyId === ownerPartyId) {
+                return true;
+            }
+
             const ownerSession = EntityHandler.resolveEntityOwnerSession(entity);
             if (ownerSession && areClientsInSameLevelScope(client, ownerSession) && areClientsInSameParty(client, ownerSession)) {
                 return true;
@@ -566,10 +593,26 @@ export class EntityHandler {
         client.send(0x0D, EntityHandler.buildDestroyEntityPayload(entityId));
     }
 
+    private static buildEntityStateDeadPayload(entityId: number): Buffer {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(entityId);
+        bb.writeMethod45(0);
+        bb.writeMethod45(0);
+        bb.writeMethod45(0);
+        bb.writeMethod6(3, 2); // EntityState.DEAD = 3
+        bb.writeMethod15(false);
+        bb.writeMethod15(false);
+        bb.writeMethod15(false);
+        bb.writeMethod15(false);
+        bb.writeMethod15(false);
+        bb.writeMethod15(false);
+        return bb.toBuffer();
+    }
+
     private static buildDestroyEntityPayload(entityId: number): Buffer {
         const bb = new BitBuffer(false);
         bb.writeMethod4(entityId);
-        bb.writeMethod15(false);
+        bb.writeMethod15(true);
         return bb.toBuffer();
     }
 
@@ -897,6 +940,10 @@ export class EntityHandler {
 
         if (EntityHandler.suppressDuplicateSharedClientSpawn(client, levelName, levelMap, props)) {
             return;
+        }
+
+        if (!isPlayer && levelName) {
+            console.log(`[EntityHandler] Non-player entity ACCEPTED: id=${entityId} name=${entName} team=${team} from ${client.character?.name} in ${levelName} scope=${getClientLevelScope(client)} levelMap.size=${levelMap?.size ?? 'null'}`);
         }
 
         client.entities.set(entityId, props);
