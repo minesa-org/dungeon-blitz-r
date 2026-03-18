@@ -30,6 +30,7 @@ function createClient(): any {
         characters: [],
         entities: new Map(),
         currentLevel: '',
+        levelInstanceId: '',
         entryLevel: '',
         currentRoomId: 0,
         lastDoorId: -1,
@@ -244,6 +245,7 @@ function testBuildTransferSyncStatePrefersPartyAnchorInDungeon(): void {
         characters: [],
         entities: new Map<number, any>([[92, { x: 1777, y: 2888 }]]),
         currentLevel: 'TutorialDungeon',
+        levelInstanceId: 'party-run-88',
         entryLevel: 'NewbieRoad',
         currentRoomId: 15,
         startedRoomEvents: new Set<string>(['TutorialDungeon:0', 'TutorialDungeon:5', 'TutorialDungeon:15']),
@@ -266,9 +268,59 @@ function testBuildTransferSyncStatePrefersPartyAnchorInDungeon(): void {
     assert.equal(syncState.hasCoord, true);
     assert.equal(syncState.syncAnchorToken, leader.token);
     assert.equal(syncState.syncAnchorCharacterName, 'Leader');
+    assert.equal(syncState.levelInstanceId, 'party-run-88');
     assert.equal(syncState.syncEntryLevel, 'NewbieRoad');
     assert.equal(syncState.syncRoomId, 15);
     assert.deepEqual(syncState.syncStartedRoomIds, [0, 5, 15]);
+}
+
+function testBuildTransferSyncStateSkipsStrangerDungeonInstance(): void {
+    const follower = createClient();
+    follower.character = createCharacter('Follower');
+    follower.currentLevel = 'BridgeTown';
+    follower.playerSpawned = true;
+
+    const stranger = {
+        token: 6003,
+        userId: 53,
+        character: createCharacter('Stranger'),
+        characters: [],
+        entities: new Map<number, any>([[93, { x: 1444, y: 2555 }]]),
+        currentLevel: 'TutorialDungeon',
+        levelInstanceId: 'solo-run-53',
+        entryLevel: 'NewbieRoad',
+        currentRoomId: 9,
+        startedRoomEvents: new Set<string>(['TutorialDungeon:9']),
+        clientEntID: 93,
+        lastDoorId: 0,
+        lastDoorTargetLevel: '',
+        playerSpawned: true
+    };
+
+    GlobalState.sessionsByToken.set(stranger.token, stranger as never);
+
+    const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'TutorialDungeon', null);
+
+    assert.equal(syncState, null, 'solo players should not inherit an unrelated dungeon instance');
+}
+
+function testStorePendingTransferTokenCreatesSoloDungeonInstance(): void {
+    const character = createCharacter('Hero');
+
+    (LevelHandler as any).storePendingTransferToken(
+        50002,
+        character,
+        41,
+        'TutorialDungeon',
+        'NewbieRoad',
+        100,
+        200,
+        true,
+        false,
+        null
+    );
+
+    assert.equal(GlobalState.pendingWorld.get(50002)?.levelInstanceId, '50002');
 }
 
 function testRestoreTransferredRoomProgressReplaysRoomEvents(): void {
@@ -447,6 +499,10 @@ function main(): void {
 
         testStorePendingTransferTokenKeepsTokenCharInSync();
 
+        GlobalState.pendingWorld.clear();
+        GlobalState.pendingExtended.clear();
+        GlobalState.tokenChar.clear();
+
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();
         GlobalState.sessionsByCharacterName.clear();
@@ -498,6 +554,17 @@ function main(): void {
 
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
+
+        testBuildTransferSyncStateSkipsStrangerDungeonInstance();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+
+        testStorePendingTransferTokenCreatesSoloDungeonInstance();
+
+        GlobalState.pendingWorld.clear();
+        GlobalState.pendingExtended.clear();
+        GlobalState.tokenChar.clear();
 
         testRestoreTransferredRoomProgressReplaysRoomEvents();
     } finally {

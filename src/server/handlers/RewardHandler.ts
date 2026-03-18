@@ -6,6 +6,7 @@ import { GlobalState } from '../core/GlobalState';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { CombatHandler } from './CombatHandler';
 import { getClientCharacterKey, getPartyIdForClient } from '../core/PartySync';
+import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
 
 const db = new JsonAdapter();
 
@@ -152,7 +153,7 @@ export class RewardHandler {
         if (client.entities.has(sourceId)) {
             return client.entities.get(sourceId);
         }
-        const levelMap = client.currentLevel ? GlobalState.levelEntities.get(client.currentLevel) : null;
+        const levelMap = client.currentLevel ? GlobalState.levelEntities.get(getClientLevelScope(client)) : null;
         return levelMap?.get(sourceId) ?? null;
     }
 
@@ -295,7 +296,7 @@ export class RewardHandler {
 
     private static findOnlineContributor(levelName: string, contributorKey: string): Client | null {
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || !other.character || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || !other.character || getClientLevelScope(other) !== levelName) {
                 continue;
             }
             if (getClientCharacterKey(other) === contributorKey) {
@@ -307,12 +308,13 @@ export class RewardHandler {
     }
 
     private static resolveEligibleRecipients(client: Client, sourceId: number): { rewardNonce: number; recipients: Client[] } {
-        const snapshot = CombatHandler.getContributionSnapshot(client.currentLevel, sourceId);
+        const scopeKey = getClientLevelScope(client);
+        const snapshot = CombatHandler.getContributionSnapshot(scopeKey, sourceId);
         const partyId = getPartyIdForClient(client);
         const recipients = new Map<string, Client>();
 
         for (const contributorKey of snapshot.contributors) {
-            const session = RewardHandler.findOnlineContributor(client.currentLevel, contributorKey);
+            const session = RewardHandler.findOnlineContributor(scopeKey, contributorKey);
             if (!session?.character) {
                 continue;
             }
@@ -347,7 +349,7 @@ export class RewardHandler {
             return;
         }
 
-        const rewardKey = `${client.currentLevel}:${reward.sourceId}:${rewardNonce}`;
+        const rewardKey = `${getClientLevelScope(client)}:${reward.sourceId}:${rewardNonce}`;
         if (client.processedRewardSources.has(rewardKey)) {
             return;
         }
@@ -424,7 +426,7 @@ export class RewardHandler {
         const { rewardNonce, recipients } = RewardHandler.resolveEligibleRecipients(client, reward.sourceId);
 
         for (const recipient of recipients) {
-            if (!recipient.playerSpawned || recipient.currentLevel !== client.currentLevel) {
+            if (!recipient.playerSpawned || !areClientsInSameLevelScope(client, recipient)) {
                 continue;
             }
 

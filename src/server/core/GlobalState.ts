@@ -5,6 +5,7 @@ import { PartyGroup, PendingTeleport } from './SocialState';
 export interface PendingTransfer {
     character: Character;
     targetLevel: string;
+    levelInstanceId?: string;
     previousLevel: string;
     userId: number;
     newX?: number;
@@ -50,7 +51,7 @@ export class GlobalState {
     // Current token -> social teleport override
     static pendingTeleports: Map<number, PendingTeleport> = new Map();
 
-    // Level Name -> Map<EntityId, EntityData>
+    // Level scope key -> Map<EntityId, EntityData>
     static levelEntities: Map<string, Map<number, any>> = new Map();
     static combatContributions: Map<string, Map<string, number>> = new Map();
     static entityLifeNonces: Map<string, number> = new Map();

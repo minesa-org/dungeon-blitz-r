@@ -14,6 +14,7 @@ export interface PartyGroup {
 
 export interface PendingTeleport {
     targetLevel: string;
+    levelInstanceId?: string;
     x: number;
     y: number;
     hasCoord: boolean;

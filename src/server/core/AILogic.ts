@@ -7,6 +7,7 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 import { NpcDef } from '../data/NpcLoader';
 import { Client } from './Client';
 import { sharesRoomIds } from './PartySync';
+import { getClientLevelScope, getScopeLevelName } from './LevelScope';
 
 
 export class AILogic {
@@ -25,19 +26,20 @@ export class AILogic {
     static start() {
         setInterval(() => {
             // Iterate over all active levels (keys of levelEntities)
-            for (const levelName of GlobalState.levelEntities.keys()) {
-                AILogic.updateLevel(levelName);
+            for (const levelScope of GlobalState.levelEntities.keys()) {
+                AILogic.updateLevel(levelScope);
             }
         }, AILogic.INTERVAL);
     }
 
-    static updateLevel(levelName: string) {
-        const levelEntities = GlobalState.levelEntities.get(levelName);
+    static updateLevel(levelScope: string) {
+        const levelEntities = GlobalState.levelEntities.get(levelScope);
         if (!levelEntities) return;
+        const levelName = getScopeLevelName(levelScope);
 
         const players: Client[] = [];
         for (const session of GlobalState.sessionsByToken.values()) {
-            if (session.playerSpawned && session.currentLevel === levelName && session.character) {
+            if (session.playerSpawned && getClientLevelScope(session) === levelScope && session.character) {
                 players.push(session);
             }
         }
@@ -51,11 +53,11 @@ export class AILogic {
             // Simple dead check (if no hp prop, assume 100)
             if ((npc.hp !== undefined && npc.hp <= 0)) continue;
 
-            AILogic.updateNpc(npc, players, levelName);
+            AILogic.updateNpc(npc, players, levelScope);
         }
     }
 
-    static updateNpc(npc: any, players: Client[], levelName: string) {
+    static updateNpc(npc: any, players: Client[], levelScope: string) {
         let target: Client | null = null;
         let minDist = Number.MAX_VALUE;
         const npcX = npc.x || 0;
@@ -111,7 +113,7 @@ export class AILogic {
                     bbCast.writeMethod15(false); // hasComboData
                     bbCast.writeMethod15(false); // hasPowerResourceData
 
-                    CombatHandler.broadcastEntityViewPacket(levelName, npc, 0x09, bbCast.toBuffer(), [npc.id, target.clientEntID]);
+                    CombatHandler.broadcastEntityViewPacket(levelScope, npc, 0x09, bbCast.toBuffer(), [npc.id, target.clientEntID]);
 
                     // 2. Broadcast Power Hit (0x0A)
                     const bbHit = new BitBuffer(false);
@@ -163,7 +165,7 @@ export class AILogic {
                     bbMove.writeMethod15(false); // bBackpedal
                     bbMove.writeMethod15(false); // isAirborne
 
-                    CombatHandler.broadcastEntityViewPacket(levelName, npc, 0x07, bbMove.toBuffer(), [npc.id]);
+                    CombatHandler.broadcastEntityViewPacket(levelScope, npc, 0x07, bbMove.toBuffer(), [npc.id]);
                 }
             }
         }

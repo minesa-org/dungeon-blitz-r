@@ -4,6 +4,7 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { CombatHandler } from '../handlers/CombatHandler';
 import { Entity, EntityState } from '../core/Entity';
+import { getClientLevelScope } from '../core/LevelScope';
 
 type SentPacket = {
     id: number;
@@ -13,6 +14,7 @@ type SentPacket = {
 type FakeClient = {
     token: number;
     currentLevel: string;
+    levelInstanceId?: string;
     currentRoomId: number;
     playerSpawned: boolean;
     clientEntID: number;
@@ -35,6 +37,7 @@ function createFakeClient(token: number, name: string, roomId: number): FakeClie
     return {
         token,
         currentLevel: 'BridgeTown',
+        levelInstanceId: '',
         currentRoomId: roomId,
         playerSpawned: true,
         clientEntID: token + 1000,
@@ -127,10 +130,11 @@ function attachPlayerEntity(session: FakeClient): void {
     session.entities.set(session.clientEntID, entity);
     session.knownEntityIds.add(session.clientEntID);
 
-    let levelMap = GlobalState.levelEntities.get(session.currentLevel);
+    const levelScope = getClientLevelScope(session as never);
+    let levelMap = GlobalState.levelEntities.get(levelScope);
     if (!levelMap) {
         levelMap = new Map<number, any>();
-        GlobalState.levelEntities.set(session.currentLevel, levelMap);
+        GlobalState.levelEntities.set(levelScope, levelMap);
     }
     levelMap.set(session.clientEntID, entity);
 }
@@ -250,7 +254,7 @@ async function testPowerHitFollowsPartyAudience(): Promise<void> {
         roomId: sender.currentRoomId,
         hp: 100
     };
-    GlobalState.levelEntities.get('TutorialDungeon')?.set(hostile.id, hostile);
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
 
     GlobalState.sessionsByToken.set(sender.token, sender as never);
     GlobalState.sessionsByToken.set(partyOtherRoom.token, partyOtherRoom as never);
@@ -294,7 +298,7 @@ async function testBakedOutdoorHostileHitsReachPartyMirrorsOnly(): Promise<void>
         roomId: sender.currentRoomId,
         hp: 100
     };
-    GlobalState.levelEntities.get('NewbieRoad')?.set(hostile.id, hostile);
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
     partyOtherRoom.entities.set(hostile.id, { ...hostile, ownerToken: partyOtherRoom.token, roomId: partyOtherRoom.currentRoomId });
     partyOtherRoom.knownEntityIds.add(hostile.id);
     sameRoomStranger.entities.set(hostile.id, { ...hostile, ownerToken: sameRoomStranger.token, roomId: sameRoomStranger.currentRoomId });
@@ -345,7 +349,7 @@ async function testHostileHitsLeavePlayersAliveAndStayRoomScoped(): Promise<void
         roomId: victim.currentRoomId,
         hp: 100
     };
-    GlobalState.levelEntities.get('BridgeTown')?.set(npc.id, npc);
+    GlobalState.levelEntities.get(getClientLevelScope(victim as never))?.set(npc.id, npc);
 
     GlobalState.sessionsByToken.set(victim.token, victim as never);
     GlobalState.sessionsByToken.set(sameRoomWatcher.token, sameRoomWatcher as never);
@@ -433,7 +437,7 @@ async function testEntityDestroyClearsKnownEntityCache(): Promise<void> {
         summonerId: sender.clientEntID,
         roomId: sender.currentRoomId
     };
-    GlobalState.levelEntities.get('TutorialDungeon')?.set(hostile.id, hostile);
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
     watcher.knownEntityIds.add(hostile.id);
 
     GlobalState.sessionsByToken.set(sender.token, sender as never);
@@ -477,7 +481,7 @@ async function testOutdoorEntityDestroyReachesPartyMirrorsOnly(): Promise<void> 
         ownerToken: sender.token,
         roomId: sender.currentRoomId
     };
-    GlobalState.levelEntities.get('NewbieRoad')?.set(hostile.id, hostile);
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
     partyOtherRoom.entities.set(hostile.id, { ...hostile, ownerToken: partyOtherRoom.token, roomId: partyOtherRoom.currentRoomId });
     sameRoomStranger.entities.set(hostile.id, { ...hostile, ownerToken: sameRoomStranger.token, roomId: sameRoomStranger.currentRoomId });
 
@@ -502,6 +506,47 @@ async function testOutdoorEntityDestroyReachesPartyMirrorsOnly(): Promise<void> 
     );
     assert.equal(partyOtherRoom.entities.has(hostile.id), false, 'party mirror should be cleared from the server-side session cache');
     assert.equal(sameRoomStranger.entities.has(hostile.id), true, 'non-party local mirrors should stay untouched');
+}
+
+async function testDungeonCombatDoesNotCrossInstanceScopes(): Promise<void> {
+    const sender = createFakeClient(500, 'Alpha', 1);
+    const stranger = createFakeClient(501, 'Beta', 1);
+
+    sender.currentLevel = 'TutorialDungeon';
+    sender.levelInstanceId = 'run-a';
+    stranger.currentLevel = 'TutorialDungeon';
+    stranger.levelInstanceId = 'run-b';
+
+    attachPlayerEntity(sender);
+    attachPlayerEntity(stranger);
+
+    const hostile = {
+        id: 9501,
+        name: 'SoloGoblin',
+        isPlayer: false,
+        x: 10,
+        y: 15,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: sender.token,
+        summonerId: sender.clientEntID,
+        roomId: sender.currentRoomId,
+        hp: 100
+    };
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
+
+    GlobalState.sessionsByToken.set(sender.token, sender as never);
+    GlobalState.sessionsByToken.set(stranger.token, stranger as never);
+
+    await CombatHandler.handlePowerHit(sender as never, buildPowerHitPayload(hostile.id, sender.clientEntID, 42, 77));
+
+    assert.equal(
+        stranger.sentPackets.some((packet) => packet.id === 0x0A || packet.id === 0x0F),
+        false,
+        'players in different dungeon instances should not receive each other\'s combat sync'
+    );
 }
 
 async function main(): Promise<void> {
@@ -575,6 +620,15 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testOutdoorEntityDestroyReachesPartyMirrorsOnly();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testDungeonCombatDoesNotCrossInstanceScopes();
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.levelEntities = levelEntities;

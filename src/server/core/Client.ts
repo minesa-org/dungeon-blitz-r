@@ -121,6 +121,7 @@ export class Client {
     public clientEntID: number = 0;
     public entities: Map<number, any> = new Map();
     public currentLevel: string = "";
+    public levelInstanceId: string = "";
     public entryLevel: string = "";
     public currentRoomId: number = -1;
     public lastDoorId: number = -1;
@@ -262,6 +263,7 @@ export class Client {
         this.clientEntID = 0;
         this.entities.clear();
         this.currentLevel = "";
+        this.levelInstanceId = "";
         this.entryLevel = "";
         this.currentRoomId = -1;
         this.lastDoorId = -1;
@@ -345,6 +347,7 @@ export class Client {
             character: this.character,
             userId: snapshot.userId,
             targetLevel: currentLevel,
+            levelInstanceId: this.levelInstanceId,
             previousLevel,
             newX: newHasCoord ? Math.round(newX) : undefined,
             newY: newHasCoord ? Math.round(newY) : undefined,

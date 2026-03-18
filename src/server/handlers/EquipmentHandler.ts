@@ -4,6 +4,7 @@ import { JsonAdapter } from '../database/JsonAdapter';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { EntityHandler } from './EntityHandler';
+import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
 
 const db = new JsonAdapter();
 
@@ -164,7 +165,7 @@ export class EquipmentHandler {
             return;
         }
 
-        const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        const levelMap = GlobalState.levelEntities.get(getClientLevelScope(client));
         const levelEntity = levelMap?.get(client.clientEntID);
         if (levelEntity && typeof levelEntity === 'object') {
             levelEntity.equippedGears = client.character.equippedGears;
@@ -235,7 +236,7 @@ export class EquipmentHandler {
         );
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (other === client || !other.playerSpawned || other.currentLevel !== client.currentLevel) {
+            if (other === client || !other.playerSpawned || !areClientsInSameLevelScope(client, other)) {
                 continue;
             }
 

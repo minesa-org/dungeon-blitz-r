@@ -20,6 +20,13 @@ import { JsonAdapter } from '../database/JsonAdapter';
 import { normalizeCharacterKey, PendingTeleport } from '../core/SocialState';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
 import { areClientsInSameParty } from '../core/PartySync';
+import {
+    areClientsInSameLevelScope,
+    createDungeonInstanceId,
+    getClientLevelScope,
+    getLevelScopeKey,
+    normalizeLevelInstanceId
+} from '../core/LevelScope';
 
 const db = new JsonAdapter();
 
@@ -27,6 +34,7 @@ type LevelSyncState = {
     x: number;
     y: number;
     hasCoord: boolean;
+    levelInstanceId?: string;
     syncAnchorToken?: number;
     syncAnchorCharacterName?: string;
     syncEntryLevel?: string;
@@ -40,6 +48,7 @@ export class LevelHandler {
         target.userId = source.userId;
         target.characters = Array.isArray(source.characters) ? [...source.characters] : [];
         target.currentLevel = source.currentLevel;
+        target.levelInstanceId = source.levelInstanceId;
         target.entryLevel = source.entryLevel;
         target.currentRoomId = source.currentRoomId;
         target.lastDoorId = source.lastDoorId;
@@ -223,7 +232,6 @@ export class LevelHandler {
             return null;
         }
 
-        let firstOccupant: Client | null = null;
         for (const other of GlobalState.sessionsByToken.values()) {
             if (
                 other === client ||
@@ -234,16 +242,12 @@ export class LevelHandler {
                 continue;
             }
 
-            if (!firstOccupant) {
-                firstOccupant = other;
-            }
-
             if (client.character && areClientsInSameParty(client, other)) {
                 return other;
             }
         }
 
-        return firstOccupant;
+        return null;
     }
 
     private static buildTransferSyncState(
@@ -261,6 +265,9 @@ export class LevelHandler {
         let x = Math.round(Number(teleportOverride?.x ?? 0));
         let y = Math.round(Number(teleportOverride?.y ?? 0));
         let hasCoord = Boolean(teleportOverride?.hasCoord);
+        let levelInstanceId = shouldSyncDungeonProgress
+            ? normalizeLevelInstanceId(teleportOverride?.levelInstanceId)
+            : '';
         let syncEntryLevel = shouldSyncDungeonProgress ? LevelConfig.normalizeLevelName(teleportOverride?.syncEntryLevel) : undefined;
         let syncRoomId = shouldSyncDungeonProgress &&
             Number.isFinite(Number(teleportOverride?.syncRoomId)) &&
@@ -297,6 +304,7 @@ export class LevelHandler {
             syncAnchorToken = anchor.token > 0 ? anchor.token : syncAnchorToken;
             syncAnchorCharacterName = anchor.character?.name ?? syncAnchorCharacterName;
             if (shouldSyncDungeonProgress) {
+                levelInstanceId = normalizeLevelInstanceId(anchor.levelInstanceId) || levelInstanceId;
                 syncEntryLevel = LevelConfig.normalizeLevelName(anchor.entryLevel) || syncEntryLevel;
                 if (Number.isFinite(Number(anchor.currentRoomId)) && anchor.currentRoomId >= 0) {
                     syncRoomId = Math.round(Number(anchor.currentRoomId));
@@ -308,7 +316,7 @@ export class LevelHandler {
             }
         }
 
-        if (!hasCoord && !syncStartedRoomIds.length && syncRoomId === undefined && !syncEntryLevel) {
+        if (!hasCoord && !levelInstanceId && !syncStartedRoomIds.length && syncRoomId === undefined && !syncEntryLevel) {
             return null;
         }
 
@@ -316,6 +324,7 @@ export class LevelHandler {
             x,
             y,
             hasCoord,
+            levelInstanceId: levelInstanceId || undefined,
             syncAnchorToken,
             syncAnchorCharacterName,
             syncEntryLevel,
@@ -387,7 +396,13 @@ export class LevelHandler {
         client.sendBitBuffer(0xB7, bb);
     }
 
-    private static sendRoomBossInfo(levelName: string, roomId: number, bossId: number, bossName: string): void {
+    private static sendRoomBossInfo(
+        levelName: string,
+        roomId: number,
+        bossId: number,
+        bossName: string,
+        levelInstanceId: string = ''
+    ): void {
         const bb = new BitBuffer(false);
         bb.writeMethod4(Math.max(0, roomId));
         bb.writeMethod4(bossId);
@@ -395,79 +410,96 @@ export class LevelHandler {
         bb.writeMethod4(0);
         bb.writeMethod26('');
         const payload = bb.toBuffer();
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
             other.send(0xAC, payload);
         }
     }
 
-    private static sendRoomSound(levelName: string, roomId: number, soundName: string, volume: number): void {
+    private static sendRoomSound(
+        levelName: string,
+        roomId: number,
+        soundName: string,
+        volume: number,
+        levelInstanceId: string = ''
+    ): void {
         const bb = new BitBuffer(false);
         bb.writeMethod4(Math.max(0, roomId));
         bb.writeMethod13(soundName);
         bb.writeMethod4(Math.max(0, Math.min(100, Math.round(volume * 100))));
         const payload = bb.toBuffer();
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
             other.send(0xA8, payload);
         }
     }
 
-    private static sendRoomThought(levelName: string, entityId: number, text: string): void {
+    private static sendRoomThought(levelName: string, entityId: number, text: string, levelInstanceId: string = ''): void {
         const bb = new BitBuffer(false);
         bb.writeMethod4(entityId);
         bb.writeMethod13(text);
         const payload = bb.toBuffer();
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
             other.send(0x76, payload);
         }
     }
 
-    private static sendRoomCutSceneStart(levelName: string, roomId: number, allowRoomInput: boolean): void {
+    private static sendRoomCutSceneStart(
+        levelName: string,
+        roomId: number,
+        allowRoomInput: boolean,
+        levelInstanceId: string = ''
+    ): void {
         const bb = new BitBuffer(false);
         bb.writeMethod9(Math.max(0, roomId));
         bb.writeMethod15(allowRoomInput);
         const payload = bb.toBuffer();
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
             other.send(0xA5, payload);
         }
     }
 
-    private static sendRoomCutSceneEnd(levelName: string, roomId: number): void {
+    private static sendRoomCutSceneEnd(levelName: string, roomId: number, levelInstanceId: string = ''): void {
         const bb = new BitBuffer(false);
         bb.writeMethod9(Math.max(0, roomId));
         const payload = bb.toBuffer();
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
             other.send(0xA6, payload);
         }
     }
 
-    private static sendRoomCamera(levelName: string, roomId: number, cameraId: number): void {
+    private static sendRoomCamera(levelName: string, roomId: number, cameraId: number, levelInstanceId: string = ''): void {
         const bb = new BitBuffer(false);
         bb.writeMethod9(Math.max(0, roomId));
         bb.writeMethod9(Math.max(0, cameraId));
         const payload = bb.toBuffer();
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
             other.send(0xA9, payload);
@@ -509,11 +541,12 @@ export class LevelHandler {
         }
 
         const levelName = client.currentLevel;
+        const levelScope = getClientLevelScope(client);
         const timer = setTimeout(() => {
-            if (client.currentLevel !== levelName || state.bossDefeated) {
+            if (getClientLevelScope(client) !== levelScope || client.currentLevel !== levelName || state.bossDefeated) {
                 return;
             }
-            LevelHandler.sendRoomThought(levelName, entityId, text);
+            LevelHandler.sendRoomThought(levelName, entityId, text, client.levelInstanceId);
         }, delayMs);
 
         state.introTimers.push(timer);
@@ -573,7 +606,8 @@ export class LevelHandler {
                 client.currentLevel,
                 client.currentRoomId,
                 entityId,
-                LevelHandler.KEEP_TUTORIAL_BOSS_NAME
+                LevelHandler.KEEP_TUTORIAL_BOSS_NAME,
+                client.levelInstanceId
             );
             state.bossInfoSentIds.add(entityId);
         }
@@ -583,7 +617,8 @@ export class LevelHandler {
                 client.currentLevel,
                 client.currentRoomId,
                 LevelHandler.KEEP_TUTORIAL_BOSS_SOUND,
-                0.9
+                0.9,
+                client.levelInstanceId
             );
             state.bossMusicStarted = true;
         }
@@ -618,10 +653,7 @@ export class LevelHandler {
             return state.bossEntitySeen;
         }
 
-        const levelMap = GlobalState.levelEntities.get(client.currentLevel) ?? new Map<number, any>();
-        if (!GlobalState.levelEntities.has(client.currentLevel)) {
-            GlobalState.levelEntities.set(client.currentLevel, levelMap);
-        }
+        const levelMap = LevelHandler.getCurrentLevelMap(client, true) ?? new Map<number, any>();
 
         for (const [entityId, entity] of levelMap.entries()) {
             const entityName = String(entity?.name ?? entity?.props?.name ?? '');
@@ -677,7 +709,7 @@ export class LevelHandler {
         boss.untargetable = false;
         boss.entState = 0;
 
-        const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        const levelMap = LevelHandler.getCurrentLevelMap(client);
         const levelBoss = levelMap?.get(bossId);
         if (levelBoss) {
             levelBoss.untargetable = false;
@@ -701,7 +733,7 @@ export class LevelHandler {
         boss.untargetable = true;
         boss.entState = 2;
 
-        const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        const levelMap = LevelHandler.getCurrentLevelMap(client);
         const levelBoss = levelMap?.get(bossId);
         if (levelBoss) {
             levelBoss.untargetable = true;
@@ -722,22 +754,23 @@ export class LevelHandler {
         clearKeepTutorialTimers(state);
 
         const levelName = client.currentLevel;
+        const levelScope = getClientLevelScope(client);
         const roomId = Math.max(0, client.currentRoomId);
         if (levelName) {
-            LevelHandler.sendRoomCutSceneStart(levelName, roomId, false);
-            LevelHandler.sendRoomCamera(levelName, roomId, 1);
+            LevelHandler.sendRoomCutSceneStart(levelName, roomId, false, client.levelInstanceId);
+            LevelHandler.sendRoomCamera(levelName, roomId, 1, client.levelInstanceId);
         }
 
         LevelHandler.sendCraftTownTutorialBossIntroSkit(client, state, introBossId);
 
         state.recoveryActivateTimer = setTimeout(() => {
-            if (client.currentLevel !== levelName || state.bossDefeated) {
+            if (getClientLevelScope(client) !== levelScope || client.currentLevel !== levelName || state.bossDefeated) {
                 return;
             }
 
             if (levelName) {
-                LevelHandler.sendRoomCamera(levelName, roomId, 0);
-                LevelHandler.sendRoomCutSceneEnd(levelName, roomId);
+                LevelHandler.sendRoomCamera(levelName, roomId, 0, client.levelInstanceId);
+                LevelHandler.sendRoomCutSceneEnd(levelName, roomId, client.levelInstanceId);
             }
 
             const bossId = state.bossEntitySeen ?? introBossId ?? LevelHandler.spawnCraftTownTutorialFallbackBoss(client);
@@ -768,7 +801,7 @@ export class LevelHandler {
             ent.hp = 0;
         }
 
-        const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        const levelMap = LevelHandler.getCurrentLevelMap(client);
         const levelEnt = levelMap?.get(lastGuyId);
         if (levelEnt) {
             levelEnt.entState = 6;
@@ -777,7 +810,7 @@ export class LevelHandler {
             levelEnt.hp = 0;
         }
 
-        LevelHandler.sendDestroyEntity(client.currentLevel, lastGuyId);
+        LevelHandler.sendDestroyEntity(client.currentLevel, lastGuyId, client.levelInstanceId);
     }
 
     private static selectCraftTownTutorialLastGuyId(client: Client): number | null {
@@ -932,7 +965,10 @@ export class LevelHandler {
         }
 
         const { bossId, helperIds } = LevelHandler.prepareCraftTownTutorialFallbackEntities(levelMap);
-        GlobalState.levelEntities.set(client.currentLevel, levelMap);
+        const scopeKey = getClientLevelScope(client);
+        if (scopeKey) {
+            GlobalState.levelEntities.set(scopeKey, levelMap);
+        }
         client.clientSpawnConfirmed = true;
 
         // Store helper IDs for later reinforcement spawning
@@ -968,9 +1004,10 @@ export class LevelHandler {
         }
 
         const levelName = client.currentLevel;
+        const levelScope = getClientLevelScope(client);
         client.clientSpawnFallbackTimer = setTimeout(() => {
             client.clientSpawnFallbackTimer = null;
-            if (client.currentLevel !== levelName || client.clientSpawnConfirmed) {
+            if (getClientLevelScope(client) !== levelScope || client.currentLevel !== levelName || client.clientSpawnConfirmed) {
                 return;
             }
 
@@ -993,7 +1030,7 @@ export class LevelHandler {
         const seen = new Set<number>();
         const sources: Array<Map<number, any> | undefined> = [
             client.entities,
-            GlobalState.levelEntities.get(client.currentLevel)
+            LevelHandler.getCurrentLevelMap(client) ?? undefined
         ];
 
         for (const source of sources) {
@@ -1032,7 +1069,7 @@ export class LevelHandler {
         const seen = new Set<number>();
         const sources: Array<Map<number, any> | undefined> = [
             client.entities,
-            GlobalState.levelEntities.get(client.currentLevel)
+            LevelHandler.getCurrentLevelMap(client) ?? undefined
         ];
 
         for (const source of sources) {
@@ -1157,7 +1194,7 @@ export class LevelHandler {
             return;
         }
 
-        const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        const levelMap = LevelHandler.getCurrentLevelMap(client);
         if (!levelMap) {
             return;
         }
@@ -1317,7 +1354,7 @@ export class LevelHandler {
             return;
         }
 
-        const levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        const levelMap = LevelHandler.getCurrentLevelMap(client);
         if (!levelMap) {
             return;
         }
@@ -1376,8 +1413,31 @@ export class LevelHandler {
         client.characters = await db.saveCharacterSnapshot(client.userId, client.character);
     }
 
-    private static sendDestroyEntity(levelName: string, entityId: number): void {
-        EntityHandler.broadcastDestroyEntity(levelName, entityId);
+    private static getLevelMap(
+        levelName: string | null | undefined,
+        levelInstanceId: string = '',
+        createIfMissing: boolean = false
+    ): Map<number, any> | null {
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
+        if (!scopeKey) {
+            return null;
+        }
+
+        let levelMap = GlobalState.levelEntities.get(scopeKey) ?? null;
+        if (!levelMap && createIfMissing) {
+            levelMap = new Map<number, any>();
+            GlobalState.levelEntities.set(scopeKey, levelMap);
+        }
+
+        return levelMap;
+    }
+
+    private static getCurrentLevelMap(client: Pick<Client, 'currentLevel' | 'levelInstanceId'>, createIfMissing: boolean = false): Map<number, any> | null {
+        return LevelHandler.getLevelMap(client.currentLevel, client.levelInstanceId, createIfMissing);
+    }
+
+    private static sendDestroyEntity(levelName: string, entityId: number, levelInstanceId: string = ''): void {
+        EntityHandler.broadcastDestroyEntity(levelName, entityId, null, levelInstanceId);
     }
 
     private static clearTransferState(client: Client, oldLevel: string, oldClientEntId: number): void {
@@ -1393,6 +1453,7 @@ export class LevelHandler {
         client.processedRewardSources.clear();
         client.currentRoomId = 0;
         client.startedRoomEvents.clear();
+        client.levelInstanceId = '';
     }
 
     private static forLevelRecipients(client: Client, includeSender: boolean = false): Client[] {
@@ -1403,7 +1464,7 @@ export class LevelHandler {
 
         const recipients: Client[] = [];
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || !areClientsInSameLevelScope(client, other)) {
                 continue;
             }
             if (!includeSender && other === client) {
@@ -1477,11 +1538,16 @@ export class LevelHandler {
         sendExtended: boolean,
         syncState: LevelSyncState | null = null
     ): void {
+        const levelInstanceId = LevelConfig.isDungeonLevel(targetLevel)
+            ? normalizeLevelInstanceId(syncState?.levelInstanceId) || createDungeonInstanceId(token)
+            : '';
+
         if (userId) {
             GlobalState.pendingWorld.set(token, {
                 character,
                 userId,
                 targetLevel,
+                levelInstanceId: levelInstanceId || undefined,
                 previousLevel,
                 newX,
                 newY,
@@ -1564,6 +1630,7 @@ export class LevelHandler {
             client.character = usedEntry.character;
             client.userId = usedEntry.userId;
             client.currentLevel = usedEntry.targetLevel;
+            client.levelInstanceId = normalizeLevelInstanceId(usedEntry.levelInstanceId);
             client.entryLevel = usedEntry.previousLevel;
             LevelHandler.applyStoredRoomProgressState(
                 client,
@@ -1610,6 +1677,7 @@ export class LevelHandler {
             client.character = pendingEntry.character;
             client.userId = pendingEntry.userId;
             client.currentLevel = pendingEntry.targetLevel;
+            client.levelInstanceId = normalizeLevelInstanceId(pendingEntry.levelInstanceId);
             client.entryLevel = pendingEntry.previousLevel;
             LevelHandler.applyStoredRoomProgressState(
                 client,
@@ -1868,7 +1936,7 @@ export class LevelHandler {
         }
 
         if (client.currentLevel) {
-            const levelEntity = GlobalState.levelEntities.get(client.currentLevel)?.get(entityId);
+            const levelEntity = LevelHandler.getCurrentLevelMap(client)?.get(entityId);
             if (levelEntity) {
                 levelEntity.behaviorSpeedMod = behaviorSpeedMod;
             }
@@ -2093,7 +2161,7 @@ export class LevelHandler {
         ent.airborne = isAirborne;
 
         const currentLevel = client.currentLevel || "NewbieRoad";
-        const levelEntity = GlobalState.levelEntities.get(currentLevel)?.get(entityId);
+        const levelEntity = LevelHandler.getCurrentLevelMap(client)?.get(entityId);
         if (levelEntity && levelEntity !== ent) {
             levelEntity.x = ent.x;
             levelEntity.y = ent.y;

@@ -7,6 +7,7 @@ import { Entity, EntityProps, EntityState } from '../core/Entity';
 import { LevelConfig } from '../core/LevelConfig';
 import { PetHandler } from './PetHandler';
 import { areClientsInSameParty, sharesRoomIds } from '../core/PartySync';
+import { areClientsInSameLevelScope, getClientLevelScope, getLevelScopeKey } from '../core/LevelScope';
 
 export class EntityHandler {
     private static readonly CLIENT_SPAWN_LEVELS = new Set<string>([
@@ -44,6 +45,35 @@ export class EntityHandler {
 
     private static usesClientSpawn(levelName: string): boolean {
         return EntityHandler.CLIENT_SPAWN_LEVELS.has(levelName);
+    }
+
+    private static getLevelMap(
+        levelName: string | null | undefined,
+        levelInstanceId: string = '',
+        createIfMissing: boolean = false
+    ): Map<number, any> | null {
+        const rawLevelName = String(levelName ?? '');
+        const scopeKey = rawLevelName.includes('#') && !levelInstanceId
+            ? rawLevelName
+            : getLevelScopeKey(rawLevelName, levelInstanceId);
+        if (!scopeKey) {
+            return null;
+        }
+
+        let levelMap = GlobalState.levelEntities.get(scopeKey) ?? null;
+        if (!levelMap && createIfMissing) {
+            levelMap = new Map<number, any>();
+            GlobalState.levelEntities.set(scopeKey, levelMap);
+        }
+
+        return levelMap;
+    }
+
+    private static getLevelMapForClient(
+        client: Pick<Client, 'currentLevel' | 'levelInstanceId'>,
+        createIfMissing: boolean = false
+    ): Map<number, any> | null {
+        return EntityHandler.getLevelMap(client.currentLevel, client.levelInstanceId, createIfMissing);
     }
 
     private static isLocalOnlyClientSpawnEntity(levelName: string | null | undefined, entity: any): boolean {
@@ -141,7 +171,7 @@ export class EntityHandler {
             return null;
         }
 
-        const entity = GlobalState.levelEntities.get(levelName)?.get(entityId);
+        const entity = EntityHandler.getLevelMap(levelName)?.get(entityId);
         if (!entity) {
             return null;
         }
@@ -175,7 +205,7 @@ export class EntityHandler {
 
         const ownerSession = EntityHandler.resolveEntityOwnerSession(entity);
         if (entity.clientSpawned) {
-            if (ownerSession && ownerSession.currentLevel === client.currentLevel && areClientsInSameParty(client, ownerSession)) {
+            if (ownerSession && areClientsInSameLevelScope(client, ownerSession) && areClientsInSameParty(client, ownerSession)) {
                 return true;
             }
 
@@ -191,7 +221,7 @@ export class EntityHandler {
             return true;
         }
 
-        const entity = GlobalState.levelEntities.get(levelName)?.get(entityId);
+        const entity = EntityHandler.getLevelMap(levelName, client.levelInstanceId)?.get(entityId);
         if (!entity || !EntityHandler.canClientSeeEntity(client, entity)) {
             return false;
         }
@@ -204,7 +234,7 @@ export class EntityHandler {
             client.knownEntityIds.delete(entityId);
         }
 
-        const snapshot = EntityHandler.resolveCanonicalEntity(levelName, entityId);
+        const snapshot = EntityHandler.resolveCanonicalEntity(getLevelScopeKey(levelName, client.levelInstanceId), entityId);
         if (!snapshot) {
             return false;
         }
@@ -213,13 +243,14 @@ export class EntityHandler {
         return true;
     }
 
-    static forgetKnownEntity(levelName: string, entityId: number): void {
+    static forgetKnownEntity(levelName: string, entityId: number, levelInstanceId: string = ''): void {
         if (!levelName || entityId <= 0) {
             return;
         }
 
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (other.currentLevel === levelName) {
+            if (getClientLevelScope(other) === scopeKey) {
                 other.knownEntityIds.delete(entityId);
             }
         }
@@ -320,7 +351,13 @@ export class EntityHandler {
         client.sendBitBuffer(0x7B, bb);
     }
 
-    private static sendRoomBossInfo(levelName: string, roomId: number, bossId: number, bossName: string): void {
+    private static sendRoomBossInfo(
+        levelName: string,
+        roomId: number,
+        bossId: number,
+        bossName: string,
+        levelInstanceId: string = ''
+    ): void {
         const bb = new BitBuffer(false);
         bb.writeMethod4(Math.max(0, roomId));
         bb.writeMethod4(bossId);
@@ -329,23 +366,31 @@ export class EntityHandler {
         bb.writeMethod26('');
         const payload = bb.toBuffer();
 
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
             other.send(0xAC, payload);
         }
     }
 
-    private static sendRoomSound(levelName: string, roomId: number, soundName: string, volume: number): void {
+    private static sendRoomSound(
+        levelName: string,
+        roomId: number,
+        soundName: string,
+        volume: number,
+        levelInstanceId: string = ''
+    ): void {
         const bb = new BitBuffer(false);
         bb.writeMethod4(Math.max(0, roomId));
         bb.writeMethod13(soundName);
         bb.writeMethod4(Math.max(0, Math.min(100, Math.round(volume * 100))));
         const payload = bb.toBuffer();
 
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
             other.send(0xA8, payload);
@@ -386,23 +431,29 @@ export class EntityHandler {
         return bb.toBuffer();
     }
 
-    static broadcastDestroyEntity(levelName: string, entityId: number, excludedClient: Client | null = null): void {
+    static broadcastDestroyEntity(
+        levelName: string,
+        entityId: number,
+        excludedClient: Client | null = null,
+        levelInstanceId: string = ''
+    ): void {
         if (!levelName || entityId <= 0) {
             return;
         }
 
         const payload = EntityHandler.buildDestroyEntityPayload(entityId);
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
         for (const other of GlobalState.sessionsByToken.values()) {
             if (
                 other === excludedClient ||
                 !other.playerSpawned ||
-                other.currentLevel !== levelName ||
+                getClientLevelScope(other) !== scopeKey ||
                 other.socket?.destroyed
             ) {
                 continue;
             }
 
-            other.knownEntityIds.delete(entityId);
+            other.knownEntityIds?.delete(entityId);
             other.send(0x0D, payload);
         }
     }
@@ -425,13 +476,13 @@ export class EntityHandler {
             return;
         }
 
-        const levelName = client.currentLevel;
+        const levelScope = getClientLevelScope(client);
         const token = client.token;
         for (const delayMs of EntityHandler.MOUNT_SYNC_RETRY_DELAYS_MS) {
             setTimeout(() => {
                 if (
                     !client.playerSpawned ||
-                    client.currentLevel !== levelName ||
+                    getClientLevelScope(client) !== levelScope ||
                     client.token !== token ||
                     client.clientEntID !== entityId
                 ) {
@@ -458,7 +509,7 @@ export class EntityHandler {
         }
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (other === client || !other.playerSpawned || other.currentLevel !== client.currentLevel) {
+            if (other === client || !other.playerSpawned || !areClientsInSameLevelScope(client, other)) {
                 continue;
             }
 
@@ -468,7 +519,7 @@ export class EntityHandler {
 
     private static suppressCraftTownTutorialBoss(client: Client, entityId: number): void {
         client.entities.delete(entityId);
-        GlobalState.levelEntities.get(client.currentLevel)?.delete(entityId);
+        EntityHandler.getLevelMapForClient(client)?.delete(entityId);
         EntityHandler.sendDestroyEntity(client, entityId);
     }
 
@@ -510,7 +561,8 @@ export class EntityHandler {
                 client.currentLevel,
                 client.currentRoomId,
                 entityId,
-                'Ranik, The Geomancer'
+                'Ranik, The Geomancer',
+                client.levelInstanceId
             );
             state.bossInfoSentIds.add(entityId);
         }
@@ -520,7 +572,8 @@ export class EntityHandler {
                 client.currentLevel,
                 client.currentRoomId,
                 'D02_MoodLoop_GoblinHideout',
-                0.9
+                0.9,
+                client.levelInstanceId
             );
             state.bossMusicStarted = true;
         }
@@ -605,7 +658,7 @@ export class EntityHandler {
         const bBackpedal = br.readMethod15();
 
         const levelName = client.currentLevel;
-        const existingLevelMap = levelName ? GlobalState.levelEntities.get(levelName) : null;
+        const existingLevelMap = levelName ? EntityHandler.getLevelMapForClient(client) : null;
         const isUnknownHostileClientSpawn = Boolean(
             !isPlayer &&
             team === 2 &&
@@ -706,8 +759,7 @@ export class EntityHandler {
         if (levelName) {
             let levelMap = existingLevelMap;
             if (!levelMap) {
-                levelMap = new Map();
-                GlobalState.levelEntities.set(levelName, levelMap);
+                levelMap = EntityHandler.getLevelMapForClient(client, true) ?? new Map<number, any>();
             }
             levelMap.set(entityId, props);
         }
@@ -731,10 +783,9 @@ export class EntityHandler {
     static sendInitialLevelEntities(client: Client, levelName: string): void {
         console.log(`[EntityHandler] Sending initial entities for ${levelName} to ${client.character?.name}`);
         
-        let levelMap = GlobalState.levelEntities.get(levelName);
+        let levelMap = EntityHandler.getLevelMap(levelName, client.levelInstanceId);
         if (!levelMap) {
-            levelMap = new Map();
-            GlobalState.levelEntities.set(levelName, levelMap);
+            levelMap = EntityHandler.getLevelMap(levelName, client.levelInstanceId, true) ?? new Map<number, any>();
 
             if (EntityHandler.usesClientSpawn(levelName)) {
                 console.log(`[EntityHandler] Skipping server NPC init for client-spawn level ${levelName}`);
@@ -775,7 +826,7 @@ export class EntityHandler {
         }
 
         const removedEntityIds = new Set<number>();
-        const levelMap = GlobalState.levelEntities.get(levelName);
+        const levelMap = EntityHandler.getLevelMap(levelName, client.levelInstanceId);
         const charNameNorm = EntityHandler.normalizeIdentityName(client.character?.name);
 
         if (levelMap) {
@@ -794,7 +845,7 @@ export class EntityHandler {
             }
 
             if (levelMap.size === 0) {
-                GlobalState.levelEntities.delete(levelName);
+                GlobalState.levelEntities.delete(getClientLevelScope(client));
             }
         }
 
@@ -803,7 +854,7 @@ export class EntityHandler {
         }
 
         for (const entityId of removedEntityIds) {
-            EntityHandler.broadcastDestroyEntity(levelName, entityId, client);
+            EntityHandler.broadcastDestroyEntity(levelName, entityId, client, client.levelInstanceId);
         }
 
         return Array.from(removedEntityIds);
@@ -814,7 +865,7 @@ export class EntityHandler {
             if (other === joiner) {
                 continue;
             }
-            if (!other.playerSpawned || other.currentLevel !== joiner.currentLevel) {
+            if (!other.playerSpawned || !areClientsInSameLevelScope(joiner, other)) {
                 continue;
             }
             if (other.userId && joiner.userId && other.userId === joiner.userId && other.character?.name === joiner.character?.name) {
@@ -841,7 +892,7 @@ export class EntityHandler {
             return;
         }
 
-        const levelMap = GlobalState.levelEntities.get(joiner.currentLevel);
+        const levelMap = EntityHandler.getLevelMapForClient(joiner);
         if (!levelMap) {
             return;
         }
@@ -854,7 +905,7 @@ export class EntityHandler {
                 continue;
             }
 
-            const snapshot = EntityHandler.resolveCanonicalEntity(joiner.currentLevel, entityId);
+            const snapshot = EntityHandler.resolveCanonicalEntity(getClientLevelScope(joiner), entityId);
             if (!snapshot) {
                 continue;
             }
@@ -877,7 +928,7 @@ export class EntityHandler {
             return;
         }
 
-        const current = client.entities.get(entityId) ?? GlobalState.levelEntities.get(client.currentLevel)?.get(entityId) ?? {};
+        const current = client.entities.get(entityId) ?? EntityHandler.getLevelMapForClient(client)?.get(entityId) ?? {};
         const playerEntity = Entity.fromCharacter(entityId, client.character, {
             ...current,
             roomId: client.currentRoomId
@@ -893,15 +944,14 @@ export class EntityHandler {
 
         client.entities.set(entityId, persistedEntity);
         EntityHandler.rememberEntityKnown(client, client.currentLevel, persistedEntity);
-        let levelMap = GlobalState.levelEntities.get(client.currentLevel);
+        let levelMap = EntityHandler.getLevelMapForClient(client);
         if (!levelMap) {
-            levelMap = new Map();
-            GlobalState.levelEntities.set(client.currentLevel, levelMap);
+            levelMap = EntityHandler.getLevelMapForClient(client, true) ?? new Map<number, any>();
         }
         levelMap.set(entityId, persistedEntity);
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if ((!includeSelf && other === client) || !other.playerSpawned || other.currentLevel !== client.currentLevel) {
+            if ((!includeSelf && other === client) || !other.playerSpawned || !areClientsInSameLevelScope(client, other)) {
                 continue;
             }
             EntityHandler.sendEntity(other, playerEntity);
@@ -910,10 +960,11 @@ export class EntityHandler {
 
     private static broadcastToLevel(sender: Client, data: Buffer, entity: EntityProps): void {
         const myLevel = sender.currentLevel;
-        if (!myLevel || !sender.playerSpawned) return;
+        const myScope = getClientLevelScope(sender);
+        if (!myLevel || !myScope || !sender.playerSpawned) return;
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (other === sender || !other.playerSpawned || other.currentLevel !== myLevel) {
+            if (other === sender || !other.playerSpawned || getClientLevelScope(other) !== myScope) {
                 continue;
             }
             if (!entity.isPlayer && !EntityHandler.canClientSeeEntity(other, entity)) {

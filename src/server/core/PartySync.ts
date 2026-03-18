@@ -1,5 +1,6 @@
 import { Client } from './Client';
 import { GlobalState } from './GlobalState';
+import { areClientsInSameLevelScope } from './LevelScope';
 import { normalizeCharacterKey } from './SocialState';
 
 export function sharesRoomIds(leftRoomId: number, rightRoomId: number): boolean {
@@ -35,7 +36,7 @@ export function areClientsInSameParty(
 }
 
 export function shouldShareCombatView(anchor: Client, other: Client): boolean {
-    if (!anchor.playerSpawned || !other.playerSpawned || !anchor.currentLevel || anchor.currentLevel !== other.currentLevel) {
+    if (!anchor.playerSpawned || !other.playerSpawned || !anchor.currentLevel || !areClientsInSameLevelScope(anchor, other)) {
         return false;
     }
 

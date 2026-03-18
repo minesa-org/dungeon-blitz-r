@@ -15,6 +15,7 @@ import {
     PartyGroup,
     PendingTeleport
 } from '../core/SocialState';
+import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
 
 const db = new JsonAdapter();
 
@@ -417,7 +418,7 @@ export class SocialHandler {
         const selfName = SocialHandler.normalizeName(client.character?.name);
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== client.currentLevel || !other.character) {
+            if (!other.playerSpawned || !areClientsInSameLevelScope(client, other) || !other.character) {
                 continue;
             }
             if (SocialHandler.normalizeName(other.character.name) === selfName) {
@@ -442,7 +443,7 @@ export class SocialHandler {
 
         const recipients: Client[] = [];
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || other.currentLevel !== levelName) {
+            if (!other.playerSpawned || !areClientsInSameLevelScope(client, other)) {
                 continue;
             }
             if (!includeSender && other === client) {
@@ -597,6 +598,7 @@ export class SocialHandler {
     private static buildPartyUpdatePayload(group: PartyGroup, viewer: Client): Buffer {
         const bb = new BitBuffer(false);
         const viewerLevel = viewer.currentLevel;
+        const viewerScope = getClientLevelScope(viewer);
 
         bb.writeMethod15(true);
         bb.writeMethod15(Boolean(group.locked));
@@ -615,7 +617,7 @@ export class SocialHandler {
 
             if (isOnline && session) {
                 const position = SocialHandler.getPartyMapPosition(session);
-                const sameLevel = Boolean(viewerLevel) && session.currentLevel === viewerLevel;
+                const sameLevel = Boolean(viewerLevel) && getClientLevelScope(session) === viewerScope;
                 bb.writeMethod91(position.x);
                 bb.writeMethod91(position.y);
                 bb.writeMethod15(sameLevel);
@@ -726,6 +728,7 @@ export class SocialHandler {
 
         return {
             targetLevel,
+            levelInstanceId: shouldSyncDungeonProgress ? target.levelInstanceId : undefined,
             x,
             y,
             hasCoord,

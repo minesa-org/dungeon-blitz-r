@@ -17,6 +17,13 @@ import { GuildHandler } from './GuildHandler';
 import { EntityHandler } from './EntityHandler';
 import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
+import {
+    createDungeonInstanceId,
+    getClientLevelScope,
+    getScopeLevelInstanceId,
+    getScopeLevelName,
+    normalizeLevelInstanceId
+} from '../core/LevelScope';
 
 const db = new JsonAdapter();
 
@@ -54,7 +61,7 @@ export class CharacterHandler {
     private static purgeSameCharacterGhosts(activeClient: Client, userId: number, characterName: string): void {
         const normalizedCharName = String(characterName || '').trim().toLowerCase();
 
-        for (const [levelName, levelMap] of Array.from(GlobalState.levelEntities.entries())) {
+        for (const [levelScopeKey, levelMap] of Array.from(GlobalState.levelEntities.entries())) {
             const liveEntityIds = new Set<number>();
             const liveOwnerTokens = new Set<number>();
 
@@ -62,7 +69,7 @@ export class CharacterHandler {
                 if (session === activeClient || CharacterHandler.isSessionStale(session)) {
                     continue;
                 }
-                if (!session.playerSpawned || session.currentLevel !== levelName) {
+                if (!session.playerSpawned || getClientLevelScope(session) !== levelScopeKey) {
                     continue;
                 }
 
@@ -86,7 +93,7 @@ export class CharacterHandler {
                 if (!isDuplicatePlayer && !isDuplicateOwnedSpawn) {
                     continue;
                 }
-                if (activeClient.currentLevel === levelName && activeClient.clientEntID > 0 && activeClient.clientEntID === entityId) {
+                if (getClientLevelScope(activeClient) === levelScopeKey && activeClient.clientEntID > 0 && activeClient.clientEntID === entityId) {
                     continue;
                 }
                 if (liveEntityIds.has(entityId)) {
@@ -97,11 +104,16 @@ export class CharacterHandler {
                 }
 
                 levelMap.delete(entityId);
-                EntityHandler.broadcastDestroyEntity(levelName, entityId);
+                EntityHandler.broadcastDestroyEntity(
+                    getScopeLevelName(levelScopeKey),
+                    entityId,
+                    null,
+                    getScopeLevelInstanceId(levelScopeKey)
+                );
             }
 
             if (levelMap.size === 0) {
-                GlobalState.levelEntities.delete(levelName);
+                GlobalState.levelEntities.delete(levelScopeKey);
             }
         }
 
@@ -341,9 +353,13 @@ export class CharacterHandler {
         
         // Store Pending State
         if (client.userId) {
+             const levelInstanceId = LevelConfig.isDungeonLevel(currentLevelName)
+                ? createDungeonInstanceId(token)
+                : '';
              GlobalState.pendingWorld.set(token, {
                 character: char,
                 targetLevel: currentLevelName,
+                levelInstanceId: levelInstanceId || undefined,
                 previousLevel: previousLevelName,
                 userId: client.userId,
                 newX: spawn.x,
@@ -404,6 +420,9 @@ export class CharacterHandler {
         client.token = token;
         client.clientEntID = 0;
         client.currentLevel = entry.targetLevel;
+        client.levelInstanceId = LevelConfig.isDungeonLevel(entry.targetLevel)
+            ? normalizeLevelInstanceId(entry.levelInstanceId) || createDungeonInstanceId(token)
+            : '';
         client.entryLevel = LevelConfig.get(entry.targetLevel).isDungeon ? entry.previousLevel : '';
         client.currentRoomId = Number.isFinite(Number(entry.syncRoomId)) && Number(entry.syncRoomId) >= 0
             ? Math.round(Number(entry.syncRoomId))
@@ -452,6 +471,7 @@ export class CharacterHandler {
             character: entry.character,
             userId: entry.userId,
             targetLevel: entry.targetLevel,
+            levelInstanceId: client.levelInstanceId || undefined,
             previousLevel: entry.previousLevel,
             newX: entry.newX,
             newY: entry.newY,

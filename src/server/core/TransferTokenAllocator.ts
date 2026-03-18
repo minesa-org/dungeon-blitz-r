@@ -1,5 +1,6 @@
 import { GlobalState } from './GlobalState';
 import { LevelConfig } from './LevelConfig';
+import { getScopeLevelName } from './LevelScope';
 
 export class TransferTokenAllocator {
     private static readonly TOKEN_SPACE_SIZE = 0x10000;
@@ -40,8 +41,10 @@ export class TransferTokenAllocator {
             return blockedIds;
         }
 
-        const levelMap = GlobalState.levelEntities.get(normalizedTargetLevel);
-        if (levelMap) {
+        for (const [scopeKey, levelMap] of GlobalState.levelEntities.entries()) {
+            if (getScopeLevelName(scopeKey) !== normalizedTargetLevel) {
+                continue;
+            }
             for (const entityId of levelMap.keys()) {
                 if (entityId > 0) {
                     blockedIds.add(entityId);
