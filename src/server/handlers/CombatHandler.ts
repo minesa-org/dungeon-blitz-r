@@ -18,10 +18,23 @@ type ContributionSnapshot = {
     contributors: string[];
 };
 
+type CombatPoint = {
+    x: number;
+    y: number;
+};
+
 type PowerCastRelayInfo = {
     sourceId: number;
+    powerId: number;
     hasTargetEntity: boolean;
     hasTargetPos: boolean;
+    targetPos: CombatPoint | null;
+    projectileId: number | null;
+    isPersistent: boolean;
+    comboData: {
+        isMelee: boolean;
+        id: number;
+    } | null;
 };
 
 type PowerHitRelayInfo = {
@@ -191,6 +204,30 @@ export class CombatHandler {
         bb.writeMethod15(false);
         bb.writeMethod15(false);
         bb.writeMethod15(false);
+        bb.writeMethod15(false);
+        return bb.toBuffer();
+    }
+
+    private static buildPowerCastPayload(info: PowerCastRelayInfo): Buffer {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(info.sourceId);
+        bb.writeMethod4(info.powerId);
+        bb.writeMethod15(info.hasTargetEntity);
+        bb.writeMethod15(info.hasTargetPos && Boolean(info.targetPos));
+        if (info.hasTargetPos && info.targetPos) {
+            bb.writeMethod24(Math.round(info.targetPos.x));
+            bb.writeMethod24(Math.round(info.targetPos.y));
+        }
+        bb.writeMethod15(info.projectileId !== null);
+        if (info.projectileId !== null) {
+            bb.writeMethod4(Math.max(0, Math.round(info.projectileId)));
+        }
+        bb.writeMethod15(info.isPersistent);
+        bb.writeMethod15(info.comboData !== null);
+        if (info.comboData) {
+            bb.writeMethod15(info.comboData.isMelee);
+            bb.writeMethod4(Math.max(0, Math.round(info.comboData.id)));
+        }
         bb.writeMethod15(false);
         return bb.toBuffer();
     }
@@ -476,16 +513,131 @@ export class CombatHandler {
         CombatHandler.broadcastToCombatRoom(targetSession, 0x07, payload, false, [targetSession.clientEntID]);
     }
 
-    private static isUnsafeRemotePowerCast(data: Buffer): boolean {
-        const info = CombatHandler.parsePowerCastRelayInfo(data);
-        if (!info) {
-            return false;
+    private static getEntityPosition(entity: any): CombatPoint | null {
+        if (!entity || typeof entity !== 'object') {
+            return null;
         }
 
-        // Flash clients do not receive the actual target entity id in 0x09.
-        // Direct-target casts arrive with only a boolean flag, which leaves the
-        // remote ActivePower instance with a null target and crashes FireThisPower.
-        return info.hasTargetEntity && !info.hasTargetPos;
+        const x = Number(entity.physPosX ?? entity.x ?? entity.var_10 ?? NaN);
+        const y = Number(entity.physPosY ?? entity.y ?? entity.var_12 ?? NaN);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            return null;
+        }
+
+        return {
+            x,
+            y
+        };
+    }
+
+    private static resolvePowerCastSourceEntity(levelScope: string, sourceId: number, fallbackClient: Client): any {
+        if (sourceId <= 0) {
+            return null;
+        }
+
+        const levelEntity = CombatHandler.resolveLevelEntity(levelScope, sourceId);
+        if (levelEntity) {
+            return levelEntity;
+        }
+
+        if (fallbackClient.clientEntID === sourceId) {
+            return fallbackClient.entities.get(sourceId) ?? null;
+        }
+
+        return CombatHandler.findPlayerSessionByEntityId(sourceId)?.entities.get(sourceId) ?? null;
+    }
+
+    private static findSyntheticPowerCastTargetPos(levelScope: string, sourceEntity: any): CombatPoint | null {
+        const sourcePos = CombatHandler.getEntityPosition(sourceEntity);
+        if (!sourcePos) {
+            return null;
+        }
+
+        const levelMap = GlobalState.levelEntities.get(levelScope);
+        const sourceId = Number(sourceEntity?.id ?? 0);
+        const sourceTeam = Number(sourceEntity?.team ?? 0);
+        const sourceRoomId = Number.isFinite(Number(sourceEntity?.roomId)) ? Number(sourceEntity.roomId) : -1;
+        const facingLeft = Boolean(sourceEntity?.facingLeft);
+
+        let bestFacingTarget: { pos: CombatPoint; distanceSq: number } | null = null;
+        let bestAnyTarget: { pos: CombatPoint; distanceSq: number } | null = null;
+
+        for (const candidate of levelMap?.values() ?? []) {
+            const candidateId = Number(candidate?.id ?? 0);
+            if (candidateId <= 0 || candidateId === sourceId) {
+                continue;
+            }
+            if (Boolean(candidate?.dead) || Number(candidate?.entState ?? EntityState.ACTIVE) === EntityState.DEAD) {
+                continue;
+            }
+            if (Boolean(candidate?.untargetable)) {
+                continue;
+            }
+
+            const candidateTeam = Number(candidate?.team ?? 0);
+            if (sourceTeam > 0 && candidateTeam > 0 && sourceTeam === candidateTeam) {
+                continue;
+            }
+            if (sourceRoomId >= 0 && !sharesRoomIds(sourceRoomId, Number(candidate?.roomId ?? -1))) {
+                continue;
+            }
+
+            const candidatePos = CombatHandler.getEntityPosition(candidate);
+            if (!candidatePos) {
+                continue;
+            }
+
+            const dx = candidatePos.x - sourcePos.x;
+            const dy = candidatePos.y - sourcePos.y;
+            const distanceSq = dx * dx + dy * dy;
+            if (distanceSq > 500 * 500) {
+                continue;
+            }
+
+            if (!bestAnyTarget || distanceSq < bestAnyTarget.distanceSq) {
+                bestAnyTarget = { pos: candidatePos, distanceSq };
+            }
+
+            const isFacingTarget = facingLeft ? dx <= 60 : dx >= -60;
+            if (isFacingTarget && (!bestFacingTarget || distanceSq < bestFacingTarget.distanceSq)) {
+                bestFacingTarget = { pos: candidatePos, distanceSq };
+            }
+        }
+
+        if (bestFacingTarget) {
+            return bestFacingTarget.pos;
+        }
+        if (bestAnyTarget) {
+            return bestAnyTarget.pos;
+        }
+
+        return {
+            x: sourcePos.x + (facingLeft ? -220 : 220),
+            y: sourcePos.y
+        };
+    }
+
+    private static maybeRewriteUnsafePowerCast(client: Client, info: PowerCastRelayInfo): Buffer | null {
+        if (!info.hasTargetEntity || info.hasTargetPos) {
+            return null;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        if (!levelScope) {
+            return null;
+        }
+
+        const sourceEntity = CombatHandler.resolvePowerCastSourceEntity(levelScope, info.sourceId, client);
+        const targetPos = CombatHandler.findSyntheticPowerCastTargetPos(levelScope, sourceEntity);
+        if (!targetPos) {
+            return null;
+        }
+
+        return CombatHandler.buildPowerCastPayload({
+            ...info,
+            hasTargetPos: true,
+            targetPos
+        });
     }
 
     private static parsePowerCastRelayInfo(data: Buffer): PowerCastRelayInfo | null {
@@ -493,14 +645,33 @@ export class CombatHandler {
 
         try {
             const sourceId = br.readMethod4();
-            br.readMethod4(); // powerId
+            const powerId = br.readMethod4();
             const hasTargetEntity = br.readMethod15();
             const hasTargetPos = br.readMethod15();
+            const targetPos = hasTargetPos
+                ? {
+                    x: br.readMethod24(),
+                    y: br.readMethod24()
+                }
+                : null;
+            const projectileId = br.readMethod15() ? br.readMethod4() : null;
+            const isPersistent = br.readMethod15();
+            const comboData = br.readMethod15()
+                ? {
+                    isMelee: br.readMethod15(),
+                    id: br.readMethod4()
+                }
+                : null;
 
             return {
                 sourceId,
+                powerId,
                 hasTargetEntity,
-                hasTargetPos
+                hasTargetPos,
+                targetPos,
+                projectileId,
+                isPersistent,
+                comboData
             };
         } catch {
             return null;
@@ -687,12 +858,14 @@ export class CombatHandler {
     }
 
     static async handlePowerCast(client: Client, data: Buffer): Promise<void> {
-        if (CombatHandler.isUnsafeRemotePowerCast(data)) {
+        const info = CombatHandler.parsePowerCastRelayInfo(data);
+        if (!info) {
             return;
         }
 
-        CombatHandler.broadcastCombatPacket(client, 0x09, data, {
-            referencedEntityIds: CombatHandler.parseReferencedEntityIds(0x09, data)
+        const relayPayload = CombatHandler.maybeRewriteUnsafePowerCast(client, info) ?? data;
+        CombatHandler.broadcastCombatPacket(client, 0x09, relayPayload, {
+            referencedEntityIds: CombatHandler.parseReferencedEntityIds(0x09, relayPayload)
         });
     }
 

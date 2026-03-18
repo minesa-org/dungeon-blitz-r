@@ -151,6 +151,45 @@ function parsePowerHitDamage(payload: Buffer): number {
     return br.readMethod24();
 }
 
+function parsePowerCastPayload(payload: Buffer): {
+    sourceId: number;
+    powerId: number;
+    hasTargetEntity: boolean;
+    hasTargetPos: boolean;
+    targetX: number | null;
+    targetY: number | null;
+    projectileId: number | null;
+    isPersistent: boolean;
+    comboIsMelee: boolean | null;
+    comboId: number | null;
+} {
+    const br = new BitReader(payload);
+    const sourceId = br.readMethod4();
+    const powerId = br.readMethod4();
+    const hasTargetEntity = br.readMethod15();
+    const hasTargetPos = br.readMethod15();
+    const targetX = hasTargetPos ? br.readMethod24() : null;
+    const targetY = hasTargetPos ? br.readMethod24() : null;
+    const projectileId = br.readMethod15() ? br.readMethod4() : null;
+    const isPersistent = br.readMethod15();
+    const hasComboData = br.readMethod15();
+    const comboIsMelee = hasComboData ? br.readMethod15() : null;
+    const comboId = hasComboData ? br.readMethod4() : null;
+
+    return {
+        sourceId,
+        powerId,
+        hasTargetEntity,
+        hasTargetPos,
+        targetX,
+        targetY,
+        projectileId,
+        isPersistent,
+        comboIsMelee,
+        comboId
+    };
+}
+
 async function testPowerCastReachesPartyAcrossRooms(): Promise<void> {
     const sender = createFakeClient(100, 'Alpha', 3);
     const partyOtherRoom = createFakeClient(101, 'Beta', 7);
@@ -185,7 +224,7 @@ async function testPowerCastReachesPartyAcrossRooms(): Promise<void> {
     assert.equal(otherRoomStranger.sentPackets.length, 0, 'non-party player in another room should not receive cast');
 }
 
-async function testUnsafeDirectTargetPowerCastDoesNotRelay(): Promise<void> {
+async function testDirectTargetPowerCastGetsSafeTargetPos(): Promise<void> {
     const sender = createFakeClient(110, 'Alpha', 3);
     const partyOtherRoom = createFakeClient(111, 'Beta', 7);
     const sameRoomStranger = createFakeClient(112, 'Gamma', 3);
@@ -193,6 +232,28 @@ async function testUnsafeDirectTargetPowerCastDoesNotRelay(): Promise<void> {
     attachPlayerEntity(sender);
     attachPlayerEntity(partyOtherRoom);
     attachPlayerEntity(sameRoomStranger);
+
+    const senderEntity = sender.entities.get(sender.clientEntID);
+    if (senderEntity) {
+        senderEntity.x = 100;
+        senderEntity.y = 200;
+        senderEntity.facingLeft = false;
+    }
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(sender.clientEntID, senderEntity);
+
+    const hostile = {
+        id: 6101,
+        name: 'IntroGoblin',
+        isPlayer: false,
+        x: 260,
+        y: 210,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        roomId: sender.currentRoomId,
+        hp: 100
+    };
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
 
     GlobalState.partyByMember.set('alpha', 4);
     GlobalState.partyByMember.set('beta', 4);
@@ -204,20 +265,33 @@ async function testUnsafeDirectTargetPowerCastDoesNotRelay(): Promise<void> {
     await CombatHandler.handlePowerCast(
         sender as never,
         buildPowerCastPayload(sender.clientEntID, 77, {
-            hasTargetEntity: true
+            hasTargetEntity: true,
+            hasComboData: true,
+            comboIsMelee: true,
+            comboId: 2
         })
     );
 
-    assert.equal(
-        partyOtherRoom.sentPackets.some((packet) => packet.id === 0x09 || packet.id === 0x0F),
-        false,
-        'unsafe direct-target casts should be suppressed because 0x09 does not include the target entity id needed by the Flash client'
+    assert.deepEqual(
+        partyOtherRoom.sentPackets.map((packet) => packet.id),
+        [0x0F, 0x09],
+        'party mate should receive a safe relayed cast for direct-target melee powers'
     );
-    assert.equal(
-        sameRoomStranger.sentPackets.some((packet) => packet.id === 0x09 || packet.id === 0x0F),
-        false,
-        'same-room viewers should also skip the unsafe cast packet'
+    assert.deepEqual(
+        sameRoomStranger.sentPackets.map((packet) => packet.id),
+        [0x0F, 0x09],
+        'same-room viewers should also receive the safe relayed cast'
     );
+
+    const partyCast = parsePowerCastPayload(partyOtherRoom.sentPackets[1]!.payload);
+    assert.equal(partyCast.sourceId, sender.clientEntID);
+    assert.equal(partyCast.powerId, 77);
+    assert.equal(partyCast.hasTargetEntity, true);
+    assert.equal(partyCast.hasTargetPos, true, 'direct-target cast should gain a synthetic target point');
+    assert.equal(partyCast.targetX, hostile.x);
+    assert.equal(partyCast.targetY, hostile.y);
+    assert.equal(partyCast.comboIsMelee, true);
+    assert.equal(partyCast.comboId, 2, 'melee combo data should be preserved');
 }
 
 async function testPowerHitFollowsPartyAudience(): Promise<void> {
@@ -574,7 +648,7 @@ async function main(): Promise<void> {
         GlobalState.entityLifeNonces.clear();
         GlobalState.entityLastRewardNonces.clear();
 
-        await testUnsafeDirectTargetPowerCastDoesNotRelay();
+        await testDirectTargetPowerCastGetsSafeTargetPos();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
