@@ -76,16 +76,16 @@ export class EntityHandler {
         return EntityHandler.getLevelMap(client.currentLevel, client.levelInstanceId, createIfMissing);
     }
 
-    private static isLocalOnlyClientSpawnEntity(levelName: string | null | undefined, entity: any): boolean {
-        if (!levelName || !entity?.clientSpawned || entity?.isPlayer || !EntityHandler.usesClientSpawn(levelName)) {
+    private static isPartySharedClientSpawnHostile(levelName: string | null | undefined, entity: any): boolean {
+        if (!levelName || !entity?.clientSpawned || entity?.isPlayer || Number(entity?.team ?? 0) !== 2) {
             return false;
         }
 
-        return true;
+        return EntityHandler.usesClientSpawn(levelName) || LevelConfig.isDungeonLevel(levelName);
     }
 
     static shouldRelayEntityToOtherClients(levelName: string | null | undefined, entity: any): boolean {
-        return !EntityHandler.isLocalOnlyClientSpawnEntity(levelName, entity);
+        return !EntityHandler.isPartySharedClientSpawnHostile(levelName, entity);
     }
 
     static shouldTrackKnownEntity(levelName: string | null | undefined, entity: any): boolean {
@@ -103,7 +103,7 @@ export class EntityHandler {
         if (!client.playerSpawned || !client.currentLevel || !entity?.clientSpawned || entity?.isPlayer) {
             return false;
         }
-        if (!EntityHandler.usesClientSpawn(client.currentLevel)) {
+        if (!EntityHandler.isPartySharedClientSpawnHostile(client.currentLevel, entity)) {
             return false;
         }
 
@@ -153,7 +153,7 @@ export class EntityHandler {
             return false;
         }
 
-        if (EntityHandler.isLocalOnlyClientSpawnEntity(levelName, localEntity)) {
+        if (EntityHandler.isPartySharedClientSpawnHostile(levelName, localEntity)) {
             return true;
         }
 
@@ -233,7 +233,7 @@ export class EntityHandler {
             return true;
         }
 
-        if (EntityHandler.isLocalOnlyClientSpawnEntity(client.currentLevel, entity)) {
+        if (EntityHandler.isPartySharedClientSpawnHostile(client.currentLevel, entity)) {
             return EntityHandler.canClientUsePartySharedClientSpawnEntity(client, entity);
         }
 
@@ -348,10 +348,6 @@ export class EntityHandler {
 
     static isClientSpawnLevel(levelName: string): boolean {
         return EntityHandler.usesClientSpawn(levelName);
-    }
-
-    private static isServerAuthoritativeDungeon(levelName: string): boolean {
-        return LevelConfig.isDungeonLevel(levelName) && !EntityHandler.usesClientSpawn(levelName);
     }
 
     private static pruneStaleServerNpcs(levelMap: Map<number, any>): number {
@@ -697,19 +693,6 @@ export class EntityHandler {
 
         const levelName = client.currentLevel;
         const existingLevelMap = levelName ? EntityHandler.getLevelMapForClient(client) : null;
-        const isUnknownHostileClientSpawn = Boolean(
-            !isPlayer &&
-            team === 2 &&
-            levelName &&
-            EntityHandler.isServerAuthoritativeDungeon(levelName) &&
-            !existingLevelMap?.has(entityId)
-        );
-        if (isUnknownHostileClientSpawn) {
-            console.log(
-                `[EntityHandler] Ignoring client-spawn hostile NPC in server-authoritative dungeon ${levelName}: ${entName} (${entityId})`
-            );
-            return;
-        }
 
         const entNameNorm = EntityHandler.normalizeIdentityName(entName);
         const charNameNorm = EntityHandler.normalizeIdentityName(client.character?.name);

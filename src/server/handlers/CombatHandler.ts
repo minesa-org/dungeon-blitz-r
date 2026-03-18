@@ -300,13 +300,7 @@ export class CombatHandler {
     }
 
     private static isLocalOnlyClientSpawnEntity(levelName: string, entity: any): boolean {
-        return Boolean(
-            levelName &&
-            entity &&
-            !entity.isPlayer &&
-            entity.clientSpawned &&
-            EntityHandler.isClientSpawnLevel(levelName)
-        );
+        return !EntityHandler.shouldRelayEntityToOtherClients(levelName, entity);
     }
 
     private static getCombatRecipients(anchor: Client, includeAnchor: boolean = false): Client[] {

@@ -1,9 +1,11 @@
 import { strict as assert } from 'assert';
+import * as path from 'path';
 import { GlobalState } from '../core/GlobalState';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { CombatHandler } from '../handlers/CombatHandler';
 import { Entity, EntityState } from '../core/Entity';
+import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
 
 type SentPacket = {
@@ -30,6 +32,12 @@ type FakeClient = {
     send: (id: number, payload: Buffer) => void;
     sendBitBuffer: (id: number, payload: BitBuffer) => void;
 };
+
+function ensureLevelConfigLoaded(): void {
+    if (!LevelConfig.has('TutorialDungeon')) {
+        LevelConfig.load(path.resolve(__dirname, '../data'));
+    }
+}
 
 function createFakeClient(token: number, name: string, roomId: number): FakeClient {
     const sentPackets: SentPacket[] = [];
@@ -373,7 +381,7 @@ async function testPowerHitFollowsPartyAudience(): Promise<void> {
     await CombatHandler.handlePowerHit(sender as never, buildPowerHitPayload(hostile.id, sender.clientEntID, 42, 77));
 
     assert.equal(partyOtherRoom.sentPackets.some((packet) => packet.id === 0x0A), true);
-    assert.equal(sameRoomStranger.sentPackets.some((packet) => packet.id === 0x0A), true);
+    assert.equal(sameRoomStranger.sentPackets.some((packet) => packet.id === 0x0A), false);
     assert.equal(otherRoomStranger.sentPackets.some((packet) => packet.id === 0x0A), false);
 }
 
@@ -531,6 +539,8 @@ async function testEntityDestroyClearsKnownEntityCache(): Promise<void> {
 
     attachPlayerEntity(sender);
     attachPlayerEntity(watcher);
+    GlobalState.partyByMember.set('alpha', 7);
+    GlobalState.partyByMember.set('beta', 7);
 
     const hostile = {
         id: 9300,
@@ -547,6 +557,7 @@ async function testEntityDestroyClearsKnownEntityCache(): Promise<void> {
         roomId: sender.currentRoomId
     };
     GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
+    watcher.entities.set(hostile.id, { ...hostile, ownerToken: watcher.token, roomId: watcher.currentRoomId });
     watcher.knownEntityIds.add(hostile.id);
 
     GlobalState.sessionsByToken.set(sender.token, sender as never);
@@ -659,6 +670,8 @@ async function testDungeonCombatDoesNotCrossInstanceScopes(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+    ensureLevelConfigLoaded();
+
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
     const levelEntities = new Map(GlobalState.levelEntities);
     const partyByMember = new Map(GlobalState.partyByMember);

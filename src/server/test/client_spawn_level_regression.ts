@@ -1,5 +1,7 @@
 import { strict as assert } from 'assert';
+import * as path from 'path';
 import { GlobalState } from '../core/GlobalState';
+import { LevelConfig } from '../core/LevelConfig';
 import { EntityHandler } from '../handlers/EntityHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
@@ -23,6 +25,12 @@ type FakeClient = {
 };
 
 let nextFakeToken = 1000;
+
+function ensureLevelConfigLoaded(): void {
+    if (!LevelConfig.has('TutorialDungeon')) {
+        LevelConfig.load(path.resolve(__dirname, '../data'));
+    }
+}
 
 function createFakeClient(name: string): FakeClient {
     const sentPackets: SentPacket[] = [];
@@ -155,6 +163,48 @@ function testOutdoorHostileClientSpawnSeedsToPartyPeers(): void {
     assert.equal(known, true, 'party peers should receive outdoor hostile seeds');
     assert.deepEqual(watcher.sentPackets.map((packet) => packet.id), [0x0F]);
     assert.equal(watcher.knownEntityIds.has(hostile.id), true);
+}
+
+function testDungeonHostileClientSpawnSeedsToPartyPeersOnly(): void {
+    const owner = createFakeClient('Alpha');
+    const partyWatcher = createFakeClient('Beta');
+    const stranger = createFakeClient('Gamma');
+
+    owner.currentLevel = 'TutorialDungeon';
+    partyWatcher.currentLevel = 'TutorialDungeon';
+    stranger.currentLevel = 'TutorialDungeon';
+    owner.currentRoomId = 1;
+    partyWatcher.currentRoomId = 5;
+    stranger.currentRoomId = 1;
+
+    const hostile = {
+        id: 2210,
+        name: 'IntroGoblin',
+        isPlayer: false,
+        x: 180,
+        y: 240,
+        v: 0,
+        team: 2,
+        entState: 0,
+        clientSpawned: true,
+        ownerToken: owner.token,
+        roomId: owner.currentRoomId
+    };
+
+    GlobalState.levelEntities.set('TutorialDungeon', new Map([[hostile.id, hostile]]));
+    GlobalState.sessionsByToken.set(owner.token, owner as never);
+    GlobalState.sessionsByToken.set(partyWatcher.token, partyWatcher as never);
+    GlobalState.sessionsByToken.set(stranger.token, stranger as never);
+    GlobalState.partyByMember.set('alpha', 91);
+    GlobalState.partyByMember.set('beta', 91);
+
+    const partyKnown = EntityHandler.ensureEntityKnown(partyWatcher as never, 'TutorialDungeon', hostile.id);
+    const strangerKnown = EntityHandler.ensureEntityKnown(stranger as never, 'TutorialDungeon', hostile.id);
+
+    assert.equal(partyKnown, true, 'dungeon hostile sync should now reach party peers');
+    assert.deepEqual(partyWatcher.sentPackets.map((packet) => packet.id), [0x0F]);
+    assert.equal(strangerKnown, false, 'non-party dungeon viewers should not receive hostile seeds');
+    assert.equal(stranger.sentPackets.length, 0);
 }
 
 function testConflictingLocalIdsStillTriggerRemotePlayerSeed(): void {
@@ -363,6 +413,8 @@ function testOutdoorHostileIncrementalUpdatesRelayToPartyPeers(): void {
 }
 
 function main(): void {
+    ensureLevelConfigLoaded();
+
     const levelEntities = new Map(GlobalState.levelEntities);
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
     const partyByMember = new Map(GlobalState.partyByMember);
@@ -392,6 +444,11 @@ function main(): void {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testOutdoorHostileClientSpawnSeedsToPartyPeers();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testDungeonHostileClientSpawnSeedsToPartyPeersOnly();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
