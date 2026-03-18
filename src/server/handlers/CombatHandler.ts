@@ -669,9 +669,16 @@ export class CombatHandler {
             return;
         }
 
+        const sourceEntity = CombatHandler.resolveLevelEntity(levelScope, sourceId);
+        const summonerId = Number(sourceEntity?.summonerId ?? 0);
+        const ownerToken = Number(sourceEntity?.ownerToken ?? 0);
+
         const sourceSession =
             (fallbackClient.clientEntID === sourceId ? fallbackClient : null) ??
-            CombatHandler.findPlayerSessionByEntityId(sourceId);
+            CombatHandler.findPlayerSessionByEntityId(sourceId) ??
+            (fallbackClient.clientEntID === summonerId ? fallbackClient : null) ??
+            CombatHandler.findPlayerSessionByEntityId(summonerId) ??
+            (ownerToken > 0 ? GlobalState.sessionsByToken.get(ownerToken) ?? null : null);
         if (!sourceSession || !sourceSession.playerSpawned || getClientLevelScope(sourceSession) !== levelScope) {
             return;
         }

@@ -307,25 +307,44 @@ export class RewardHandler {
         return null;
     }
 
+    private static addContributorRecipients(levelScope: string, contributor: Client, recipients: Map<string, Client>): void {
+        const contributorKey = getClientCharacterKey(contributor);
+        if (!contributor.character || !contributorKey) {
+            return;
+        }
+
+        const contributorPartyId = getPartyIdForClient(contributor);
+        if (contributorPartyId <= 0) {
+            recipients.set(contributorKey, contributor);
+            return;
+        }
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (
+                !other.playerSpawned ||
+                !other.character ||
+                getClientLevelScope(other) !== levelScope ||
+                getPartyIdForClient(other) !== contributorPartyId
+            ) {
+                continue;
+            }
+
+            recipients.set(getClientCharacterKey(other), other);
+        }
+    }
+
     private static resolveEligibleRecipients(client: Client, sourceId: number): { rewardNonce: number; recipients: Client[] } {
         const scopeKey = getClientLevelScope(client);
         const snapshot = CombatHandler.getContributionSnapshot(scopeKey, sourceId);
-        const partyId = getPartyIdForClient(client);
         const recipients = new Map<string, Client>();
 
         for (const contributorKey of snapshot.contributors) {
-            const session = RewardHandler.findOnlineContributor(scopeKey, contributorKey);
-            if (!session?.character) {
-                continue;
-            }
-            if (partyId > 0 && getPartyIdForClient(session) !== partyId) {
-                continue;
-            }
-            if (partyId <= 0 && session !== client) {
+            const contributor = RewardHandler.findOnlineContributor(scopeKey, contributorKey);
+            if (!contributor?.character) {
                 continue;
             }
 
-            recipients.set(getClientCharacterKey(session), session);
+            RewardHandler.addContributorRecipients(scopeKey, contributor, recipients);
         }
 
         if (!recipients.size && client.character) {
