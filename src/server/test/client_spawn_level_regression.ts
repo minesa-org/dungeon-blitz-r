@@ -29,7 +29,6 @@ let nextFakeToken = 1000;
 
 
 // MOCK SETTIMEOUT FOR SYNCHRONOUS TESTS
-const originalSetTimeout = global.setTimeout;
 global.setTimeout = ((fn: any, delay: number) => {
     // Execute immediately in tests
     fn();
