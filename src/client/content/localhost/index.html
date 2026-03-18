@@ -75,7 +75,10 @@
     const swfUrl = "p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp&rv=20260316b";
     const localBridgeBaseUrl = "http://127.0.0.1:47631";
     const selfPresenceUrl = "/api/presence/self";
+    const discordJoinUrl = "/api/presence/discord-join";
     const presencePollMs = 4000;
+    const localDiscordBridgeEnabled =
+      window.location.protocol === "http:" || window.location.protocol === "https:";
     let lastPresenceHash = "";
 
     function showFallback() {
@@ -104,6 +107,10 @@
     }
 
     async function syncDiscordPresence() {
+      if (!localDiscordBridgeEnabled) {
+        return;
+      }
+
       try {
         const response = await fetch(selfPresenceUrl, {
           cache: "no-store",
@@ -133,7 +140,15 @@
           details: session.details,
           state: session.state,
           startedAtMs: session.startedAtMs,
-          partySize: session.partySize
+          partySize: session.partySize,
+          partyId: session.partyId,
+          partyMax: session.partyMax,
+          partyLocked: session.partyLocked,
+          joinSecret: session.joinSecret,
+          levelKey: session.levelKey,
+          activityKind: session.activityKind,
+          presenceUrl: new URL(selfPresenceUrl, window.location.origin).toString(),
+          joinUrl: new URL(discordJoinUrl, window.location.origin).toString()
         };
         const nextHash = JSON.stringify(bridgePayload);
         if (nextHash === lastPresenceHash) {
@@ -168,11 +183,13 @@
 
     // Give Flash time to initialize after permission
     setTimeout(hideHint, 2500);
-    setTimeout(syncDiscordPresence, 2500);
-    setInterval(syncDiscordPresence, presencePollMs);
+    if (localDiscordBridgeEnabled) {
+      setTimeout(syncDiscordPresence, 2500);
+      setInterval(syncDiscordPresence, presencePollMs);
+    }
 
     window.addEventListener("beforeunload", function () {
-      if (!lastPresenceHash) return;
+      if (!localDiscordBridgeEnabled || !lastPresenceHash) return;
       void postToLocalBridge("/clear", { clear: true });
     });
   </script>

@@ -4,6 +4,7 @@ import * as path from 'path';
 import type { Request } from 'express';
 import { Config } from './config';
 import { PresenceService } from './PresenceService';
+import { SocialHandler } from '../handlers/SocialHandler';
 
 function resolveContentDir(relativeContentPath: string): string {
     const candidates = [
@@ -78,6 +79,8 @@ export class StaticServer {
 
     private setupRoutes(): void {
         const devSettingsPath = path.join(this.contentDir, 'p', 'cbq', 'devSettings.xml');
+
+        this.app.use(express.json({ limit: '64kb' }));
 
         this.app.use((req, res, next) => {
             const shouldLog =
@@ -188,6 +191,51 @@ export class StaticServer {
                 remoteAddress: selection.remoteAddress,
                 availableCharacters: selection.availableCharacters,
                 session: selection.snapshot
+            });
+        });
+
+        this.app.post('/api/presence/discord-join', (req, res) => {
+            const body = req.body && typeof req.body === 'object' ? (req.body as Record<string, unknown>) : {};
+            const secret = String(body.secret ?? '').trim();
+            const requesterName = String(body.requesterName ?? '').trim();
+            const decodedSecret = PresenceService.resolveDiscordJoinSecret(secret);
+
+            if (!decodedSecret) {
+                res.status(400).json({
+                    ok: false,
+                    reason: 'invalid-secret',
+                    message: 'Invalid Discord join secret.'
+                });
+                return;
+            }
+
+            const resolvedRequesterName =
+                requesterName ||
+                PresenceService.selectRequesterSession(this.resolveRequesterAddress(req)).snapshot?.characterName ||
+                '';
+
+            if (!resolvedRequesterName) {
+                res.status(404).json({
+                    ok: false,
+                    reason: 'requester-not-found',
+                    message: 'Could not resolve an online character for this Discord join.'
+                });
+                return;
+            }
+
+            const result = SocialHandler.joinPartyFromDiscord(
+                resolvedRequesterName,
+                decodedSecret.partyId,
+                decodedSecret.partyLeader
+            );
+            const statusCode = result.ok ? 200 : result.reason === 'party-not-found' ? 404 : 409;
+
+            res.setHeader('Cache-Control', 'no-store');
+            res.status(statusCode).json({
+                ok: result.ok,
+                reason: result.reason,
+                message: result.message,
+                partyId: result.partyId
             });
         });
 
