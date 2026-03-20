@@ -10,6 +10,10 @@ import { areClientsInSameParty, getPartyIdForClient, sharesRoomIds } from '../co
 import { areClientsInSameLevelScope, getClientLevelScope, getLevelScopeKey } from '../core/LevelScope';
 
 export class EntityHandler {
+    private static readonly CLIENT_SPAWN_SERVER_NPC_LEVELS = new Set<string>([
+        'NewbieRoad',
+        'NewbieRoadHard'
+    ]);
     private static readonly CLIENT_SPAWN_LEVELS = new Set<string>([
         'CraftTownTutorial',
         'CraftTown',
@@ -46,6 +50,10 @@ export class EntityHandler {
 
     private static usesClientSpawn(levelName: string): boolean {
         return EntityHandler.CLIENT_SPAWN_LEVELS.has(levelName);
+    }
+
+    private static usesServerSeededNpcs(levelName: string): boolean {
+        return EntityHandler.CLIENT_SPAWN_SERVER_NPC_LEVELS.has(levelName);
     }
 
     private static isSharedClientSpawnRegionActor(levelName: string | null | undefined, entity: any): boolean {
@@ -176,11 +184,13 @@ export class EntityHandler {
         }
 
         const targetTeam = Number(entity?.team ?? 0);
-        if (partyId <= 0 || targetTeam !== 2 || !LevelConfig.isDungeonLevel(levelName)) {
+        const canUseUnsyncedRoomFallback =
+            LevelConfig.isDungeonLevel(levelName) || EntityHandler.usesClientSpawn(levelName);
+        if (partyId <= 0 || targetTeam !== 2 || !canUseUnsyncedRoomFallback) {
             return null;
         }
 
-        // Joiners can be in the correct dungeon instance before their room state syncs.
+        // Joiners can be in the correct shared scope before their room state syncs.
         return EntityHandler.findBestSharedClientSpawnCanonicalMatch(
             levelName,
             levelMap,
@@ -625,11 +635,14 @@ export class EntityHandler {
         return EntityHandler.usesClientSpawn(levelName);
     }
 
-    private static pruneStaleServerNpcs(levelMap: Map<number, any>): number {
+    private static pruneStaleServerNpcs(levelMap: Map<number, any>, keepServerNpcs: boolean = false): number {
         let removedCount = 0;
 
         for (const [entityId, entityProps] of Array.from(levelMap.entries())) {
             if (entityProps?.isPlayer || entityProps?.clientSpawned) {
+                continue;
+            }
+            if (keepServerNpcs) {
                 continue;
             }
 
@@ -1132,7 +1145,17 @@ export class EntityHandler {
             levelMap = EntityHandler.getLevelMap(levelName, client.levelInstanceId, true) ?? new Map<number, any>();
 
             if (EntityHandler.usesClientSpawn(levelName)) {
-                console.log(`[EntityHandler] Skipping server NPC init for client-spawn level ${levelName}`);
+                if (EntityHandler.usesServerSeededNpcs(levelName)) {
+                    const npcs = NpcLoader.getNpcsForLevel(levelName);
+                    console.log(`[EntityHandler] Initializing ${npcs.length} server NPCs for client-spawn level ${levelName}`);
+
+                    for (const npc of npcs) {
+                        const entityProps = Entity.fromNpc(npc);
+                        levelMap.set(npc.id, entityProps);
+                    }
+                } else {
+                    console.log(`[EntityHandler] Skipping server NPC init for client-spawn level ${levelName}`);
+                }
             } else {
                 const npcs = NpcLoader.getNpcsForLevel(levelName);
                 console.log(`[EntityHandler] Initializing ${npcs.length} NPCs for ${levelName}`);
@@ -1145,13 +1168,16 @@ export class EntityHandler {
         }
 
         if (EntityHandler.usesClientSpawn(levelName)) {
-            const removedCount = EntityHandler.pruneStaleServerNpcs(levelMap);
+            const keepServerNpcs = EntityHandler.usesServerSeededNpcs(levelName);
+            const removedCount = EntityHandler.pruneStaleServerNpcs(levelMap, keepServerNpcs);
             if (removedCount > 0) {
                 console.log(
                     `[EntityHandler] Removed ${removedCount} stale server NPCs from client-spawn level ${levelName}`
                 );
             }
-            return;
+            if (!keepServerNpcs) {
+                return;
+            }
         }
 
         for (const [id, entityProps] of levelMap.entries()) {

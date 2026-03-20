@@ -152,6 +152,20 @@ function testClientSpawnLevelsStartEmptyWithoutServerNpcInit(): void {
     assert.equal(client.sentPackets.length, 0);
 }
 
+function testNewbieRoadSeedsServerNpcCopies(): void {
+    const client = createFakeClient('Watcher');
+
+    EntityHandler.sendInitialLevelEntities(client as never, 'NewbieRoad');
+
+    const levelMap = GlobalState.levelEntities.get('NewbieRoad');
+    assert.ok(levelMap, 'NewbieRoad should have a shared state bucket');
+
+    const seededServerNpcs = Array.from(levelMap!.values()).filter((entity) => !entity?.isPlayer && !entity?.clientSpawned);
+    assert.ok(seededServerNpcs.length > 0, 'NewbieRoad should seed server-authored NPCs');
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0x0F), true, 'joining clients should receive seeded NewbieRoad NPCs');
+    assert.equal(seededServerNpcs.some((entity) => entity?.team === 3), true, 'friendly NPCs should come from the server seed');
+}
+
 function testOutdoorHostileClientSpawnIsNotSeededToPeers(): void {
     const client = createFakeClient('Watcher');
     client.currentLevel = 'NewbieRoad';
@@ -442,6 +456,68 @@ function testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns(): void {
     assert.equal(parseDestroyEntityId(follower.sentPackets[0]!.payload), 3401);
     assert.equal(follower.knownEntityIds.has(canonical.id), true);
     assert.equal(follower.entities.has(3401), false);
+}
+
+function testOutdoorPartyAuthoritySuppressesDuplicateHostileSpawnsAcrossUnsyncedRooms(): void {
+    const owner = createFakeClient('Alpha');
+    const follower = createFakeClient('Beta');
+
+    owner.currentLevel = 'NewbieRoad';
+    follower.currentLevel = 'NewbieRoad';
+    owner.currentRoomId = 2;
+    follower.currentRoomId = 0;
+
+    const canonical = {
+        id: 2402,
+        name: 'GoblinDagger',
+        isPlayer: false,
+        x: 410,
+        y: 560,
+        v: 0,
+        team: 2,
+        entState: 0,
+        clientSpawned: true,
+        ownerToken: owner.token,
+        ownerPartyId: 99,
+        roomId: owner.currentRoomId
+    };
+
+    GlobalState.levelEntities.set('NewbieRoad', new Map([[canonical.id, canonical]]));
+    GlobalState.sessionsByToken.set(owner.token, owner as never);
+    GlobalState.sessionsByToken.set(follower.token, follower as never);
+    GlobalState.partyByMember.set('alpha', 99);
+    GlobalState.partyByMember.set('beta', 99);
+
+    const duplicate = {
+        id: 3402,
+        name: canonical.name,
+        isPlayer: false,
+        x: 412,
+        y: 563,
+        v: 0,
+        team: canonical.team,
+        entState: canonical.entState,
+        clientSpawned: true,
+        ownerToken: follower.token,
+        ownerPartyId: 99,
+        roomId: follower.currentRoomId
+    };
+
+    const suppressed = (EntityHandler as any).suppressDuplicateSharedClientSpawn(
+        follower as never,
+        'NewbieRoad',
+        GlobalState.levelEntities.get('NewbieRoad'),
+        duplicate
+    );
+
+    const levelMap = GlobalState.levelEntities.get('NewbieRoad');
+    assert.equal(suppressed, true, 'follower hostile spawn should still be suppressed while the joiner room state is unsynced in shared outdoor levels');
+    assert.equal(levelMap?.size, 1, 'cross-room outdoor hostile should still collapse to the existing shared entity');
+    assert.deepEqual(follower.sentPackets.map((packet) => packet.id), [0x0D, 0x0F]);
+    assert.equal(parseDestroyEntityId(follower.sentPackets[0]!.payload), 3402);
+    assert.equal(follower.knownEntityIds.has(canonical.id), true);
+    assert.equal(follower.knownEntityIds.has(3402), false);
+    assert.equal(follower.entities.has(3402), false);
 }
 
 function testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns(): void {
@@ -963,6 +1039,12 @@ function main(): void {
         GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
+        testNewbieRoadSeedsServerNpcCopies();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
         testOutdoorHostileClientSpawnIsNotSeededToPeers();
 
         GlobalState.levelEntities.clear();
@@ -994,6 +1076,12 @@ function main(): void {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testOutdoorPartyAuthoritySuppressesDuplicateHostileSpawnsAcrossUnsyncedRooms();
 
         GlobalState.levelEntities.clear();
         GlobalState.levelStateByScope.clear();

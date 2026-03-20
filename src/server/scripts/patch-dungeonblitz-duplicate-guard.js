@@ -516,6 +516,9 @@ function patchLinkUpdater(source) {
 function patchRoom(source) {
     const eol = source.includes('\r\n') ? '\r\n' : '\n';
     const join = (lines) => lines.join(eol);
+    const oldJoinerGuard = 'this.bInstanced && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader';
+    const expandedJoinerGuard = '(this.bInstanced || this.var_1.level.internalName == "NewbieRoad" || this.var_1.level.internalName == "NewbieRoadHard") && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader';
+    const outdoorServerNpcGuard = '(this.var_1.level.internalName == "NewbieRoad" || this.var_1.level.internalName == "NewbieRoadHard")';
 
     if (source.includes('null.bDisabled = param3 != "On";')) {
         source = replaceExact(
@@ -576,8 +579,50 @@ function patchRoom(source) {
         );
     }
 
-    if (source.includes('this.bInstanced && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader')) {
+    if (source.includes('var _loc8_:* = §§findproperty(_loc6_);')) {
+        source = replaceExact(
+            source,
+            join([
+                '               if(_loc6_.x - _loc3_.x > const_1046)',
+                '               {',
+                '                  var _loc8_:* = §§findproperty(_loc6_);',
+                '                  var _loc9_:Number = Number(_loc8_._loc6_) + 1;',
+                '                  _loc8_._loc6_ = _loc9_;',
+                '               }'
+            ]),
+            join([
+                '               if(_loc6_.x - _loc3_.x > const_1046)',
+                '               {',
+                '                  _loc6_.aggroTeamID = _loc3_.aggroTeamID + 1;',
+                '               }'
+            ]),
+            'Room decompile fix: aggro team grouping'
+        );
+    }
+
+    if (source.includes(`${outdoorServerNpcGuard})\n         {\n            if(param1.team != "enemy")`)) {
         return source;
+    }
+
+    if (source.includes(expandedJoinerGuard)) {
+        source = source.replace(
+            `         if(${expandedJoinerGuard})`,
+            join([
+                `         if(${outdoorServerNpcGuard})`,
+                '         {',
+                '            if(param1.team != "enemy")',
+                '            {',
+                '               return null;',
+                '            }',
+                '         }',
+                `         if(${expandedJoinerGuard})`
+            ])
+        );
+        return source;
+    }
+
+    if (source.includes(oldJoinerGuard)) {
+        source = source.replace(oldJoinerGuard, expandedJoinerGuard);
     }
 
     return replaceExact(
@@ -594,7 +639,14 @@ function patchRoom(source) {
             '         {',
             '            return null;',
             '         }',
-            '         if(this.bInstanced && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader)',
+            `         if(${outdoorServerNpcGuard})`,
+            '         {',
+            '            if(param1.team != "enemy")',
+            '            {',
+            '               return null;',
+            '            }',
+            '         }',
+            `         if(${expandedJoinerGuard})`,
             '         {',
             '            if(param1.team != "friend")',
             '            {',
