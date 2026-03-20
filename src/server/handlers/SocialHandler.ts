@@ -1615,8 +1615,18 @@ export class SocialHandler {
 
     static handleLevelState(client: Client, data: Buffer): void {
         const br = new BitReader(data);
-        br.readMethod26();
-        br.readMethod26();
+        const stateKey = br.readMethod26();
+        const stateValue = br.readMethod26();
+
+        const scopeKey = getClientLevelScope(client);
+        if (scopeKey && stateKey) {
+            let scopeState = GlobalState.levelStateByScope.get(scopeKey);
+            if (!scopeState) {
+                scopeState = new Map<string, Buffer>();
+                GlobalState.levelStateByScope.set(scopeKey, scopeState);
+            }
+            scopeState.set(stateKey, Buffer.from(data));
+        }
 
         SocialHandler.relayToLevel(client, 0x40, data);
     }

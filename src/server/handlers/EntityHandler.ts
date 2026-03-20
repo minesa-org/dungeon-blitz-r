@@ -453,6 +453,22 @@ export class EntityHandler {
         }
     }
 
+    private static replayStoredLevelStateToJoiner(joiner: Client): void {
+        const scopeKey = getClientLevelScope(joiner);
+        if (!scopeKey) {
+            return;
+        }
+
+        const scopeState = GlobalState.levelStateByScope.get(scopeKey);
+        if (!scopeState || scopeState.size === 0) {
+            return;
+        }
+
+        for (const payload of scopeState.values()) {
+            joiner.send(0x40, Buffer.from(payload));
+        }
+    }
+
     static resolveCanonicalEntity(levelName: string, entityId: number): EntityProps | null {
         if (!levelName || entityId <= 0) {
             return null;
@@ -1213,6 +1229,7 @@ export class EntityHandler {
         }
 
         EntityHandler.replayStartedDungeonRoomEventsToJoiner(joiner);
+        EntityHandler.replayStoredLevelStateToJoiner(joiner);
         EntityHandler.scheduleExistingVisibleClientSpawnEntitiesToJoiner(joiner);
     }
 

@@ -4,6 +4,7 @@ import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
 import { EntityHandler } from '../handlers/EntityHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
+import { SocialHandler } from '../handlers/SocialHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { NpcLoader } from '../data/NpcLoader';
@@ -85,6 +86,21 @@ function parseRoomEventStart(payload: Buffer): { roomId: number; flag: boolean }
         roomId: br.readMethod4(),
         flag: br.readMethod15()
     };
+}
+
+function parseLevelState(payload: Buffer): { key: string; value: string } {
+    const br = new BitReader(payload);
+    return {
+        key: br.readMethod26(),
+        value: br.readMethod26()
+    };
+}
+
+function buildLevelStatePayload(key: string, value: string): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod26(key);
+    bb.writeMethod26(value);
+    return bb.toBuffer();
 }
 
 function testOutdoorLevelsUseClientSpawn(): void {
@@ -874,13 +890,57 @@ function testDungeonJoinerReplaysStartedRoomEventsFromPartyAnchor(): void {
     assert.equal(joiner.startedRoomEvents.has('TutorialDungeon:5'), true);
 }
 
+function testDungeonJoinerReplaysStoredLevelStateFromScope(): void {
+    const anchor = createFakeClient('Alpha');
+    const joiner = createFakeClient('Beta');
+
+    anchor.currentLevel = 'TutorialDungeon';
+    joiner.currentLevel = 'TutorialDungeon';
+    anchor.levelInstanceId = '41035';
+    joiner.levelInstanceId = '41035';
+    anchor.clientEntID = 7001;
+    joiner.clientEntID = 7002;
+
+    anchor.entities.set(anchor.clientEntID, {
+        id: anchor.clientEntID,
+        name: 'Alpha',
+        isPlayer: true,
+        x: 100,
+        y: 200,
+        team: 1,
+        entState: 0
+    });
+
+    GlobalState.sessionsByToken.set(anchor.token, anchor as never);
+    GlobalState.sessionsByToken.set(joiner.token, joiner as never);
+    GlobalState.partyByMember.set('alpha', 77);
+    GlobalState.partyByMember.set('beta', 77);
+
+    const statePayload = buildLevelStatePayload('5^SetDynamicCollision^am_DynamicCollision_Test', 'Off');
+    SocialHandler.handleLevelState(anchor as never, statePayload);
+    joiner.sentPackets.length = 0;
+
+    (EntityHandler as any).sendExistingPlayersToJoiner(joiner as never);
+
+    const statePackets = joiner.sentPackets.filter((packet) => packet.id === 0x40);
+    assert.deepEqual(
+        statePackets.map((packet) => parseLevelState(packet.payload)),
+        [
+            { key: '5^SetDynamicCollision^am_DynamicCollision_Test', value: 'Off' }
+        ],
+        'joiner should replay stored room level-state packets such as dynamic collision'
+    );
+}
+
 function main(): void {
     ensureLevelConfigLoaded();
 
     const levelEntities = new Map(GlobalState.levelEntities);
+    const levelStateByScope = new Map(GlobalState.levelStateByScope);
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
     const partyByMember = new Map(GlobalState.partyByMember);
     GlobalState.levelEntities.clear();
+    GlobalState.levelStateByScope.clear();
     GlobalState.sessionsByToken.clear();
     GlobalState.partyByMember.clear();
 
@@ -888,91 +948,115 @@ function main(): void {
         testOutdoorLevelsUseClientSpawn();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testClientSpawnLevelsDoNotSendServerNpcCopies();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testClientSpawnLevelsStartEmptyWithoutServerNpcInit();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testOutdoorHostileClientSpawnIsNotSeededToPeers();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testOutdoorHostileClientSpawnSeedsToPartyPeers();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testDungeonHostileClientSpawnSeedsToPartyPeersOnly();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testDungeonPartyAuthoritySuppressesDuplicateHostileSpawns();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testDungeonPartyAuthoritySuppressesDuplicateHostileSpawnsAcrossUnsyncedRooms();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testCraftTownTutorialSameIdDuplicateDoesNotForceDestroyRespawn();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testSoloDungeonHostileReferencePromotesToPartyJoinerSeed();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testSoloDungeonNpcReferencePromotesToPartyJoinerSeed();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testConflictingLocalIdsStillTriggerRemotePlayerSeed();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testSafeRemotePlayerIdsRelayMovementWithoutCollision();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testOutdoorHostileIncrementalUpdatesDoNotRelayToPeers();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testOutdoorHostileIncrementalUpdatesRelayToPartyPeers();
 
         GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testDungeonJoinerReplaysStartedRoomEventsFromPartyAnchor();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testDungeonJoinerReplaysStoredLevelStateFromScope();
     } finally {
         GlobalState.levelEntities = levelEntities;
+        GlobalState.levelStateByScope = levelStateByScope;
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.partyByMember = partyByMember;
     }
