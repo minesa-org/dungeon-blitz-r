@@ -56,6 +56,35 @@ export class EntityHandler {
         return EntityHandler.CLIENT_SPAWN_SERVER_NPC_LEVELS.has(levelName);
     }
 
+    private static isRootDungeonAuthority(client: Pick<Client, 'token' | 'syncAnchorToken'> | null | undefined): boolean {
+        const token = Number(client?.token ?? 0);
+        const syncAnchorToken = Number(client?.syncAnchorToken ?? 0);
+        return token > 0 && syncAnchorToken > 0 && token === syncAnchorToken;
+    }
+
+    private static hasPartyAuthorityPeerInScope(client: Client): boolean {
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (other === client) {
+                continue;
+            }
+            if (!other.playerSpawned || !areClientsInSameLevelScope(client, other) || !areClientsInSameParty(client, other)) {
+                continue;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    private static getServerSeededNpcs(levelName: string): NpcDef[] {
+        const npcs = NpcLoader.getNpcsForLevel(levelName);
+        if (!EntityHandler.usesServerSeededNpcs(levelName)) {
+            return npcs;
+        }
+
+        return npcs.filter((npc) => Number(npc?.team ?? 0) === 3);
+    }
+
     private static isSharedClientSpawnRegionActor(levelName: string | null | undefined, entity: any): boolean {
         if (!levelName || !entity?.clientSpawned || entity?.isPlayer) {
             return false;
@@ -1105,6 +1134,33 @@ export class EntityHandler {
             }
         }
 
+        if (
+            levelName &&
+            EntityHandler.usesServerSeededNpcs(levelName) &&
+            !isPlayer &&
+            team !== 2
+        ) {
+            client.entities.delete(entityId);
+            client.knownEntityIds.delete(entityId);
+            EntityHandler.sendDestroyEntity(client, entityId);
+            return;
+        }
+
+        if (
+            levelName &&
+            !isPlayer &&
+            LevelConfig.isDungeonLevel(levelName) &&
+            team === 2 &&
+            getPartyIdForClient(client) > 0 &&
+            !EntityHandler.isRootDungeonAuthority(client) &&
+            EntityHandler.hasPartyAuthorityPeerInScope(client)
+        ) {
+            client.entities.delete(entityId);
+            client.knownEntityIds.delete(entityId);
+            EntityHandler.sendDestroyEntity(client, entityId);
+            return;
+        }
+
         if (EntityHandler.suppressDuplicateSharedClientSpawn(client, levelName, levelMap, props)) {
             return;
         }
@@ -1146,7 +1202,7 @@ export class EntityHandler {
 
             if (EntityHandler.usesClientSpawn(levelName)) {
                 if (EntityHandler.usesServerSeededNpcs(levelName)) {
-                    const npcs = NpcLoader.getNpcsForLevel(levelName);
+                    const npcs = EntityHandler.getServerSeededNpcs(levelName);
                     console.log(`[EntityHandler] Initializing ${npcs.length} server NPCs for client-spawn level ${levelName}`);
 
                     for (const npc of npcs) {
@@ -1157,7 +1213,7 @@ export class EntityHandler {
                     console.log(`[EntityHandler] Skipping server NPC init for client-spawn level ${levelName}`);
                 }
             } else {
-                const npcs = NpcLoader.getNpcsForLevel(levelName);
+                const npcs = EntityHandler.getServerSeededNpcs(levelName);
                 console.log(`[EntityHandler] Initializing ${npcs.length} NPCs for ${levelName}`);
 
                 for (const npc of npcs) {

@@ -2,6 +2,7 @@ import { strict as assert } from 'assert';
 import * as path from 'path';
 import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
+import { Entity } from '../core/Entity';
 import { EntityHandler } from '../handlers/EntityHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
 import { SocialHandler } from '../handlers/SocialHandler';
@@ -20,6 +21,7 @@ type FakeClient = {
     currentLevel: string;
     levelInstanceId: string;
     currentRoomId: number;
+    syncAnchorToken: number;
     playerSpawned: boolean;
     clientEntID: number;
     syncAnchorStartedAt: number;
@@ -59,6 +61,7 @@ function createFakeClient(name: string): FakeClient {
         currentLevel: 'NewbieRoad',
         levelInstanceId: '',
         currentRoomId: 1,
+        syncAnchorToken: 0,
         playerSpawned: true,
         clientEntID: 0,
         syncAnchorStartedAt: 0,
@@ -164,6 +167,83 @@ function testNewbieRoadSeedsServerNpcCopies(): void {
     assert.ok(seededServerNpcs.length > 0, 'NewbieRoad should seed server-authored NPCs');
     assert.equal(client.sentPackets.some((packet) => packet.id === 0x0F), true, 'joining clients should receive seeded NewbieRoad NPCs');
     assert.equal(seededServerNpcs.some((entity) => entity?.team === 3), true, 'friendly NPCs should come from the server seed');
+    assert.equal(seededServerNpcs.some((entity) => entity?.team === 1), false, 'neutral helper actors should stay out of the server-seeded NPC set');
+}
+
+function testNewbieRoadRejectsClientSpawnedNonEnemyNpcs(): void {
+    const client = createFakeClient('Watcher');
+    client.currentLevel = 'NewbieRoad';
+    client.currentRoomId = 3;
+
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(7001); // entityId
+    bb.writeMethod45(100); // x
+    bb.writeMethod45(200); // y
+    bb.writeMethod45(0); // v
+    bb.writeMethod26('NPCAnnaOutside');
+    bb.writeMethod6(3, Entity.TEAM_BITS); // team
+    bb.writeMethod15(false); // isPlayer
+    bb.writeMethod45(0); // yOffset
+    bb.writeMethod15(false); // hasCue
+    bb.writeMethod15(false); // hasSummoner
+    bb.writeMethod15(false); // hasPower
+    bb.writeMethod6(0, Entity.STATE_BITS); // entState
+    bb.writeMethod15(false); // bLeft
+    bb.writeMethod15(false); // bRunning
+    bb.writeMethod15(false); // bJumping
+    bb.writeMethod15(false); // bDropping
+    bb.writeMethod15(false); // bBackpedal
+
+    (EntityHandler as any).handleEntityFullUpdate(client as never, bb.toBuffer());
+
+    assert.deepEqual(client.sentPackets.map((packet) => packet.id), [0x0D], 'client-authored NewbieRoad NPCs should be destroyed instead of accepted');
+    assert.equal(parseDestroyEntityId(client.sentPackets[0]!.payload), 7001);
+    assert.equal(client.entities.has(7001), false);
+}
+
+function testDungeonRejectsNonAuthorityHostileClientSpawn(): void {
+    const leader = createFakeClient('Alpha');
+    const follower = createFakeClient('Beta');
+
+    leader.currentLevel = 'TutorialDungeon';
+    follower.currentLevel = 'TutorialDungeon';
+    leader.levelInstanceId = 'party-scope';
+    follower.levelInstanceId = 'party-scope';
+    leader.currentRoomId = 4;
+    follower.currentRoomId = 4;
+
+    leader.syncAnchorToken = leader.token;
+    follower.syncAnchorToken = leader.token;
+
+    GlobalState.sessionsByToken.set(leader.token, leader as never);
+    GlobalState.sessionsByToken.set(follower.token, follower as never);
+    GlobalState.partyByMember.set('alpha', 101);
+    GlobalState.partyByMember.set('beta', 101);
+
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(7101); // entityId
+    bb.writeMethod45(100); // x
+    bb.writeMethod45(200); // y
+    bb.writeMethod45(0); // v
+    bb.writeMethod26('IntroGoblin');
+    bb.writeMethod6(2, Entity.TEAM_BITS); // team
+    bb.writeMethod15(false); // isPlayer
+    bb.writeMethod45(0); // yOffset
+    bb.writeMethod15(false); // hasCue
+    bb.writeMethod15(false); // hasSummoner
+    bb.writeMethod15(false); // hasPower
+    bb.writeMethod6(0, Entity.STATE_BITS); // entState
+    bb.writeMethod15(false); // bLeft
+    bb.writeMethod15(false); // bRunning
+    bb.writeMethod15(false); // bJumping
+    bb.writeMethod15(false); // bDropping
+    bb.writeMethod15(false); // bBackpedal
+
+    (EntityHandler as any).handleEntityFullUpdate(follower as never, bb.toBuffer());
+
+    assert.deepEqual(follower.sentPackets.map((packet) => packet.id), [0x0D], 'non-authority dungeon hostile should be destroyed instead of accepted');
+    assert.equal(parseDestroyEntityId(follower.sentPackets[0]!.payload), 7101);
+    assert.equal(follower.entities.has(7101), false);
 }
 
 function testOutdoorHostileClientSpawnIsNotSeededToPeers(): void {
@@ -1014,10 +1094,12 @@ function main(): void {
     const levelEntities = new Map(GlobalState.levelEntities);
     const levelStateByScope = new Map(GlobalState.levelStateByScope);
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
+    const partyGroups = new Map(GlobalState.partyGroups);
     const partyByMember = new Map(GlobalState.partyByMember);
     GlobalState.levelEntities.clear();
     GlobalState.levelStateByScope.clear();
     GlobalState.sessionsByToken.clear();
+    GlobalState.partyGroups.clear();
     GlobalState.partyByMember.clear();
 
     try {
@@ -1045,6 +1127,20 @@ function main(): void {
         GlobalState.levelStateByScope.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
+        testNewbieRoadRejectsClientSpawnedNonEnemyNpcs();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.partyGroups.clear();
+        testDungeonRejectsNonAuthorityHostileClientSpawn();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.partyGroups.clear();
         testOutdoorHostileClientSpawnIsNotSeededToPeers();
 
         GlobalState.levelEntities.clear();
@@ -1146,6 +1242,7 @@ function main(): void {
         GlobalState.levelEntities = levelEntities;
         GlobalState.levelStateByScope = levelStateByScope;
         GlobalState.sessionsByToken = sessionsByToken;
+        GlobalState.partyGroups = partyGroups;
         GlobalState.partyByMember = partyByMember;
     }
 
