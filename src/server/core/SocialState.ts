@@ -21,6 +21,7 @@ export interface PendingTeleport {
     syncAnchorToken?: number;
     syncAnchorCharacterName?: string;
     syncEntryLevel?: string;
+    syncQuestTrackerState?: number;
     syncRoomId?: number;
     syncStartedRoomIds?: number[];
 }

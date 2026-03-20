@@ -1146,21 +1146,6 @@ export class EntityHandler {
             return;
         }
 
-        if (
-            levelName &&
-            !isPlayer &&
-            LevelConfig.isDungeonLevel(levelName) &&
-            team === 2 &&
-            getPartyIdForClient(client) > 0 &&
-            !EntityHandler.isRootDungeonAuthority(client) &&
-            EntityHandler.hasPartyAuthorityPeerInScope(client)
-        ) {
-            client.entities.delete(entityId);
-            client.knownEntityIds.delete(entityId);
-            EntityHandler.sendDestroyEntity(client, entityId);
-            return;
-        }
-
         if (EntityHandler.suppressDuplicateSharedClientSpawn(client, levelName, levelMap, props)) {
             return;
         }
@@ -1312,6 +1297,7 @@ export class EntityHandler {
 
         EntityHandler.replayStartedDungeonRoomEventsToJoiner(joiner);
         EntityHandler.replayStoredLevelStateToJoiner(joiner);
+        EntityHandler.sendExistingVisibleClientSpawnEntitiesToJoiner(joiner);
         EntityHandler.scheduleExistingVisibleClientSpawnEntitiesToJoiner(joiner);
     }
 

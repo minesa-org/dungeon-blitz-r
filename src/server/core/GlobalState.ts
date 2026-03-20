@@ -15,6 +15,10 @@ export interface PendingTransfer {
     syncAnchorToken?: number;
     syncAnchorCharacterName?: string;
     syncEntryLevel?: string;
+    syncQuestTrackerState?: number;
+    syncDungeonMissionId?: number;
+    syncDungeonMissionState?: number;
+    syncDungeonMissionProgress?: number;
     syncRoomId?: number;
     syncStartedRoomIds?: number[];
 }

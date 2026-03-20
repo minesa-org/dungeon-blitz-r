@@ -201,7 +201,7 @@ function testNewbieRoadRejectsClientSpawnedNonEnemyNpcs(): void {
     assert.equal(client.entities.has(7001), false);
 }
 
-function testDungeonRejectsNonAuthorityHostileClientSpawn(): void {
+function testDungeonNonLeaderHostileClientSpawnCanEstablishCanonicalState(): void {
     const leader = createFakeClient('Alpha');
     const follower = createFakeClient('Beta');
 
@@ -241,9 +241,9 @@ function testDungeonRejectsNonAuthorityHostileClientSpawn(): void {
 
     (EntityHandler as any).handleEntityFullUpdate(follower as never, bb.toBuffer());
 
-    assert.deepEqual(follower.sentPackets.map((packet) => packet.id), [0x0D], 'non-authority dungeon hostile should be destroyed instead of accepted');
-    assert.equal(parseDestroyEntityId(follower.sentPackets[0]!.payload), 7101);
-    assert.equal(follower.entities.has(7101), false);
+    assert.equal(follower.entities.has(7101), true, 'non-leader dungeon starter should be allowed to establish shared hostile state');
+    assert.equal(GlobalState.levelEntities.get('TutorialDungeon#party-scope')?.has(7101), true);
+    assert.equal(follower.sentPackets.some((packet) => packet.id === 0x0D), false, 'shared dungeon hostile should not be pre-emptively destroyed');
 }
 
 function testOutdoorHostileClientSpawnIsNotSeededToPeers(): void {
@@ -1046,6 +1046,82 @@ function testDungeonJoinerReplaysStartedRoomEventsFromPartyAnchor(): void {
     assert.equal(joiner.startedRoomEvents.has('TutorialDungeon:5'), true);
 }
 
+function testDungeonJoinerSeedsVisibleHostilesImmediatelyAfterRoomReplay(): void {
+    const anchor = createFakeClient('Alpha');
+    const joiner = createFakeClient('Beta');
+
+    anchor.currentLevel = 'TutorialDungeon';
+    joiner.currentLevel = 'TutorialDungeon';
+    anchor.levelInstanceId = '41035';
+    joiner.levelInstanceId = '41035';
+    anchor.currentRoomId = 5;
+    joiner.currentRoomId = 0;
+    anchor.syncAnchorToken = anchor.token;
+    joiner.syncAnchorToken = anchor.token;
+    anchor.syncAnchorStartedAt = 100;
+    joiner.syncAnchorStartedAt = 50;
+    anchor.clientEntID = 7001;
+    joiner.clientEntID = 7002;
+
+    anchor.startedRoomEvents.add('TutorialDungeon:0');
+    anchor.startedRoomEvents.add('TutorialDungeon:1');
+    anchor.startedRoomEvents.add('TutorialDungeon:5');
+
+    anchor.entities.set(anchor.clientEntID, {
+        id: anchor.clientEntID,
+        name: 'Alpha',
+        isPlayer: true,
+        x: 100,
+        y: 200,
+        team: 1,
+        entState: 0
+    });
+    joiner.entities.set(joiner.clientEntID, {
+        id: joiner.clientEntID,
+        name: 'Beta',
+        isPlayer: true,
+        x: 120,
+        y: 200,
+        team: 1,
+        entState: 0
+    });
+
+    const hostile = {
+        id: 9101,
+        name: 'GoblinScout',
+        isPlayer: false,
+        x: 420,
+        y: 315,
+        team: 2,
+        entState: 0,
+        clientSpawned: true,
+        ownerToken: anchor.token,
+        ownerUserId: 0,
+        ownerPartyId: 77,
+        roomId: 5
+    };
+
+    GlobalState.sessionsByToken.set(anchor.token, anchor as never);
+    GlobalState.sessionsByToken.set(joiner.token, joiner as never);
+    GlobalState.partyByMember.set('alpha', 77);
+    GlobalState.partyByMember.set('beta', 77);
+    GlobalState.levelEntities.set('TutorialDungeon#41035', new Map<number, any>([
+        [hostile.id, hostile]
+    ]));
+
+    (EntityHandler as any).sendExistingPlayersToJoiner(joiner as never);
+
+    assert.equal(joiner.currentRoomId, 5, 'joiner should inherit anchor room before hostile seeding');
+    assert.equal(joiner.startedRoomEvents.has('TutorialDungeon:5'), true);
+    assert.equal(joiner.sentPackets.some((packet) => packet.id === 0x0F), true, 'joiner should immediately receive visible shared hostiles');
+    assert.equal(joiner.knownEntityIds.has(hostile.id), true, 'joiner should mark the hostile as known after immediate seeding');
+    assert.equal(
+        joiner.sentPackets.some((packet) => packet.id === 0x0D && parseDestroyEntityId(packet.payload) === hostile.id),
+        false,
+        'joiner should not destroy the shared hostile while seeding it'
+    );
+}
+
 function testDungeonJoinerReplaysStoredLevelStateFromScope(): void {
     const anchor = createFakeClient('Alpha');
     const joiner = createFakeClient('Beta');
@@ -1134,7 +1210,7 @@ function main(): void {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         GlobalState.partyGroups.clear();
-        testDungeonRejectsNonAuthorityHostileClientSpawn();
+        testDungeonNonLeaderHostileClientSpawnCanEstablishCanonicalState();
 
         GlobalState.levelEntities.clear();
         GlobalState.levelStateByScope.clear();
@@ -1232,6 +1308,12 @@ function main(): void {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testDungeonJoinerReplaysStartedRoomEventsFromPartyAnchor();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelStateByScope.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testDungeonJoinerSeedsVisibleHostilesImmediatelyAfterRoomReplay();
 
         GlobalState.levelEntities.clear();
         GlobalState.levelStateByScope.clear();

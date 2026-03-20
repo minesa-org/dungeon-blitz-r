@@ -267,7 +267,8 @@ export class WorldEnter {
         newX: number = 0,
         newY: number = 0,
         newHasCoord: boolean = false,
-        sendExtended: boolean = false
+        sendExtended: boolean = false,
+        questTrackerStateOverride?: number | null
     ): BitBuffer {
         const bb = new BitBuffer();
         const now = Math.floor(Date.now() / 1000);
@@ -322,7 +323,7 @@ export class WorldEnter {
         bb.writeMethod4(Number(character.mammothIdols ?? 0));
         bb.writeMethod11(character.showHigher ? 1 : 0, 1);
 
-        const questTrackerState = character.questTrackerState ?? 0;
+        const questTrackerState = questTrackerStateOverride ?? character.questTrackerState ?? 0;
         if (questTrackerState !== null) {
             bb.writeMethod11(1, 1);
             bb.writeMethod4(Number(questTrackerState));

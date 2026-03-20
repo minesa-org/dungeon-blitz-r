@@ -361,6 +361,10 @@ export class CharacterHandler {
              let syncAnchorStartedAt: number | undefined = isDungeonLevel ? Date.now() : undefined;
              let syncAnchorToken: number | undefined = isDungeonLevel ? token : undefined;
              let syncAnchorCharacterName: string | undefined = isDungeonLevel ? char.name : undefined;
+             let syncQuestTrackerState: number | undefined;
+             let syncDungeonMissionId: number | undefined;
+             let syncDungeonMissionState: number | undefined;
+             let syncDungeonMissionProgress: number | undefined;
              let syncRoomId: number | undefined;
              let syncStartedRoomIds: number[] | undefined;
              let syncEntryLevel: string | undefined;
@@ -379,6 +383,15 @@ export class CharacterHandler {
                      syncAnchorStartedAt = other.syncAnchorStartedAt > 0 ? other.syncAnchorStartedAt : Date.now();
                      syncAnchorToken = other.syncAnchorToken > 0 ? other.syncAnchorToken : token;
                      syncAnchorCharacterName = String(other.syncAnchorCharacterName || other.character.name).trim();
+                     syncQuestTrackerState = MissionHandler.getEffectiveQuestProgress(other);
+                     const syncedDungeonMission = MissionHandler.getDungeonMissionSyncState(
+                        other.character,
+                        currentLevelName,
+                        syncQuestTrackerState
+                     );
+                     syncDungeonMissionId = syncedDungeonMission?.missionId;
+                     syncDungeonMissionState = syncedDungeonMission?.state;
+                     syncDungeonMissionProgress = syncedDungeonMission?.progress;
                      // NOTE: Do NOT sync syncRoomId or syncStartedRoomIds here.
                      // Room progress replay causes null errors in the Flash client when
                      // it receives room event start packets before the level SWF is loaded.
@@ -405,6 +418,10 @@ export class CharacterHandler {
                 syncAnchorStartedAt,
                 syncAnchorToken,
                 syncAnchorCharacterName,
+                syncQuestTrackerState,
+                syncDungeonMissionId,
+                syncDungeonMissionState,
+                syncDungeonMissionProgress,
                 syncRoomId,
                 syncStartedRoomIds,
                 syncEntryLevel
@@ -481,6 +498,18 @@ export class CharacterHandler {
             entry.syncAnchorCharacterName ??
             (LevelConfig.isDungeonLevel(entry.targetLevel) ? entry.character.name : '')
         ).trim();
+        client.syncedQuestTrackerState = Number.isFinite(Number(entry.syncQuestTrackerState))
+            ? Math.max(0, Math.round(Number(entry.syncQuestTrackerState)))
+            : null;
+        client.syncedDungeonMissionId = Number.isFinite(Number(entry.syncDungeonMissionId))
+            ? Math.max(0, Math.round(Number(entry.syncDungeonMissionId)))
+            : 0;
+        client.syncedDungeonMissionState = Number.isFinite(Number(entry.syncDungeonMissionState))
+            ? Math.max(0, Math.round(Number(entry.syncDungeonMissionState)))
+            : 0;
+        client.syncedDungeonMissionProgress = Number.isFinite(Number(entry.syncDungeonMissionProgress))
+            ? Math.max(0, Math.round(Number(entry.syncDungeonMissionProgress)))
+            : null;
         client.currentRoomId = Number.isFinite(Number(entry.syncRoomId)) && Number(entry.syncRoomId) >= 0
             ? Math.round(Number(entry.syncRoomId))
             : 0;
@@ -538,6 +567,10 @@ export class CharacterHandler {
             syncAnchorToken: client.syncAnchorToken > 0 ? client.syncAnchorToken : undefined,
             syncAnchorCharacterName: client.syncAnchorCharacterName || undefined,
             syncEntryLevel: entry.syncEntryLevel,
+            syncQuestTrackerState: client.syncedQuestTrackerState ?? undefined,
+            syncDungeonMissionId: client.syncedDungeonMissionId || undefined,
+            syncDungeonMissionState: client.syncedDungeonMissionState || undefined,
+            syncDungeonMissionProgress: client.syncedDungeonMissionProgress ?? undefined,
             syncRoomId: entry.syncRoomId,
             syncStartedRoomIds: entry.syncStartedRoomIds
         });
@@ -566,7 +599,8 @@ export class CharacterHandler {
             spawn.x,
             spawn.y,
             spawn.hasCoord,
-            sendExtended
+            sendExtended,
+            client.syncedQuestTrackerState
         );
         
         client.sendBitBuffer(0x10, pdPkt);

@@ -133,6 +133,10 @@ export class Client {
     public syncAnchorStartedAt: number = 0;
     public syncAnchorToken: number = 0;
     public syncAnchorCharacterName: string = "";
+    public syncedQuestTrackerState: number | null = null;
+    public syncedDungeonMissionId: number = 0;
+    public syncedDungeonMissionState: number = 0;
+    public syncedDungeonMissionProgress: number | null = null;
     public pendingTransferUntil: number = 0;
     public mountTransferGraceUntil: number = 0;
     public startedRoomEvents: Set<string> = new Set();

@@ -39,6 +39,7 @@ type LevelSyncState = {
     syncAnchorToken?: number;
     syncAnchorCharacterName?: string;
     syncEntryLevel?: string;
+    syncQuestTrackerState?: number;
     syncRoomId?: number;
     syncStartedRoomIds?: number[];
 };
@@ -210,6 +211,9 @@ export class LevelHandler {
                     : (session.token > 0 ? session.token : undefined),
                 syncAnchorCharacterName: String(session.syncAnchorCharacterName ?? session.character.name).trim() || undefined,
                 syncEntryLevel: LevelConfig.normalizeLevelName(session.entryLevel) || undefined,
+                syncQuestTrackerState: Number.isFinite(Number(session.syncedQuestTrackerState))
+                    ? Math.max(0, Math.round(Number(session.syncedQuestTrackerState)))
+                    : Math.max(0, Number(session.character.questTrackerState ?? 0)),
                 syncRoomId: Number.isFinite(Number(session.currentRoomId)) && session.currentRoomId >= 0
                     ? Math.round(Number(session.currentRoomId))
                     : undefined,
@@ -248,6 +252,9 @@ export class LevelHandler {
                     : (token > 0 ? token : undefined),
                 syncAnchorCharacterName: String(entry.syncAnchorCharacterName ?? entry.character.name).trim() || undefined,
                 syncEntryLevel: LevelConfig.normalizeLevelName(entry.syncEntryLevel ?? entry.previousLevel) || undefined,
+                syncQuestTrackerState: Number.isFinite(Number(entry.syncQuestTrackerState))
+                    ? Math.max(0, Math.round(Number(entry.syncQuestTrackerState)))
+                    : undefined,
                 syncRoomId: Number.isFinite(Number(entry.syncRoomId)) && Number(entry.syncRoomId) >= 0
                     ? Math.round(Number(entry.syncRoomId))
                     : undefined,
@@ -488,6 +495,10 @@ export class LevelHandler {
             (shouldSyncDungeonProgress ? client.syncAnchorCharacterName : '') ??
             ''
         ).trim() || undefined;
+        let syncQuestTrackerState = shouldSyncDungeonProgress &&
+            Number.isFinite(Number(teleportOverride?.syncQuestTrackerState))
+            ? Math.max(0, Math.round(Number(teleportOverride?.syncQuestTrackerState)))
+            : undefined;
 
         if (anchor) {
             const anchorState = anchor.state;
@@ -503,6 +514,9 @@ export class LevelHandler {
                 levelInstanceId = normalizeLevelInstanceId(anchorState.levelInstanceId) || levelInstanceId;
                 syncAnchorStartedAt = LevelHandler.normalizeSyncAnchorStartedAt(anchorState.syncAnchorStartedAt) ?? syncAnchorStartedAt;
                 syncEntryLevel = LevelConfig.normalizeLevelName(anchorState.syncEntryLevel) || syncEntryLevel;
+                if (Number.isFinite(Number(anchorState.syncQuestTrackerState))) {
+                    syncQuestTrackerState = Math.max(0, Math.round(Number(anchorState.syncQuestTrackerState)));
+                }
                 if (Number.isFinite(Number(anchorState.syncRoomId)) && Number(anchorState.syncRoomId) >= 0) {
                     syncRoomId = Math.round(Number(anchorState.syncRoomId));
                 }
@@ -540,6 +554,7 @@ export class LevelHandler {
             syncAnchorToken,
             syncAnchorCharacterName,
             syncEntryLevel,
+            syncQuestTrackerState,
             syncRoomId,
             syncStartedRoomIds
         };
@@ -1669,6 +1684,10 @@ export class LevelHandler {
         client.syncAnchorStartedAt = 0;
         client.syncAnchorToken = 0;
         client.syncAnchorCharacterName = '';
+        client.syncedQuestTrackerState = null;
+        client.syncedDungeonMissionId = 0;
+        client.syncedDungeonMissionState = 0;
+        client.syncedDungeonMissionProgress = null;
     }
 
     private static forLevelRecipients(client: Client, includeSender: boolean = false): Client[] {
@@ -1781,6 +1800,9 @@ export class LevelHandler {
                 syncAnchorToken,
                 syncAnchorCharacterName,
                 syncEntryLevel: syncState?.syncEntryLevel,
+                syncQuestTrackerState: Number.isFinite(Number(syncState?.syncQuestTrackerState))
+                    ? Math.max(0, Math.round(Number(syncState?.syncQuestTrackerState)))
+                    : undefined,
                 syncRoomId: syncState?.syncRoomId,
                 syncStartedRoomIds: syncState?.syncStartedRoomIds
             });
@@ -2069,6 +2091,7 @@ export class LevelHandler {
         if (client.character) {
             client.character.questTrackerState = progress;
         }
+        client.syncedQuestTrackerState = Math.max(0, progress);
 
         LevelHandler.relayToLevel(client, 0xB7, data);
     }

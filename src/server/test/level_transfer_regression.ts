@@ -6,8 +6,11 @@ import { Character } from '../database/Database';
 import { GlobalState } from '../core/GlobalState';
 import { CharacterHandler } from '../handlers/CharacterHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
+import { MissionHandler } from '../handlers/MissionHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
+import { BitReader } from '../network/protocol/bitReader';
 import { LevelConfig } from '../core/LevelConfig';
+import { MissionLoader } from '../data/MissionLoader';
 
 function createCharacter(name: string): Character {
     return {
@@ -40,10 +43,22 @@ function createClient(): any {
         lastDoorTargetLevel: '',
         playerSpawned: false,
         startedRoomEvents: new Set<string>(),
+        syncedQuestTrackerState: null,
+        syncedDungeonMissionId: 0,
+        syncedDungeonMissionState: 0,
+        syncedDungeonMissionProgress: null,
         sentPackets,
         sendBitBuffer(id: number, bb: BitBuffer) {
             sentPackets.push({ id, payload: bb.toBuffer() });
         }
+    };
+}
+
+function parseMissionProgress(payload: Buffer): { missionId: number; progress: number } {
+    const br = new BitReader(payload);
+    return {
+        missionId: br.readMethod4(),
+        progress: br.readMethod4()
     };
 }
 
@@ -62,6 +77,9 @@ function withMockedRandom(values: number[], fn: () => void): void {
 function ensureLevelConfigLoaded(): void {
     if (!LevelConfig.has('TutorialDungeon')) {
         LevelConfig.load(path.resolve(__dirname, '../data'));
+    }
+    if (!MissionLoader.getMissionDef(3)) {
+        MissionLoader.load(path.resolve(__dirname, '../data'));
     }
 }
 
@@ -568,6 +586,92 @@ function testLevelTransferTokenSkipsTargetLevelEntityAndLivePlayerIds(): void {
     assert.equal(allocatedToken, 4098);
 }
 
+function testEnterWorldSyncsDungeonQuestTrackerStateFromPartyAnchor(): void {
+    const character = createCharacter('Scout');
+    character.CurrentLevel = { name: 'TutorialDungeon', x: 1421, y: 826 };
+    character.PreviousLevel = { name: 'NewbieRoad', x: 0, y: 0 };
+    character.questTrackerState = 100;
+
+    const client = {
+        userId: 41,
+        character,
+        sendBitBuffer: () => undefined
+    };
+
+    const anchorCharacter = createCharacter('Leader');
+    anchorCharacter.CurrentLevel = { name: 'TutorialDungeon', x: 1500, y: 900 };
+    anchorCharacter.PreviousLevel = { name: 'NewbieRoad', x: 0, y: 0 };
+    anchorCharacter.questTrackerState = 62;
+    anchorCharacter.missions = {
+        '3': {
+            state: 1,
+            currCount: 62
+        }
+    };
+
+    GlobalState.sessionsByToken.set(7001, {
+        token: 7001,
+        userId: 42,
+        character: anchorCharacter,
+        currentLevel: 'TutorialDungeon',
+        levelInstanceId: 'party-instance',
+        playerSpawned: true,
+        syncAnchorStartedAt: 1234,
+        syncAnchorToken: 7001,
+        syncAnchorCharacterName: 'Leader',
+        syncedQuestTrackerState: 62
+    } as never);
+    GlobalState.partyByMember.set('leader', 55);
+    GlobalState.partyByMember.set('scout', 55);
+
+    withMockedRandom(
+        [
+            (4099.5 / 0x10000)
+        ],
+        () => {
+            (CharacterHandler as any).sendEnterWorld(client, character);
+        }
+    );
+
+    const pendingEntry = GlobalState.pendingWorld.get(4099);
+    assert.ok(pendingEntry);
+    assert.equal(pendingEntry?.levelInstanceId, 'party-instance');
+    assert.equal(pendingEntry?.syncAnchorToken, 7001);
+    assert.equal(pendingEntry?.syncQuestTrackerState, 62, 'joiner should inherit party dungeon progress instead of keeping stale personal progress');
+    assert.equal(pendingEntry?.syncDungeonMissionId, 3);
+    assert.equal(pendingEntry?.syncDungeonMissionProgress, 62);
+}
+
+function testMissionSyncUsesDungeonOwnerProgressOverride(): void {
+    const client = createClient();
+    const character = createCharacter('Scout');
+    character.CurrentLevel = { name: 'TutorialDungeon', x: 1421, y: 826 };
+    character.PreviousLevel = { name: 'NewbieRoad', x: 0, y: 0 };
+    character.questTrackerState = 100;
+    character.missions = {
+        '3': {
+            state: 1,
+            currCount: 100
+        }
+    };
+
+    client.character = character;
+    client.currentLevel = 'TutorialDungeon';
+    client.syncedQuestTrackerState = 18;
+    client.syncedDungeonMissionId = 3;
+    client.syncedDungeonMissionState = 1;
+    client.syncedDungeonMissionProgress = 18;
+
+    MissionHandler.syncMissionStateToClient(client as never);
+
+    const missionProgressPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x83);
+    assert.ok(missionProgressPacket, 'mission progress packet should be emitted');
+    assert.deepEqual(parseMissionProgress(missionProgressPacket!.payload), {
+        missionId: 3,
+        progress: 18
+    });
+}
+
 function main(): void {
     ensureLevelConfigLoaded();
 
@@ -669,6 +773,32 @@ function main(): void {
         GlobalState.levelEntities.clear();
 
         testLevelTransferTokenSkipsTargetLevelEntityAndLivePlayerIds();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.sessionsByUserId.clear();
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.pendingExtended.clear();
+        GlobalState.usedTransferTokens.clear();
+        GlobalState.tokenChar.clear();
+        GlobalState.transferTokenAliases.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+
+        testEnterWorldSyncsDungeonQuestTrackerStateFromPartyAnchor();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.sessionsByUserId.clear();
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.pendingExtended.clear();
+        GlobalState.usedTransferTokens.clear();
+        GlobalState.tokenChar.clear();
+        GlobalState.transferTokenAliases.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+
+        testMissionSyncUsesDungeonOwnerProgressOverride();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();

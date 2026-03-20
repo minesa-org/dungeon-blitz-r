@@ -10,6 +10,11 @@ import { BitReader } from '../network/protocol/bitReader';
 const db = new JsonAdapter();
 
 type MissionEntry = Record<string, any>;
+type DungeonMissionSyncState = {
+    missionId: number;
+    state: number;
+    progress: number;
+};
 
 export class MissionHandler {
     private static readonly MISSION_NOT_STARTED = 0;
@@ -93,21 +98,29 @@ export class MissionHandler {
             return;
         }
 
-        MissionHandler.sendQuestProgress(client, Math.max(0, Number(client.character.questTrackerState ?? 0)));
+        MissionHandler.sendQuestProgress(client, MissionHandler.getEffectiveQuestProgress(client));
 
         const missions = MissionHandler.getMissionStateMap(client.character);
         const missionIds = Object.keys(missions)
             .map((value) => Number(value))
             .filter((value) => Number.isFinite(value) && value > 0)
             .sort((left, right) => left - right);
+        const syncedDungeonMission = MissionHandler.getEffectiveDungeonMissionSyncState(client);
+        if (syncedDungeonMission && !missionIds.includes(syncedDungeonMission.missionId)) {
+            missionIds.push(syncedDungeonMission.missionId);
+            missionIds.sort((left, right) => left - right);
+        }
 
         for (const missionId of missionIds) {
             if (!MissionHandler.LOGIN_SYNC_MISSION_IDS.has(missionId)) {
                 continue;
             }
 
+            const syncedEntry = syncedDungeonMission?.missionId === missionId ? syncedDungeonMission : null;
             const entry = MissionHandler.asMissionEntry(missions[String(missionId)]);
-            const state = Number(entry.state ?? MissionHandler.MISSION_NOT_STARTED);
+            const state = syncedEntry
+                ? syncedEntry.state
+                : Number(entry.state ?? MissionHandler.MISSION_NOT_STARTED);
 
             if (state >= MissionHandler.MISSION_CLAIMED) {
                 MissionHandler.sendMissionComplete(client, missionId);
@@ -121,7 +134,9 @@ export class MissionHandler {
 
             if (state === MissionHandler.MISSION_IN_PROGRESS) {
                 MissionHandler.sendMissionAdded(client, missionId, MissionHandler.MISSION_IN_PROGRESS);
-                const progress = Math.max(0, Number(entry.currCount ?? 0));
+                const progress = syncedEntry
+                    ? syncedEntry.progress
+                    : Math.max(0, Number(entry.currCount ?? 0));
                 if (progress > 0) {
                     MissionHandler.sendMissionProgress(client, missionId, progress);
                 }
@@ -412,6 +427,76 @@ export class MissionHandler {
         const bb = new BitBuffer(false);
         bb.writeMethod4(percent);
         client.sendBitBuffer(0xB7, bb);
+    }
+
+    static getEffectiveQuestProgress(client: Pick<Client, 'character' | 'syncedQuestTrackerState'>): number {
+        const syncedProgress = Number(client.syncedQuestTrackerState);
+        if (Number.isFinite(syncedProgress) && syncedProgress >= 0) {
+            return Math.max(0, Math.round(syncedProgress));
+        }
+
+        return Math.max(0, Number(client.character?.questTrackerState ?? 0));
+    }
+
+    static getDungeonMissionSyncState(
+        character: Character | null | undefined,
+        currentLevelRaw: string | null | undefined,
+        fallbackProgress: number | null | undefined = null
+    ): DungeonMissionSyncState | null {
+        const currentLevel = LevelConfig.normalizeLevelName(currentLevelRaw);
+        if (!character || !currentLevel) {
+            return null;
+        }
+
+        const missions = MissionHandler.getMissionStateMap(character);
+        const missionIds = Object.keys(missions)
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value) && value > 0)
+            .sort((left, right) => left - right);
+
+        for (const missionId of missionIds) {
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            if (!missionDef || LevelConfig.normalizeLevelName(missionDef.Dungeon) !== currentLevel) {
+                continue;
+            }
+
+            const entry = MissionHandler.asMissionEntry(missions[String(missionId)]);
+            const state = Number(entry.state ?? MissionHandler.MISSION_NOT_STARTED);
+            if (state < MissionHandler.MISSION_IN_PROGRESS || state >= MissionHandler.MISSION_CLAIMED) {
+                continue;
+            }
+
+            const explicitFallback = Number(fallbackProgress);
+            const progress = Number.isFinite(explicitFallback) && explicitFallback >= 0
+                ? Math.max(0, Math.round(explicitFallback))
+                : Math.max(0, Number(entry.currCount ?? 0));
+            return {
+                missionId,
+                state,
+                progress
+            };
+        }
+
+        return null;
+    }
+
+    static getEffectiveDungeonMissionSyncState(
+        client: Pick<Client, 'currentLevel' | 'character' | 'syncedDungeonMissionId' | 'syncedDungeonMissionState' | 'syncedDungeonMissionProgress'>
+    ): DungeonMissionSyncState | null {
+        const syncedMissionId = Number(client.syncedDungeonMissionId ?? 0);
+        const syncedMissionState = Number(client.syncedDungeonMissionState ?? 0);
+        const syncedMissionProgress = Number(client.syncedDungeonMissionProgress);
+        if (syncedMissionId > 0 && syncedMissionState >= MissionHandler.MISSION_IN_PROGRESS) {
+            return {
+                missionId: syncedMissionId,
+                state: syncedMissionState,
+                progress: Number.isFinite(syncedMissionProgress) && syncedMissionProgress >= 0
+                    ? Math.max(0, Math.round(syncedMissionProgress))
+                    : 0
+            };
+        }
+
+        return MissionHandler.getDungeonMissionSyncState(client.character, client.currentLevel);
     }
 
     private static sendMissionProgress(client: Client, missionId: number, progress: number): void {
