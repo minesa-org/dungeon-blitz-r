@@ -15,6 +15,7 @@ import { AbilityHandler } from './AbilityHandler';
 import { SocialHandler } from './SocialHandler';
 import { GuildHandler } from './GuildHandler';
 import { EntityHandler } from './EntityHandler';
+import { DungeonRunManager } from '../core/DungeonRunManager';
 import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
 import { getPartyIdForClient, areClientsInSameParty } from '../core/PartySync';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
@@ -30,11 +31,6 @@ const db = new JsonAdapter();
 
 export class CharacterHandler {
     private static buildDungeonInstanceSeed(client: Pick<Client, 'character'>, fallbackSeed: number | string): string {
-        const partyId = getPartyIdForClient(client);
-        if (partyId > 0) {
-            return `party-${partyId}`;
-        }
-
         return createDungeonInstanceId(fallbackSeed);
     }
 
@@ -98,7 +94,10 @@ export class CharacterHandler {
                 const isSameUser = ownerUserId > 0 && ownerUserId === userId;
                 const isSameCharacter = normalizedEntityName === normalizedCharName;
                 const isDuplicatePlayer = Boolean(entityProps?.isPlayer) && (isSameUser || isSameCharacter);
-                const isDuplicateOwnedSpawn = Boolean(entityProps?.clientSpawned) && isSameUser;
+                const isDuplicateOwnedSpawn =
+                    Boolean(entityProps?.clientSpawned) &&
+                    isSameUser &&
+                    !EntityHandler.isSharedDungeonRunEntity(getScopeLevelName(levelScopeKey), entityProps);
 
                 if (!isDuplicatePlayer && !isDuplicateOwnedSpawn) {
                     continue;
@@ -364,8 +363,6 @@ export class CharacterHandler {
         
         // Store Pending State
         if (client.userId) {
-             // For dungeon levels, try to find a party member already in the same dungeon
-             // and reuse their levelInstanceId so both players share the same level scope.
              let levelInstanceId = '';
              let syncAnchorStartedAt: number | undefined = isDungeonLevel ? Date.now() : undefined;
              let syncAnchorToken: number | undefined = isDungeonLevel ? token : undefined;
@@ -379,62 +376,22 @@ export class CharacterHandler {
              let syncEntryLevel: string | undefined;
 
              if (isDungeonLevel) {
-                 const normalizedTarget = LevelConfig.normalizeLevelName(currentLevelName);
-                 let bestAnchor: Client | null = null;
-                 let bestAnchorStartedRoomCount = -1;
-                 let bestAnchorStartedAt = Number.MAX_SAFE_INTEGER;
-
-                 for (const other of GlobalState.sessionsByToken.values()) {
-                     if (!other.playerSpawned || !other.character) continue;
-                     if (LevelConfig.normalizeLevelName(other.currentLevel) !== normalizedTarget) continue;
-                     if (!areClientsInSameParty(client, other)) continue;
-                     if (normalizeCharacterKey(other.character.name) === normalizeCharacterKey(char.name)) continue;
-                     const startedRoomIds = LevelHandler.getStartedRoomIdsForLevel(other, currentLevelName);
-                     const startedRoomCount = startedRoomIds.length;
-                     const startedAt = Number.isFinite(Number(other.syncAnchorStartedAt)) && Number(other.syncAnchorStartedAt) > 0
-                        ? Math.round(Number(other.syncAnchorStartedAt))
-                        : Number.MAX_SAFE_INTEGER;
-
-                     if (
-                        !bestAnchor ||
-                        startedRoomCount > bestAnchorStartedRoomCount ||
-                        (startedRoomCount === bestAnchorStartedRoomCount && startedAt < bestAnchorStartedAt) ||
-                        (
-                            startedRoomCount === bestAnchorStartedRoomCount &&
-                            startedAt === bestAnchorStartedAt &&
-                            Number(other.token ?? Number.MAX_SAFE_INTEGER) < Number(bestAnchor.token ?? Number.MAX_SAFE_INTEGER)
-                        )
-                     ) {
-                        bestAnchor = other;
-                        bestAnchorStartedRoomCount = startedRoomCount;
-                        bestAnchorStartedAt = startedAt;
-                     }
-                 }
-
-                 if (bestAnchor) {
-                     levelInstanceId = normalizeLevelInstanceId(bestAnchor.levelInstanceId) || CharacterHandler.buildDungeonInstanceSeed(client, token);
-                     syncAnchorStartedAt = bestAnchor.syncAnchorStartedAt > 0 ? bestAnchor.syncAnchorStartedAt : Date.now();
-                     syncAnchorToken = bestAnchor.syncAnchorToken > 0 ? bestAnchor.syncAnchorToken : token;
-                     syncAnchorCharacterName = String(bestAnchor.syncAnchorCharacterName || bestAnchor.character?.name).trim();
-                     syncQuestTrackerState = MissionHandler.getEffectiveQuestProgress(bestAnchor);
-                     const syncedDungeonMission = MissionHandler.getDungeonMissionSyncState(
-                        bestAnchor.character,
-                        currentLevelName,
-                        syncQuestTrackerState
-                     );
-                     syncDungeonMissionId = syncedDungeonMission?.missionId;
-                     syncDungeonMissionState = syncedDungeonMission?.state;
-                     syncDungeonMissionProgress = syncedDungeonMission?.progress;
-                     syncRoomId = Number.isFinite(Number(bestAnchor.currentRoomId)) && Number(bestAnchor.currentRoomId) >= 0
-                        ? Math.round(Number(bestAnchor.currentRoomId))
-                        : undefined;
-                     syncStartedRoomIds = LevelHandler.getStartedRoomIdsForLevel(bestAnchor, currentLevelName);
-                     syncEntryLevel = LevelConfig.normalizeLevelName(bestAnchor.entryLevel) || undefined;
-                     console.log(`[EnterWorld] Syncing dungeon instance for ${char.name} with party anchor ${bestAnchor.character?.name} (instanceId=${levelInstanceId})`);
-                 }
-
-                 if (!levelInstanceId) {
-                     levelInstanceId = CharacterHandler.buildDungeonInstanceSeed(client, token);
+                 levelInstanceId = DungeonRunManager.resolveLevelInstanceIdForEntry(
+                    client,
+                    currentLevelName,
+                    CharacterHandler.buildDungeonInstanceSeed(client, token)
+                 );
+                 const runProjection = DungeonRunManager.buildRunProjection(currentLevelName, levelInstanceId);
+                 if (runProjection) {
+                    syncAnchorStartedAt = runProjection.syncAnchorStartedAt ?? syncAnchorStartedAt;
+                    syncAnchorToken = runProjection.syncAnchorToken ?? syncAnchorToken;
+                    syncAnchorCharacterName = runProjection.syncAnchorCharacterName ?? syncAnchorCharacterName;
+                    syncQuestTrackerState = runProjection.syncQuestTrackerState ?? syncQuestTrackerState;
+                    syncDungeonMissionId = runProjection.syncDungeonMissionId ?? syncDungeonMissionId;
+                    syncDungeonMissionState = runProjection.syncDungeonMissionState ?? syncDungeonMissionState;
+                    syncDungeonMissionProgress = runProjection.syncDungeonMissionProgress ?? syncDungeonMissionProgress;
+                    syncRoomId = runProjection.syncRoomId ?? syncRoomId;
+                    syncStartedRoomIds = runProjection.syncStartedRoomIds ?? syncStartedRoomIds;
                  }
              }
 
@@ -583,6 +540,10 @@ export class CharacterHandler {
             // Ensure persistence mapping exists
             GlobalState.tokenChar.set(token, { character: entry.character, userId: client.userId });
         }
+        const activeRun = DungeonRunManager.attachClient(client);
+        if (activeRun) {
+            DungeonRunManager.sendAuthorityState(client);
+        }
         GlobalState.usedTransferTokens.set(token, {
             character: entry.character,
             userId: entry.userId,
@@ -635,6 +596,7 @@ export class CharacterHandler {
         client.sendBitBuffer(0x10, pdPkt);
         console.log(`[GameLogin] Sent 0x10 (Player Data)`);
 
+        await MissionHandler.claimCompletedDungeonRunForClient(client);
         MissionHandler.syncMissionStateToClient(client);
 
         SocialHandler.handleSessionReady(client);

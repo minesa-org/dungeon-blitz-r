@@ -1618,6 +1618,10 @@ export class SocialHandler {
         const stateKey = br.readMethod26();
         br.readMethod26();
 
+        if (stateKey.includes('SetDungeonAuthority') || stateKey.includes('DB_DungeonAuthority')) {
+            return;
+        }
+
         const scopeKey = getClientLevelScope(client);
         if (scopeKey && stateKey) {
             let scopeState = GlobalState.levelStateByScope.get(scopeKey);

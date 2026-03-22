@@ -344,9 +344,13 @@ async function testPowerHitFollowsPartyAudience(): Promise<void> {
     const otherRoomStranger = createFakeClient(203, 'Delta', 8);
 
     sender.currentLevel = 'TutorialDungeon';
+    sender.levelInstanceId = 'run-a';
     partyOtherRoom.currentLevel = 'TutorialDungeon';
+    partyOtherRoom.levelInstanceId = 'run-a';
     sameRoomStranger.currentLevel = 'TutorialDungeon';
+    sameRoomStranger.levelInstanceId = 'run-b';
     otherRoomStranger.currentLevel = 'TutorialDungeon';
+    otherRoomStranger.levelInstanceId = 'run-c';
 
     attachPlayerEntity(sender);
     attachPlayerEntity(partyOtherRoom);
@@ -367,6 +371,7 @@ async function testPowerHitFollowsPartyAudience(): Promise<void> {
         entState: EntityState.ACTIVE,
         clientSpawned: true,
         ownerToken: sender.token,
+        authorityToken: sender.token,
         summonerId: sender.clientEntID,
         roomId: sender.currentRoomId,
         hp: 100
@@ -760,6 +765,13 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testDungeonCombatDoesNotCrossInstanceScopes();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.levelEntities = levelEntities;

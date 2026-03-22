@@ -8,11 +8,13 @@ export class GameServer {
     private port: number;
     private host: string;
     private router: PacketRouter;
+    private readonly sockets: Set<net.Socket>;
 
     constructor(port: number = 8080, router: PacketRouter, host: string = Config.BIND_HOST) {
         this.port = port;
         this.router = router;
         this.host = host;
+        this.sockets = new Set();
         this.server = net.createServer((socket) => this.handleConnection(socket));
         this.server.on('error', (error) => {
             const socketError = error as NodeJS.ErrnoException;
@@ -37,13 +39,20 @@ export class GameServer {
     }
 
     public stop(): Promise<void> {
-        if (!this.server.listening) {
+        if (!this.server.listening && this.sockets.size === 0) {
             return Promise.resolve();
         }
 
         return new Promise((resolve, reject) => {
+            this.closeSockets();
             this.server.close((error) => {
                 if (error) {
+                    const socketError = error as NodeJS.ErrnoException;
+                    if (socketError.code === 'ERR_SERVER_NOT_RUNNING') {
+                        resolve();
+                        return;
+                    }
+
                     reject(error);
                     return;
                 }
@@ -54,9 +63,33 @@ export class GameServer {
     }
 
     private handleConnection(socket: net.Socket): void {
+        this.sockets.add(socket);
+        socket.on('close', () => {
+            this.sockets.delete(socket);
+        });
+
         // Create Client wrapper
         const client = new Client(socket, this.router);
         const addr = `${socket.remoteAddress}:${socket.remotePort}`;
         console.log(`[GameServer] Client connected: ${addr}`);
+    }
+
+    private closeSockets(): void {
+        for (const socket of Array.from(this.sockets)) {
+            if (socket.destroyed) {
+                this.sockets.delete(socket);
+                continue;
+            }
+
+            socket.end();
+            socket.destroySoon?.();
+
+            const destroyTimer = setTimeout(() => {
+                if (!socket.destroyed) {
+                    socket.destroy();
+                }
+            }, 250);
+            destroyTimer.unref?.();
+        }
     }
 }

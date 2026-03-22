@@ -2,6 +2,25 @@ import { Character } from '../database/Database';
 import { Client } from './Client';
 import { PartyGroup, PendingTeleport } from './SocialState';
 
+export interface DungeonRunState {
+    scopeKey: string;
+    levelName: string;
+    levelInstanceId: string;
+    authorityToken: number;
+    participantKeys: Set<string>;
+    claimedCompletionKeys: Set<string>;
+    currentRoomId: number;
+    startedRoomIds: Set<number>;
+    questTrackerState: number;
+    dungeonMissionId: number;
+    dungeonMissionState: number;
+    dungeonMissionProgress: number | null;
+    completed: boolean;
+    createdAt: number;
+    lastActiveAt: number;
+    expiresAt: number;
+}
+
 export interface PendingTransfer {
     character: Character;
     targetLevel: string;
@@ -59,6 +78,7 @@ export class GlobalState {
     // Level scope key -> Map<EntityId, EntityData>
     static levelEntities: Map<string, Map<number, any>> = new Map();
     static levelStateByScope: Map<string, Map<string, Buffer>> = new Map();
+    static dungeonRunsByScope: Map<string, DungeonRunState> = new Map();
     static combatContributions: Map<string, Map<string, number>> = new Map();
     static entityLifeNonces: Map<string, number> = new Map();
     static entityLastRewardNonces: Map<string, number> = new Map();

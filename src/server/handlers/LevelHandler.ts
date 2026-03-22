@@ -20,6 +20,7 @@ import { MissionHandler } from './MissionHandler';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { normalizeCharacterKey, PendingTeleport } from '../core/SocialState';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
+import { DungeonRunManager } from '../core/DungeonRunManager';
 import { areClientsInSameParty, getPartyIdForClient } from '../core/PartySync';
 import {
     areClientsInSameLevelScope,
@@ -60,11 +61,6 @@ export class LevelHandler {
         subject: Pick<Client, 'character'> | { character?: { name?: string | null } | null },
         fallbackSeed: number | string
     ): string {
-        const partyId = getPartyIdForClient(subject as Pick<Client, 'character'>);
-        if (partyId > 0) {
-            return `party-${partyId}`;
-        }
-
         return createDungeonInstanceId(fallbackSeed);
     }
 
@@ -633,6 +629,25 @@ export class LevelHandler {
         }
 
         if (shouldSyncDungeonProgress) {
+            levelInstanceId = DungeonRunManager.resolveLevelInstanceIdForEntry(
+                client,
+                normalizedTargetLevel,
+                LevelHandler.buildDungeonInstanceSeed(client, Date.now()),
+                levelInstanceId
+            );
+            const runProjection = DungeonRunManager.buildRunProjection(normalizedTargetLevel, levelInstanceId);
+            if (runProjection) {
+                syncAnchorStartedAt = runProjection.syncAnchorStartedAt ?? syncAnchorStartedAt;
+                syncAnchorToken = runProjection.syncAnchorToken ?? syncAnchorToken;
+                syncAnchorCharacterName = runProjection.syncAnchorCharacterName ?? syncAnchorCharacterName;
+                syncRoomId = runProjection.syncRoomId ?? syncRoomId;
+                syncStartedRoomIds = runProjection.syncStartedRoomIds ?? syncStartedRoomIds;
+                syncQuestTrackerState = runProjection.syncQuestTrackerState ?? syncQuestTrackerState;
+                syncDungeonMissionId = runProjection.syncDungeonMissionId ?? syncDungeonMissionId;
+                syncDungeonMissionState = runProjection.syncDungeonMissionState ?? syncDungeonMissionState;
+                syncDungeonMissionProgress = runProjection.syncDungeonMissionProgress ?? syncDungeonMissionProgress;
+            }
+
             syncAnchorStartedAt = syncAnchorStartedAt ?? Date.now();
         }
 
@@ -1784,12 +1799,16 @@ export class LevelHandler {
     }
 
     private static clearTransferState(client: Client, oldLevel: string, oldClientEntId: number): void {
+        const detachedRun = DungeonRunManager.detachClient(client);
         clearClientSpawnFallbackTimer(client);
         clearKeepTutorialTimers(client.keepTutorialState);
         client.keepTutorialState = null;
         client.clientSpawnConfirmed = false;
         client.entities.delete(oldClientEntId);
         EntityHandler.removeOwnedEntities(client);
+        if (detachedRun) {
+            DungeonRunManager.broadcastAuthorityState(detachedRun.levelName, detachedRun.levelInstanceId);
+        }
         client.clientEntID = 0;
         client.playerSpawned = false;
         client.pendingLoot.clear();
@@ -1835,6 +1854,7 @@ export class LevelHandler {
     private static cacheRoomId(client: Client, roomId: number): void {
         if (Number.isFinite(roomId) && roomId >= 0) {
             client.currentRoomId = roomId;
+            DungeonRunManager.noteRoomEvent(client, roomId, false);
         }
     }
 
@@ -1843,6 +1863,7 @@ export class LevelHandler {
             return;
         }
         client.startedRoomEvents.add(`${client.currentLevel}:${roomId}`);
+        DungeonRunManager.noteRoomEvent(client, roomId, true);
     }
 
     private static getMissionState(client: Client, missionId: number): number {
@@ -2114,6 +2135,7 @@ export class LevelHandler {
         bb.writeMethod9(roomId);
         bb.writeMethod15(flag);
         client.sendBitBuffer(0xA5, bb);
+        LevelHandler.cacheRoomId(client, roomId);
         LevelHandler.markRoomEventStarted(client, roomId);
     }
 
@@ -2160,6 +2182,17 @@ export class LevelHandler {
         client: Client,
         entry: { targetLevel: string; syncRoomId?: number; syncStartedRoomIds?: number[] }
     ): boolean {
+        const runProjection = DungeonRunManager.buildRunProjection(client.currentLevel, client.levelInstanceId);
+        if (runProjection) {
+            return LevelHandler.applyStoredRoomProgressState(
+                client,
+                client.currentLevel,
+                runProjection.syncRoomId,
+                runProjection.syncStartedRoomIds,
+                true
+            );
+        }
+
         return LevelHandler.applyStoredRoomProgressState(
             client,
             entry.targetLevel,
@@ -2241,6 +2274,7 @@ export class LevelHandler {
             client.character.questTrackerState = progress;
         }
         client.syncedQuestTrackerState = Math.max(0, progress);
+        DungeonRunManager.noteQuestProgress(client, client.syncedQuestTrackerState);
 
         LevelHandler.relayToLevel(client, 0xB7, data);
     }

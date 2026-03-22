@@ -378,8 +378,13 @@ export class Client {
         const { GlobalState } = require('./GlobalState') as typeof import('./GlobalState');
         const { EntityHandler } = require('../handlers/EntityHandler') as typeof import('../handlers/EntityHandler');
         const { SocialHandler } = require('../handlers/SocialHandler') as typeof import('../handlers/SocialHandler');
+        const { DungeonRunManager } = require('./DungeonRunManager') as typeof import('./DungeonRunManager');
 
+        const detachedRun = DungeonRunManager.detachClient(this);
         EntityHandler.removeOwnedEntities(this);
+        if (detachedRun) {
+            DungeonRunManager.broadcastAuthorityState(detachedRun.levelName, detachedRun.levelInstanceId);
+        }
         const removedTransferTokens = new Set<number>();
 
         const sessionTokens = new Set<number>();

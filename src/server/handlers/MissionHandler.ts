@@ -1,4 +1,5 @@
 import { Client } from '../core/Client';
+import { DungeonRunManager } from '../core/DungeonRunManager';
 import { LevelConfig } from '../core/LevelConfig';
 import { Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
@@ -144,6 +145,99 @@ export class MissionHandler {
         }
     }
 
+    private static syncRunProjectionFields(client: Client): void {
+        const run = DungeonRunManager.getRun(client.currentLevel, client.levelInstanceId);
+        if (!run) {
+            return;
+        }
+
+        client.syncedQuestTrackerState = Math.max(0, Number(run.questTrackerState ?? 0));
+        client.syncedDungeonMissionId = Math.max(0, Number(run.dungeonMissionId ?? 0));
+        client.syncedDungeonMissionState = Math.max(0, Number(run.dungeonMissionState ?? 0));
+        client.syncedDungeonMissionProgress = Number.isFinite(Number(run.dungeonMissionProgress))
+            ? Math.max(0, Math.round(Number(run.dungeonMissionProgress)))
+            : null;
+    }
+
+    static async claimCompletedDungeonRunForClient(client: Client): Promise<void> {
+        const run = DungeonRunManager.getRun(client.currentLevel, client.levelInstanceId);
+        MissionHandler.syncRunProjectionFields(client);
+        if (!run || !run.completed || !client.character) {
+            return;
+        }
+
+        if (DungeonRunManager.hasClaimedCompletion(run, client.character.name)) {
+            return;
+        }
+
+        let didMutate = false;
+        const nextQuestTrackerState = Math.max(
+            Number(client.character.questTrackerState ?? 0),
+            Math.max(0, Number(run.questTrackerState ?? 0))
+        );
+        if (Number(client.character.questTrackerState ?? 0) !== nextQuestTrackerState) {
+            client.character.questTrackerState = nextQuestTrackerState;
+            didMutate = true;
+        }
+
+        const runMissionId = Math.max(0, Number(run.dungeonMissionId ?? 0));
+        const runMissionState = Math.max(0, Number(run.dungeonMissionState ?? 0));
+        if (runMissionId > 0 && runMissionState >= MissionHandler.MISSION_IN_PROGRESS) {
+            const missionDef = MissionLoader.getMissionDef(runMissionId);
+            const currentMissionState = MissionHandler.getMissionState(client.character, runMissionId);
+            if (missionDef && currentMissionState < runMissionState) {
+                MissionHandler.setMissionState(
+                    client.character,
+                    runMissionId,
+                    runMissionState,
+                    missionDef,
+                    {
+                        currCount: Number.isFinite(Number(run.dungeonMissionProgress))
+                            ? Math.max(
+                                1,
+                                Math.round(Number(run.dungeonMissionProgress)),
+                                Math.round(Number(missionDef.CompleteCount ?? 1))
+                            )
+                            : Math.max(1, Math.round(Number(missionDef.CompleteCount ?? 1)))
+                    }
+                );
+                didMutate = true;
+
+                if (runMissionId === MissionID.RescueAnna) {
+                    const addedMissionId = MissionHandler.autoAcceptFollowupMission(
+                        client.character,
+                        'Anna',
+                        runMissionId
+                    );
+                    if (addedMissionId) {
+                        didMutate = true;
+                    }
+                }
+            }
+        }
+
+        if (didMutate) {
+            await MissionHandler.saveCharacter(client);
+        }
+
+        DungeonRunManager.markCompletionClaimed(run, client.character.name);
+    }
+
+    static async syncCompletedDungeonRunToScope(source: Client): Promise<void> {
+        const run = DungeonRunManager.getRun(source.currentLevel, source.levelInstanceId);
+        if (!run || !run.completed) {
+            return;
+        }
+
+        for (const other of DungeonRunManager.getActiveScopeClients(run.scopeKey)) {
+            MissionHandler.syncRunProjectionFields(other);
+            if (other !== source) {
+                await MissionHandler.claimCompletedDungeonRunForClient(other);
+                MissionHandler.syncMissionStateToClient(other);
+            }
+        }
+    }
+
     static async handleSetLevelComplete(client: Client, data: Buffer): Promise<void> {
         if (!client.character) {
             return;
@@ -239,8 +333,46 @@ export class MissionHandler {
             }
         }
 
+        client.syncedQuestTrackerState = Math.max(0, Number(client.character.questTrackerState ?? client.syncedQuestTrackerState ?? 0));
+        DungeonRunManager.noteQuestProgress(client, client.syncedQuestTrackerState);
+
+        if (completedMissionId) {
+            const completedMissionState = MissionHandler.getMissionState(client.character, completedMissionId);
+            const completedMissionDef = MissionLoader.getMissionDef(completedMissionId);
+            const missionProgress = Math.max(
+                1,
+                Number(
+                    MissionHandler.asMissionEntry(
+                        MissionHandler.getMissionStateMap(client.character)[String(completedMissionId)]
+                    ).currCount ??
+                    completedMissionDef?.CompleteCount ??
+                    1
+                )
+            );
+            client.syncedDungeonMissionId = completedMissionId;
+            client.syncedDungeonMissionState = completedMissionState;
+            client.syncedDungeonMissionProgress = missionProgress;
+            DungeonRunManager.noteDungeonMissionSync(
+                client,
+                completedMissionId,
+                completedMissionState,
+                missionProgress
+            );
+        }
+
+        if (clearedDungeon) {
+            const completedRun = DungeonRunManager.markCompleted(client);
+            if (completedRun && client.character) {
+                DungeonRunManager.markCompletionClaimed(completedRun, client.character.name);
+            }
+        }
+
         if (didMutate) {
             await MissionHandler.saveCharacter(client);
+        }
+
+        if (clearedDungeon) {
+            await MissionHandler.syncCompletedDungeonRunToScope(client);
         }
 
         MissionHandler.sendDungeonComplete(client, {

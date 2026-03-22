@@ -195,6 +195,7 @@ function shutdown(signal: string, exitCode: number, onComplete?: () => void): vo
 
     isShuttingDown = true;
     console.log(`[System] Received ${signal}; shutting down servers.`);
+    AILogic.stop();
 
     const tasks = [
         staticServer.stop(),

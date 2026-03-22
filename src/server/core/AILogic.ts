@@ -21,15 +21,29 @@ export class AILogic {
     static readonly RANGED_ATTACK_RANGE = 300;
     static readonly ATTACK_COOLDOWN = 1000; // ms
     static readonly BASE_NPC_DAMAGE = 15;
+    private static timer: NodeJS.Timeout | null = null;
 
     // Run AI loop for all levels
     static start() {
-        setInterval(() => {
+        if (AILogic.timer) {
+            return;
+        }
+
+        AILogic.timer = setInterval(() => {
             // Iterate over all active levels (keys of levelEntities)
             for (const levelScope of GlobalState.levelEntities.keys()) {
                 AILogic.updateLevel(levelScope);
             }
         }, AILogic.INTERVAL);
+    }
+
+    static stop() {
+        if (!AILogic.timer) {
+            return;
+        }
+
+        clearInterval(AILogic.timer);
+        AILogic.timer = null;
     }
 
     static updateLevel(levelScope: string) {

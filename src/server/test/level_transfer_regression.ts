@@ -84,6 +84,42 @@ function ensureLevelConfigLoaded(): void {
     }
 }
 
+function seedDungeonRun(
+    levelName: string,
+    levelInstanceId: string,
+    options: {
+        authorityToken?: number;
+        currentRoomId?: number;
+        startedRoomIds?: number[];
+        questTrackerState?: number;
+        dungeonMissionId?: number;
+        dungeonMissionState?: number;
+        dungeonMissionProgress?: number | null;
+        participantKeys?: string[];
+        completed?: boolean;
+        expiresAt?: number;
+    } = {}
+): void {
+    GlobalState.dungeonRunsByScope.set(`${levelName}#${levelInstanceId}`, {
+        scopeKey: `${levelName}#${levelInstanceId}`,
+        levelName,
+        levelInstanceId,
+        authorityToken: options.authorityToken ?? 0,
+        participantKeys: new Set(options.participantKeys ?? []),
+        claimedCompletionKeys: new Set<string>(),
+        currentRoomId: options.currentRoomId ?? 0,
+        startedRoomIds: new Set(options.startedRoomIds ?? []),
+        questTrackerState: options.questTrackerState ?? 0,
+        dungeonMissionId: options.dungeonMissionId ?? 0,
+        dungeonMissionState: options.dungeonMissionState ?? 0,
+        dungeonMissionProgress: options.dungeonMissionProgress ?? null,
+        completed: options.completed ?? false,
+        createdAt: 1,
+        lastActiveAt: 1,
+        expiresAt: options.expiresAt ?? 0
+    });
+}
+
 function testRecoverTransferSessionStateFromActiveToken(): void {
     const client = createClient();
     const activeCharacter = createCharacter('Hero');
@@ -334,7 +370,8 @@ function testBuildTransferSyncStateSkipsStrangerDungeonInstance(): void {
     const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'TutorialDungeon', null);
 
     assert.ok(syncState, 'fresh dungeon entries should still get a root sync state');
-    assert.equal(syncState.levelInstanceId, undefined, 'solo players should not inherit an unrelated dungeon instance');
+    assert.ok(syncState.levelInstanceId, 'fresh dungeon entries should allocate a new run id');
+    assert.notEqual(syncState.levelInstanceId, 'solo-run-53', 'solo players should not inherit an unrelated dungeon instance');
     assert.equal(syncState.syncAnchorToken, undefined);
     assert.equal(syncState.syncAnchorCharacterName, undefined);
     assert.ok(Number(syncState.syncAnchorStartedAt) > 0, 'fresh dungeon entries should create a root anchor timestamp');
@@ -477,7 +514,7 @@ function testStorePendingTransferTokenCreatesSoloDungeonInstance(): void {
     );
 }
 
-function testStorePendingTransferTokenCreatesPartyDungeonInstance(): void {
+function testStorePendingTransferTokenCreatesFreshDungeonRunInstance(): void {
     const character = createCharacter('Hero');
     GlobalState.partyByMember.set('hero', 144);
 
@@ -494,7 +531,7 @@ function testStorePendingTransferTokenCreatesPartyDungeonInstance(): void {
         null
     );
 
-    assert.equal(GlobalState.pendingWorld.get(50003)?.levelInstanceId, 'party-144');
+    assert.equal(GlobalState.pendingWorld.get(50003)?.levelInstanceId, '50003');
 }
 
 function testRestoreTransferredRoomProgressReplaysRoomEvents(): void {
@@ -519,6 +556,7 @@ function testRestoreTransferredRoomProgressReplaysRoomEvents(): void {
     LevelHandler.flushDeferredRoomEventStarts(client as never);
 
     assert.deepEqual(client.sentPackets.map((packet: { id: number }) => packet.id), [0xA5, 0xA5]);
+    assert.equal(client.currentRoomId, 7, 'replayed room progress should preserve the latest synced room');
 }
 
 function testPrimeTutorialRoomEventsSkipsSyncedProgress(): void {
@@ -632,7 +670,7 @@ function testEnterWorldTokenSkipsTargetLevelEntityIds(): void {
     assert.equal(GlobalState.tokenChar.get(4097)?.character, character);
 }
 
-function testEnterWorldUsesPartyDungeonInstanceWithoutActiveAnchor(): void {
+function testEnterWorldCreatesFreshDungeonRunWithoutActiveRun(): void {
     const character = createCharacter('Scout');
     character.CurrentLevel = { name: 'TutorialDungeon', x: 1421, y: 826 };
     character.PreviousLevel = { name: 'NewbieRoad', x: 0, y: 0 };
@@ -654,7 +692,49 @@ function testEnterWorldUsesPartyDungeonInstanceWithoutActiveAnchor(): void {
         }
     );
 
-    assert.equal(GlobalState.pendingWorld.get(4101)?.levelInstanceId, 'party-155');
+    assert.equal(GlobalState.pendingWorld.get(4101)?.levelInstanceId, '4101');
+}
+
+function testEnterWorldReusesGraceWindowDungeonRunForReturningParticipant(): void {
+    const character = createCharacter('Scout');
+    character.CurrentLevel = { name: 'TutorialDungeon', x: 1421, y: 826 };
+    character.PreviousLevel = { name: 'NewbieRoad', x: 0, y: 0 };
+
+    const client = {
+        userId: 41,
+        character,
+        sendBitBuffer: () => undefined
+    };
+
+    seedDungeonRun('TutorialDungeon', 'resume-run', {
+        authorityToken: 7001,
+        currentRoomId: 9,
+        startedRoomIds: [0, 9],
+        questTrackerState: 62,
+        dungeonMissionId: 3,
+        dungeonMissionState: 1,
+        dungeonMissionProgress: 62,
+        participantKeys: ['scout'],
+        expiresAt: Date.now() + 60_000
+    });
+
+    withMockedRandom(
+        [
+            (4102.5 / 0x10000)
+        ],
+        () => {
+            (CharacterHandler as any).sendEnterWorld(client, character);
+        }
+    );
+
+    const pendingEntry = GlobalState.pendingWorld.get(4102);
+    assert.ok(pendingEntry);
+    assert.equal(pendingEntry?.levelInstanceId, 'resume-run');
+    assert.equal(pendingEntry?.syncQuestTrackerState, 62);
+    assert.equal(pendingEntry?.syncDungeonMissionId, 3);
+    assert.equal(pendingEntry?.syncDungeonMissionProgress, 62);
+    assert.equal(pendingEntry?.syncRoomId, 9);
+    assert.deepEqual(pendingEntry?.syncStartedRoomIds, [0, 9]);
 }
 
 function testLevelTransferTokenSkipsTargetLevelEntityAndLivePlayerIds(): void {
@@ -720,6 +800,16 @@ function testEnterWorldSyncsDungeonQuestTrackerStateFromPartyAnchor(): void {
     } as never);
     GlobalState.partyByMember.set('leader', 55);
     GlobalState.partyByMember.set('scout', 55);
+    seedDungeonRun('TutorialDungeon', 'party-instance', {
+        authorityToken: 7001,
+        currentRoomId: 9,
+        startedRoomIds: [0, 9],
+        questTrackerState: 62,
+        dungeonMissionId: 3,
+        dungeonMissionState: 1,
+        dungeonMissionProgress: 62,
+        participantKeys: ['leader', 'scout']
+    });
 
     withMockedRandom(
         [
@@ -793,6 +883,20 @@ function testEnterWorldPrefersMostProgressedActiveDungeonPartyAnchor(): void {
     GlobalState.partyByMember.set('owner', 77);
     GlobalState.partyByMember.set('runner', 77);
     GlobalState.partyByMember.set('scout', 77);
+    seedDungeonRun('TutorialDungeon', 'owner-instance', {
+        authorityToken: 7201,
+        currentRoomId: 3,
+        startedRoomIds: [0, 3],
+        questTrackerState: 25,
+        participantKeys: ['owner']
+    });
+    seedDungeonRun('TutorialDungeon', 'runner-instance', {
+        authorityToken: 7201,
+        currentRoomId: 8,
+        startedRoomIds: [0, 3, 5, 8],
+        questTrackerState: 70,
+        participantKeys: ['runner', 'scout']
+    });
 
     withMockedRandom(
         [
@@ -853,6 +957,7 @@ function main(): void {
     const tokenChar = new Map(GlobalState.tokenChar);
     const transferTokenAliases = new Map(GlobalState.transferTokenAliases);
     const levelEntities = new Map(GlobalState.levelEntities);
+    const dungeonRunsByScope = new Map(GlobalState.dungeonRunsByScope);
     const partyByMember = new Map(GlobalState.partyByMember);
 
     GlobalState.sessionsByToken.clear();
@@ -864,6 +969,7 @@ function main(): void {
     GlobalState.tokenChar.clear();
     GlobalState.transferTokenAliases.clear();
     GlobalState.levelEntities.clear();
+    GlobalState.dungeonRunsByScope.clear();
     GlobalState.partyByMember.clear();
 
     try {
@@ -942,7 +1048,7 @@ function main(): void {
         GlobalState.levelEntities.clear();
         GlobalState.partyByMember.clear();
 
-        testEnterWorldUsesPartyDungeonInstanceWithoutActiveAnchor();
+        testEnterWorldCreatesFreshDungeonRunWithoutActiveRun();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();
@@ -953,6 +1059,21 @@ function main(): void {
         GlobalState.tokenChar.clear();
         GlobalState.transferTokenAliases.clear();
         GlobalState.levelEntities.clear();
+        GlobalState.dungeonRunsByScope.clear();
+        GlobalState.partyByMember.clear();
+
+        testEnterWorldReusesGraceWindowDungeonRunForReturningParticipant();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.sessionsByUserId.clear();
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.pendingExtended.clear();
+        GlobalState.usedTransferTokens.clear();
+        GlobalState.tokenChar.clear();
+        GlobalState.transferTokenAliases.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.dungeonRunsByScope.clear();
         GlobalState.partyByMember.clear();
 
         testLevelTransferTokenSkipsTargetLevelEntityAndLivePlayerIds();
@@ -1044,7 +1165,7 @@ function main(): void {
         GlobalState.tokenChar.clear();
         GlobalState.partyByMember.clear();
 
-        testStorePendingTransferTokenCreatesPartyDungeonInstance();
+        testStorePendingTransferTokenCreatesFreshDungeonRunInstance();
 
         GlobalState.pendingWorld.clear();
         GlobalState.pendingExtended.clear();
@@ -1065,6 +1186,7 @@ function main(): void {
         GlobalState.tokenChar = tokenChar;
         GlobalState.transferTokenAliases = transferTokenAliases;
         GlobalState.levelEntities = levelEntities;
+        GlobalState.dungeonRunsByScope = dungeonRunsByScope;
         GlobalState.partyByMember = partyByMember;
     }
 

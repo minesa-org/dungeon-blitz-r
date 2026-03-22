@@ -5,6 +5,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { GlobalState } from '../core/GlobalState';
 import { Entity, EntityProps, EntityState } from '../core/Entity';
 import { LevelConfig } from '../core/LevelConfig';
+import { DungeonRunManager } from '../core/DungeonRunManager';
 import { PetHandler } from './PetHandler';
 import { areClientsInSameParty, getPartyIdForClient, sharesRoomIds } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope, getLevelScopeKey } from '../core/LevelScope';
@@ -14,10 +15,10 @@ export class EntityHandler {
         'NewbieRoad',
         'NewbieRoadHard'
     ]);
-    private static readonly RAW_SERVER_SEEDED_DUNGEON_LEVELS = new Set<string>([
-        'TutorialDungeon'
-    ]);
+    private static readonly RAW_SERVER_SEEDED_DUNGEON_LEVELS = new Set<string>([]);
     private static readonly CLIENT_SPAWN_LEVELS = new Set<string>([
+        'TutorialDungeon',
+        'TutorialDungeonHard',
         'CraftTownTutorial',
         'CraftTown',
         'NewbieRoad',
@@ -43,6 +44,8 @@ export class EntityHandler {
     ]);
     private static readonly MOUNT_SYNC_RETRY_DELAYS_MS = [0, 300, 1200, 2500, 4000];
     private static readonly CLIENT_SPAWN_JOINER_SEED_DELAYS_MS = [2500, 4500];
+    private static readonly SHARED_CLIENT_SPAWN_RESEED_DELAYS_MS = [0, 250, 1000, 2500];
+    private static readonly DUNGEON_SPAWN_SIGNATURE_GRID = 25;
 
     private static normalizeIdentityName(value: unknown): string {
         return String(value ?? '')
@@ -59,18 +62,32 @@ export class EntityHandler {
         return EntityHandler.CLIENT_SPAWN_SERVER_NPC_LEVELS.has(levelName);
     }
 
-    private static isRootDungeonAuthority(client: Pick<Client, 'token' | 'syncAnchorToken'> | null | undefined): boolean {
+    private static isRootDungeonAuthority(client: Pick<Client, 'token' | 'syncAnchorToken' | 'currentLevel' | 'levelInstanceId'> | null | undefined): boolean {
+        const levelName = LevelConfig.normalizeLevelName((client as Client | null | undefined)?.currentLevel);
+        if (levelName && LevelConfig.isDungeonLevel(levelName)) {
+            const run = DungeonRunManager.getRun(levelName, (client as Client | null | undefined)?.levelInstanceId);
+            if (run) {
+                return Number(run.authorityToken ?? 0) > 0 && Number(run.authorityToken ?? 0) === Number(client?.token ?? 0);
+            }
+        }
+
         const token = Number(client?.token ?? 0);
         const syncAnchorToken = Number(client?.syncAnchorToken ?? 0);
         return token > 0 && syncAnchorToken > 0 && token === syncAnchorToken;
     }
 
-    private static hasPartyAuthorityPeerInScope(client: Client): boolean {
+    private static hasRootDungeonAuthorityPeerInScope(client: Client): boolean {
         for (const other of GlobalState.sessionsByToken.values()) {
             if (other === client) {
                 continue;
             }
             if (!other.playerSpawned || !areClientsInSameLevelScope(client, other) || !areClientsInSameParty(client, other)) {
+                continue;
+            }
+            if (!EntityHandler.isRootDungeonAuthority(other)) {
+                continue;
+            }
+            if (Number(other.clientEntID ?? 0) <= 0 || !other.entities.has(other.clientEntID)) {
                 continue;
             }
             return true;
@@ -132,6 +149,116 @@ export class EntityHandler {
         }
 
         return EntityHandler.usesClientSpawn(levelName) || LevelConfig.isDungeonLevel(levelName);
+    }
+
+    private static isRunSharedDungeonActor(levelName: string | null | undefined, entity: any): boolean {
+        return Boolean(levelName && LevelConfig.isDungeonLevel(levelName) && EntityHandler.isSharedClientSpawnRegionActor(levelName, entity));
+    }
+
+    static isSharedDungeonRunEntity(levelName: string | null | undefined, entity: any): boolean {
+        return EntityHandler.isRunSharedDungeonActor(levelName, entity);
+    }
+
+    private static quantizeSpawnCoord(value: unknown): number {
+        const numericValue = Number(value ?? 0);
+        if (!Number.isFinite(numericValue)) {
+            return 0;
+        }
+
+        return Math.round(numericValue / EntityHandler.DUNGEON_SPAWN_SIGNATURE_GRID) * EntityHandler.DUNGEON_SPAWN_SIGNATURE_GRID;
+    }
+
+    private static buildDungeonSpawnSignature(levelName: string, entity: any): string {
+        if (!EntityHandler.isRunSharedDungeonActor(levelName, entity)) {
+            return '';
+        }
+
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName) || levelName;
+        const roomId = Number.isFinite(Number(entity?.roomId)) ? Math.round(Number(entity.roomId)) : -1;
+        const team = Number.isFinite(Number(entity?.team)) ? Math.round(Number(entity.team)) : 0;
+        const name = EntityHandler.normalizeIdentityName(entity?.name);
+        const x = EntityHandler.quantizeSpawnCoord(entity?.spawnX ?? entity?.x);
+        const y = EntityHandler.quantizeSpawnCoord(entity?.spawnY ?? entity?.y);
+        return [normalizedLevel, roomId, team, name, x, y].join(':');
+    }
+
+    private static findDungeonSpawnSignatureCanonicalMatch(
+        levelName: string,
+        levelMap: Map<number, any>,
+        signature: string,
+        excludedId: number = 0
+    ): any | null {
+        if (!signature) {
+            return null;
+        }
+
+        for (const [entityId, candidate] of levelMap.entries()) {
+            if (entityId === excludedId || !candidate?.clientSpawned || candidate?.isPlayer) {
+                continue;
+            }
+            const candidateSignature = String(candidate?.spawnSignature ?? '') || EntityHandler.buildDungeonSpawnSignature(
+                levelName,
+                candidate
+            );
+            if (candidateSignature === signature) {
+                candidate.spawnSignature = signature;
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static rebindDungeonCanonicalEntityToAuthoritySpawn(
+        client: Client,
+        levelName: string,
+        levelMap: Map<number, any>,
+        canonical: any,
+        replacement: any
+    ): boolean {
+        const oldEntityId = Number(canonical?.id ?? 0);
+        const newEntityId = Number(replacement?.id ?? 0);
+        if (oldEntityId <= 0 || newEntityId <= 0 || oldEntityId === newEntityId) {
+            return false;
+        }
+
+        const merged = {
+            ...canonical,
+            ...replacement,
+            id: newEntityId,
+            clientSpawned: true,
+            ownerToken: client.token || 0,
+            ownerUserId: client.userId || 0,
+            ownerPartyId: getPartyIdForClient(client),
+            authorityToken: client.token || 0,
+            spawnSignature: String(replacement?.spawnSignature ?? canonical?.spawnSignature ?? ''),
+            spawnX: Number.isFinite(Number(canonical?.spawnX))
+                ? Number(canonical.spawnX)
+                : Number(replacement?.x ?? 0),
+            spawnY: Number.isFinite(Number(canonical?.spawnY))
+                ? Number(canonical.spawnY)
+                : Number(replacement?.y ?? 0),
+            roomId: Number.isFinite(Number(replacement?.roomId))
+                ? Math.round(Number(replacement.roomId))
+                : Number.isFinite(Number(canonical?.roomId))
+                    ? Math.round(Number(canonical.roomId))
+                    : client.currentRoomId
+        };
+
+        levelMap.delete(oldEntityId);
+        levelMap.set(newEntityId, merged);
+
+        client.entities.delete(oldEntityId);
+        client.knownEntityIds.delete(oldEntityId);
+        EntityHandler.sendDestroyEntity(client, oldEntityId);
+        client.entities.set(newEntityId, merged);
+        EntityHandler.rememberEntityKnown(client, levelName, merged);
+
+        EntityHandler.forgetKnownEntity(levelName, oldEntityId, client.levelInstanceId);
+        EntityHandler.broadcastDestroyEntity(levelName, oldEntityId, client, client.levelInstanceId);
+        EntityHandler.broadcastToLevel(client, EntityHandler.buildEntityFullUpdatePayload(merged), merged);
+        EntityHandler.scheduleSharedClientSpawnReseed(levelName, client.levelInstanceId, newEntityId);
+        return true;
     }
 
     private static getLevelMap(
@@ -235,6 +362,16 @@ export class EntityHandler {
         entity: any,
         excludedOwnerToken: number
     ): any | null {
+        if (LevelConfig.isDungeonLevel(levelName)) {
+            const signature = EntityHandler.buildDungeonSpawnSignature(levelName, entity);
+            return EntityHandler.findDungeonSpawnSignatureCanonicalMatch(
+                levelName,
+                levelMap,
+                signature,
+                Number(entity?.id ?? 0)
+            );
+        }
+
         const exactRoomMatch = EntityHandler.findBestSharedClientSpawnCanonicalMatch(
             levelName,
             levelMap,
@@ -251,7 +388,8 @@ export class EntityHandler {
         const targetTeam = Number(entity?.team ?? 0);
         const canUseUnsyncedRoomFallback =
             LevelConfig.isDungeonLevel(levelName) || EntityHandler.usesClientSpawn(levelName);
-        if (partyId <= 0 || targetTeam !== 2 || !canUseUnsyncedRoomFallback) {
+        const isSharedActorType = targetTeam === 2 || targetTeam === 3;
+        if (partyId <= 0 || !isSharedActorType || !canUseUnsyncedRoomFallback) {
             return null;
         }
 
@@ -280,6 +418,13 @@ export class EntityHandler {
 
         const partyId = getPartyIdForClient(client);
         entity.ownerPartyId = partyId;
+        if (LevelConfig.isDungeonLevel(levelName)) {
+            entity.spawnSignature = EntityHandler.buildDungeonSpawnSignature(levelName, entity);
+            const run = DungeonRunManager.getRun(levelName, client.levelInstanceId);
+            entity.authorityToken = Number(run?.authorityToken ?? 0) > 0
+                ? Math.round(Number(run?.authorityToken))
+                : (client.token || 0);
+        }
 
         const roomId = Number.isFinite(Number(entity?.roomId)) ? Number(entity.roomId) : -1;
         const canonical = EntityHandler.findSharedClientSpawnCanonicalMatch(
@@ -304,12 +449,22 @@ export class EntityHandler {
 
         const duplicateId = Number(entity?.id ?? 0);
         const canonicalId = Number(canonical?.id ?? 0);
+        const isRunAuthority = LevelConfig.isDungeonLevel(levelName) && EntityHandler.isRootDungeonAuthority(client);
+        const canonicalAuthorityToken = Number(canonical?.authorityToken ?? canonical?.ownerToken ?? 0);
+        if (LevelConfig.isDungeonLevel(levelName) && isRunAuthority && canonicalAuthorityToken !== client.token) {
+            return EntityHandler.rebindDungeonCanonicalEntityToAuthoritySpawn(client, levelName, levelMap, canonical, entity);
+        }
+
         client.entities.delete(duplicateId);
 
         if (canonicalId === duplicateId) {
-            // Keep the shared canonical entity alive locally without forcing a destroy/respawn cycle.
-            client.knownEntityIds.add(canonicalId);
-            return true;
+            if (!LevelConfig.isDungeonLevel(levelName)) {
+                client.knownEntityIds.add(canonicalId);
+                return true;
+            }
+            entity.spawnSignature = canonical?.spawnSignature ?? entity.spawnSignature;
+            entity.authorityToken = canonical?.authorityToken ?? entity.authorityToken;
+            return false;
         }
 
         client.knownEntityIds.delete(duplicateId);
@@ -325,6 +480,9 @@ export class EntityHandler {
     }
 
     static shouldRelayEntityToOtherClients(levelName: string | null | undefined, entity: any): boolean {
+        if (EntityHandler.isRunSharedDungeonActor(levelName, entity)) {
+            return true;
+        }
         return !EntityHandler.isPartySharedClientSpawnHostile(levelName, entity);
     }
 
@@ -342,6 +500,9 @@ export class EntityHandler {
     private static canClientUsePartySharedClientSpawnEntity(client: Client, entity: any): boolean {
         if (!client.playerSpawned || !client.currentLevel || !entity?.clientSpawned || entity?.isPlayer) {
             return false;
+        }
+        if (EntityHandler.isRunSharedDungeonActor(client.currentLevel, entity)) {
+            return true;
         }
         if (!EntityHandler.isPartySharedClientSpawnHostile(client.currentLevel, entity)) {
             return false;
@@ -433,6 +594,14 @@ export class EntityHandler {
     }
 
     private static resolveEntityOwnerSession(entity: any): Client | null {
+        const authorityToken = Number(entity?.authorityToken ?? 0);
+        if (authorityToken > 0) {
+            const authoritySession = GlobalState.sessionsByToken.get(authorityToken);
+            if (authoritySession?.character) {
+                return authoritySession;
+            }
+        }
+
         const ownerToken = Number(entity?.ownerToken ?? 0);
         if (ownerToken > 0) {
             const ownerSession = GlobalState.sessionsByToken.get(ownerToken);
@@ -482,42 +651,18 @@ export class EntityHandler {
             return;
         }
 
-        let anchor: Client | null = null;
-        let anchorStartedRoomIds: number[] = [];
-
-        for (const other of GlobalState.sessionsByToken.values()) {
-            if (other === joiner) {
-                continue;
-            }
-            if (!other.playerSpawned || !areClientsInSameLevelScope(joiner, other) || !areClientsInSameParty(joiner, other)) {
-                continue;
-            }
-
-            const startedRoomIds = EntityHandler.getStartedRoomIdsForLevel(other, levelName);
-            if (startedRoomIds.length === 0) {
-                continue;
-            }
-
-            if (
-                !anchor ||
-                startedRoomIds.length > anchorStartedRoomIds.length ||
-                (startedRoomIds.length === anchorStartedRoomIds.length && Number(other.syncAnchorStartedAt ?? 0) > Number(anchor.syncAnchorStartedAt ?? 0))
-            ) {
-                anchor = other;
-                anchorStartedRoomIds = startedRoomIds;
-            }
-        }
-
-        if (!anchor || anchorStartedRoomIds.length === 0) {
+        const projection = DungeonRunManager.buildRunProjection(levelName, joiner.levelInstanceId);
+        const startedRoomIds = projection?.syncStartedRoomIds ?? [];
+        if (startedRoomIds.length === 0) {
             return;
         }
 
-        const anchorRoomId = Number(anchor.currentRoomId ?? -1);
-        if (Number.isFinite(anchorRoomId) && anchorRoomId >= 0) {
-            joiner.currentRoomId = anchorRoomId;
+        const projectedRoomId = Number(projection?.syncRoomId ?? -1);
+        if (Number.isFinite(projectedRoomId) && projectedRoomId >= 0) {
+            joiner.currentRoomId = projectedRoomId;
         }
 
-        for (const roomId of anchorStartedRoomIds) {
+        for (const roomId of startedRoomIds) {
             const key = `${levelName}:${roomId}`;
             if (joiner.startedRoomEvents.has(key)) {
                 continue;
@@ -579,6 +724,9 @@ export class EntityHandler {
 
         if (EntityHandler.isPartySharedClientSpawnHostile(client.currentLevel, entity)) {
             return EntityHandler.canClientUsePartySharedClientSpawnEntity(client, entity);
+        }
+        if (EntityHandler.isRunSharedDungeonActor(client.currentLevel, entity)) {
+            return true;
         }
 
         if (!EntityHandler.shouldRelayEntityToOtherClients(client.currentLevel, entity)) {
@@ -1096,6 +1244,8 @@ export class EntityHandler {
             ownerToken?: number;
             ownerUserId?: number;
             ownerPartyId?: number;
+            spawnSignature?: string;
+            authorityToken?: number;
         } = ownsThisPlayerPacket
             ? {
                 ...Entity.fromCharacter(entityId, client.character!, {
@@ -1182,12 +1332,36 @@ export class EntityHandler {
             return;
         }
 
+        if (
+            levelName &&
+            !isPlayer &&
+            LevelConfig.isDungeonLevel(levelName) &&
+            EntityHandler.isSharedClientSpawnRegionActor(levelName, props) &&
+            !EntityHandler.isRootDungeonAuthority(client)
+        ) {
+            if (EntityHandler.suppressDuplicateSharedClientSpawn(client, levelName, levelMap, props)) {
+                return;
+            }
+
+            client.entities.delete(entityId);
+            client.knownEntityIds.delete(entityId);
+            EntityHandler.sendDestroyEntity(client, entityId);
+            return;
+        }
+
         if (EntityHandler.suppressDuplicateSharedClientSpawn(client, levelName, levelMap, props)) {
             return;
         }
 
         if (!isPlayer && levelName) {
             console.log(`[EntityHandler] Non-player entity ACCEPTED: id=${entityId} name=${entName} team=${team} from ${client.character?.name} in ${levelName} scope=${getClientLevelScope(client)} levelMap.size=${levelMap?.size ?? 'null'}`);
+        }
+
+        if (!isPlayer && levelName && EntityHandler.isRunSharedDungeonActor(levelName, props)) {
+            (props as any).spawnX = Number(props.x ?? 0);
+            (props as any).spawnY = Number(props.y ?? 0);
+            props.spawnSignature = EntityHandler.buildDungeonSpawnSignature(levelName, props);
+            props.authorityToken = client.token || 0;
         }
 
         client.entities.set(entityId, props);
@@ -1200,6 +1374,9 @@ export class EntityHandler {
 
         // Broadcast the normalized snapshot so remote clients receive canonical state.
         EntityHandler.broadcastToLevel(client, EntityHandler.buildEntityFullUpdatePayload(props), props);
+        if (levelName && EntityHandler.isSharedClientSpawnRegionActor(levelName, props)) {
+            EntityHandler.scheduleSharedClientSpawnReseed(levelName, client.levelInstanceId, entityId);
+        }
 
         if (isPlayer && !client.playerSpawned) {
              client.playerSpawned = true;
@@ -1213,6 +1390,9 @@ export class EntityHandler {
              EntityHandler.sendExistingPlayersToJoiner(client);
              EntityHandler.broadcastPlayerSpawn(client, props);
              EntityHandler.broadcastPlayerMountState(client, props.id, equippedMountId);
+             if (levelName && LevelConfig.isDungeonLevel(levelName)) {
+                DungeonRunManager.broadcastAuthorityState(levelName, client.levelInstanceId);
+             }
         }
     }
 
@@ -1282,7 +1462,11 @@ export class EntityHandler {
                     (client.clientEntID > 0 && entityId === client.clientEntID) ||
                     (charNameNorm && entityNameNorm === charNameNorm)
                 );
-                const isOwnedClientSpawn = Boolean(entityProps?.clientSpawned) && Number(entityProps?.ownerToken ?? 0) === client.token;
+                const isOwnedDungeonRunSpawn = EntityHandler.isRunSharedDungeonActor(levelName, entityProps);
+                const isOwnedClientSpawn =
+                    Boolean(entityProps?.clientSpawned) &&
+                    Number(entityProps?.ownerToken ?? 0) === client.token &&
+                    !isOwnedDungeonRunSpawn;
 
                 if (isOwnedPlayer || isOwnedClientSpawn) {
                     levelMap.delete(entityId);
@@ -1363,6 +1547,39 @@ export class EntityHandler {
             }
 
             EntityHandler.sendEntity(joiner, snapshot);
+        }
+    }
+
+    private static scheduleSharedClientSpawnReseed(
+        levelName: string,
+        levelInstanceId: string,
+        entityId: number
+    ): void {
+        if (entityId <= 0) {
+            return;
+        }
+
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
+        for (const delayMs of EntityHandler.SHARED_CLIENT_SPAWN_RESEED_DELAYS_MS) {
+            setTimeout(() => {
+                const levelMap = GlobalState.levelEntities.get(scopeKey);
+                const entity = levelMap?.get(entityId);
+                if (!entity || !EntityHandler.isSharedClientSpawnRegionActor(levelName, entity)) {
+                    return;
+                }
+
+                for (const other of GlobalState.sessionsByToken.values()) {
+                    if (
+                        !other.playerSpawned ||
+                        other.socket?.destroyed ||
+                        getClientLevelScope(other) !== scopeKey
+                    ) {
+                        continue;
+                    }
+
+                    EntityHandler.ensureEntityKnown(other, levelName, entityId);
+                }
+            }, delayMs);
         }
     }
 

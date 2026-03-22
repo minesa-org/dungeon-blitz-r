@@ -115,6 +115,126 @@ function replaceExact(source, needle, replacement, label) {
     return source.replace(needle, replacement);
 }
 
+function sanitizeLevelDecompilerArtifacts(source) {
+    const eol = source.includes('\r\n') ? '\r\n' : '\n';
+    const join = (lines) => lines.join(eol);
+
+    const badParentGroupBlock = join([
+        '         if((Boolean(param1.parent ? param1.parent.name : null)) && !null.indexOf("am_"))',
+        '         {',
+        '            _loc9_ = param3.method_691(null);',
+        '            if(!_loc9_)',
+        '            {',
+        '               _loc9_ = new a_Group(null,param3);',
+        '               param3.var_1159.push(_loc9_);',
+        '            }',
+        '            _loc5_.groupName = null;',
+        '            _loc9_.AddNewCue(_loc5_);',
+        '            if(!null.indexOf("am_Wave"))',
+        '            {',
+        '               _loc5_.bDoNotAutoSpawn = true;',
+        '            }',
+        '         }'
+    ]);
+    const fixedParentGroupBlock = join([
+        '         _loc14_ = param1.parent ? param1.parent.name : null;',
+        '         if(Boolean(_loc14_) && !_loc14_.indexOf("am_"))',
+        '         {',
+        '            _loc9_ = param3.method_691(_loc14_);',
+        '            if(!_loc9_)',
+        '            {',
+        '               _loc9_ = new a_Group(_loc14_,param3);',
+        '               param3.var_1159.push(_loc9_);',
+        '            }',
+        '            _loc5_.groupName = _loc14_;',
+        '            _loc9_.AddNewCue(_loc5_);',
+        '            if(!_loc14_.indexOf("am_Wave"))',
+        '            {',
+        '               _loc5_.bDoNotAutoSpawn = true;',
+        '            }',
+        '         }'
+    ]);
+    if (source.includes(badParentGroupBlock)) {
+        source = replaceExact(source, badParentGroupBlock, fixedParentGroupBlock, 'Level decompile fix: parent cue group block');
+    }
+
+    const badLevelSpriteBlock = join([
+        '                     var _loc60_:class_147 = this.var_1.var_77.method_625(_loc54_ as MovieClip,_loc15_,_loc59_,this.levelFileName,_loc55_,_loc17_,Boolean(param4 & const_336) || !_loc16_.indexOf("am_Foreground"),Boolean(param4 & const_305) || !_loc16_.indexOf("am_Background"));',
+        '                     param2.var_1530.push(null);',
+        '                     _loc54_.visible = false;',
+        '                     this.var_1119.push(_loc54_);',
+        '                     if(this.levelSymbolName == "a_Level_TutorialBoat")',
+        '                     {',
+        '                        null.width = NaN;',
+        '                     }'
+    ]);
+    const fixedLevelSpriteBlock = join([
+        '                     var _loc60_:class_147 = this.var_1.var_77.method_625(_loc54_ as MovieClip,_loc15_,_loc59_,this.levelFileName,_loc55_,_loc17_,Boolean(param4 & const_336) || !_loc16_.indexOf("am_Foreground"),Boolean(param4 & const_305) || !_loc16_.indexOf("am_Background"));',
+        '                     param2.var_1530.push(_loc60_);',
+        '                     _loc54_.visible = false;',
+        '                     this.var_1119.push(_loc54_);',
+        '                     if(this.levelSymbolName == "a_Level_TutorialBoat")',
+        '                     {',
+        '                        _loc60_.width = NaN;',
+        '                     }'
+    ]);
+    if (source.includes(badLevelSpriteBlock)) {
+        source = replaceExact(source, badLevelSpriteBlock, fixedLevelSpriteBlock, 'Level decompile fix: sprite export block');
+    }
+
+    const badLevelVectorBlock = join([
+        '                     var _loc14_:class_147 = this.var_1.var_77.method_625(_loc11_ as MovieClip,_loc9_,_loc13_,this.levelFileName,_loc12_,param5,Boolean(param3 & const_336) || !_loc10_.indexOf("am_Foreground"),Boolean(param3 & const_305) || !_loc10_.indexOf("am_Background"));',
+        '                     param2.var_1530.push(null);',
+        '                     _loc11_.visible = false;'
+    ]);
+    const fixedLevelVectorBlock = join([
+        '                     var _loc14_:class_147 = this.var_1.var_77.method_625(_loc11_ as MovieClip,_loc9_,_loc13_,this.levelFileName,_loc12_,param5,Boolean(param3 & const_336) || !_loc10_.indexOf("am_Foreground"),Boolean(param3 & const_305) || !_loc10_.indexOf("am_Background"));',
+        '                     param2.var_1530.push(_loc14_);',
+        '                     _loc11_.visible = false;'
+    ]);
+    if (source.includes(badLevelVectorBlock)) {
+        source = replaceExact(source, badLevelVectorBlock, fixedLevelVectorBlock, 'Level decompile fix: vector export block');
+    }
+
+    return source;
+}
+
+function patchConnection(source) {
+    if (source.includes('if(!this.socket || !param1 || !param1.var_50 || !this.socket.connected)')) {
+        return source;
+    }
+
+    const eol = source.includes('\r\n') ? '\r\n' : '\n';
+    const join = (lines) => lines.join(eol);
+
+    return replaceExact(
+        source,
+        join([
+            '      public function SendPacket(param1:Packet) : void',
+            '      {',
+            '         this.socket.writeShort(param1.type);',
+            '         this.socket.writeShort(param1.var_50.method_685());',
+            '         this.socket.writeBytes(param1.var_50.var_359);',
+            '         this.socket.flush();',
+            '      }'
+        ]),
+        join([
+            '      public function SendPacket(param1:Packet) : void',
+            '      {',
+            '         if(!this.socket || !param1 || !param1.var_50 || !this.socket.connected)',
+            '         {',
+            '            return;',
+            '         }',
+            '         this.socket.writeShort(param1.type);',
+            '         this.socket.writeShort(param1.var_50.method_685());',
+            '         this.socket.writeBytes(param1.var_50.var_359);',
+            '         this.socket.flush();',
+            '      }'
+        ]),
+        'Connection SendPacket null guard'
+    );
+}
+
 function patchLinkUpdater(source) {
     if (
         source.includes('DUPLICATE_REMOTE_ENTITY_POSITION_TOLERANCE') &&
@@ -511,12 +631,45 @@ function patchLinkUpdater(source) {
 function patchRoom(source) {
     const eol = source.includes('\r\n') ? '\r\n' : '\n';
     const join = (lines) => lines.join(eol);
-    const oldJoinerGuard = 'this.bInstanced && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader';
     const outdoorServerNpcGuard = '(this.var_1.level.internalName == "NewbieRoad" || this.var_1.level.internalName == "NewbieRoadHard")';
-    const expandedJoinerGuard = `(this.bInstanced || ${outdoorServerNpcGuard.substring(1, outdoorServerNpcGuard.length - 1)}) && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader`;
-    const relaxedJoinerGuard = `${outdoorServerNpcGuard} && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader`;
-    const expandedJoinerGuardBlock = join([
-        `         if(${expandedJoinerGuard})`,
+    const instancedAuthorityGuardBlock = join([
+        '         if(this.bInstanced && !this.var_1.level.bDungeonAuthority)',
+        '         {',
+        '            return null;',
+        '         }'
+    ]);
+    const oldJoinerGuard = join([
+        '         if(this.bInstanced && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader)',
+        '         {',
+        '            return null;',
+        '         }'
+    ]);
+    const conditionalJoinerGuard = join([
+        '         if(this.bInstanced && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader)',
+        '         {',
+        '            var _loc14_:class_133 = null;',
+        '            for each(_loc14_ in this.var_1.groupmates)',
+        '            {',
+        '               if(_loc14_.bOnline && _loc14_.var_2370)',
+        '               {',
+        '                  return null;',
+        '               }',
+        '            }',
+        '         }'
+    ]);
+    const combinedJoinerGuardBlock = join([
+        '         if(this.bInstanced && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader)',
+        '         {',
+        '            var _loc14_:class_133 = null;',
+        '            for each(_loc14_ in this.var_1.groupmates)',
+        '            {',
+        '               if(_loc14_.bOnline && _loc14_.var_2370)',
+        '               {',
+        '                  return null;',
+        '               }',
+        '            }',
+        '         }',
+        `         if(${outdoorServerNpcGuard} && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader)`,
         '         {',
         '            if(param1.team != "friend")',
         '            {',
@@ -524,8 +677,8 @@ function patchRoom(source) {
         '            }',
         '         }'
     ]);
-    const relaxedJoinerGuardBlock = join([
-        `         if(${relaxedJoinerGuard})`,
+    const outdoorJoinerGuardBlock = join([
+        `         if(${outdoorServerNpcGuard} && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader)`,
         '         {',
         '            if(param1.team != "friend")',
         '            {',
@@ -656,28 +809,25 @@ function patchRoom(source) {
         );
     }
 
-    if (source.includes(expandedJoinerGuardBlock) && !source.includes(relaxedJoinerGuardBlock)) {
-        source = replaceExact(
-            source,
-            expandedJoinerGuardBlock,
-            relaxedJoinerGuardBlock,
-            'Room instanced joiner cue guard'
+    for (const legacyGuard of [combinedJoinerGuardBlock, conditionalJoinerGuard, oldJoinerGuard]) {
+        if (source.includes(legacyGuard) && !source.includes(instancedAuthorityGuardBlock)) {
+            source = replaceExact(
+                source,
+                legacyGuard,
+                instancedAuthorityGuardBlock,
+                'Room instanced authority cue guard'
+            );
+        }
+    }
+
+    if (!source.includes(instancedAuthorityGuardBlock)) {
+        source = source.replace(
+            /         if\(this\.bInstanced && this\.var_1\.groupmates && this\.var_1\.groupmates\.length && !this\.var_1\.bAmGroupLeader\)[\s\S]*?         }\r?\n(?=         if\(\(this\.var_1\.level\.internalName == "NewbieRoad" \|\| this\.var_1\.level\.internalName == "NewbieRoadHard"\) && this\.var_1\.groupmates)/,
+            `${instancedAuthorityGuardBlock}${eol}`
         );
-    } else if (source.includes(expandedJoinerGuard)) {
-        source = source.replace(expandedJoinerGuard, relaxedJoinerGuard);
     }
 
-    if (source.includes(oldJoinerGuard)) {
-        source = source.replace(oldJoinerGuard, relaxedJoinerGuard);
-    }
-
-    if (
-        source.includes(outdoorServerNpcGuard) &&
-        (
-            source.includes(`if(${relaxedJoinerGuard})`) ||
-            source.includes(`if(${expandedJoinerGuard})`)
-        )
-    ) {
+    if (source.includes(instancedAuthorityGuardBlock)) {
         return source;
     }
 
@@ -702,7 +852,11 @@ function patchRoom(source) {
             '               return null;',
             '            }',
             '         }',
-            `         if(${relaxedJoinerGuard})`,
+            '         if(this.bInstanced && !this.var_1.level.bDungeonAuthority)',
+            '         {',
+            '            return null;',
+            '         }',
+            `         if(${outdoorServerNpcGuard} && this.var_1.groupmates && this.var_1.groupmates.length && !this.var_1.bAmGroupLeader)`,
             '         {',
             '            if(param1.team != "friend")',
             '            {',
@@ -716,35 +870,128 @@ function patchRoom(source) {
 }
 
 function patchLevel(source) {
+    source = sanitizeLevelDecompilerArtifacts(source);
     const eol = source.includes('\r\n') ? '\r\n' : '\n';
     const join = (lines) => lines.join(eol);
+    const authorityField = '      internal var bDungeonAuthority:Boolean = true;';
+    const emptyAuthorityHandler = join([
+        '      public function method_1627(param1:String, param2:String, param3:String) : void',
+        '      {',
+        '      }'
+    ]);
+    const patchedAuthorityHandler = join([
+        '      public function method_1627(param1:String, param2:String, param3:String) : void',
+        '      {',
+        '         var _loc4_:Room = null;',
+        '         if(param1 == "SetDungeonAuthority" && param2 == "DB_DungeonAuthority")',
+        '         {',
+        '            this.bDungeonAuthority = param3 == "On";',
+        '            if(this.bDungeonAuthority)',
+        '            {',
+        '               for each(_loc4_ in this.var_299)',
+        '               {',
+        '                  if(_loc4_ && _loc4_.bInitialized)',
+        '                  {',
+        '                     _loc4_.method_1097();',
+        '                  }',
+        '               }',
+        '            }',
+        '         }',
+        '      }'
+    ]);
+    const legacyPatchedAuthorityHandler = join([
+        '      public function method_1627(param1:String, param2:String, param3:String) : void',
+        '      {',
+        '         var _loc4_:Room = null;',
+        '         if(param1 == "SetDungeonAuthority" && param2 == "DB_DungeonAuthority")',
+        '         {',
+        '            this.bDungeonAuthority = param3 == "On";',
+        '            if(this.bDungeonAuthority)',
+        '            {',
+        '               for each(_loc4_ in this.var_299)',
+        '               {',
+        '                  _loc4_.method_1097();',
+        '               }',
+        '            }',
+        '         }',
+        '      }'
+    ]);
     const oldTickGuard = join([
         '         if(!const_919)',
         '         {',
-        '            if(this.var_333)',
-        '            {'
+            '            if(this.var_333)',
+            '            {'
     ]);
     const patchedTickGuard = join([
         '         if(!const_919 && !this.bInstanced)',
         '         {',
-        '            if(this.var_333)',
-        '            {'
+            '            if(this.var_333)',
+            '            {'
     ]);
 
-    if (source.includes(patchedTickGuard)) {
-        return source;
+    if (!source.includes(authorityField)) {
+        source = replaceExact(
+            source,
+            '      internal var bInstanced:Boolean = false;',
+            join([
+                '      internal var bInstanced:Boolean = false;',
+                '',
+                authorityField
+            ]),
+            'Level authority field'
+        );
     }
 
-    if (!source.includes(oldTickGuard)) {
-        return source;
+    if (!source.includes('this.bDungeonAuthority = !this.bInstanced;')) {
+        source = replaceExact(
+            source,
+            join([
+                '         this.internalName = param4;',
+                '         this.bInstanced = param7;',
+                '         this.momentParamsString = param5 ? param5 : "Normal";'
+            ]),
+            join([
+                '         this.internalName = param4;',
+                '         this.bInstanced = param7;',
+                '         this.bDungeonAuthority = !this.bInstanced;',
+                '         this.momentParamsString = param5 ? param5 : "Normal";'
+            ]),
+            'Level authority initialization'
+        );
     }
 
-    return replaceExact(
-        source,
-        oldTickGuard,
-        patchedTickGuard,
-        'Level instanced tick authority gate'
-    );
+    if (source.includes(emptyAuthorityHandler) && !source.includes('SetDungeonAuthority')) {
+        source = replaceExact(
+            source,
+            emptyAuthorityHandler,
+            patchedAuthorityHandler,
+            'Level authority state handler'
+        );
+    }
+
+    if (source.includes(legacyPatchedAuthorityHandler) && !source.includes('if(_loc4_ && _loc4_.bInitialized)')) {
+        source = replaceExact(
+            source,
+            legacyPatchedAuthorityHandler,
+            patchedAuthorityHandler,
+            'Level authority state handler initialized-room guard'
+        );
+    }
+
+    if (!source.includes(patchedTickGuard)) {
+        if (!source.includes(oldTickGuard)) {
+            return source;
+        }
+
+        source = replaceExact(
+            source,
+            oldTickGuard,
+            patchedTickGuard,
+            'Level instanced tick authority gate'
+        );
+    }
+
+    return source;
 }
 
 function main() {
@@ -775,22 +1022,30 @@ function main() {
 
     fs.rmSync(workRoot, { recursive: true, force: true });
     fs.mkdirSync(workRoot, { recursive: true });
-    runFfdec(ffdecPath, ['-selectclass', 'LinkUpdater,Room,Level', '-export', 'script', workRoot, swfPath]);
+    runFfdec(ffdecPath, ['-selectclass', 'LinkUpdater,Room,Level,Connection', '-export', 'script', workRoot, swfPath]);
 
     const linkUpdaterPath = path.join(scriptsRoot, 'LinkUpdater.as');
     const roomPath = path.join(scriptsRoot, 'Room.as');
     const levelPath = path.join(scriptsRoot, 'Level.as');
-    if (!fs.existsSync(linkUpdaterPath) || !fs.existsSync(roomPath) || !fs.existsSync(levelPath)) {
+    const connectionPath = path.join(scriptsRoot, 'Connection.as');
+    if (!fs.existsSync(linkUpdaterPath) || !fs.existsSync(roomPath) || !fs.existsSync(levelPath) || !fs.existsSync(connectionPath)) {
         throw new Error(`FFDec export did not produce expected scripts in ${scriptsRoot}`);
     }
 
     const originalLinkUpdater = fs.readFileSync(linkUpdaterPath, 'utf8');
     const originalRoom = fs.readFileSync(roomPath, 'utf8');
     const originalLevel = fs.readFileSync(levelPath, 'utf8');
+    const originalConnection = fs.readFileSync(connectionPath, 'utf8');
     const patchedLinkUpdater = patchLinkUpdater(originalLinkUpdater);
     const patchedRoom = patchRoom(originalRoom);
     const patchedLevel = patchLevel(originalLevel);
-    if (patchedLinkUpdater !== originalLinkUpdater || patchedRoom !== originalRoom || patchedLevel !== originalLevel) {
+    const patchedConnection = patchConnection(originalConnection);
+    if (
+        patchedLinkUpdater !== originalLinkUpdater ||
+        patchedRoom !== originalRoom ||
+        patchedLevel !== originalLevel ||
+        patchedConnection !== originalConnection
+    ) {
         if (patchedLinkUpdater !== originalLinkUpdater) {
             fs.writeFileSync(linkUpdaterPath, patchedLinkUpdater, 'utf8');
         }
@@ -799,6 +1054,9 @@ function main() {
         }
         if (patchedLevel !== originalLevel) {
             fs.writeFileSync(levelPath, patchedLevel, 'utf8');
+        }
+        if (patchedConnection !== originalConnection) {
+            fs.writeFileSync(connectionPath, patchedConnection, 'utf8');
         }
         runFfdec(ffdecPath, ['-importScript', swfPath, patchedSwfPath, scriptsRoot]);
         fs.copyFileSync(patchedSwfPath, outputPath);

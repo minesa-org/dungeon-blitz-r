@@ -33,6 +33,7 @@ export class StaticServer {
     private host: string;
     private readonly flashVersion = 'cbq';
     private readonly gameVersion = 'cbp';
+    private readonly sockets: Set<import('net').Socket>;
 
     constructor(
         port: number = Config.STATIC_PORT,
@@ -43,6 +44,7 @@ export class StaticServer {
         this.host = host;
         this.app = express();
         this.server = null;
+        this.sockets = new Set();
         
         // Resolve against the server root so dist and ts-node use the same content directory.
         this.contentDir = resolveContentDir(relativeContentPath);
@@ -282,16 +284,33 @@ export class StaticServer {
 
             console.error('[StaticServer] Server error:', error);
         });
+
+        this.server.on('connection', (socket) => {
+            this.sockets.add(socket);
+            socket.on('close', () => {
+                this.sockets.delete(socket);
+            });
+        });
     }
 
     public stop(): Promise<void> {
-        if (!this.server || !this.server.listening) {
+        if (!this.server || (!this.server.listening && this.sockets.size === 0)) {
             return Promise.resolve();
         }
 
         return new Promise((resolve, reject) => {
+            this.server?.closeIdleConnections?.();
+            this.server?.closeAllConnections?.();
+            this.closeSockets();
+
             this.server?.close((error) => {
                 if (error) {
+                    const socketError = error as NodeJS.ErrnoException;
+                    if (socketError.code === 'ERR_SERVER_NOT_RUNNING') {
+                        resolve();
+                        return;
+                    }
+
                     reject(error);
                     return;
                 }
@@ -299,5 +318,23 @@ export class StaticServer {
                 resolve();
             });
         });
+    }
+
+    private closeSockets(): void {
+        for (const socket of Array.from(this.sockets)) {
+            if (socket.destroyed) {
+                this.sockets.delete(socket);
+                continue;
+            }
+
+            socket.end();
+
+            const destroyTimer = setTimeout(() => {
+                if (!socket.destroyed) {
+                    socket.destroy();
+                }
+            }, 250);
+            destroyTimer.unref?.();
+        }
     }
 }
