@@ -10,8 +10,8 @@ interface DiscordRpcClient {
         listener: (...args: unknown[]) => void
     ): void;
     login(options: { clientId: string }): Promise<void>;
-    setActivity(activity: Record<string, unknown>): Promise<void>;
-    clearActivity(): Promise<void>;
+    setActivity(activity: Record<string, unknown>, pid?: number): Promise<void>;
+    clearActivity(pid?: number): Promise<void>;
     subscribe(event: string, args?: Record<string, unknown>): Promise<{ unsubscribe: () => Promise<unknown> }>;
     sendJoinInvite(user: { id: string } | string): Promise<void>;
     closeJoinRequest(user: { id: string } | string): Promise<void>;
@@ -36,6 +36,7 @@ interface BridgeConfig {
     largeImageDungeonKey: string;
     largeImageNewbieRoadKey: string;
     logPayloads: boolean;
+    targetProcessName: string;
 }
 
 interface PresencePayload {
@@ -90,13 +91,20 @@ function preferLocalDevUrl(rawUrl: string, pathname: string): string {
 }
 
 function resolveConfigPath(): string {
+    const explicitArg = String(process.argv[2] ?? '').trim();
+    const explicitEnv = String(process.env.DISCORD_BRIDGE_CONFIG ?? '').trim();
     const candidates = [
+        explicitArg ? path.resolve(process.cwd(), explicitArg) : '',
+        explicitEnv ? path.resolve(process.cwd(), explicitEnv) : '',
         path.resolve(process.cwd(), 'discord-bridge.config.json'),
         path.resolve(__dirname, '..', 'discord-bridge.config.json'),
         path.resolve(__dirname, '..', '..', 'discord-bridge.config.json')
     ];
 
     for (const candidate of candidates) {
+        if (!candidate) {
+            continue;
+        }
         if (fs.existsSync(candidate)) {
             return candidate;
         }
@@ -118,6 +126,7 @@ class LocalDiscordBridge {
     private runtimePresenceUrl = '';
     private runtimeJoinUrl = '';
     private runtimeCharacterName = '';
+    private targetPid: number | null = null;
 
     constructor(config: BridgeConfig) {
         this.config = config;
@@ -187,6 +196,7 @@ class LocalDiscordBridge {
             console.log(`[DiscordBridge] Listening on http://127.0.0.1:${this.config.port}`);
         });
 
+        this.updateTargetPid();
         this.startPolling();
     }
 
@@ -593,10 +603,11 @@ class LocalDiscordBridge {
         }
 
         try {
-            await this.client.setActivity(activity);
+            const pid = this.updateTargetPid();
+            await this.client.setActivity(activity, pid ?? undefined);
             this.lastActivityHash = nextHash;
             this.currentPresence = { ...payload };
-            console.log(`[DiscordBridge] Presence updated: ${payload.characterName} | ${payload.details} | ${payload.state}`);
+            console.log(`[DiscordBridge] Presence updated: ${payload.characterName} | ${payload.details} | ${payload.state}` + (pid ? ` (PID: ${pid})` : ''));
             return true;
         } catch (error) {
             console.error('[DiscordBridge] Failed to update activity:', error);
@@ -612,7 +623,8 @@ class LocalDiscordBridge {
         }
 
         try {
-            await this.client.clearActivity();
+            const pid = this.updateTargetPid();
+            await this.client.clearActivity(pid ?? undefined);
         } catch (error) {
             console.error('[DiscordBridge] Failed to clear activity:', error);
         } finally {
@@ -639,6 +651,60 @@ class LocalDiscordBridge {
 
         return '';
     }
+
+    private updateTargetPid(): number | null {
+        if (!this.config.targetProcessName) {
+            return null;
+        }
+
+        try {
+            const { execSync } = require('child_process');
+            // Try pgrep -f first (full command line match)
+            let output = '';
+            try {
+                output = execSync(`pgrep -f "${this.config.targetProcessName}"`, { encoding: 'utf8' }).trim();
+            } catch {
+                // Ignore pgrep failure (often happens if no match)
+            }
+
+            if (!output) {
+                // Try ps as fallback
+                try {
+                    const psOutput = execSync(`ps aux | grep -v grep | grep -i "${this.config.targetProcessName}"`, { encoding: 'utf8' });
+                    const lines = psOutput.trim().split('\n');
+                    if (lines.length > 0) {
+                        const parts = lines[0].trim().split(/\s+/);
+                        if (parts.length > 1) {
+                            output = parts[1];
+                        }
+                    }
+                } catch {
+                    // Ignore ps failure
+                }
+            }
+
+            if (output) {
+                const pid = parseInt(output.split('\n')[0], 10);
+                if (Number.isFinite(pid) && pid > 0) {
+                    if (this.targetPid !== pid) {
+                        this.targetPid = pid;
+                        console.log(`[DiscordBridge] Linked presence to process "${this.config.targetProcessName}" (PID: ${pid})`);
+                    }
+                    return pid;
+                }
+            }
+        } catch (error) {
+            if (this.config.logPayloads) {
+                console.error('[DiscordBridge] PID discovery failed:', error);
+            }
+        }
+
+        if (this.targetPid !== null) {
+            this.targetPid = null;
+            console.log(`[DiscordBridge] Process "${this.config.targetProcessName}" no longer found.`);
+        }
+        return null;
+    }
 }
 
 function readConfig(): BridgeConfig {
@@ -655,7 +721,8 @@ function readConfig(): BridgeConfig {
         largeImageHomeKey: 'home',
         largeImageDungeonKey: 'indungeon',
         largeImageNewbieRoadKey: 'newbieroad',
-        logPayloads: false
+        logPayloads: false,
+        targetProcessName: ''
     };
 
     if (!fs.existsSync(CONFIG_PATH)) {
@@ -682,7 +749,8 @@ function readConfig(): BridgeConfig {
         largeImageHomeKey: String(raw.largeImageHomeKey ?? defaults.largeImageHomeKey).trim(),
         largeImageDungeonKey: String(raw.largeImageDungeonKey ?? defaults.largeImageDungeonKey).trim(),
         largeImageNewbieRoadKey: String(raw.largeImageNewbieRoadKey ?? defaults.largeImageNewbieRoadKey).trim(),
-        logPayloads: Boolean(raw.logPayloads)
+        logPayloads: Boolean(raw.logPayloads),
+        targetProcessName: String(raw.targetProcessName ?? defaults.targetProcessName).trim()
     };
 }
 

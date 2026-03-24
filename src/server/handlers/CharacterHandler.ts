@@ -653,11 +653,9 @@ export class CharacterHandler {
             payloadPreview: DebugLogger.previewBuffer(pdBuffer)
         });
 
-        SocialHandler.handleSessionReady(client);
+        MissionHandler.syncMissionStateToClient(client);
 
-        if (storyRepair.addedMissionId > 0) {
-            MissionHandler.sendMissionAdded(client, storyRepair.addedMissionId);
-        }
+        SocialHandler.handleSessionReady(client);
         
         // Spawn NPCs
         LevelHandler.spawnLevelNpcs(client, entry.targetLevel);
