@@ -138,23 +138,6 @@ export class MissionHandler {
                 const completedMissionDef = MissionLoader.getMissionDef(completedMissionId);
                 const completedMissionState = MissionHandler.getMissionState(client.character, completedMissionId);
 
-                if (completedMissionId === MissionID.RescueAnna) {
-                    const contactNpc = 'Anna';
-                    const addedMissionId = MissionHandler.autoAcceptFollowupMission(
-                        client.character,
-                        contactNpc,
-                        completedMissionId
-                    );
-                    if (addedMissionId) {
-                        didMutate = true;
-                        MissionHandler.sendMissionAdded(
-                            client,
-                            addedMissionId,
-                            MissionHandler.getMissionState(client.character, addedMissionId)
-                        );
-                    }
-                }
-
                 if (
                     completedMissionId !== MissionID.DefendTheShip &&
                     completedMissionDef &&
@@ -249,48 +232,6 @@ export class MissionHandler {
 
             MissionHandler.setMissionState(character, missionId, completionState, missionDef, {
                 currCount: Math.max(1, Number(missionDef.CompleteCount ?? 1))
-            });
-            return missionId;
-        }
-
-        return 0;
-    }
-
-    private static autoAcceptFollowupMission(
-        character: Character,
-        npcName: string,
-        excludeMissionId: number
-    ): number {
-        const normalizedNpc = MissionHandler.normalizeNpcKey(npcName);
-        if (!normalizedNpc) {
-            return 0;
-        }
-
-        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
-            if (missionId === excludeMissionId) {
-                continue;
-            }
-
-            const missionDef = MissionLoader.getMissionDef(missionId);
-            if (!missionDef) {
-                continue;
-            }
-
-            if (MissionHandler.getMissionState(character, missionId) !== MissionHandler.MISSION_NOT_STARTED) {
-                continue;
-            }
-
-            if (MissionHandler.normalizeNpcKey(missionDef.ContactName ?? '') !== normalizedNpc) {
-                continue;
-            }
-
-            if (!MissionHandler.canStartMission(character, missionDef)) {
-                continue;
-            }
-
-            const initialState = MissionHandler.getInitialMissionState(missionDef);
-            MissionHandler.setMissionState(character, missionId, initialState, missionDef, {
-                currCount: 0
             });
             return missionId;
         }

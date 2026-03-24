@@ -123,19 +123,6 @@ export class NpcHandler {
                             await db.saveCharacters(client.userId, client.characters);
                         }
 
-                        const followupMissionId = NpcHandler.autoAcceptFollowupMission(
-                            client.character,
-                            npcKey,
-                            missionId
-                        );
-                        if (followupMissionId) {
-                            NpcHandler.sendMissionAdded(
-                                client,
-                                followupMissionId,
-                                NpcHandler.getMissionState(client.character, followupMissionId)
-                            );
-                        }
-
                         didMutate = true;
                     }
                 }
@@ -234,44 +221,6 @@ export class NpcHandler {
         }
 
         return best ? { missionId: best.missionId, dialogueId: best.dialogueId, state: best.state } : null;
-    }
-
-    private static autoAcceptFollowupMission(
-        character: Character,
-        npcKey: string,
-        excludeMissionId: number
-    ): number {
-        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
-            if (missionId === excludeMissionId) {
-                continue;
-            }
-
-            const missionDef = MissionLoader.getMissionDef(missionId);
-            if (!missionDef) {
-                continue;
-            }
-
-            if (NpcHandler.getMissionState(character, missionId) !== NpcHandler.MISSION_NOT_STARTED) {
-                continue;
-            }
-
-            if (NpcHandler.normalizeNpcKey(missionDef.ContactName ?? '') !== npcKey) {
-                continue;
-            }
-
-            if (!NpcHandler.canStartMission(character, missionDef)) {
-                continue;
-            }
-
-            NpcHandler.setMissionState(
-                character,
-                missionId,
-                NpcHandler.getInitialMissionState(missionDef)
-            );
-            return missionId;
-        }
-
-        return 0;
     }
 
     private static canStartMission(character: Character, missionDef: MissionDef): boolean {
@@ -442,25 +391,9 @@ export class NpcHandler {
                 NpcHandler.MISSION_CLAIMED
             );
 
-            const followupMissionId = NpcHandler.autoAcceptFollowupMission(
-                client.character,
-                npcKey,
-                NpcHandler.FIRST_MISSION_ID
-            );
-
             // Сохраняем прогресс
             if (client.userId) {
                 await db.saveCharacters(client.userId, client.characters);
-            }
-
-            if (!client.socket.destroyed) {
-                if (followupMissionId) {
-                    NpcHandler.sendMissionAdded(
-                        client,
-                        followupMissionId,
-                        NpcHandler.getMissionState(client.character, followupMissionId)
-                    );
-                }
             }
         } finally {
             client.pendingMissionTurnIns.delete(NpcHandler.FIRST_MISSION_ID);

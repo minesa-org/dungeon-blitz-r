@@ -5,8 +5,8 @@
       "name": "Graalhob",
       "class": "Mage",
       "level": 2,
-      "xp": 114,
-      "gold": 300,
+      "xp": 119,
+      "gold": 317,
       "craftXP": 0,
       "DragonOre": 0,
       "mammothIdols": 0,
@@ -105,8 +105,8 @@
       "inventory": [],
       "CurrentLevel": {
         "name": "NewbieRoad",
-        "x": 1421,
-        "y": 826
+        "x": 3082,
+        "y": 595
       },
       "PreviousLevel": {
         "name": "NewbieRoad",
@@ -233,7 +233,13 @@
           "complete": 1
         },
         "2": {
-          "state": 2
+          "state": 3,
+          "claimed": 1,
+          "complete": 1
+        },
+        "3": {
+          "state": 1,
+          "currCount": 0
         }
       },
       "questTrackerState": 100,
