@@ -2,7 +2,7 @@ node_modules
 server_tapes
 src/server/dist
 src/server/data/Accounts.json
-src/server/data/saves/*.json
+src/server/saves/
 temp
 .DS_Store
 .env

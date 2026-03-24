@@ -5,6 +5,7 @@ import { MissionID } from '../data/runtime/MissionID';
 import { NpcHandler } from '../handlers/NpcHandler';
 import { MissionHandler } from '../handlers/MissionHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
+import { BitReader } from '../network/protocol/bitReader';
 
 type SentPacket = {
     id: number;
@@ -196,10 +197,32 @@ async function testDungeonCompletionLeavesNextNpcQuestAvailable(): Promise<void>
     );
 }
 
+function testNpcFallbackBubblePacketUsesReadableRoomThoughtFormat(): void {
+    const character: TestCharacter = {
+        name: 'QuestHero',
+        level: 2,
+        xp: 0,
+        gold: 0,
+        CurrentLevel: { name: 'NewbieRoad', x: 0, y: 0 },
+        missions: {}
+    };
+    const client = createFakeClient('NewbieRoad', character);
+
+    (NpcHandler as any).sendNpcBubble(client, 6218466, 'Test fallback line');
+
+    assert.equal(client.sentPackets.length, 1, 'fallback bubble should send one packet');
+    assert.equal(client.sentPackets[0]?.id, 0x76, 'fallback bubble should use room-thought packet');
+
+    const reader = new BitReader(client.sentPackets[0]!.payload);
+    assert.equal(reader.readMethod4(), 6218466);
+    assert.equal(reader.readMethod13(), 'Test fallback line');
+}
+
 async function main(): Promise<void> {
     ensureMissionDataLoaded();
     await testClaimedQuestDoesNotAutoAcceptFollowup();
     await testDungeonCompletionLeavesNextNpcQuestAvailable();
+    testNpcFallbackBubblePacketUsesReadableRoomThoughtFormat();
     console.log('quest_completion_flow_regression: ok');
 }
 

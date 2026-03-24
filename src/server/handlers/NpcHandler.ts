@@ -26,6 +26,7 @@ export class NpcHandler {
     private static readonly RETURN_DIALOGUE_BASE_MS = 2000;
     private static readonly RETURN_DIALOGUE_CHAR_MS = 50;
     private static readonly DEFAULT_TURN_IN_STARS = 3;
+    private static readonly fallbackDialogueCache: Map<string, string[]> = new Map();
 
     static async handleTalkToNpc(client: Client, data: Buffer): Promise<void> {
         if (!client.character) {
@@ -337,7 +338,7 @@ export class NpcHandler {
     }
 
     private static sendNpcBubble(client: Client, npcId: number, text: string): void {
-        const bb = new BitBuffer();
+        const bb = new BitBuffer(false);
         bb.writeMethod4(npcId);
         bb.writeMethod13(text);
         client.sendBitBuffer(0x76, bb);
@@ -414,6 +415,11 @@ export class NpcHandler {
     }
 
     private static getFallbackLine(npcKey: string): string {
+        const derived = NpcHandler.getDerivedFallbackLines(npcKey);
+        if (derived.length > 0) {
+            return derived[Math.floor(Math.random() * derived.length)];
+        }
+
         const lines: Record<string, string[]> = {
             nrcaptfink: [
                 'We made it to shore alive, at least.',
@@ -446,6 +452,74 @@ export class NpcHandler {
 
         const pool = lines[npcKey] || ['...'];
         return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    private static getDerivedFallbackLines(npcKey: string): string[] {
+        if (!npcKey) {
+            return [];
+        }
+
+        const cached = NpcHandler.fallbackDialogueCache.get(npcKey);
+        if (cached) {
+            return cached;
+        }
+
+        const lines = new Set<string>();
+        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            if (!missionDef) {
+                continue;
+            }
+
+            const contactKey = NpcHandler.normalizeNpcKey(missionDef.ContactName ?? '');
+            const returnKey = NpcHandler.normalizeNpcKey(missionDef.ReturnName ?? '');
+            if (contactKey !== npcKey && returnKey !== npcKey) {
+                continue;
+            }
+
+            for (const text of [
+                missionDef.PreReqText,
+                missionDef.OfferText,
+                missionDef.ActiveText,
+                missionDef.ReturnText,
+                missionDef.PraiseText,
+                missionDef.TrackerText,
+                missionDef.Description
+            ]) {
+                for (const line of NpcHandler.extractDialogueLines(text ?? '')) {
+                    lines.add(line);
+                    if (lines.size >= 12) {
+                        break;
+                    }
+                }
+                if (lines.size >= 12) {
+                    break;
+                }
+            }
+
+            if (lines.size >= 12) {
+                break;
+            }
+        }
+
+        const derived = Array.from(lines);
+        NpcHandler.fallbackDialogueCache.set(npcKey, derived);
+        return derived;
+    }
+
+    private static extractDialogueLines(text: string): string[] {
+        return String(text ?? '')
+            .split('=')
+            .map((segment) => segment.replace(/@/g, '').replace(/#tn#/g, 'hero').trim())
+            .filter((segment) => {
+                if (!segment) {
+                    return false;
+                }
+                const normalized = segment.toLowerCase();
+                return normalized !== 'todo' && normalized !== 'description';
+            })
+            .map((segment) => segment.replace(/\s+/g, ' '))
+            .slice(0, 4);
     }
 
     private static normalizeNpcKey(value: string): string {
