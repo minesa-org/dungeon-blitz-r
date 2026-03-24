@@ -4,20 +4,17 @@
     "description": "Dungeon Blitz: R",
     "main": "index.js",
     "scripts": {
-        "dev": "cd src/server && npm run dev",
-        "build": "cd src/server && npm run build",
-        "start:multiplayer": "cd src/server && npm run start:multiplayer",
-        "start:discord-bridge": "cd src/server && npm run start:discord-bridge",
-        "dev:discord": "npm run dev:with-discord",
-        "launch:multiplayer-with-discord": "node src/server/tools/launchMultiplayerClient.js",
-        "install:discord-bridge-autostart": "node src/server/tools/installDiscordBridgeAutostart.js",
-        "remove:discord-bridge-autostart": "node src/server/tools/removeDiscordBridgeAutostart.js",
-        "dev:discord-bridge": "cd src/server && npm run dev:discord-bridge",
-        "dev:with-discord": "concurrently -n GAME,RPC -c blue,magenta \"npm run dev\" \"npm run dev:discord-bridge\""
-    },
-    "devDependencies": {
-        "concurrently": "^9.2.1"
+      "dev": "npm --prefix src/server run dev",
+      "dev:discord-bridge": "npm --prefix src/server run dev:discord-bridge",
+      "dev:with-discord": "concurrently \"npm run dev\" \"npm run dev:discord-bridge\"",
+      "build": "npm --prefix src/server run build",
+      "start:multiplayer": "npm --prefix src/server run start:multiplayer",
+      "start:discord-bridge": "npm --prefix src/server run start:discord-bridge",
+      "start:with-discord": "concurrently \"npm run start:multiplayer\" \"npm run start:discord-bridge\""
     },
     "author": "The Minesa Studios",
-    "license": "MIT"
-}
+    "license": "MIT",
+    "devDependencies": {
+      "concurrently": "^9.0.1"
+    }
+  }

@@ -17,7 +17,7 @@ import { NpcLoader, NpcDef } from '../data/NpcLoader';
 import { MissionID } from '../data/runtime';
 import { Entity, EntityTeam } from '../core/Entity';
 import { EntityHandler } from './EntityHandler';
-import { MissionHandler } from './MissionHandler';
+// import { MissionHandler } from './MissionHandler';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { normalizeCharacterKey, PendingTeleport } from '../core/SocialState';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
