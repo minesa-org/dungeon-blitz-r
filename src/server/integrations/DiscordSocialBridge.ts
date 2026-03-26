@@ -132,6 +132,7 @@ function resolveExecutablePath(config: DiscordSocialBridgeConfig): string {
 }
 
 class DiscordSocialBridge {
+    private static readonly AUTH_RESTART_DELAY_MS = 1500;
     private readonly config: DiscordSocialBridgeConfig;
     private readonly enabled: boolean;
     private readonly appId: string;
@@ -147,6 +148,8 @@ class DiscordSocialBridge {
     private child: ChildProcessWithoutNullStreams | null = null;
     private ready = false;
     private started = false;
+    private authFailureDetected = false;
+    private authRestartAttempts = 0;
 
     constructor() {
         this.config = readConfigFile();
@@ -191,6 +194,10 @@ class DiscordSocialBridge {
             return;
         }
 
+        this.spawnNativeBridge();
+    }
+
+    private spawnNativeBridge(): void {
         console.log(
             `[DiscordSocialBridge] Starting native bridge: ${this.executablePath} (cwd=${this.workingDirectory})`
         );
@@ -204,12 +211,25 @@ class DiscordSocialBridge {
             this.ready = false;
             this.child = null;
             console.warn(`[DiscordSocialBridge] Native bridge exited (code=${code ?? 'null'}, signal=${signal ?? 'null'}).`);
+
+            if (this.authFailureDetected && this.authRestartAttempts < 1) {
+                this.authRestartAttempts += 1;
+                this.authFailureDetected = false;
+                this.clearTokenCache();
+                console.warn('[DiscordSocialBridge] Cleared stale Discord Social token cache; restarting bridge for fresh device auth.');
+                setTimeout(() => {
+                    if (this.started && !this.child) {
+                        this.spawnNativeBridge();
+                    }
+                }, DiscordSocialBridge.AUTH_RESTART_DELAY_MS);
+            }
         });
 
         this.child.stderr.on('data', (chunk: Buffer) => {
             const text = chunk.toString('utf8').trim();
             if (text) {
                 console.log(`[DiscordSocialBridge:native] ${text}`);
+                this.notePotentialAuthFailure(text);
             }
         });
 
@@ -226,6 +246,33 @@ class DiscordSocialBridge {
             enableChannelLinking: this.enableChannelLinking,
             tokenCachePath: this.tokenCachePath
         });
+    }
+
+    private notePotentialAuthFailure(text: string): void {
+        const normalized = String(text ?? '');
+        const unauthorizedMe = normalized.includes('oauth2/@me failed') && normalized.includes('401');
+        const disconnected4004 =
+            normalized.includes('Client disconnected.') &&
+            normalized.includes('error=2') &&
+            normalized.includes('detail=4004');
+
+        if (!unauthorizedMe && !disconnected4004) {
+            return;
+        }
+
+        this.authFailureDetected = true;
+    }
+
+    private clearTokenCache(): void {
+        if (!this.tokenCachePath) {
+            return;
+        }
+
+        try {
+            fs.rmSync(this.tokenCachePath, { force: true });
+        } catch (error) {
+            console.warn('[DiscordSocialBridge] Failed to clear Social SDK token cache:', error);
+        }
     }
 
     public relay(payload: DiscordRelayPayload): void {
@@ -305,9 +352,12 @@ class DiscordSocialBridge {
         switch (payload.type) {
             case 'ready':
                 this.ready = true;
+                this.authRestartAttempts = 0;
+                this.authFailureDetected = false;
                 console.log('[DiscordSocialBridge] Native Social SDK bridge is ready.');
                 return;
             case 'auth':
+                this.authFailureDetected = false;
                 console.log(
                     `[DiscordSocialBridge] Device auth required: ${payload.verificationUri ?? 'verification_uri_missing'} code=${payload.userCode ?? 'missing'}`
                 );
