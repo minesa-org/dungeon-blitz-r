@@ -41,7 +41,7 @@ async function main(): Promise<void> {
     const metadata: RoleConnectionMetadataRecord[] = [
         {
             key: 'player_level',
-            name: 'Player Level',
+            name: 'Level',
             description: 'Minimum Dungeon Blitz level on the linked character',
             type: INTEGER_GE
         },
