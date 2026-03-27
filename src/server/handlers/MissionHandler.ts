@@ -18,6 +18,7 @@ export class MissionHandler {
     private static readonly MISSION_CLAIMED = 3;
     private static readonly DEFAULT_DUNGEON_TIER = 10;
     private static readonly DEFAULT_DUNGEON_HIGHSCORE = 99999999;
+    private static readonly ACHIEVEMENT_MAMMOTH_IDOL_REWARD = 10;
     private static readonly LOGIN_REPLAY_STARS = 3;
     private static readonly LOGIN_REPLAY_SCORE = 0;
 
@@ -203,8 +204,10 @@ export class MissionHandler {
             missionDef,
             { currCount: Math.max(1, Number(missionDef.CompleteCount ?? 1)) }
         );
+        client.character.mammothIdols = Number(client.character.mammothIdols ?? 0) + MissionHandler.ACHIEVEMENT_MAMMOTH_IDOL_REWARD;
 
         MissionHandler.sendMissionProgress(client, missionId, 1);
+        MissionHandler.sendMissionComplete(client, missionId);
         MissionHandler.sendAchievementCompleteUi(client, missionId);
         await MissionHandler.saveCharacter(client);
     }
