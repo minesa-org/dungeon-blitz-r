@@ -635,8 +635,8 @@ function testSendExistingVisibleClientSpawnEntitiesPrunesStaleOutdoorOwnerBefore
     const levelMap = GlobalState.levelEntities.get('NewbieRoad');
     assert.equal(levelMap?.has(stale.id), false, 'stale outdoor owner entity should be pruned from the shared level map');
     assert.equal(levelMap?.has(canonical.id), true, 'active outdoor owner entity should remain');
-    assert.deepEqual(joiner.sentPackets.map((packet) => packet.id), [0x0F]);
-    assert.equal(joiner.knownEntityIds.has(canonical.id), true, 'joiner should only keep the canonical outdoor entity');
+    assert.deepEqual(joiner.sentPackets.map((packet) => packet.id), [], 'outdoor joiners should rely on local client spawns instead of remote seed packets');
+    assert.equal(joiner.knownEntityIds.has(canonical.id), false, 'outdoor joiners should not mark canonical client-spawn entities known during join');
 }
 
 function testConflictingLocalIdsStillTriggerRemotePlayerSeed(): void {

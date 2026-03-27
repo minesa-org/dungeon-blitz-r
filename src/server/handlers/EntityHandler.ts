@@ -1353,6 +1353,16 @@ export class EntityHandler {
             if (entityId <= 0 || entityProps?.isPlayer || !entityProps?.clientSpawned) {
                 continue;
             }
+            if (EntityHandler.usesClientSpawn(joiner.currentLevel)) {
+                EntityHandler.logSync('SkipOutdoorJoinSeed', joiner, {
+                    levelScope: getClientLevelScope(joiner),
+                    entityId,
+                    ownerToken: Number(entityProps?.ownerToken ?? 0),
+                    ownerPartyId: Number(entityProps?.ownerPartyId ?? 0),
+                    roomId: Number(entityProps?.roomId ?? -1)
+                });
+                continue;
+            }
             if (!EntityHandler.canClientSeeEntity(joiner, entityProps)) {
                 continue;
             }
