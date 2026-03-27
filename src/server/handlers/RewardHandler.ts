@@ -38,10 +38,7 @@ interface LootReward {
 
 export class RewardHandler {
     private static nextLootId = 900000;
-    private static readonly PLAYER_PATH_DROP_ENEMIES_BY_LEVEL: Record<string, Set<string>> = {
-        GoblinRiverDungeon: new Set(['PsychophageBaby']),
-        GoblinRiverDungeonHard: new Set(['PsychophageBaby'])
-    };
+    private static readonly AIRBORNE_DROP_SNAP_Y_THRESHOLD = 24;
     private static readonly MATERIAL_DROP_CHANCE_BY_RANK: Record<string, number> = {
         Minion: 0.2,
         Lieutenant: 0.6,
@@ -161,33 +158,56 @@ export class RewardHandler {
         return levelMap?.get(sourceId) ?? null;
     }
 
-    private static shouldUseRewardWorldDropPosition(client: Client, sourceEntity: any): boolean {
+    private static shouldSnapLootToPlayerPath(client: Client, sourceEntity: any, entType: any, playerEnt: any, rewardY: number): boolean {
         const entName = String(sourceEntity?.name ?? '');
-        const levelName = String(client.currentLevel ?? '');
-        return Boolean(levelName && RewardHandler.PLAYER_PATH_DROP_ENEMIES_BY_LEVEL[levelName]?.has(entName));
-    }
-
-    private static shouldSnapLootToPlayerPath(client: Client, sourceEntity: any, entType: any): boolean {
-        const entName = String(sourceEntity?.name ?? '');
-        if (String(entType?.Flying ?? '').toLowerCase() === 'true' || entName.startsWith('Chains')) {
+        if (
+            String(entType?.Flying ?? '').toLowerCase() === 'true' ||
+            entName.startsWith('Chains')
+        ) {
+            return true;
+        }
+        const playerY = Number(playerEnt?.y ?? playerEnt?.pos_y);
+        const sourceY = Number(sourceEntity?.y ?? sourceEntity?.pos_y);
+        const airborneY = Number.isFinite(sourceY) ? sourceY : Number(rewardY);
+        if (Number.isFinite(airborneY) && Number.isFinite(playerY) && airborneY < playerY - RewardHandler.AIRBORNE_DROP_SNAP_Y_THRESHOLD) {
             return true;
         }
         return false;
     }
 
-    private static resolveDropPosition(client: Client, sourceEntity: any, fallbackX: number, fallbackY: number): { x: number; y: number } {
-        if (RewardHandler.shouldUseRewardWorldDropPosition(client, sourceEntity)) {
-            return {
-                x: Math.round(Number.isFinite(fallbackX) ? fallbackX : Number(sourceEntity?.x ?? sourceEntity?.pos_x ?? 0)),
-                y: Math.round(Number.isFinite(fallbackY) ? fallbackY : Number(sourceEntity?.y ?? sourceEntity?.pos_y ?? 0))
-            };
+    private static shouldUseRewardGroundPosition(sourceEntity: any, entType: any): boolean {
+        const entName = String(sourceEntity?.name ?? '');
+        if (entName.startsWith('Chains')) {
+            return false;
         }
-        const x = Number(sourceEntity?.x ?? sourceEntity?.pos_x ?? fallbackX);
+        return String(entType?.Flying ?? '').toLowerCase() === 'true';
+    }
+
+    private static resolveDropPosition(client: Client, sourceEntity: any, fallbackX: number, fallbackY: number): { x: number; y: number } {
+        const rewardX = Number(fallbackX);
+        const sourceX = Number(sourceEntity?.x ?? sourceEntity?.pos_x);
+        let x = sourceX;
         let y = Number(sourceEntity?.y ?? sourceEntity?.pos_y ?? fallbackY);
         const entType = sourceEntity?.name ? GameData.getEntType(String(sourceEntity.name)) : null;
         const playerEnt = client.entities.get(client.clientEntID);
-        if (RewardHandler.shouldSnapLootToPlayerPath(client, sourceEntity, entType)) {
-            y = Number(playerEnt?.y ?? playerEnt?.pos_y ?? y);
+        if (RewardHandler.shouldSnapLootToPlayerPath(client, sourceEntity, entType, playerEnt, Number(fallbackY))) {
+            if (RewardHandler.shouldUseRewardGroundPosition(sourceEntity, entType)) {
+                if (Number.isFinite(rewardX)) {
+                    x = rewardX;
+                }
+                const rewardY = Number(fallbackY);
+                y = Number.isFinite(rewardY) ? rewardY : Number(playerEnt?.y ?? playerEnt?.pos_y ?? y);
+            } else {
+                y = Number(playerEnt?.y ?? playerEnt?.pos_y ?? y);
+            }
+        } else {
+            if (Number.isFinite(rewardX)) {
+                x = rewardX;
+            }
+            const rewardY = Number(fallbackY);
+            if (Number.isFinite(rewardY)) {
+                y = rewardY;
+            }
         }
         return {
             x: Math.round(Number.isFinite(x) ? x : fallbackX),

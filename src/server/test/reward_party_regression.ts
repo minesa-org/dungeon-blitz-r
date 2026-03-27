@@ -252,7 +252,7 @@ async function testChainsLootDropsOnPlayerPath(): Promise<void> {
     assert.ok(lootPacket, 'chains kill should emit a lootdrop packet');
     const lootPosition = decodeLootdropPosition(lootPacket!.payload);
     assert.equal(lootPosition.x, 1327, 'chains loot should keep source x position');
-    assert.equal(lootPosition.y, 1942, 'chains loot should snap to player path y position');
+    assert.equal(lootPosition.y, 1942, 'chains loot should stay on player path y position');
 }
 
 async function testGoblinRiverFlyingLootDropsOnPlayerPath(): Promise<void> {
@@ -276,7 +276,8 @@ async function testGoblinRiverFlyingLootDropsOnPlayerPath(): Promise<void> {
         isPlayer: false,
         team: 2,
         x: 2713,
-        y: 1441
+        y: 1441,
+        Flying: 'true'
     });
     setContributors(getClientLevelScope(alpha as never), sourceId, ['alpha']);
 
@@ -285,8 +286,102 @@ async function testGoblinRiverFlyingLootDropsOnPlayerPath(): Promise<void> {
     const lootPacket = alpha.sentPackets.find((packet) => packet.id === 0x32);
     assert.ok(lootPacket, 'goblin river flying kill should emit a lootdrop packet');
     const lootPosition = decodeLootdropPosition(lootPacket!.payload);
-    assert.equal(lootPosition.x, 2713, 'psychophage loot should use reward world x position');
-    assert.equal(lootPosition.y, 1510, 'psychophage loot should use reward world ground y position');
+    assert.equal(lootPosition.x, 2713, 'psychophage loot should keep the reward world x position');
+    assert.equal(lootPosition.y, 1510, 'psychophage loot should use goblin reward world ground y position');
+}
+
+async function testGoblinKidnappersAirborneLootDropsOnPlayerPathWithoutFlyingFlag(): Promise<void> {
+    const alpha = createFakeClient(50, 'Alpha');
+    alpha.currentLevel = 'GoblinKidnappers';
+    GlobalState.sessionsByToken.set(alpha.token, alpha as never);
+
+    alpha.entities.set(alpha.clientEntID, {
+        id: alpha.clientEntID,
+        name: 'MagePaperDoll',
+        isPlayer: true,
+        team: 1,
+        x: 2800,
+        y: 1510
+    });
+
+    const sourceId = 9501;
+    addLevelEntity(alpha, {
+        id: sourceId,
+        name: 'GoblinEyeScout',
+        isPlayer: false,
+        team: 2,
+        x: 2713,
+        y: 1441
+    });
+    setContributors(getClientLevelScope(alpha as never), sourceId, ['alpha']);
+
+    await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId, 25, 2713, 1300));
+
+    const lootPacket = alpha.sentPackets.find((packet) => packet.id === 0x32);
+    assert.ok(lootPacket, 'airborne goblin kidnappers kill should emit a lootdrop packet');
+    const lootPosition = decodeLootdropPosition(lootPacket!.payload);
+    assert.equal(lootPosition.x, 2713, 'airborne goblin kidnappers loot should keep reward world x position');
+    assert.equal(lootPosition.y, 1510, 'airborne goblin kidnappers loot should use goblin reward world ground y position without needing a Flying flag');
+}
+
+async function testGroundEnemyLootKeepsRewardWorldPosition(): Promise<void> {
+    const alpha = createFakeClient(60, 'Alpha');
+    alpha.currentLevel = 'GoblinRiverDungeonHard';
+    GlobalState.sessionsByToken.set(alpha.token, alpha as never);
+
+    alpha.entities.set(alpha.clientEntID, {
+        id: alpha.clientEntID,
+        name: 'MagePaperDoll',
+        isPlayer: true,
+        team: 1,
+        x: 2800,
+        y: 1510
+    });
+
+    const sourceId = 9601;
+    addLevelEntity(alpha, {
+        id: sourceId,
+        name: 'GoblinWarrior',
+        isPlayer: false,
+        team: 2,
+        x: 2713,
+        y: 1514
+    });
+    setContributors(getClientLevelScope(alpha as never), sourceId, ['alpha']);
+
+    await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId, 25, 2650, 1492));
+
+    const lootPacket = alpha.sentPackets.find((packet) => packet.id === 0x32);
+    assert.ok(lootPacket, 'ground enemy kill should emit a lootdrop packet');
+    const lootPosition = decodeLootdropPosition(lootPacket!.payload);
+    assert.equal(lootPosition.x, 2650, 'ground enemy loot should keep reward world x position');
+    assert.equal(lootPosition.y, 1492, 'ground enemy loot should keep reward world y position');
+}
+
+async function testMissingAirborneSourceStillSnapsLootToPlayerPath(): Promise<void> {
+    const alpha = createFakeClient(70, 'Alpha');
+    alpha.currentLevel = 'GoblinRiverDungeon';
+    GlobalState.sessionsByToken.set(alpha.token, alpha as never);
+
+    alpha.entities.set(alpha.clientEntID, {
+        id: alpha.clientEntID,
+        name: 'MagePaperDoll',
+        isPlayer: true,
+        team: 1,
+        x: 2800,
+        y: 1510
+    });
+
+    const sourceId = 9701;
+    setContributors(getClientLevelScope(alpha as never), sourceId, ['alpha']);
+
+    await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId, 25, 2713, 1300));
+
+    const lootPacket = alpha.sentPackets.find((packet) => packet.id === 0x32);
+    assert.ok(lootPacket, 'missing airborne source kill should emit a lootdrop packet');
+    const lootPosition = decodeLootdropPosition(lootPacket!.payload);
+    assert.equal(lootPosition.x, 2713, 'missing airborne source loot should keep reward world x position');
+    assert.equal(lootPosition.y, 1300, 'missing airborne source loot should keep reward world ground y position when no source entity is available');
 }
 
 async function main(): Promise<void> {
@@ -342,6 +437,33 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testGoblinRiverFlyingLootDropsOnPlayerPath();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testGoblinKidnappersAirborneLootDropsOnPlayerPathWithoutFlyingFlag();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testGroundEnemyLootKeepsRewardWorldPosition();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testMissingAirborneSourceStillSnapsLootToPlayerPath();
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.partyByMember = partyByMember;
