@@ -57,12 +57,6 @@ function asArray(value: unknown): unknown[] {
     return Array.isArray(value) ? value : [];
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-    return value && typeof value === 'object' && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : null;
-}
-
 async function readAccountsFile(): Promise<Array<{ email: string; user_id: number }>> {
     const accountsPath = path.resolve(Config.DATA_DIR, 'Accounts.json');
     try {
