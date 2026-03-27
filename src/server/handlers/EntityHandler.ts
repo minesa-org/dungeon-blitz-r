@@ -529,6 +529,57 @@ export class EntityHandler {
         return client.keepTutorialState;
     }
 
+    private static isGoblinRiverBossIntroLevel(levelName: string | null | undefined): boolean {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        return normalizedLevel === 'GoblinRiverDungeon' || normalizedLevel === 'GoblinRiverDungeonHard';
+    }
+
+    private static isGoblinRiverBossIntroRoomLocked(client: Client, roomId: number): boolean {
+        if (!EntityHandler.isGoblinRiverBossIntroLevel(client.currentLevel)) {
+            return false;
+        }
+        if (!Number.isFinite(roomId)) {
+            return false;
+        }
+
+        const now = Date.now();
+        const scopeKey = getClientLevelScope(client);
+        if (!scopeKey) {
+            return false;
+        }
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
+                continue;
+            }
+            if (!sharesRoomIds(roomId, other.currentRoomId)) {
+                continue;
+            }
+            if (Number(other.goblinRiverBossIntroLockUntil ?? 0) > now) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static applyGoblinRiverBossIntroOverlay(client: Client, entity: EntityProps): EntityProps {
+        if (entity.isPlayer) {
+            return entity;
+        }
+
+        const entityRoomId = Number(entity.roomId ?? -1);
+        if (!EntityHandler.isGoblinRiverBossIntroRoomLocked(client, entityRoomId)) {
+            return entity;
+        }
+
+        return {
+            ...entity,
+            untargetable: true,
+            entState: EntityState.DRAMA
+        };
+    }
+
     private static sendStartSkit(client: Client, entityId: number, dialogueId: number, missionId: number): void {
         const bb = new BitBuffer(false);
         bb.writeMethod4(entityId);
@@ -596,6 +647,22 @@ export class EntityHandler {
         bb.writeMethod15(false);
         bb.writeMethod15(false);
         bb.writeMethod15(false);
+        client.sendBitBuffer(0x07, bb);
+    }
+
+    static sendNpcMove(client: Client, entityId: number, dx: number, dy: number, state: number = 0, facingLeft: boolean = false): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(entityId);
+        bb.writeMethod45(dx);
+        bb.writeMethod45(dy);
+        bb.writeMethod45(0); // deltaV
+        bb.writeMethod6(state, 2);
+        bb.writeMethod15(facingLeft);
+        bb.writeMethod15(false); // running
+        bb.writeMethod15(false); // jumping
+        bb.writeMethod15(false); // dropping
+        bb.writeMethod15(false); // backpedal
+        bb.writeMethod15(false); // airborne
         client.sendBitBuffer(0x07, bb);
     }
 
@@ -791,9 +858,15 @@ export class EntityHandler {
              // Fallback for NpcDef or other objects
              props = Entity.fromNpc(entity);
         }
-        
+
+        props = EntityHandler.applyGoblinRiverBossIntroOverlay(client, props);
+
         const data = Entity.serialize(props);
         client.send(0xF, data);
+        if (!props.isPlayer && props.untargetable && Number(props.entState ?? EntityState.ACTIVE) === EntityState.DRAMA) {
+            EntityHandler.sendSetUntargetable(client, props.id, true);
+            EntityHandler.sendNpcState(client, props.id, EntityState.DRAMA, Boolean(props.facingLeft));
+        }
         EntityHandler.rememberEntityKnown(client, client.currentLevel, props);
     }
 
@@ -959,20 +1032,22 @@ export class EntityHandler {
             return;
         }
 
+        const normalizedProps = EntityHandler.applyGoblinRiverBossIntroOverlay(client, props);
+
         if (!isPlayer && levelName) {
             console.log(`[EntityHandler] Non-player entity ACCEPTED: id=${entityId} name=${entName} team=${team} from ${client.character?.name} in ${levelName} scope=${getClientLevelScope(client)} levelMap.size=${levelMap?.size ?? 'null'}`);
         }
 
-        client.entities.set(entityId, props);
-        EntityHandler.rememberEntityKnown(client, levelName, props);
+        client.entities.set(entityId, normalizedProps);
+        EntityHandler.rememberEntityKnown(client, levelName, normalizedProps);
 
         // Update GlobalState
         if (levelMap) {
-            levelMap.set(entityId, props);
+            levelMap.set(entityId, normalizedProps);
         }
 
         // Broadcast the normalized snapshot so remote clients receive canonical state.
-        EntityHandler.broadcastToLevel(client, EntityHandler.buildEntityFullUpdatePayload(props), props);
+        EntityHandler.broadcastToLevel(client, EntityHandler.buildEntityFullUpdatePayload(normalizedProps), normalizedProps);
 
         if (isPlayer && !client.playerSpawned) {
              client.playerSpawned = true;

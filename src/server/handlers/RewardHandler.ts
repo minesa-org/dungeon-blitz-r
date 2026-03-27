@@ -38,6 +38,7 @@ interface LootReward {
 
 export class RewardHandler {
     private static nextLootId = 900000;
+    private static readonly AIRBORNE_DROP_SNAP_Y_THRESHOLD = 24;
     private static readonly MATERIAL_DROP_CHANCE_BY_RANK: Record<string, number> = {
         Minion: 0.2,
         Lieutenant: 0.6,
@@ -162,13 +163,56 @@ export class RewardHandler {
         return levelMap?.get(sourceId) ?? null;
     }
 
+    private static shouldSnapLootToPlayerPath(client: Client, sourceEntity: any, entType: any, playerEnt: any, rewardY: number): boolean {
+        const entName = String(sourceEntity?.name ?? '');
+        if (
+            String(entType?.Flying ?? '').toLowerCase() === 'true' ||
+            entName.startsWith('Chains')
+        ) {
+            return true;
+        }
+        const playerY = Number(playerEnt?.y ?? playerEnt?.pos_y);
+        const sourceY = Number(sourceEntity?.y ?? sourceEntity?.pos_y);
+        const airborneY = Number.isFinite(sourceY) ? sourceY : Number(rewardY);
+        if (Number.isFinite(airborneY) && Number.isFinite(playerY) && airborneY < playerY - RewardHandler.AIRBORNE_DROP_SNAP_Y_THRESHOLD) {
+            return true;
+        }
+        return false;
+    }
+
+    private static shouldUseRewardGroundPosition(sourceEntity: any, entType: any): boolean {
+        const entName = String(sourceEntity?.name ?? '');
+        if (entName.startsWith('Chains')) {
+            return false;
+        }
+        return String(entType?.Flying ?? '').toLowerCase() === 'true';
+    }
+
     private static resolveDropPosition(client: Client, sourceEntity: any, fallbackX: number, fallbackY: number): { x: number; y: number } {
-        const x = Number(sourceEntity?.x ?? sourceEntity?.pos_x ?? fallbackX);
+        const rewardX = Number(fallbackX);
+        const sourceX = Number(sourceEntity?.x ?? sourceEntity?.pos_x);
+        let x = sourceX;
         let y = Number(sourceEntity?.y ?? sourceEntity?.pos_y ?? fallbackY);
         const entType = sourceEntity?.name ? GameData.getEntType(String(sourceEntity.name)) : null;
-        if (String(entType?.Flying ?? '').toLowerCase() === 'true') {
-            const playerEnt = client.entities.get(client.clientEntID);
-            y = Number(playerEnt?.y ?? playerEnt?.pos_y ?? y);
+        const playerEnt = client.entities.get(client.clientEntID);
+        if (RewardHandler.shouldSnapLootToPlayerPath(client, sourceEntity, entType, playerEnt, Number(fallbackY))) {
+            if (RewardHandler.shouldUseRewardGroundPosition(sourceEntity, entType)) {
+                if (Number.isFinite(rewardX)) {
+                    x = rewardX;
+                }
+                const rewardY = Number(fallbackY);
+                y = Number.isFinite(rewardY) ? rewardY : Number(playerEnt?.y ?? playerEnt?.pos_y ?? y);
+            } else {
+                y = Number(playerEnt?.y ?? playerEnt?.pos_y ?? y);
+            }
+        } else {
+            if (Number.isFinite(rewardX)) {
+                x = rewardX;
+            }
+            const rewardY = Number(fallbackY);
+            if (Number.isFinite(rewardY)) {
+                y = rewardY;
+            }
         }
         return {
             x: Math.round(Number.isFinite(x) ? x : fallbackX),
@@ -239,8 +283,8 @@ export class RewardHandler {
 
         const entName = String(sourceEntity?.name ?? '');
 
-        // Disable all rewards for Target Dummies and Chains as per user request
-        if (entName.toLowerCase().includes('dummy') || entName.toLowerCase().includes('hedefkuklas') || entName.startsWith('Chains')) {
+        // Target Dummy (Hedefkuklası) - No rewards
+        if (entName.startsWith('IntroDummy') || entName === 'EmperorDummy' || entName === 'EmperorDummyHard' || entName.startsWith('HomeDummy')) {
             return { exp: 0, gold: 0, hpGain: 0, materialId: 0, gearId: 0, gearTier: 0 };
         }
 
@@ -255,10 +299,17 @@ export class RewardHandler {
 
         const materialChance = realm ? RewardHandler.resolveMaterialDropChance(entType, reward) : 0;
 
+        // Küçük Intro düşmanlar (Minion rank) ve Chains entitylerinden eşya düşmez
+        const isIntroEnemy = entName.startsWith('Intro');
+        const isChainsEnemy = entName.startsWith('Chains');
+        const entRank = String(entType?.EntRank ?? 'Minion');
+        const isLargeEnemy = entRank === 'Lieutenant' || entRank === 'MiniBoss' || entRank === 'Boss';
+        const allowItemDrop = !isChainsEnemy && (!isIntroEnemy || isLargeEnemy);
+
         if (realm && materialChance > 0 && Math.random() < materialChance) {
             materialId = GameData.getRandomMaterialForRealm(realm);
         }
-        if (reward.dropGear) {
+        if (reward.dropGear && allowItemDrop) {
             gearId = GameData.getGearIdForEntity(entName, playerClass);
             gearTier = RewardHandler.resolveGearTier(entName, entLevel);
         }
@@ -284,7 +335,7 @@ export class RewardHandler {
             }
         }
 
-        if (!gearId && entName && Math.random() < 0.10) {
+        if (!gearId && entName && allowItemDrop && Math.random() < 0.10) {
             gearId = GameData.getGearIdForEntity(entName, playerClass);
             gearTier = RewardHandler.resolveGearTier(entName, entLevel);
         }
@@ -294,22 +345,11 @@ export class RewardHandler {
             hpGain = Math.max(1, Math.floor(maxHp * 0.15));
         }
 
-        const tutorialLevels = ['CraftTownTutorial', 'TutorialDungeon', 'TutorialBoat', 'GoblinKidnappers'];
-        const isTutorial = tutorialLevels.includes(client.currentLevel || '') || (client.currentLevel || '').includes('Kidnappers');
-
-        if (gold <= 0 && isTutorial) {
-            gold = Math.max(2, Math.floor(2 + 5 * Math.random()));
+        const result = { exp, gold, hpGain, materialId, gearId, gearTier };
+        if (entName === 'IntroParrot' || entName.startsWith('Chains')) {
+            result.exp = 0;
         }
-
-        if (isTutorial) {
-            const isLarge = entName.includes('Boss') || entName.includes('Brute') || entName.includes('Kraken');
-            if (!isLarge) {
-                gearId = 0;
-                gearTier = 0;
-            }
-        }
-
-        return { exp, gold, hpGain, materialId, gearId, gearTier };
+        return result;
     }
 
     private static async persistCharacter(client: Client): Promise<void> {

@@ -145,6 +145,8 @@ export class Client {
     public clientSpawnConfirmed: boolean = false;
     public clientSpawnFallbackTimer: NodeJS.Timeout | null = null;
     public keepTutorialState: KeepTutorialState | null = null;
+    public goblinRiverBossIntroLockUntil: number = 0;
+    public goblinRiverBossIntroUnlockTimer: NodeJS.Timeout | null = null;
 
     constructor(socket: net.Socket, router: PacketRouter) {
         this.socket = socket;
@@ -291,6 +293,11 @@ export class Client {
         clearClientSpawnFallbackTimer(this);
         clearKeepTutorialTimers(this.keepTutorialState);
         this.keepTutorialState = null;
+        if (this.goblinRiverBossIntroUnlockTimer) {
+            clearTimeout(this.goblinRiverBossIntroUnlockTimer);
+            this.goblinRiverBossIntroUnlockTimer = null;
+        }
+        this.goblinRiverBossIntroLockUntil = 0;
     }
 
     private clearIdentityState(): void {

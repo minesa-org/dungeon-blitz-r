@@ -867,6 +867,9 @@ export class CombatHandler {
     }
 
     static async handlePowerCast(client: Client, data: Buffer): Promise<void> {
+        if (LevelHandler.isGoblinRiverBossIntroLocked(client)) {
+            return;
+        }
         const info = CombatHandler.parsePowerCastRelayInfo(data);
         if (!info) {
             return;
@@ -883,6 +886,9 @@ export class CombatHandler {
     }
 
     static async handlePowerHit(client: Client, data: Buffer): Promise<void> {
+        if (LevelHandler.isGoblinRiverBossIntroLocked(client)) {
+            return;
+        }
         const info = CombatHandler.parsePowerHitRelayInfo(data);
         if (!info) {
             return;
@@ -891,12 +897,16 @@ export class CombatHandler {
         const { targetId, sourceId, damage } = info;
         const currentLevel = client.currentLevel;
         const levelScope = getClientLevelScope(client);
+        const targetEntity = CombatHandler.resolveLevelEntity(levelScope, targetId);
         const sourceEntity = CombatHandler.resolveLevelEntity(levelScope, sourceId);
         const isHostileNpcSource = Boolean(
             sourceEntity &&
             !sourceEntity.isPlayer &&
             Number(sourceEntity.team ?? 0) === EntityTeam.ENEMY
         );
+        if (targetEntity && !targetEntity.isPlayer && Boolean(targetEntity.untargetable)) {
+            return;
+        }
 
         if (client.currentLevel === 'CraftTownTutorial' && client.keepTutorialState) {
             LevelHandler.checkCraftTownTutorialBossHealth(client, targetId, damage);
@@ -947,6 +957,9 @@ export class CombatHandler {
     }
 
     static async handleProjectileExplode(client: Client, data: Buffer): Promise<void> {
+        if (LevelHandler.isGoblinRiverBossIntroLocked(client)) {
+            return;
+        }
         CombatHandler.broadcastCombatPacket(client, 0x0E, data, {
             referencedEntityIds: CombatHandler.parseReferencedEntityIds(0x0E, data)
         });
