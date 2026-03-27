@@ -6,7 +6,6 @@ import { MissionDef, MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
-import { WorldEnter } from '../utils/WorldEnter';
 
 const db = new JsonAdapter();
 
@@ -223,33 +222,9 @@ export class MissionHandler {
         client.character.mammothIdols = Number(client.character.mammothIdols ?? 0) + MissionHandler.ACHIEVEMENT_MAMMOTH_IDOL_REWARD;
 
         MissionHandler.sendMissionProgress(client, missionId, 1);
+        MissionHandler.sendMissionComplete(client, missionId);
         MissionHandler.sendAchievementCompleteUi(client, missionId);
-        MissionHandler.sendLivePlayerDataRefresh(client);
         await MissionHandler.saveCharacter(client);
-    }
-
-    private static sendLivePlayerDataRefresh(client: Client): void {
-        if (!client.character) {
-            return;
-        }
-
-        const currentLevel = String(client.currentLevel || client.character.CurrentLevel?.name || '');
-        const x = Number(client.character.CurrentLevel?.x ?? 0);
-        const y = Number(client.character.CurrentLevel?.y ?? 0);
-        const hasCoord = client.character.CurrentLevel?.x !== undefined && client.character.CurrentLevel?.y !== undefined;
-
-        const packet = WorldEnter.buildPlayerDataPacket(
-            client.character,
-            Math.max(0, Number(client.token ?? 0)),
-            0,
-            0,
-            currentLevel,
-            x,
-            y,
-            hasCoord,
-            false
-        );
-        client.sendBitBuffer(0x10, packet);
     }
 
     private static completeActiveDungeonMission(character: Character, currentLevel: string): number {
