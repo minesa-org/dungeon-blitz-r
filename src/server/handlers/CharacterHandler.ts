@@ -110,7 +110,8 @@ export class CharacterHandler {
                     getScopeLevelName(levelScopeKey),
                     entityId,
                     null,
-                    getScopeLevelInstanceId(levelScopeKey)
+                    getScopeLevelInstanceId(levelScopeKey),
+                    entityProps
                 );
             }
 

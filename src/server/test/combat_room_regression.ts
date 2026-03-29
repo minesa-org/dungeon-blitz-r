@@ -385,7 +385,7 @@ async function testPowerHitFollowsPartyAudience(): Promise<void> {
     assert.equal(otherRoomStranger.sentPackets.some((packet) => packet.id === 0x0A), false);
 }
 
-async function testBakedOutdoorHostileHitsReachPartyMirrorsOnly(): Promise<void> {
+async function testBakedOutdoorHostileHitsStayOwnerLocal(): Promise<void> {
     const sender = createFakeClient(210, 'Alpha', 1);
     const partyOtherRoom = createFakeClient(211, 'Beta', 5);
     const sameRoomStranger = createFakeClient(212, 'Gamma', 1);
@@ -429,13 +429,13 @@ async function testBakedOutdoorHostileHitsReachPartyMirrorsOnly(): Promise<void>
 
     assert.equal(
         partyOtherRoom.sentPackets.some((packet) => packet.id === 0x0A || packet.id === 0x0F),
-        true,
-        'party mates with a matching local outdoor mob should receive the combat sync without a remote spawn packet'
+        false,
+        'party mates should not receive private outdoor hostile combat sync'
     );
     assert.equal(
         sameRoomStranger.sentPackets.some((packet) => packet.id === 0x0A || packet.id === 0x0F),
         false,
-        'same-room strangers should still not receive baked hostile combat packets'
+        'same-room strangers should still not receive private outdoor hostile combat packets'
     );
 }
 
@@ -633,7 +633,7 @@ async function testEntityDestroyClearsKnownEntityCache(): Promise<void> {
     assert.equal(watcher.knownEntityIds.has(hostile.id), false);
 }
 
-async function testOutdoorEntityDestroyReachesPartyMirrorsOnly(): Promise<void> {
+async function testOutdoorEntityDestroyStaysOwnerLocal(): Promise<void> {
     const sender = createFakeClient(410, 'Alpha', 1);
     const partyOtherRoom = createFakeClient(411, 'Beta', 5);
     const sameRoomStranger = createFakeClient(412, 'Gamma', 1);
@@ -677,16 +677,16 @@ async function testOutdoorEntityDestroyReachesPartyMirrorsOnly(): Promise<void> 
 
     assert.equal(
         partyOtherRoom.sentPackets.some((packet) => packet.id === 0x0D && parseDestroyEntityId(packet.payload) === hostile.id),
-        true,
-        'party mates with a matching local outdoor mob should receive the destroy sync'
+        false,
+        'party mates should not receive private outdoor hostile destroy sync'
     );
     assert.equal(
         sameRoomStranger.sentPackets.some((packet) => packet.id === 0x0D),
         false,
-        'non-party players should not receive outdoor destroy sync from another client'
+        'non-party players should not receive private outdoor hostile destroy sync from another client'
     );
-    assert.equal(partyOtherRoom.entities.has(hostile.id), false, 'party mirror should be cleared from the server-side session cache');
-    assert.equal(sameRoomStranger.entities.has(hostile.id), true, 'non-party local mirrors should stay untouched');
+    assert.equal(partyOtherRoom.entities.has(hostile.id), true, 'party member local hostile should stay untouched');
+    assert.equal(sameRoomStranger.entities.has(hostile.id), true, 'non-party local hostile should stay untouched');
 }
 
 async function testDungeonCombatDoesNotCrossInstanceScopes(): Promise<void> {
@@ -784,7 +784,7 @@ async function main(): Promise<void> {
         GlobalState.entityLifeNonces.clear();
         GlobalState.entityLastRewardNonces.clear();
 
-        await testBakedOutdoorHostileHitsReachPartyMirrorsOnly();
+        await testBakedOutdoorHostileHitsStayOwnerLocal();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
@@ -820,7 +820,7 @@ async function main(): Promise<void> {
         GlobalState.entityLifeNonces.clear();
         GlobalState.entityLastRewardNonces.clear();
 
-        await testOutdoorEntityDestroyReachesPartyMirrorsOnly();
+        await testOutdoorEntityDestroyStaysOwnerLocal();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();

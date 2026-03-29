@@ -116,6 +116,33 @@ function testDisconnectBroadcastFallsBackToPrimaryEntityId(): void {
     assert.deepEqual(decodeDestroyedEntityIds(watcher.sentPackets), [42]);
 }
 
+function testDisconnectSkipsPrivateOutdoorClientSpawnDestroyBroadcasts(): void {
+    resetState();
+
+    const owner = createFakeClient('Hero', 101, 'NewbieRoad', true, 42);
+    const watcher = createFakeClient('Watcher', 202, 'NewbieRoad', true, 77);
+
+    GlobalState.sessionsByToken.set(owner.token, owner as never);
+    GlobalState.sessionsByToken.set(watcher.token, watcher as never);
+    GlobalState.levelEntities.set(
+        'NewbieRoad',
+        new Map<number, any>([
+            [42, { id: 42, name: 'Hero', isPlayer: true }],
+            [78, { id: 78, name: 'Watcher', isPlayer: true }],
+            [99, { id: 99, name: 'IntroGoblin', clientSpawned: true, ownerToken: 101, team: 2, roomId: 1 }]
+        ])
+    );
+
+    const removedEntityIds = EntityHandler.removeOwnedEntities(owner as never).sort((left, right) => left - right);
+
+    assert.deepEqual(removedEntityIds, [42, 99]);
+    assert.deepEqual(
+        decodeDestroyedEntityIds(watcher.sentPackets),
+        [42],
+        'private outdoor client-spawn entities should not broadcast destroy packets to other clients on disconnect'
+    );
+}
+
 function main(): void {
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
     const levelEntities = new Map(GlobalState.levelEntities);
@@ -123,6 +150,7 @@ function main(): void {
     try {
         testDisconnectBroadcastRemovesOwnedEntities();
         testDisconnectBroadcastFallsBackToPrimaryEntityId();
+        testDisconnectSkipsPrivateOutdoorClientSpawnDestroyBroadcasts();
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.levelEntities = levelEntities;

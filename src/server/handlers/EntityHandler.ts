@@ -52,7 +52,7 @@ export class EntityHandler {
         return EntityHandler.CLIENT_SPAWN_LEVELS.has(levelName);
     }
 
-    private static isPrivateClientSpawnNpc(levelName: string | null | undefined, entity: any): boolean {
+    private static isPrivateClientSpawnOutdoorEntity(levelName: string | null | undefined, entity: any): boolean {
         if (!levelName || !entity?.clientSpawned || entity?.isPlayer) {
             return false;
         }
@@ -61,10 +61,18 @@ export class EntityHandler {
             return false;
         }
 
+        const team = Number(entity?.team ?? 0);
         return (
-            Number(entity?.team ?? 0) === 3 &&
+            (team === 2 || team === 3) &&
             EntityHandler.usesClientSpawn(levelName) &&
             !LevelConfig.isDungeonLevel(levelName)
+        );
+    }
+
+    private static isPrivateClientSpawnNpc(levelName: string | null | undefined, entity: any): boolean {
+        return (
+            EntityHandler.isPrivateClientSpawnOutdoorEntity(levelName, entity) &&
+            Number(entity?.team ?? 0) === 3
         );
     }
 
@@ -73,16 +81,16 @@ export class EntityHandler {
             return false;
         }
 
+        if (EntityHandler.isPrivateClientSpawnOutdoorEntity(levelName, entity)) {
+            return false;
+        }
+
         const team = Number(entity?.team ?? 0);
         if (team === 2) {
-            return EntityHandler.usesClientSpawn(levelName) || LevelConfig.isDungeonLevel(levelName);
+            return LevelConfig.isDungeonLevel(levelName);
         }
 
         if (team === 3) {
-            if (EntityHandler.isPrivateClientSpawnNpc(levelName, entity)) {
-                return false;
-            }
-
             return levelName === 'CraftTownTutorial' || LevelConfig.isDungeonLevel(levelName);
         }
 
@@ -283,7 +291,7 @@ export class EntityHandler {
     }
 
     static shouldRelayEntityToOtherClients(levelName: string | null | undefined, entity: any): boolean {
-        if (EntityHandler.isPrivateClientSpawnNpc(levelName, entity)) {
+        if (EntityHandler.isPrivateClientSpawnOutdoorEntity(levelName, entity)) {
             return false;
         }
 
@@ -801,7 +809,8 @@ export class EntityHandler {
         levelName: string,
         entityId: number,
         excludedClient: Client | null = null,
-        levelInstanceId: string = ''
+        levelInstanceId: string = '',
+        entityProps: any = null
     ): void {
         if (!levelName || entityId <= 0) {
             return;
@@ -809,6 +818,7 @@ export class EntityHandler {
 
         const payload = EntityHandler.buildDestroyEntityPayload(entityId);
         const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
+        const destroyedEntity = entityProps ?? EntityHandler.getLevelMap(levelName, levelInstanceId)?.get(entityId) ?? null;
         for (const other of GlobalState.sessionsByToken.values()) {
             if (
                 other === excludedClient ||
@@ -817,6 +827,20 @@ export class EntityHandler {
                 other.socket?.destroyed
             ) {
                 continue;
+            }
+
+            if (destroyedEntity && !destroyedEntity.isPlayer) {
+                if (EntityHandler.shouldRelayEntityToOtherClients(levelName, destroyedEntity)) {
+                    if (!EntityHandler.canClientSeeEntity(other, destroyedEntity)) {
+                        continue;
+                    }
+                } else if (EntityHandler.shouldMirrorClientSpawnEntityToParty(levelName, destroyedEntity)) {
+                    if (!EntityHandler.canClientUsePartySharedClientSpawnEntity(other, destroyedEntity)) {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
             }
 
             other.knownEntityIds?.delete(entityId);
@@ -1212,6 +1236,7 @@ export class EntityHandler {
         }
 
         const removedEntityIds = new Set<number>();
+        const removedEntityProps = new Map<number, any>();
         const levelMap = EntityHandler.getLevelMap(levelName, client.levelInstanceId);
         const charNameNorm = EntityHandler.normalizeIdentityName(client.character?.name);
 
@@ -1227,6 +1252,7 @@ export class EntityHandler {
                 if (isOwnedPlayer || isOwnedClientSpawn) {
                     levelMap.delete(entityId);
                     removedEntityIds.add(entityId);
+                    removedEntityProps.set(entityId, entityProps);
                 }
             }
 
@@ -1240,7 +1266,13 @@ export class EntityHandler {
         }
 
         for (const entityId of removedEntityIds) {
-            EntityHandler.broadcastDestroyEntity(levelName, entityId, client, client.levelInstanceId);
+            EntityHandler.broadcastDestroyEntity(
+                levelName,
+                entityId,
+                client,
+                client.levelInstanceId,
+                removedEntityProps.get(entityId)
+            );
         }
 
         return Array.from(removedEntityIds);

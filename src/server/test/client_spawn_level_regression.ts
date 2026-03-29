@@ -207,7 +207,7 @@ function testOutdoorHostileClientSpawnIsNotSeededToPeers(): void {
     assert.equal(client.entities.size, 1, 'existing local hostile should remain untouched');
 }
 
-function testOutdoorHostileClientSpawnSeedsToPartyPeers(): void {
+function testOutdoorHostileClientSpawnStaysPrivateToPartyPeers(): void {
     const owner = createFakeClient('Alpha');
     const watcher = createFakeClient('Beta');
 
@@ -238,9 +238,9 @@ function testOutdoorHostileClientSpawnSeedsToPartyPeers(): void {
 
     const known = EntityHandler.ensureEntityKnown(watcher as never, 'NewbieRoad', hostile.id);
 
-    assert.equal(known, true, 'party peers should receive outdoor hostile seeds');
-    assert.deepEqual(watcher.sentPackets.map((packet) => packet.id), [0x0F]);
-    assert.equal(watcher.knownEntityIds.has(hostile.id), true);
+    assert.equal(known, false, 'party peers should not receive outdoor hostile seeds');
+    assert.deepEqual(watcher.sentPackets.map((packet) => packet.id), []);
+    assert.equal(watcher.knownEntityIds.has(hostile.id), false);
 }
 
 function testDungeonHostileClientSpawnSeedsToPartyPeersOnly(): void {
@@ -469,6 +469,68 @@ function testOutdoorNpcSpawnsStayPrivateToOwner(): void {
     assert.deepEqual(follower.sentPackets, [], 'private outdoor NPCs should not emit destroy/adopt packets to party peers');
     assert.equal(follower.knownEntityIds.has(canonical.id), false);
     assert.equal(follower.entities.has(3401), false);
+}
+
+function testOutdoorHostileSpawnsStayPrivateToOwner(): void {
+    const owner = createFakeClient('Alpha');
+    const follower = createFakeClient('Beta');
+
+    owner.currentLevel = 'NewbieRoad';
+    follower.currentLevel = 'NewbieRoad';
+    owner.currentRoomId = 2;
+    follower.currentRoomId = 2;
+
+    const canonical = {
+        id: 2402,
+        name: 'IntroGoblin',
+        isPlayer: false,
+        x: 418,
+        y: 568,
+        v: 0,
+        team: 2,
+        entState: 0,
+        clientSpawned: true,
+        ownerToken: owner.token,
+        ownerPartyId: 93,
+        roomId: owner.currentRoomId
+    };
+
+    GlobalState.levelEntities.set('NewbieRoad', new Map([[canonical.id, canonical]]));
+    GlobalState.sessionsByToken.set(owner.token, owner as never);
+    GlobalState.sessionsByToken.set(follower.token, follower as never);
+    GlobalState.partyByMember.set('alpha', 93);
+    GlobalState.partyByMember.set('beta', 93);
+
+    const duplicate = {
+        id: 3402,
+        name: canonical.name,
+        isPlayer: false,
+        x: 420,
+        y: 570,
+        v: 0,
+        team: canonical.team,
+        entState: canonical.entState,
+        clientSpawned: true,
+        ownerToken: follower.token,
+        ownerPartyId: 93,
+        roomId: follower.currentRoomId
+    };
+
+    const known = EntityHandler.ensureEntityKnown(follower as never, 'NewbieRoad', canonical.id);
+    const suppressed = (EntityHandler as any).suppressDuplicateSharedClientSpawn(
+        follower as never,
+        'NewbieRoad',
+        GlobalState.levelEntities.get('NewbieRoad'),
+        duplicate
+    );
+
+    const levelMap = GlobalState.levelEntities.get('NewbieRoad');
+    assert.equal(known, false, 'party peers should not receive private outdoor hostile seeds');
+    assert.equal(suppressed, false, 'private outdoor hostile spawns should not collapse to a party canonical entity');
+    assert.equal(levelMap?.size, 1, 'the owner hostile should remain isolated in the shared level map');
+    assert.deepEqual(follower.sentPackets, [], 'private outdoor hostiles should not emit destroy/adopt packets to party peers');
+    assert.equal(follower.knownEntityIds.has(canonical.id), false);
+    assert.equal(follower.entities.has(3402), false);
 }
 
 function testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns(): void {
@@ -812,7 +874,7 @@ function testOutdoorHostileIncrementalUpdatesDoNotRelayToPeers(): void {
     );
 }
 
-function testOutdoorHostileIncrementalUpdatesRelayToPartyPeers(): void {
+function testOutdoorHostileIncrementalUpdatesDoNotRelayToPartyPeers(): void {
     const sender = createFakeClient('Alpha');
     const watcher = createFakeClient('Beta');
 
@@ -848,10 +910,10 @@ function testOutdoorHostileIncrementalUpdatesRelayToPartyPeers(): void {
         buildIncrementalUpdatePayload(hostile.id, 12, -4, 3)
     );
 
-    assert.deepEqual(
-        watcher.sentPackets.map((packet) => packet.id),
-        [0x0F, 0x07],
-        'party peers should receive outdoor hostile movement as shared enemy state'
+    assert.equal(
+        watcher.sentPackets.some((packet) => packet.id === 0x07 || packet.id === 0x0F),
+        false,
+        'private outdoor hostile movement should remain owner-local even for party mates in the same level'
     );
 }
 
@@ -1186,7 +1248,7 @@ function main(): void {
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testOutdoorHostileClientSpawnSeedsToPartyPeers();
+        testOutdoorHostileClientSpawnStaysPrivateToPartyPeers();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
@@ -1217,6 +1279,11 @@ function main(): void {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testOutdoorNpcSpawnsStayPrivateToOwner();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testOutdoorHostileSpawnsStayPrivateToOwner();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
@@ -1256,7 +1323,7 @@ function main(): void {
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testOutdoorHostileIncrementalUpdatesRelayToPartyPeers();
+        testOutdoorHostileIncrementalUpdatesDoNotRelayToPartyPeers();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

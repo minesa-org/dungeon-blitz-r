@@ -94,6 +94,29 @@ function parseQuestProgress(payload: Buffer): number {
     return br.readMethod4();
 }
 
+async function testGoblinRiverQuestProgressStaysIncompleteBeforeHostilesExist(): Promise<void> {
+    const solo = createClient(800, 'Solo');
+
+    GlobalState.sessionsByToken.set(solo.token, solo as never);
+
+    await LevelHandler.handleQuestProgressUpdate(solo as never, createQuestProgressPacket(100));
+
+    assert.equal(solo.character.questTrackerState, 0, 'dungeon progress should stay incomplete before any shared hostile authority exists');
+    assert.deepEqual(
+        solo.sentPackets.filter((packet) => packet.id === 0xB7).map((packet) => parseQuestProgress(packet.payload)),
+        [0],
+        'the server should correct the client back to 0% until shared dungeon hostiles exist'
+    );
+
+    await MissionHandler.handleSetLevelComplete(solo as never, createLevelCompletePacket());
+
+    assert.equal(
+        solo.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'the dungeon should not complete before shared dungeon authority and progress are established'
+    );
+}
+
 async function testGoblinRiverQuestProgressFollowsHostileOwnerAuthority(): Promise<void> {
     const authority = createClient(801, 'Leader');
     const joiner = createClient(802, 'Member');
@@ -198,6 +221,11 @@ async function main(): Promise<void> {
     GlobalState.levelQuestProgress.clear();
 
     try {
+        await testGoblinRiverQuestProgressStaysIncompleteBeforeHostilesExist();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelQuestProgress.clear();
         await testGoblinRiverQuestProgressFollowsHostileOwnerAuthority();
 
         GlobalState.levelEntities.clear();
