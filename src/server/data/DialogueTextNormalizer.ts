@@ -22,7 +22,7 @@ export function normalizeDialogueTextForClient(text: string, locale: string): st
         return text;
     }
 
-    return String(text ?? '').replace(/[ÇÖŞÜĞİçöşüğışı]/g, (character) => TURKISH_ASCII_MAP[character] ?? character);
+    return String(text ?? '').replace(/[ÇÖŞÜĞİçöüğışı]/g, (character) => TURKISH_ASCII_MAP[character] ?? character);
 }
 
 export function normalizeDialogueLinesForClient(lines: string[], locale: string): string[] {
