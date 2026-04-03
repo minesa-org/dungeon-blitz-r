@@ -1,0 +1,70 @@
+{
+  "missions": {
+    "1": {
+      "ReturnText": "Bizi kurtardın!"
+    },
+    "2": {
+      "OfferText": "Şu köyü bulmamız gerekiyor.",
+      "ActiveText": "Köyü haritada bulabilirsin.=@Gerçekten hayatta kalanlar var mı diye bakmaya gidiyorum.=Doğuya doğru ilerle, köyü bulacaksın.=Ben de Niobe'yi onarmaya çalışırım.",
+      "ReturnText": "Bu da ne! Anavatandan biri sonunda Ellyria'ya geri mi döndü?=",
+      "PraiseText": "Krala haber ulaştırmam gerekiyor!=Burada hâlâ insanlar olduğuna inanamıyorum."
+    },
+    "3": {
+      "OfferText": "Anna gibi savaşçılar sayesinde hâlâ dayanıyoruz.",
+      "ActiveText": "Sen kimsin? Nereden geldin?=@Ben #tn#. Kral beni gönderdi.=@Ama burada hâlâ yaşayan insanlar bulduğuma şaşırdım.=Sigismund Hocke ile elli yıl önce geldik.= @Sigismund, Baron Hocke'un oğlu mu?!=Ben onun ordusunda davulcuydum.=Gobliler baronluğa saldırdığında babasının topraklarını kurtarmaya gelen bir seferin parçasıydık=@Ve bunca zaman hayatta kaldınız. İnanılmaz.=Anna gibi iki kuşak savaşçı sayesinde.= Ama goblinler onu sahilde gafil avlamış.=@Şu deniz goblinleri benden kaçıyordu. Demek ki Anna yollarına çıkmış.=Doğuya indiler. Oralarda mağara falan var mı?=Şu tepenin ötesinde, eski bir kaçakçı sığınağı var.=@O halde Anna oradadır. Tabii ben onu kurtarana kadar."
+    },
+    "4": {
+      "OfferText": "Sağ ol! Bir yıldan uzun süredir goblin görmemiştik.",
+      "ReturnText": "Anna'yı kurtardığın için teşekkür ederim! Savaşçılarımızın liderine ihtiyacı var.=@Benim için zevkti. Hayatım boyunca goblinlerle savaştım.=Evet, deniz kaptanın bana Goblin Savaşları'nı anlatıyordu.=@Görünüşe göre zaferimiz henüz tam değil."
+    },
+    "5": {
+      "OfferText": "Elli yıl önce bizi koruyan yer Wolf's End Kalesi'ydi.",
+      "ActiveText": "Sigismund Hocke kaleyi seferi için üs olarak inşa etti.=Ama goblinler ve daha beterleri bizi onlarca yıl önce oradan sürdü.=Senin goblin doğrama yeteneğinle…=@Kaleyi geri alacak kişi ben olabilirim.=Doğrusu hâli pek iç açıcı değil, artık bir harabe sadece.=@Temizlerim ve yeniden kurmaya başlarım.=@Ellyria'da güvenli bir yere ihtiyacım var.=Eğer goblinleri sürüp atarsan, yeniden inşa için elimizden gelen desteği veririz.=@Goblinlerle ben ilgilenirim.=@Hatta bunu hemen şimdi yaparım."
+    },
+    "6": {
+      "OfferText": "Nephit adında biri goblinleri ve ölümsüzleri kontrol etmeye çalışıyor.",
+      "ActiveText": "Babam elli yıl önce karaya çıktığımız zamanki eski raporları inceledi.=@Ve orada Nephit adında birini mi buldu?=Baron Hocke araştırmaları için dünyanın en bilge adamlarını toplamıştı.=Nephit en iyilerden biriydi. Goblinler saldırdığında bir mezarı kazıyordu.=@Hangi mezar olduğunu biliyor musun?=Ölümsüzlerin çoğunun Uykudaki Kral'ın Mezarı'ndan geldiğini gördük.=@Araştırmaya oradan başlarım.=Peki. Ortalık yatışınca seninle buluşurum."
+      ,
+      "ReturnText": "Nephit kovulduğuna göre, belki hem ölümsüzler hem de goblinler azalır."
+    },
+    "7": {
+      "OfferText": "Başka bir mezar daha var. Nephit'in aradığı şey orada olabilir.",
+      "ActiveText": "Nephit'in bir \"Rüya Ejderhası\"ndan söz ettiğini söylemiştin.=@Ejderhalar binlerce yıldır yok.=Bu diğer mezar ondan da eski.=Baron Hocke bu eski mezarlıklara takıntılıydı.=@Nephit ejderha kemiklerinin peşinde olabilir. Güçlü eserlerdir.=Mezar güneyde, ormanın ötesinde. Nephit ikinci kez yükselebilirse...=@Ondan önce oraya varmam gerek.=Yolu aç, ben de arkandan gelirim.",
+      "ReturnText": "Bir ejderha! Gerçek olmasa da böylesi bir rüya hayaleti bile inanılmaz."
+    },
+    "8": {
+      "OfferText": "Wolf's End güvendeyken, bu toprakların daha fazlasını kötülükten geri alabiliriz.",
+      "ActiveText": "Sayende yeniden ayağa kalktık ve savaşmaya hazırız!=@Bunu duymak güzel. Okyanusun bu tarafındaki goblinleri bitirmeyi hedefliyorum.=@İnsanların bana yardım edecek mi?=Elbette! Abbod'un ailesi buranın doğusundaki topraklardan.= Ata mirasını geri almak için can atıyor.=@Harika. Bir de Uyuyan Topraklar hakkında daha fazlasını öğrenmem gerek.=Ben hiç duymadım.=Ama Wissen Kalesi'ndeki arşivlerde bir kayıt olabilir.=@O halde hem kaleyi hem Abbod'un topraklarını özgürleştireceğim.=@Abbod'a onu orada göreceğimi söyle!=Kasabaya döner dönmez söylerim, şampiyon.",
+      "ReturnText": "Burada kampımızı güçlendireceğiz kahraman. Bize önderlik ettiğin için teşekkürler.",
+      "PraiseText": "Bu köy geri alacağımız ilk yer olacak.=@Önümüzde daha çok çetin savaş var ama başarabiliriz.=Buralar bir zamanlar yemyeşil otlaklardı.=Goblinler ve büyüleri burayı bataklığa çevirdi.=@Büyüyle yapılan, büyüyle bozulabilir.=@Birlikte bu toprağı yeniden ayağa kaldıracağız.=@En azından büyük kısmını.=Büyük kısmı bile hayal ettiğimden fazla."
+    },
+    "9": {
+      "OfferText": "Goblinler tüm at nallarımızı çalıp burun halkası yaptı.",
+      "ActiveText": "Büyük goblinler nalları burun halkası diye takıyor.=Bence bizimle alay etmek için.=Ama ordumuzu ve ekonomimizi yeniden kuracaksak o nallara ihtiyacımız var.=@Goblinlerden bir şey geri almak için iyi bir fırsat.",
+      "ReturnText": "Sağ ol! Şu halkaları bir güzel temizlemem gerekecek…"
+    },
+    "10": {
+      "OfferText": "Goblin şamanları Ölüm Gözleri'ni kontrol etmek için asalarını kullanıyor.",
+      "ActiveText": "Bana goblin şamanlarının asalarını getirirsen Ölüm Gözleri'ni kovabilirim.=O uğursuz şeylerin bizi gözetlememesi ne güzel olur.=Hele geceleri.=Biz uyurken.",
+      "ReturnText": "Teşekkürler! Bu asalarla Ölüm Gözleri'ni wardlayabilirim."
+    },
+    "12": {
+      "OfferText": "Daha az goblin olsaydı bu toprakları geri alabilirdik.",
+      "ActiveText": "Yıllardır goblinleri böyle telaşlı görmemiştim.=Panik içindeler.=Muhtemelen senin yüzünden.=@Muhtemelen öyledir.",
+      "ReturnText": "Vay canına, sen tam bir goblin avcısısın!",
+      "PraiseText": "Gerçekten sert bir goblin avcısısın.=Burası belki de kurtulabilir."
+    },
+    "13": {
+      "OfferText": "Şu çiftlikte goblin akıncılar mevzilenmiş.",
+      "ActiveText": "Trogları köşeye sıkıştırdık.=Ama içeride sağlam bir komutanları var.=Onunla sen ilgilenirsen hattı burada tutarım.",
+      "ReturnText": "Haddini bildirdin!=Onları orada tutmayı sürdürürüz.=Hiç sorun değil.",
+      "PraiseText": "Goblinleri kaçırıyorsun.=Baskıyı sürdürdüğümüz sürece…=Bu toprakları geri alabiliriz."
+    },
+    "14": {
+      "OfferText": "Şu mahzenden ölümsüzler durmadan yükseliyor.",
+      "ActiveText": "Ölümsüzlerin ilk çıktığı yer yukarıdaki eski mabet.=O günden beri gelmeye devam ediyorlar.=En tehlikelilerinden bazılarını yok etmeme yardım edersen…=Wolf's End'e yayılmalarını engelleyebiliriz.",
+      "ReturnText": "Minnettarım.",
+      "PraiseText": "Savaşmaya devam edeceğim.=Ama onlara asla alışamayacağım.=Ne kokularına.=Ne söyledikleri ürkütücü şeylere.=Ama en çok da kokularına."
+    }
+  }
+}

@@ -52,6 +52,7 @@ export class CharacterHandler {
             x: newbieSpawn.x,
             y: newbieSpawn.y
         };
+        character.dialogueLanguage = 'en';
         character.missions = {};
         character.questTrackerState = 0;
     }

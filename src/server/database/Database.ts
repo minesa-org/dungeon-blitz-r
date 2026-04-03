@@ -8,6 +8,7 @@ export interface Character {
     class: string;
     gender: string;
     level: number;
+    dialogueLanguage?: string;
     // Expanded fields for building/upgrade logic
     gold?: number;
     mammothIdols?: number;

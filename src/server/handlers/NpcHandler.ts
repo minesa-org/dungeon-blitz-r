@@ -3,6 +3,8 @@ import { GlobalState } from '../core/GlobalState';
 import { GameData } from '../core/GameData';
 import { Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
+import { MissionDialogueLoader } from '../data/MissionDialogueLoader';
+import { NpcDialogueLoader } from '../data/NpcDialogueLoader';
 import { MissionDef, MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
 import { NpcLoader } from '../data/NpcLoader';
@@ -27,6 +29,13 @@ export class NpcHandler {
     private static readonly RETURN_DIALOGUE_BASE_MS = 10;
     private static readonly RETURN_DIALOGUE_CHAR_MS = 1;
     private static readonly DEFAULT_TURN_IN_STARS = 3;
+    private static readonly DELAYED_FOLLOWUP_TURN_INS = new Set<number>([
+        MissionID.MeetTheTown,
+        MissionID.FindAnnasFather,
+        MissionID.KillNephit,
+        MissionID.SlayTheDragon
+    ]);
+    private static readonly DEFAULT_DIALOGUE_LANGUAGE = 'en';
 
     static async handleTalkToNpc(client: Client, data: Buffer): Promise<void> {
         if (!client.character) {
@@ -41,29 +50,30 @@ export class NpcHandler {
         let dialogueId = 0;
         let missionId = 0;
         let didMutate = false;
-        let npcKey = '';
+        let missionNpcKey = '';
+        let dialogueNpcKey = '';
         let delayedFirstMissionTurnIn = false;
 
         if (npc) {
-            npcKey = NpcHandler.normalizeNpcKey(
-                String(
-                    npc.characterName ??
-                    npc.character_name ??
-                    npc.entType ??
-                    npc.name ??
-                    ''
-                )
+            const rawNpcKey = String(
+                npc.characterName ??
+                npc.character_name ??
+                npc.entType ??
+                npc.name ??
+                ''
             );
+            missionNpcKey = NpcHandler.normalizeMissionNpcKey(rawNpcKey);
+            dialogueNpcKey = NpcHandler.normalizeNpcKey(rawNpcKey);
 
             if (
-                npcKey === NpcHandler.FIRST_MISSION_NPC_KEY &&
+                missionNpcKey === NpcHandler.FIRST_MISSION_NPC_KEY &&
                 client.pendingMissionTurnIns.has(NpcHandler.FIRST_MISSION_ID)
             ) {
                 return;
             }
 
             if (
-                npcKey === NpcHandler.FIRST_MISSION_NPC_KEY &&
+                missionNpcKey === NpcHandler.FIRST_MISSION_NPC_KEY &&
                 NpcHandler.getMissionState(client.character, NpcHandler.FIRST_MISSION_ID) < NpcHandler.MISSION_CLAIMED
             ) {
                 const storyRepair = MissionHandler.repairEarlyStoryOnLogin(client.character, levelName);
@@ -72,7 +82,7 @@ export class NpcHandler {
                 }
             }
 
-            const matched = NpcHandler.findBestMission(client.character, npcKey);
+            const matched = NpcHandler.findBestMission(client.character, missionNpcKey);
             if (matched) {
                 dialogueId = matched.dialogueId;
                 missionId = matched.missionId;
@@ -134,17 +144,19 @@ export class NpcHandler {
                             await db.saveCharacters(client.userId, client.characters);
                         }
 
-                        const followupMissionId = NpcHandler.autoAcceptFollowupMission(
-                            client.character,
-                            npcKey,
-                            missionId
-                        );
-                        if (followupMissionId) {
-                            NpcHandler.sendMissionAdded(
-                                client,
-                                followupMissionId,
-                                NpcHandler.getMissionState(client.character, followupMissionId)
+                        if (NpcHandler.shouldAutoAcceptFollowupMission(missionId)) {
+                            const followupMissionId = NpcHandler.autoAcceptFollowupMission(
+                                client.character,
+                                missionNpcKey,
+                                missionId
                             );
+                            if (followupMissionId) {
+                                NpcHandler.sendMissionAdded(
+                                    client,
+                                    followupMissionId,
+                                    NpcHandler.getMissionState(client.character, followupMissionId)
+                                );
+                            }
                         }
 
                         didMutate = true;
@@ -154,7 +166,11 @@ export class NpcHandler {
         }
 
         if (!dialogueId || !missionId) {
-            NpcHandler.sendNpcBubble(client, npcId, NpcHandler.getFallbackLine(npcKey));
+            NpcHandler.sendNpcBubble(
+                client,
+                npcId,
+                NpcHandler.getFallbackLine(client.character, levelName, dialogueNpcKey)
+            );
             return;
         }
 
@@ -162,26 +178,26 @@ export class NpcHandler {
             await db.saveCharacters(client.userId, client.characters);
         }
 
-        NpcHandler.sendStartSkit(client, npcId, dialogueId, missionId);
+        NpcHandler.sendResolvedDialogue(client, npcId, dialogueId, missionId);
         if (delayedFirstMissionTurnIn) {
-            NpcHandler.scheduleFirstMissionFollowup(client, npcKey);
+            NpcHandler.scheduleFirstMissionFollowup(client, missionNpcKey);
         }
     }
 
     private static findNpc(client: Client, levelName: string, npcId: number): ResolvedNpc | null {
         const local = client.entities.get(npcId);
-        if (local) {
-            return local;
-        }
-
         const levelMap = GlobalState.levelEntities.get(getClientLevelScope(client));
         const global = levelMap?.get(npcId);
-        if (global) {
-            return global;
+        const fromLoader = NpcLoader.getNpcsForLevel(levelName).find((npc) => npc.id === npcId);
+        if (!local && !global && !fromLoader) {
+            return null;
         }
 
-        const fromLoader = NpcLoader.getNpcsForLevel(levelName).find((npc) => npc.id === npcId);
-        return fromLoader || null;
+        return {
+            ...(fromLoader ?? {}),
+            ...(global ?? {}),
+            ...(local ?? {})
+        };
     }
 
     private static findBestMission(
@@ -201,8 +217,8 @@ export class NpcHandler {
             }
 
             const state = NpcHandler.getMissionState(character, missionId);
-            const contactKey = NpcHandler.normalizeNpcKey(missionDef.ContactName ?? '');
-            const returnKey = NpcHandler.normalizeNpcKey(missionDef.ReturnName ?? '');
+            const contactKey = NpcHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '');
+            const returnKey = NpcHandler.normalizeMissionNpcKey(missionDef.ReturnName ?? '');
             const isDungeonMission = Boolean(String(missionDef.Dungeon ?? '').trim());
 
             let priority = 0;
@@ -272,7 +288,7 @@ export class NpcHandler {
                 continue;
             }
 
-            if (NpcHandler.normalizeNpcKey(missionDef.ContactName ?? '') !== npcKey) {
+            if (NpcHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '') !== npcKey) {
                 continue;
             }
 
@@ -291,7 +307,15 @@ export class NpcHandler {
         return 0;
     }
 
+    private static shouldAutoAcceptFollowupMission(missionId: number): boolean {
+        return !NpcHandler.DELAYED_FOLLOWUP_TURN_INS.has(missionId);
+    }
+
     private static canStartMission(character: Character, missionDef: MissionDef): boolean {
+        if (!NpcHandler.isMissionZoneUnlocked(character, missionDef)) {
+            return false;
+        }
+
         for (const prereqName of missionDef.PreReqMissions ?? []) {
             const prereqId = MissionLoader.getMissionIdByName(prereqName);
             if (!prereqId) {
@@ -304,6 +328,23 @@ export class NpcHandler {
         }
 
         return true;
+    }
+
+    private static isMissionZoneUnlocked(character: Character, missionDef: MissionDef): boolean {
+        const zoneSet = String(missionDef.ZoneSet ?? '')
+            .split(',')
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+
+        if (!zoneSet.length) {
+            return true;
+        }
+
+        if (zoneSet.some((zone) => zone.startsWith('NewbieRoad') || zone.startsWith('Tutorial') || zone === 'CraftTownTutorial')) {
+            return true;
+        }
+
+        return NpcHandler.getMissionState(character, MissionID.DeliverToSwamp) >= NpcHandler.MISSION_CLAIMED;
     }
 
     private static missionRequiresTurnIn(missionDef: MissionDef): boolean {
@@ -404,6 +445,19 @@ export class NpcHandler {
         client.sendBitBuffer(0x7B, bb);
     }
 
+    private static sendResolvedDialogue(client: Client, npcId: number, dialogueId: number, missionId: number): void {
+        const language = NpcHandler.getDialogueLanguage(client.character);
+        if (language !== NpcHandler.DEFAULT_DIALOGUE_LANGUAGE) {
+            const localizedText = MissionDialogueLoader.getDialogueText(missionId, dialogueId, language);
+            if (localizedText) {
+                NpcHandler.sendNpcBubble(client, npcId, localizedText);
+                return;
+            }
+        }
+
+        NpcHandler.sendStartSkit(client, npcId, dialogueId, missionId);
+    }
+
     private static sendNpcBubble(client: Client, npcId: number, text: string): void {
         const bb = new BitBuffer();
         bb.writeMethod4(npcId);
@@ -412,8 +466,13 @@ export class NpcHandler {
     }
 
     private static scheduleFirstMissionFollowup(client: Client, npcKey: string): void {
-        const missionDef = MissionLoader.getMissionDef(NpcHandler.FIRST_MISSION_ID);
-        const delayMs = NpcHandler.estimateDialogueDelay(missionDef?.ReturnText ?? '');
+        const delayMs = NpcHandler.estimateDialogueDelay(
+            MissionDialogueLoader.getDialogueText(
+                NpcHandler.FIRST_MISSION_ID,
+                4,
+                NpcHandler.getDialogueLanguage(client.character)
+            )
+        );
 
         setTimeout(() => {
             void NpcHandler.finalizeFirstMissionTurnIn(client, npcKey);
@@ -481,7 +540,22 @@ export class NpcHandler {
         return NpcHandler.RETURN_DIALOGUE_BASE_MS + firstLine.length * NpcHandler.RETURN_DIALOGUE_CHAR_MS;
     }
 
-    private static getFallbackLine(npcKey: string): string {
+    private static getDialogueLanguage(character: Character | null | undefined): string {
+        const normalized = String(character?.dialogueLanguage ?? '').trim().toLowerCase();
+        return normalized || NpcHandler.DEFAULT_DIALOGUE_LANGUAGE;
+    }
+
+    private static getFallbackLine(character: Character, levelName: string, npcKey: string): string {
+        const configuredLines = NpcDialogueLoader.getLinesForNpc(
+            levelName,
+            npcKey,
+            character,
+            NpcHandler.getDialogueLanguage(character)
+        );
+        if (configuredLines.length > 0) {
+            return configuredLines[Math.floor(Math.random() * configuredLines.length)];
+        }
+
         const lines: Record<string, string[]> = {
             nrcaptfink: [
                 'We made it to shore alive, at least.',
@@ -517,6 +591,37 @@ export class NpcHandler {
     }
 
     private static normalizeNpcKey(value: string): string {
+        const normalized = String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '');
+
+        if (!normalized) {
+            return '';
+        }
+
+        const aliases: Record<string, string> = {
+            mayorristas: 'nrmayor01',
+            mayor: 'nrmayor01',
+            anna: 'nranna03',
+            pecky: 'nrpecky',
+            captainfink: 'nrcaptfink',
+            fink: 'nrcaptfink',
+            captain: 'nrcaptfink',
+            npccaptain: 'nrcaptfink',
+            affric: 'nraffric',
+            npcaffric: 'nraffric',
+            odem: 'nrodem',
+            npcodem: 'nrodem',
+            elric: 'nrelric',
+            npcelric: 'nrelric',
+            ehric: 'nrelric'
+        };
+
+        return aliases[normalized] ?? normalized;
+    }
+
+    private static normalizeMissionNpcKey(value: string): string {
         const normalized = String(value ?? '')
             .trim()
             .toLowerCase()

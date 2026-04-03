@@ -1,0 +1,262 @@
+{
+  "levels": {
+    "NewbieRoad": {
+      "nrcaptfink": {
+        "displayName": "Captain Fink",
+        "defaultLines": [
+          "We need to find that village.",
+          "You can find the village on the map.",
+          "Just head east and you'll find it.",
+          "I'll try to repair the Niobe.",
+          "I must get word to the king!"
+        ]
+      },
+      "nrintrovillager": {
+        "defaultLines": [
+          "We thought the beach goblins would finish us for sure.",
+          "Seeing a fresh face from the sea still feels like a miracle.",
+          "If you plan to stay, Wolf's End can use another brave soul."
+        ]
+      },
+      "nrelric": {
+        "defaultLines": [
+          "Living out here toughens you up.",
+          "Watch out for wolves near the old road.",
+          "It's not safe to travel alone after dark.",
+          "I've been in these parts for years.",
+          "If you're heading east, be careful."
+        ]
+      },
+      "nrmayor01": {
+        "displayName": "Mayor Ristas",
+        "defaultLines": [
+          "Our village might be small, but we are strong.",
+          "The goblins have been more aggressive lately.",
+          "We need brave heroes to protect these lands.",
+          "I do what I can for the people here.",
+          "Stay a while, adventurer. You're safe here."
+        ]
+      },
+      "nrmerchant01": {
+        "defaultLines": [
+          "Best prices in the realm!",
+          "Fresh goods, just arrived!",
+          "Can I interest you in something?",
+          "I have rare items from the east.",
+          "Business is good."
+        ]
+      },
+      "nrtrainer01": {
+        "defaultLines": [
+          "Keep your guard up!",
+          "Again! With more feeling!",
+          "Pain is weakness leaving the body.",
+          "Focus on your breathing.",
+          "You have potential, recruit."
+        ]
+      },
+      "nraffric": {
+        "displayName": "Affric",
+        "defaultLines": [
+          "Are you friend or foe?",
+          "Do you bring message from our friends in Sark?",
+          "We cannot trust strangers."
+        ]
+      },
+      "nrodem": {
+        "displayName": "Odem",
+        "defaultLines": [
+          "I keep watch over the road at night.",
+          "Something stirs in the old ruins to the south.",
+          "Did you see those lights last night?",
+          "I used to be a soldier, you know.",
+          "Stay sharp, friend."
+        ]
+      },
+      "annaoutside": {
+        "displayName": "Anna",
+        "defaultLines": [
+          "Thank you for freeing me!",
+          "Our fighters need their leader.",
+          "Someone named 'Nephit' is trying to control the goblins.",
+          "My father read through the old reports from when we landed 50 years ago.",
+          "There is another tomb. Maybe what Nephit sought is in there."
+        ]
+      },
+      "nrquestanna01": {
+        "displayName": "Anna",
+        "defaultLines": [
+          "Someone named 'Nephit' is trying to control the goblins.",
+          "We've seen a lot of undead coming from the Tomb of the Slumbering King.",
+          "Baron Hocke employed the wisest men in the world for his research."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 6,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "If Nephit's moving the goblins, I want his name buried for good.",
+              "The old reports mention graves, kings, and a scholar who dug too deep.",
+              "When you're ready, I'll tell you what we found."
+            ]
+          }
+        ]
+      },
+      "nrquestanna02": {
+        "displayName": "Anna",
+        "defaultLines": [
+          "There is another tomb. Maybe what Nephit sought is in there.",
+          "Nephit might've wanted dragon bones.",
+          "The tomb is to the south, through the woods."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 7,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Another tomb means another secret Nephit wanted.",
+              "Whatever waits down there, it isn't sleeping peacefully.",
+              "If a dragon is involved, I'd rather hear about it from you than from rumors."
+            ]
+          }
+        ]
+      },
+      "nrquestanna03": {
+        "displayName": "Anna",
+        "defaultLines": [
+          "With Wolf's End secure, we can reclaim more of the land from evil.",
+          "We've got a lot of hard fighting ahead, but we can do it.",
+          "This whole land was once green pasture."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 8,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "The east road is open, but that doesn't make it safe.",
+              "If you mean to carry this fight further inland, don't go alone.",
+              "Wolf's End can finally breathe, but only just."
+            ]
+          }
+        ]
+      },
+      "nrvillager02": {
+        "defaultLines": [
+          "Goblins stole all our horseshoes and made noserings.",
+          "The big goblins wear horseshoes as noserings.",
+          "If there were fewer goblins, we could reclaim this land.",
+          "I haven't seen the goblins this excited in years.",
+          "You're one tough goblin fighter.",
+          "This place might be saved yet."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 9,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "If those goblins are wearing our horseshoes, bring them back.",
+              "Mockery is easier to stomach when you can melt it down afterward.",
+              "A working forge needs iron more than pride."
+            ]
+          },
+          {
+            "missionId": 12,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "The fewer goblins between here and the hills, the better I sleep.",
+              "We've got land worth taking back if someone keeps clearing the pests.",
+              "Every goblin you drop buys this town another day."
+            ]
+          }
+        ]
+      },
+      "nrvillager03": {
+        "defaultLines": [
+          "The goblin shamans use their wands to control Death Eyes.",
+          "It will be nice not to have those evil things spying on us.",
+          "I hate the way those Death Eyes look at me.",
+          "Thanks again for your help."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 10,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Those Death Eyes drift too close to town after dark.",
+              "A goblin shaman's wand might finally keep them off us.",
+              "I would love to sleep one night without glowing eyes at the window."
+            ]
+          },
+          {
+            "missionId": 12,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "The goblins are getting reckless. That's when they make mistakes.",
+              "Push them harder and they'll break.",
+              "Fear travels fast through a raider camp."
+            ]
+          }
+        ]
+      },
+      "nrcartguy": {
+        "defaultLines": [
+          "There are goblin raiders holed up in that farm.",
+          "We've got the trogs cornered.",
+          "You've got the goblins on the run.",
+          "As long as we keep up the pressure...",
+          "We can reclaim this land."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 13,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Looters scattered my cargo all over that farm.",
+              "I'd settle for my supplies and one day without goblins.",
+              "Bring my things back and I can keep these people fed."
+            ]
+          }
+        ]
+      },
+      "nrhermit": {
+        "defaultLines": [
+          "The undead just keep rising from that crypt.",
+          "The old shrine up there is where the undead first came from.",
+          "They've been coming ever since.",
+          "I'll keep fighting them.",
+          "I'll never get used to their smell."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 14,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "The old graveyard was bad enough before the bones started walking.",
+              "Something in that crypt keeps stirring them up.",
+              "Put the worst of them down and maybe the rest will remember they're dead."
+            ]
+          }
+        ]
+      }
+    },
+    "SwampRoadNorth": {
+      "srnmayor02": {
+        "displayName": "Affric",
+        "defaultLines": [
+          "Are you friend or foe?",
+          "Do you bring message from our friends in Sark?",
+          "We cannot trust strangers."
+        ]
+      }
+    }
+  }
+}

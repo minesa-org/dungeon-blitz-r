@@ -334,7 +334,7 @@ export class MissionHandler {
         npcName: string,
         excludeMissionId: number
     ): number {
-        const normalizedNpc = MissionHandler.normalizeNpcKey(npcName);
+        const normalizedNpc = MissionHandler.normalizeMissionNpcKey(npcName);
         if (!normalizedNpc) {
             return 0;
         }
@@ -353,7 +353,7 @@ export class MissionHandler {
                 continue;
             }
 
-            if (MissionHandler.normalizeNpcKey(missionDef.ContactName ?? '') !== normalizedNpc) {
+            if (MissionHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '') !== normalizedNpc) {
                 continue;
             }
 
@@ -372,6 +372,10 @@ export class MissionHandler {
     }
 
     private static canStartMission(character: Character, missionDef: MissionDef): boolean {
+        if (!MissionHandler.isMissionZoneUnlocked(character, missionDef)) {
+            return false;
+        }
+
         const prereqs = missionDef.PreReqMissions ?? [];
         for (const prereqName of prereqs) {
             const prereqId = MissionLoader.getMissionIdByName(prereqName);
@@ -383,6 +387,23 @@ export class MissionHandler {
             }
         }
         return true;
+    }
+
+    private static isMissionZoneUnlocked(character: Character, missionDef: MissionDef): boolean {
+        const zoneSet = String(missionDef.ZoneSet ?? '')
+            .split(',')
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+
+        if (!zoneSet.length) {
+            return true;
+        }
+
+        if (zoneSet.some((zone) => zone.startsWith('NewbieRoad') || zone.startsWith('Tutorial') || zone === 'CraftTownTutorial')) {
+            return true;
+        }
+
+        return MissionHandler.getMissionState(character, MissionID.DeliverToSwamp) >= MissionHandler.MISSION_CLAIMED;
     }
 
     private static moveCharacterBackToSafeLevel(character: Character, currentLevel: string): boolean {
@@ -635,7 +656,7 @@ export class MissionHandler {
             : {};
     }
 
-    private static normalizeNpcKey(value: string): string {
+    private static normalizeMissionNpcKey(value: string): string {
         const normalized = String(value ?? '')
             .trim()
             .toLowerCase()

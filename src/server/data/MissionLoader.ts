@@ -4,12 +4,15 @@ import path from 'path';
 export interface MissionDef {
     MissionName: string;
     MissionID: number;
+    OfferText?: string;
+    ActiveText?: string;
     Tier?: boolean;
     Time?: boolean;
     highscore?: number;
     CompleteCount?: number;
     ReturnName?: string;
     ReturnText?: string;
+    PraiseText?: string;
     ContactName?: string;
     Dungeon?: string;
     ZoneSet?: string;
@@ -93,12 +96,15 @@ export class MissionLoader {
                     this.missions.set(id, {
                         MissionName: missionName,
                         MissionID: id,
+                        OfferText: item.OfferText || "",
+                        ActiveText: item.ActiveText || "",
                         Tier: this.isTruthy(item.Achievement),
                         Time: this.isTruthy(item.Timed) || Boolean(item.Dungeon),
                         highscore: completeCount,
                         CompleteCount: completeCount,
                         ReturnName: item.ReturnName || "",
                         ReturnText: item.ReturnText || "",
+                        PraiseText: item.PraiseText || "",
                         ContactName: item.ContactName || "",
                         Dungeon: item.Dungeon || "",
                         ZoneSet: item.ZoneSet || "",

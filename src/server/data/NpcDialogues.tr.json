@@ -1,0 +1,262 @@
+{
+  "levels": {
+    "NewbieRoad": {
+      "nrcaptfink": {
+        "displayName": "Kaptan Fink",
+        "defaultLines": [
+          "O koyu bulmamiz gerekiyor.",
+          "Koyu haritada bulabilirsin.",
+          "Doguya git, koyu bulacaksin.",
+          "Niobe'yi onarmaya calisacagim.",
+          "Krala haber ulastirmam gerekiyor!"
+        ]
+      },
+      "nrintrovillager": {
+        "defaultLines": [
+          "Sahildeki goblinlerin bizi kesin bitireceğini sanmıştık.",
+          "Denizden yeni bir yüz görmek hâlâ mucize gibi geliyor.",
+          "Burada kalacaksan, Wolf's End bir cesur ele daha hayır demez."
+        ]
+      },
+      "nrelric": {
+        "defaultLines": [
+          "Buralarda yasamak insani sertlestirir.",
+          "Eski yolun yakinindaki kurtlara dikkat et.",
+          "Hava karardiktan sonra yalniz yolculuk etmek guvenli degil.",
+          "Yillardir bu taraflardayim.",
+          "Doguya gidiyorsan dikkatli ol."
+        ]
+      },
+      "nrmayor01": {
+        "displayName": "Belediye Başkanı Ristas",
+        "defaultLines": [
+          "Koyumuz kucuk olabilir ama gucluyuz.",
+          "Goblinler son zamanlarda daha saldirgan oldu.",
+          "Bu topraklari korumak icin cesur kahramanlara ihtiyacimiz var.",
+          "Buradaki insanlar icin elimden geleni yapiyorum.",
+          "Bir sure kal gezgin. Burada guvendesin."
+        ]
+      },
+      "nrmerchant01": {
+        "defaultLines": [
+          "Diyarin en iyi fiyatlari burada!",
+          "Taze mallar yeni geldi!",
+          "Sana bir sey gostereyim mi?",
+          "Dogudan gelen nadir esyalarim var.",
+          "Isler fena gitmiyor."
+        ]
+      },
+      "nrtrainer01": {
+        "defaultLines": [
+          "Savunmani yukarida tut!",
+          "Bir daha! Daha hissederek!",
+          "Aci, zayifligin bedenden cikisidir.",
+          "Nefesine odaklan.",
+          "Potansiyelin var, acemi."
+        ]
+      },
+      "nraffric": {
+        "displayName": "Affric",
+        "defaultLines": [
+          "Dost musun dusman mi?",
+          "Sark'taki dostlarimizdan mesaj mi getirdin?",
+          "Yabancilara guvenemeyiz."
+        ]
+      },
+      "nrodem": {
+        "displayName": "Odem",
+        "defaultLines": [
+          "Gece yolu ben gozetlerim.",
+          "Guneydeki eski kalintilarda bir seyler kipirdaniyor.",
+          "Dun gece o isiklari gordun mu?",
+          "Ben de bir zamanlar askerdim, bilirsin.",
+          "Tetikte kal dostum."
+        ]
+      },
+      "annaoutside": {
+        "displayName": "Anna",
+        "defaultLines": [
+          "Beni kurtardigin icin tesekkur ederim!",
+          "Savascilarimizin liderine ihtiyaci var.",
+          "Nephit adinda biri goblinleri kontrol etmeye calisiyor.",
+          "Babam elli yil once karaya ciktigimiz zamanki eski raporlari okudu.",
+          "Baska bir mezar daha var. Belki Nephit'in aradigi sey oradadir."
+        ]
+      },
+      "nrquestanna01": {
+        "displayName": "Anna",
+        "defaultLines": [
+          "Nephit adinda biri goblinleri kontrol etmeye calisiyor.",
+          "Uyuyan Kral'in Mezari'ndan cikan bir suru olumsuz gorduk.",
+          "Baron Hocke arastirmalari icin dunyanin en bilge insanlarini calistirmisti."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 6,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Nephit goblinleri oynatıyorsa, adını da toprağa gömmek isterim.",
+              "Eski raporlarda mezarlardan, krallardan ve fazla derine kazmış bir bilginden söz ediliyor.",
+              "Hazır olduğunda sana bulduklarımızı anlatırım."
+            ]
+          }
+        ]
+      },
+      "nrquestanna02": {
+        "displayName": "Anna",
+        "defaultLines": [
+          "Baska bir mezar daha var. Belki Nephit'in aradigi sey oradadir.",
+          "Nephit ejderha kemiklerinin pesinde olabilir.",
+          "Mezar guneyde, ormanin icinden."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 7,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Bir mezar daha demek, Nephit'in istediği bir sır daha demek.",
+              "Aşağıda ne bekliyorsa huzur içinde uyumuyor.",
+              "İşin içinde bir ejderha varsa bunu söylentilerden değil senden duymayı tercih ederim."
+            ]
+          }
+        ]
+      },
+      "nrquestanna03": {
+        "displayName": "Anna",
+        "defaultLines": [
+          "Wolf's End artik guvende; simdi kotulugu daha da geri surebiliriz.",
+          "Onumuzde daha cok zor savas var ama yapabiliriz.",
+          "Bu topraklarin tamami bir zamanlar yesil meraydi."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 8,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Doğu yolu açık olabilir ama bu güvenli olduğu anlamına gelmez.",
+              "Bu savaşı iç bölgelere taşıyacaksan tek başına gitme.",
+              "Wolf's End sonunda nefes alabildi, ama ancak biraz."
+            ]
+          }
+        ]
+      },
+      "nrvillager02": {
+        "defaultLines": [
+          "Goblinler tum at nallarimizi calip burun halkasi yapti.",
+          "Buyuk goblinler at nallarini burunlarina takiyor.",
+          "Daha az goblin olsa bu topraklari geri alabiliriz.",
+          "Goblinleri yillardir bu kadar heyecanli gormemistim.",
+          "Sen gercekten iyi bir goblin avcisisin.",
+          "Belki de bu yer kurtulacak."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 9,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Goblinler nal halkalarımızı burunlarına taktıysa onları geri getir.",
+              "İnsan alay konusu olmayı, eritip yeniden kullanabildiğinde daha kolay hazmediyor.",
+              "Çalışan bir demirhanenin gururdan çok demire ihtiyacı var."
+            ]
+          },
+          {
+            "missionId": 12,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Şurayla tepeler arasında ne kadar az goblin kalırsa o kadar rahat uyurum.",
+              "Birileri şu haşereleri temizlemeye devam ederse geri alacağımız toprak var.",
+              "İndirdiğin her goblin bu kasabaya bir gün daha kazandırır."
+            ]
+          }
+        ]
+      },
+      "nrvillager03": {
+        "defaultLines": [
+          "Goblin samanlari Death Eye'lari asalariyla kontrol ediyor.",
+          "O kotu seylerin bizi gozetmemesi guzel olacak.",
+          "Death Eye'larin bana bakisindan nefret ediyorum.",
+          "Yardimin icin tekrar tesekkurler."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 10,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Şu Ölüm Gözleri geceleri kasabaya fazla yaklaşıyor.",
+              "Bir goblin şaman asasının sonunda onları uzak tutması mümkün olabilir.",
+              "Bir gece olsun penceremde parlayan gözler olmadan uyumayı çok isterim."
+            ]
+          },
+          {
+            "missionId": 12,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Goblinler iyice pervasızlaştı. Hata yaptıkları an da tam bu an.",
+              "Biraz daha bastırırsan kırılacaklar.",
+              "Panik, akıncı kampında çok hızlı yayılır."
+            ]
+          }
+        ]
+      },
+      "nrcartguy": {
+        "defaultLines": [
+          "O ciftlikte yuvalanmis goblin akincilari var.",
+          "Troglari koseye sikistirdik.",
+          "Goblinleri geri cekilmeye zorluyorsun.",
+          "Baskiyi surdurdugumuz surece...",
+          "Bu topraklari geri alabiliriz."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 13,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Yağmacılar yükümü o çiftliğin her yanına saçtı.",
+              "Tek istediğim malım ve goblinsiz tek bir gün.",
+              "Eşyalarımı geri getirirsen bu insanları doyurmaya devam edebilirim."
+            ]
+          }
+        ]
+      },
+      "nrhermit": {
+        "defaultLines": [
+          "Oluler o mahzenden durmadan cikiyor.",
+          "Yukaridaki eski tapinak, undead'lerin ilk geldigi yer.",
+          "O gunden beri geliyorlar.",
+          "Ben savasmaya devam edecegim.",
+          "Kokularina asla alisamayacagim."
+        ],
+        "conditionalLines": [
+          {
+            "missionId": 14,
+            "minState": 0,
+            "maxState": 2,
+            "lines": [
+              "Şu eski mezarlık, kemikler yürümeye başlamadan önce bile yeterince kötüydü.",
+              "O mahzende bir şey onları durmadan ayaklandırıyor.",
+              "En beterlerini indir; belki geri kalanlar ölü olduklarını hatırlar."
+            ]
+          }
+        ]
+      }
+    },
+    "SwampRoadNorth": {
+      "srnmayor02": {
+        "displayName": "Affric",
+        "defaultLines": [
+          "Dost musun dusman mi?",
+          "Sark'taki dostlarimizdan mesaj mi getirdin?",
+          "Yabancilara guvenemeyiz."
+        ]
+      }
+    }
+  }
+}

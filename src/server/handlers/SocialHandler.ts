@@ -865,10 +865,30 @@ export class SocialHandler {
         client.send(0x96, SocialHandler.buildZonePlayersPayload(client));
     }
 
-    static handlePublicChat(client: Client, data: Buffer): void {
+    static async handlePublicChat(client: Client, data: Buffer): Promise<void> {
         const br = new BitReader(data);
         br.readMethod9();
-        br.readMethod13();
+        const message = String(br.readMethod13() ?? '').trim();
+
+        if (client.character) {
+            const match = /^\/lang:(tr|en)\s*$/i.exec(message);
+            if (match) {
+                const nextLanguage = match[1].toLowerCase();
+                client.character.dialogueLanguage = nextLanguage;
+
+                if (client.userId) {
+                    await db.saveCharacters(client.userId, client.characters);
+                }
+
+                SocialHandler.sendChatStatus(
+                    client,
+                    nextLanguage === 'tr'
+                        ? 'NPC dialog dili Turkce olarak ayarlandi.'
+                        : 'NPC dialog language set to English.'
+                );
+                return;
+            }
+        }
 
         SocialHandler.relayToLevel(client, 0x2c, data, false, true);
     }

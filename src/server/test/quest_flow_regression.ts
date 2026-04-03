@@ -1,7 +1,10 @@
 import { strict as assert } from 'assert';
 import * as path from 'path';
 import { LevelConfig } from '../core/LevelConfig';
+import { MissionDialogueLoader } from '../data/MissionDialogueLoader';
+import { NpcDialogueLoader } from '../data/NpcDialogueLoader';
 import { MissionLoader } from '../data/MissionLoader';
+import { NpcLoader } from '../data/NpcLoader';
 import { MissionID } from '../data/runtime';
 import { MissionHandler } from '../handlers/MissionHandler';
 import { NpcHandler } from '../handlers/NpcHandler';
@@ -46,6 +49,15 @@ function ensureDataLoaded(): void {
     }
     if (!MissionLoader.getMissionDef(MissionID.ClearYourHouse)) {
         MissionLoader.load(dataDir);
+    }
+    if (!MissionDialogueLoader.isLoaded()) {
+        MissionDialogueLoader.load(dataDir);
+    }
+    if (!NpcDialogueLoader.isLoaded()) {
+        NpcDialogueLoader.load(dataDir);
+    }
+    if (!NpcLoader.getNpcsForLevel('NewbieRoad').length) {
+        NpcLoader.load(dataDir);
     }
 }
 
@@ -115,6 +127,14 @@ function decodeStartSkitPacket(payload: Buffer): { npcId: number; dialogueId: nu
         npcId: br.readMethod4(),
         dialogueId: br.readMethod6(3),
         missionId: br.readMethod4()
+    };
+}
+
+function decodeNpcBubblePacket(payload: Buffer): { npcId: number; text: string } {
+    const br = new BitReader(payload);
+    return {
+        npcId: br.readMethod4(),
+        text: br.readMethod13()
     };
 }
 
@@ -320,12 +340,356 @@ async function testCaptainFinkTurnInClaimsFirstThenOffersWashedAshoreOnSecondTal
     );
 }
 
+async function testMayorTurnInClaimsWashedAshoreThenOffersRescueAnnaOnSecondTalk(): Promise<void> {
+    const client = createFakeClient(
+        'NewbieRoad',
+        {
+            [String(MissionID.DefendTheShip)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.MeetTheTown)]: {
+                state: 2,
+                currCount: 1
+            }
+        },
+        100
+    );
+    client.character.CurrentLevel = { name: 'NewbieRoad', x: 3334, y: 470 };
+    client.entities.set(5825250, { id: 5825250, characterName: 'NR_Mayor01' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(5825250));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.MeetTheTown)]?.state ?? 0),
+        3,
+        'the first Mayor talk should only claim Washed Ashore'
+    );
+    assert.equal(
+        client.character.missions[String(MissionID.RescueAnna)],
+        undefined,
+        'Goblin Kidnappers should not auto-start during the same Mayor reward turn-in'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x84),
+        true,
+        'claiming Washed Ashore should still show the mission-complete reward UI'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x85),
+        false,
+        'claiming Washed Ashore should not send a Goblin Kidnappers mission-added packet yet'
+    );
+
+    client.sentPackets.length = 0;
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(5825250));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.RescueAnna)]?.state ?? 0),
+        1,
+        'the second Mayor talk should accept Goblin Kidnappers'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x85),
+        true,
+        'accepting Goblin Kidnappers on the second talk should send the mission-added packet'
+    );
+
+    client.sentPackets.length = 0;
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(5825250));
+
+    const skitPacket = client.sentPackets.find((packet) => packet.id === 0x7B);
+    assert.ok(
+        skitPacket,
+        'talking to Mayor after accepting Goblin Kidnappers should still start a mission skit'
+    );
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 5825250,
+            dialogueId: 3,
+            missionId: MissionID.RescueAnna
+        },
+        'Mayor should continue with Goblin Kidnappers active dialogue after the mission is accepted'
+    );
+}
+
+async function testMayorUsesJsonFallbackDialogueWhenNoQuestMatches(): Promise<void> {
+    const client = createFakeClient('NewbieRoad', {}, 0);
+    client.character.CurrentLevel = { name: 'NewbieRoad', x: 3334, y: 470 };
+    client.entities.set(5825250, { id: 5825250, characterName: 'NR_Mayor01' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(5825250));
+
+    const bubblePacket = client.sentPackets.find((packet) => packet.id === 0x76);
+    assert.ok(bubblePacket, 'Mayor should fall back to a regular NPC bubble when no quest matches');
+
+    assert.deepEqual(
+        decodeNpcBubblePacket(bubblePacket!.payload).npcId,
+        5825250,
+        'Mayor fallback bubble should target the talked NPC'
+    );
+
+    const mayorLines = new Set(NpcDialogueLoader.getLinesForNpc('NewbieRoad', 'nrmayor01', client.character as never));
+    assert.ok(
+        mayorLines.has(decodeNpcBubblePacket(bubblePacket!.payload).text),
+        'Mayor fallback bubble should come from the JSON-backed Wolf\'s End dialogue pool'
+    );
+}
+
+async function testMayorTurnInClaimsFindAnnasFatherThenOffersKeepQuestOnSecondTalk(): Promise<void> {
+    const client = createFakeClient(
+        'NewbieRoad',
+        {
+            [String(MissionID.DefendTheShip)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.MeetTheTown)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.RescueAnna)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.FindAnnasFather)]: {
+                state: 2,
+                currCount: 1
+            }
+        },
+        100
+    );
+    client.character.CurrentLevel = { name: 'NewbieRoad', x: 3334, y: 470 };
+    client.entities.set(5825250, { id: 5825250, characterName: 'NR_Mayor01' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(5825250));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.FindAnnasFather)]?.state ?? 0),
+        3,
+        'the first Mayor talk should only claim Find Anna\'s Father'
+    );
+    assert.equal(
+        client.character.missions[String(MissionID.ClearYourHouse)],
+        undefined,
+        'I Claim This Keep should not auto-start during the same Mayor reward turn-in'
+    );
+
+    client.sentPackets.length = 0;
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(5825250));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
+        1,
+        'the second Mayor talk should accept I Claim This Keep'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x85),
+        true,
+        'accepting I Claim This Keep on the second talk should send the mission-added packet'
+    );
+
+    client.sentPackets.length = 0;
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(5825250));
+
+    const skitPacket = client.sentPackets.find((packet) => packet.id === 0x7B);
+    assert.ok(
+        skitPacket,
+        'talking to Mayor after accepting I Claim This Keep should still start a mission skit'
+    );
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 5825250,
+            dialogueId: 3,
+            missionId: MissionID.ClearYourHouse
+        },
+        'Mayor should continue with the keep quest active dialogue after the mission is accepted'
+    );
+}
+
+async function testTurkishMissionDialogueUsesLocalizedRawText(): Promise<void> {
+    const client = createFakeClient(
+        'NewbieRoad',
+        {
+            [String(MissionID.DefendTheShip)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.MeetTheTown)]: {
+                state: 1,
+                currCount: 0
+            }
+        },
+        100
+    );
+    client.character.CurrentLevel = { name: 'NewbieRoad', x: 1421, y: 826 };
+    (client.character as Record<string, unknown>).dialogueLanguage = 'tr';
+    client.entities.set(88, { id: 88, characterName: 'CaptainFink' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(88));
+
+    const packet = client.sentPackets.find((entry) => entry.id === 0x76);
+    assert.ok(packet, 'Turkish mission dialogue should be sent as a raw NPC skit packet');
+    assert.equal(
+        client.sentPackets.some((entry) => entry.id === 0x7B),
+        false,
+        'Turkish mission dialogue should not fall back to the English mission-id skit packet'
+    );
+    assert.equal(
+        decodeNpcBubblePacket(packet!.payload).text,
+        "Koyu haritada bulabilirsin.=@Gercekten hayatta kalanlar var mi diye bakmaya gidiyorum.=Doguya dogru ilerle, koyu bulacaksin.=Ben de Niobe'yi onarmaya calisirim.",
+        'Captain Fink should speak the Turkish dialogue in ASCII form for the legacy client font set'
+    );
+}
+
+async function testTurkishFallbackDialogueUsesLocalizedJsonLines(): Promise<void> {
+    const client = createFakeClient('NewbieRoad', {}, 0);
+    client.character.CurrentLevel = { name: 'NewbieRoad', x: 3334, y: 470 };
+    (client.character as Record<string, unknown>).dialogueLanguage = 'tr';
+    client.entities.set(5825250, { id: 5825250, characterName: 'NR_Mayor01' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(5825250));
+
+    const packet = client.sentPackets.find((entry) => entry.id === 0x76);
+    assert.ok(packet, 'Turkish fallback dialogue should use the NPC raw text packet');
+
+    const mayorLines = new Set(
+        NpcDialogueLoader.getLinesForNpc('NewbieRoad', 'nrmayor01', client.character as never, 'tr')
+    );
+    assert.ok(
+        mayorLines.has(decodeNpcBubblePacket(packet!.payload).text),
+        'Mayor fallback text should come from the Turkish JSON dialogue pool'
+    );
+}
+
+async function testNewbieRoadAffricFallbackUsesOriginalGuardedLines(): Promise<void> {
+    const client = createFakeClient('NewbieRoad', {}, 0);
+    client.character.CurrentLevel = { name: 'NewbieRoad', x: 4365, y: 640 };
+    client.entities.set(6021858, { id: 6021858, name: 'NPCAffric' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(6021858));
+
+    const packet = client.sentPackets.find((entry) => entry.id === 0x76);
+    assert.ok(packet, 'Affric should fall back to a regular NPC bubble when no quest matches');
+
+    const affricLines = new Set(
+        NpcDialogueLoader.getLinesForNpc('NewbieRoad', 'nraffric', client.character as never, 'en')
+    );
+    assert.ok(
+        affricLines.has(decodeNpcBubblePacket(packet!.payload).text),
+        'NewbieRoad Affric fallback should use the guarded asset-backed dialogue lines'
+    );
+}
+
+async function testSwampRoadNorthAffricUsesSrnMayorDialogueKey(): Promise<void> {
+    const client = createFakeClient('SwampRoadNorth', {}, 0);
+    client.character.CurrentLevel = { name: 'SwampRoadNorth', x: 17589, y: 5358 };
+    client.entities.set(6566469, { id: 6566469, name: 'NPCAffric' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(6566469));
+
+    const packet = client.sentPackets.find((entry) => entry.id === 0x76);
+    assert.ok(packet, 'SwampRoadNorth Affric should fall back to a regular NPC bubble when no quest matches');
+
+    const affricLines = new Set(
+        NpcDialogueLoader.getLinesForNpc('SwampRoadNorth', 'srnmayor02', client.character as never, 'en')
+    );
+    assert.ok(
+        affricLines.has(decodeNpcBubblePacket(packet!.payload).text),
+        'SwampRoadNorth Affric should use the original SRN_Mayor02 dialogue pool'
+    );
+}
+
+async function testNewbieRoadOdemDoesNotStartBlackRoseMireQuestEarly(): Promise<void> {
+    const client = createFakeClient(
+        'NewbieRoad',
+        {
+            [String(MissionID.RescueAnna)]: {
+                state: 1,
+                currCount: 0
+            }
+        },
+        100
+    );
+    client.character.CurrentLevel = { name: 'NewbieRoad', x: 4620, y: 643 };
+    client.entities.set(6087394, { id: 6087394, name: 'NPCOdem' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(6087394));
+
+    assert.equal(
+        client.sentPackets.some((entry) => entry.id === 0x85),
+        false,
+        'NewbieRoad Odem should not assign a Black Rose Mire mission during the Goblin Kidnappers stage'
+    );
+    assert.equal(
+        client.sentPackets.some((entry) => entry.id === 0x7B),
+        false,
+        'NewbieRoad Odem should not open a later-zone quest skit during the Goblin Kidnappers stage'
+    );
+
+    const packet = client.sentPackets.find((entry) => entry.id === 0x76);
+    assert.ok(packet, 'NewbieRoad Odem should fall back to his regular NPC bubble');
+
+    const odemLines = new Set(
+        NpcDialogueLoader.getLinesForNpc('NewbieRoad', 'nrodem', client.character as never, 'en')
+    );
+    assert.ok(
+        odemLines.has(decodeNpcBubblePacket(packet!.payload).text),
+        'NewbieRoad Odem should speak his local fallback lines instead of assigning SwampRoadNorth quests'
+    );
+}
+
+async function testSwampRoadNorthStoryNpcDoesNotAssignBeforeSwampUnlock(): Promise<void> {
+    const client = createFakeClient(
+        'SwampRoadNorth',
+        {
+            [String(MissionID.RescueAnna)]: {
+                state: 1,
+                currCount: 0
+            }
+        },
+        100
+    );
+    client.character.CurrentLevel = { name: 'SwampRoadNorth', x: 16000, y: 4800 };
+    client.entities.set(15001, { id: 15001, characterName: 'SRN_Mayor01' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(15001));
+
+    assert.equal(
+        client.sentPackets.some((entry) => entry.id === 0x85),
+        false,
+        'SwampRoadNorth story NPCs should not assign quests before Deliver to Swamp is completed'
+    );
+    assert.equal(
+        client.character.missions[String(MissionID.StopCastout)],
+        undefined,
+        'SwampRoadNorth story missions should remain locked before the NewbieRoad arc is finished'
+    );
+}
+
 async function main(): Promise<void> {
     ensureDataLoaded();
     await testTutorialBoatCompletionPersistsDungeonHoverStats();
     await testRescueAnnaCompletionLeavesFindAnnasFatherAvailableOnAnna();
     await testCaptainFinkRepairsLostAtSeaTurnInForCurrentPlayer();
     await testCaptainFinkTurnInClaimsFirstThenOffersWashedAshoreOnSecondTalk();
+    await testMayorTurnInClaimsWashedAshoreThenOffersRescueAnnaOnSecondTalk();
+    await testMayorUsesJsonFallbackDialogueWhenNoQuestMatches();
+    await testMayorTurnInClaimsFindAnnasFatherThenOffersKeepQuestOnSecondTalk();
+    await testTurkishMissionDialogueUsesLocalizedRawText();
+    await testTurkishFallbackDialogueUsesLocalizedJsonLines();
+    await testNewbieRoadAffricFallbackUsesOriginalGuardedLines();
+    await testSwampRoadNorthAffricUsesSrnMayorDialogueKey();
+    await testNewbieRoadOdemDoesNotStartBlackRoseMireQuestEarly();
+    await testSwampRoadNorthStoryNpcDoesNotAssignBeforeSwampUnlock();
     console.log('quest_flow_regression: ok');
 }
 
