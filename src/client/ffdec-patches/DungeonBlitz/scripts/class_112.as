@@ -159,7 +159,7 @@ package
          }
          return true;
       }
-
+      
       private function method_2048(param1:Level) : uint
       {
          var _loc2_:uint = 0;
@@ -224,7 +224,7 @@ package
             {
                this.var_658.SetText(Level.method_73(_loc2_));
                this.var_458.SetText("Clear the Dungeon");
-               this.var_327.SetText(String(this.method_2048(_loc1_)) + "%");
+               this.var_327.SetText(this.method_2048(_loc1_) + "%");
                this.var_480.mHealthPerc = this.method_2048(_loc1_) / 100;
                this.method_122(null,true);
             }
@@ -280,7 +280,7 @@ package
          if(Boolean(_loc3_.var_134) && _loc2_ == _loc3_.var_134)
          {
             this.var_480.mHealthPerc = this.method_2048(_loc1_) / 100;
-            this.var_327.SetText(String(this.method_2048(_loc1_)) + "%");
+            this.var_327.SetText(this.method_2048(_loc1_) + "%");
             this.method_122(null,true);
          }
          else if(!_loc5_)
@@ -336,3 +336,4 @@ package
       }
    }
 }
+

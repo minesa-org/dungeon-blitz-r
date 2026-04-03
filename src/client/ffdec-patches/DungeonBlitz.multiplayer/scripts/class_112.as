@@ -162,19 +162,30 @@ package
 
       private function method_2048(param1:Level) : uint
       {
+         var _loc2_:uint = 0;
          if(!param1)
          {
             return 0;
          }
-         if(!param1.bInstanced || param1.var_1657)
+         _loc2_ = LinkUpdater.sharedDungeonQuestProgress >= 0 ? uint(LinkUpdater.sharedDungeonQuestProgress) : param1.var_690;
+         switch(param1.internalName)
          {
-            return param1.var_690;
+            case "TutorialDungeon":
+            case "TutorialDungeonHard":
+            case "GoblinRiverDungeon":
+            case "GoblinRiverDungeonHard":
+               if(var_1.mTimeThisTick <= param1.var_2931 + 15000 && (_loc2_ >= 99 || _loc2_ == 0))
+               {
+                  LinkUpdater.sharedDungeonQuestProgress = 11;
+                  param1.method_528(11);
+                  return 11;
+               }
+               if(LinkUpdater.sharedDungeonQuestProgress >= 0)
+               {
+                  return _loc2_;
+               }
          }
-         if(!var_1.groupmates || !var_1.groupmates.length || var_1.bAmGroupLeader)
-         {
-            return param1.var_690;
-         }
-         return param1.var_690 >= 100 ? 99 : param1.var_690;
+         return _loc2_;
       }
       
       override public function OnRefreshScreen() : void

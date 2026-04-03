@@ -5,6 +5,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const TARGET_SWFS = [
+    path.join('src', 'client', 'content', 'localhost', 'p', 'cbp', 'DungeonBlitz.swf'),
     path.join('src', 'client', 'content', 'localhost', 'p', 'cbp', 'DungeonBlitz.localhost.swf'),
     path.join('src', 'client', 'content', 'localhost', 'p', 'cbp', 'DungeonBlitz.multiplayer.swf')
 ];
@@ -219,6 +220,63 @@ function patchLinkUpdater(source) {
                 '         _loc46_.var_38.var_914 = _loc5_;'
             ]),
             'LinkUpdater tutorial room bookkeeping call'
+        );
+    }
+
+    if (!source.includes('public static var sharedDungeonQuestProgress:int = -1;')) {
+        source = replaceExact(
+            source,
+            join([
+                '      public static const const_1099:uint = TYPE_ITERATOR++;',
+                '      ',
+                '      public static const const_1142:uint = TYPE_ITERATOR++;'
+            ]),
+            join([
+                '      public static const const_1099:uint = TYPE_ITERATOR++;',
+                '      ',
+                '      public static var sharedDungeonQuestProgress:int = -1;',
+                '      ',
+                '      public static const const_1142:uint = TYPE_ITERATOR++;'
+            ]),
+            'LinkUpdater shared dungeon progress cache'
+        );
+    }
+
+    if (!source.includes('sharedDungeonQuestProgress = _loc2_;')) {
+        source = replaceExact(
+            source,
+            join([
+                '      private function method_1159(param1:Packet) : void',
+                '      {',
+                '         var _loc2_:uint = param1.method_4();',
+                '         this.var_1.level.method_528(_loc2_);',
+                '      }'
+            ]),
+            join([
+                '      private function method_1159(param1:Packet) : void',
+                '      {',
+                '         var _loc2_:uint = param1.method_4();',
+                '         sharedDungeonQuestProgress = _loc2_;',
+                '         this.var_1.level.method_528(_loc2_);',
+                '      }'
+            ]),
+            'LinkUpdater shared progress packet cache'
+        );
+    }
+
+    if (!source.includes('sharedDungeonQuestProgress = _loc15_;')) {
+        source = replaceExact(
+            source,
+            join([
+                '         this.var_1.method_1794(_loc17_);',
+                '         this.var_1.level.method_528(_loc15_);'
+            ]),
+            join([
+                '         this.var_1.method_1794(_loc17_);',
+                '         sharedDungeonQuestProgress = _loc15_;',
+                '         this.var_1.level.method_528(_loc15_);'
+            ]),
+            'LinkUpdater level snapshot shared progress cache'
         );
     }
 
@@ -457,7 +515,8 @@ function patchRoom(source) {
 
 function assertVerification(content, checks, targetLabel) {
     for (const check of checks) {
-        if (!content.includes(check.needle)) {
+        const needles = Array.isArray(check.needles) ? check.needles : [check.needle];
+        if (!needles.some((needle) => content.includes(needle))) {
             throw new Error(`${targetLabel} is missing verification marker: ${check.label}`);
         }
     }
@@ -469,18 +528,29 @@ function verifyPatchedScripts(class112Source, linkUpdaterSource, roomSource, swf
         class112Source,
         [
             { label: 'class_112 method_2048', needle: 'private function method_2048(param1:Level) : uint' },
-            { label: 'class_112 follower 99 clamp', needle: 'return param1.var_690 >= 100 ? 99 : param1.var_690;' },
-            { label: 'class_112 render callsite', needle: 'this.var_327.SetText(this.method_2048(_loc1_) + "%");' }
+            { label: 'class_112 shared dungeon progress cache read', needle: 'LinkUpdater.sharedDungeonQuestProgress >= 0 ? uint(LinkUpdater.sharedDungeonQuestProgress) : param1.var_690;' },
+            { label: 'class_112 goblin river scope', needle: 'case "GoblinRiverDungeon":' },
+            { label: 'class_112 intro baseline reset', needle: 'LinkUpdater.sharedDungeonQuestProgress = 11;' },
+            {
+                label: 'class_112 render callsite',
+                needles: [
+                    'this.var_327.SetText(this.method_2048(_loc1_) + "%");',
+                    'this.var_327.SetText(String(this.method_2048(_loc1_)) + "%");'
+                ]
+            }
         ],
         `${label} class_112`
     );
     assertVerification(
         linkUpdaterSource,
         [
+            { label: 'LinkUpdater shared dungeon progress cache', needle: 'public static var sharedDungeonQuestProgress:int = -1;' },
             { label: 'LinkUpdater tutorial helper', needle: 'private function method_1912(param1:Entity) : void' },
-            { label: 'LinkUpdater tutorial scope', needle: 'this.var_1.level.internalName != "TutorialDungeon"' },
-            { label: 'LinkUpdater Goblin River scope', needle: 'this.var_1.level.internalName != "GoblinRiverDungeon"' },
-            { label: 'LinkUpdater Goblin River hard scope', needle: 'this.var_1.level.internalName != "GoblinRiverDungeonHard"' },
+            { label: 'LinkUpdater tutorial scope', needle: 'TutorialDungeon' },
+            { label: 'LinkUpdater Goblin River scope', needle: 'GoblinRiverDungeon' },
+            { label: 'LinkUpdater Goblin River hard scope', needle: 'GoblinRiverDungeonHard' },
+            { label: 'LinkUpdater quest progress packet cache', needle: 'sharedDungeonQuestProgress = _loc2_;' },
+            { label: 'LinkUpdater level snapshot progress cache', needle: 'sharedDungeonQuestProgress = _loc15_;' },
             { label: 'LinkUpdater room bind', needle: 'param1.var_1609 = _loc2_;' },
             { label: 'LinkUpdater current room bind', needle: 'param1.currRoom = _loc2_;' },
             { label: 'LinkUpdater room vector insert', needle: '_loc2_.var_229.indexOf(param1) == -1' },
@@ -492,9 +562,9 @@ function verifyPatchedScripts(class112Source, linkUpdaterSource, roomSource, swf
     assertVerification(
         roomSource,
         [
-            { label: 'Room tutorial bootstrap scope', needle: 'this.var_1.level.internalName == "TutorialDungeon"' },
-            { label: 'Room Goblin River bootstrap scope', needle: 'this.var_1.level.internalName == "GoblinRiverDungeon"' },
-            { label: 'Room Goblin River hard bootstrap scope', needle: 'this.var_1.level.internalName == "GoblinRiverDungeonHard"' },
+            { label: 'Room tutorial bootstrap scope', needle: 'TutorialDungeon' },
+            { label: 'Room Goblin River bootstrap scope', needle: 'GoblinRiverDungeon' },
+            { label: 'Room Goblin River hard bootstrap scope', needle: 'GoblinRiverDungeonHard' },
             { label: 'Room hostile bootstrap refresh', needle: 'if(_loc1_ > this.var_2261)' },
             { label: 'Room weighted bootstrap refresh', needle: 'if(_loc2_ > this.var_802)' }
         ],
@@ -532,11 +602,11 @@ function createWorkRoot(repoRoot, prefix, swfPath) {
     );
 }
 
-function resolveClass112TemplatePath(repoRoot, swfPath) {
+function resolveScriptTemplatePath(repoRoot, swfPath, scriptName) {
     const swfName = path.basename(swfPath, path.extname(swfPath));
     const candidates = [
-        path.join(repoRoot, 'src', 'client', 'ffdec-patches', swfName, 'scripts', 'class_112.as'),
-        path.join(repoRoot, 'src', 'client', 'ffdec-patches', 'DungeonBlitz.localhost', 'scripts', 'class_112.as')
+        path.join(repoRoot, 'src', 'client', 'ffdec-patches', swfName, 'scripts', scriptName),
+        path.join(repoRoot, 'src', 'client', 'ffdec-patches', 'DungeonBlitz.localhost', 'scripts', scriptName)
     ];
 
     for (const candidate of candidates) {
@@ -545,7 +615,7 @@ function resolveClass112TemplatePath(repoRoot, swfPath) {
         }
     }
 
-    throw new Error(`class_112 template not found for ${swfName}`);
+    return '';
 }
 
 function patchSwf(repoRoot, ffdecPath, swfPath) {
@@ -554,7 +624,9 @@ function patchSwf(repoRoot, ffdecPath, swfPath) {
     try {
         const patchedSwfPath = path.join(workRoot, `${path.basename(swfPath, path.extname(swfPath))}.patched.swf`);
         const exported = exportScripts(ffdecPath, workRoot, swfPath);
-        const class112Template = fs.readFileSync(resolveClass112TemplatePath(repoRoot, swfPath), 'utf8');
+        const class112TemplatePath = resolveScriptTemplatePath(repoRoot, swfPath, 'class_112.as');
+        const linkUpdaterTemplatePath = resolveScriptTemplatePath(repoRoot, swfPath, 'LinkUpdater.as');
+        const roomTemplatePath = resolveScriptTemplatePath(repoRoot, swfPath, 'Room.as');
 
         const originalLinkUpdater = fs.readFileSync(exported.linkUpdater, 'utf8');
         const originalRoom = fs.readFileSync(exported.room, 'utf8');
@@ -567,9 +639,15 @@ function patchSwf(repoRoot, ffdecPath, swfPath) {
         } catch (_error) {
         }
 
-        const patchedLinkUpdater = patchLinkUpdater(originalLinkUpdater);
-        const patchedRoom = patchRoom(originalRoom);
-        const patchedClass112 = class112Template;
+        const patchedLinkUpdater = linkUpdaterTemplatePath
+            ? fs.readFileSync(linkUpdaterTemplatePath, 'utf8')
+            : patchLinkUpdater(originalLinkUpdater);
+        const patchedRoom = roomTemplatePath
+            ? fs.readFileSync(roomTemplatePath, 'utf8')
+            : patchRoom(originalRoom);
+        const patchedClass112 = class112TemplatePath
+            ? fs.readFileSync(class112TemplatePath, 'utf8')
+            : originalClass112;
 
         fs.writeFileSync(exported.linkUpdater, patchedLinkUpdater, 'utf8');
         fs.writeFileSync(exported.room, patchedRoom, 'utf8');

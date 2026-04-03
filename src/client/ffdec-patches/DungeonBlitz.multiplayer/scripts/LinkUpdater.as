@@ -500,6 +500,8 @@ package
       
       public static const const_1099:uint = TYPE_ITERATOR++;
       
+      public static var sharedDungeonQuestProgress:int = -1;
+      
       public static const const_1142:uint = TYPE_ITERATOR++;
       
       public static const const_900:uint = TYPE_ITERATOR++;
@@ -1586,6 +1588,7 @@ package
       private function method_1159(param1:Packet) : void
       {
          var _loc2_:uint = param1.method_4();
+         sharedDungeonQuestProgress = _loc2_;
          this.var_1.level.method_528(_loc2_);
       }
       
@@ -2190,6 +2193,7 @@ package
             this.var_1.mMissionInfoList = new Array();
          }
          this.var_1.method_1794(_loc17_);
+         sharedDungeonQuestProgress = _loc15_;
          this.var_1.level.method_528(_loc15_);
          var _loc34_:uint = 1;
          while(_loc34_ < EntType.MAX_SLOTS)
@@ -4241,6 +4245,41 @@ package
          return _loc10_ <= DUPLICATE_REMOTE_ENTITY_POSITION_TOLERANCE * 4 ? _loc6_ : null;
       }
       
+      private function method_1912(param1:Entity) : void
+      {
+         var _loc2_:Room = null;
+         var _loc3_:uint = 0;
+         if(!param1 || !param1.cue || !param1.cue.room)
+         {
+            return;
+         }
+         if(!this.var_1 || !this.var_1.level || (this.var_1.level.internalName != "TutorialDungeon" && this.var_1.level.internalName != "GoblinRiverDungeon" && this.var_1.level.internalName != "GoblinRiverDungeonHard"))
+         {
+            return;
+         }
+         _loc2_ = param1.cue.room as Room;
+         if(!_loc2_)
+         {
+            return;
+         }
+         param1.var_1609 = _loc2_;
+         param1.currRoom = _loc2_;
+         if(_loc2_.var_229.indexOf(param1) == -1)
+         {
+            _loc2_.var_229.push(param1);
+         }
+         _loc3_ = _loc2_.method_348();
+         if(_loc3_ > _loc2_.var_2261)
+         {
+            _loc2_.var_2261 = _loc3_;
+         }
+         _loc3_ = _loc2_.method_1990();
+         if(_loc3_ > _loc2_.var_802)
+         {
+            _loc2_.var_802 = _loc3_;
+         }
+      }
+      
       private function method_1615(param1:Packet) : void
       {
          var _loc2_:uint = 0;
@@ -4481,6 +4520,10 @@ package
          if(_loc46_.cue)
          {
             _loc46_.cue.bSpawned = true;
+         }
+         if(_loc12_ != Entity.PLAYER)
+         {
+            this.method_1912(_loc46_);
          }
          _loc46_.var_38.var_914 = _loc5_;
          _loc46_.var_38.var_950 = _loc6_;

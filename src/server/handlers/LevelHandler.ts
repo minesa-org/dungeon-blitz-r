@@ -22,7 +22,7 @@ import { PetHandler } from './PetHandler';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { normalizeCharacterKey, PendingTeleport } from '../core/SocialState';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
-import { areClientsInSameParty, getPartyIdForClient, sharesRoomIds } from '../core/PartySync';
+import { areClientsInSameParty, getPartyIdForClient, sharesRoomIds, isClientPartyLeader, getPartyLeaderCharacterKeyForClient } from '../core/PartySync';
 import {
     clearSharedDungeonActiveCutscene,
     getSharedDungeonRoomPacketSnapshots,
@@ -70,6 +70,7 @@ type TransferSyncAnchorCandidate = {
 export class LevelHandler {
     private static readonly GOBLIN_RIVER_INITIAL_PROGRESS = 11;
     private static readonly TUTORIAL_DUNGEON_INITIAL_PROGRESS = 11;
+    private static readonly TUTORIAL_DUNGEON_PRE_DROP_MAX_PROGRESS = 59;
     private static readonly GOBLIN_RIVER_BOSS_INTRO_TEXTS = new Set<string>([
         "You're the one that killed our Kraken!",
         'That was the last of our Monster Fleet!'
@@ -2183,9 +2184,14 @@ export class LevelHandler {
         }
     }
 
-    private static relayGoblinRiverRoomEventStartToParty(client: Client, data: Buffer): void {
+    private static relayGoblinRiverRoomEventStartToParty(client: Client, roomId: number, data: Buffer): void {
         const levelScope = getClientLevelScope(client);
         const levelName = LevelConfig.normalizeLevelName(client.currentLevel);
+        
+        if (levelName === 'TutorialDungeon' && roomId === 4) {
+            return;
+        }
+
         if (!levelScope || !levelName || !LevelHandler.isGoblinRiverBossIntroLevel(levelName)) {
             LevelHandler.relayToLevel(client, 0xA5, data);
             return;
@@ -2269,6 +2275,29 @@ export class LevelHandler {
         LevelHandler.sendRoomEventStart(client, roomId, true);
     }
 
+    private static syncTutorialDungeonProgressToParty(client: Client, progress: number): void {
+        const levelScope = getClientLevelScope(client);
+        if (!levelScope) {
+            return;
+        }
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (
+                other === client ||
+                !other.playerSpawned ||
+                getClientLevelScope(other) !== levelScope ||
+                !areClientsInSameParty(client, other)
+            ) {
+                continue;
+            }
+
+            if (other.character) {
+                other.character.questTrackerState = progress;
+            }
+            MissionHandler.sendQuestProgress(other, progress);
+        }
+    }
+
     private static maybeTriggerTutorialDungeonDropTutorial(
         client: Client,
         currentX: number,
@@ -2276,7 +2305,7 @@ export class LevelHandler {
         flags?: { bJumping?: boolean; bDropping?: boolean }
     ): void {
         const roomId = client.currentRoomId;
-        if (client.currentLevel !== 'TutorialDungeon' || roomId !== LevelHandler.TUTORIAL_DUNGEON_TRAVERSAL_ROOM_ID) {
+        if (client.currentLevel !== 'TutorialDungeon' || (roomId > 0 && roomId !== LevelHandler.TUTORIAL_DUNGEON_TRAVERSAL_ROOM_ID)) {
             return;
         }
 
@@ -2814,7 +2843,31 @@ export class LevelHandler {
         }
 
         if (currentLevel === 'TutorialDungeon' && LevelHandler.shouldClampTutorialDungeonToIntroProgress(client)) {
-            progress = LevelHandler.TUTORIAL_DUNGEON_INITIAL_PROGRESS;
+            let clampValue = LevelHandler.TUTORIAL_DUNGEON_PRE_DROP_MAX_PROGRESS;
+
+            if (!isClientPartyLeader(client)) {
+                const leaderKey = getPartyLeaderCharacterKeyForClient(client);
+                if (leaderKey) {
+                    for (const other of GlobalState.sessionsByToken.values()) {
+                        if (
+                            other === client ||
+                            !other.playerSpawned ||
+                            !other.character ||
+                            !areClientsInSameParty(client, other)
+                        ) {
+                            continue;
+                        }
+                        const otherKey = String(other.character.name ?? '').trim().toLowerCase();
+                        if (otherKey === leaderKey) {
+                            const leaderProgress = Math.max(0, Number(other.character.questTrackerState ?? 0));
+                            clampValue = Math.max(clampValue, leaderProgress);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            progress = requestedProgress > clampValue ? clampValue : requestedProgress;
         }
 
         const levelScope = getClientLevelScope(client);
@@ -2852,6 +2905,10 @@ export class LevelHandler {
             requestedProgress,
             progress
         });
+
+        if (currentLevel === 'TutorialDungeon') {
+            LevelHandler.syncTutorialDungeonProgressToParty(client, progress);
+        }
 
         if (client.character && client.userId && progress !== previousProgress) {
             await LevelHandler.saveCurrentCharacterSnapshot(client);
@@ -2917,7 +2974,7 @@ export class LevelHandler {
             LevelHandler.mirrorGoblinRiverCutsceneRoomToParty(client, roomId);
         }
 
-        LevelHandler.relayGoblinRiverRoomEventStartToParty(client, data);
+        LevelHandler.relayGoblinRiverRoomEventStartToParty(client, roomId, data);
         if (!flag) {
             LevelHandler.syncGoblinRiverTutorialStateToParty(client, roomId);
         }

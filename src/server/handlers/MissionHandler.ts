@@ -597,7 +597,7 @@ export class MissionHandler {
             : MissionHandler.MISSION_IN_PROGRESS;
     }
 
-    private static sendQuestProgress(client: Client, percent: number): void {
+    static sendQuestProgress(client: Client, percent: number): void {
         const bb = new BitBuffer(false);
         bb.writeMethod4(percent);
         client.sendBitBuffer(0xB7, bb);
