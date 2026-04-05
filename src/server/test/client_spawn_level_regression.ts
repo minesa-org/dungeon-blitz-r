@@ -3,6 +3,7 @@ import * as path from 'path';
 import { createKeepTutorialState } from '../core/Client';
 import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
+import { CombatHandler } from '../handlers/CombatHandler';
 import { EntityHandler } from '../handlers/EntityHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
@@ -90,6 +91,13 @@ function createFakeClient(name: string): FakeClient {
 function parseDestroyEntityId(payload: Buffer): number {
     const br = new BitReader(payload);
     return br.readMethod4();
+}
+
+function buildDestroyEntityPayload(entityId: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(entityId);
+    bb.writeMethod15(true);
+    return bb.toBuffer();
 }
 
 function parseRoomEventStart(payload: Buffer): { roomId: number; flag: boolean } {
@@ -726,6 +734,7 @@ function testCraftTownTutorialBossRecoveryActivatesTrackedHelpersImmediately(): 
     client.currentRoomId = 1;
     client.keepTutorialState = createKeepTutorialState();
     client.keepTutorialState.bossEntitySeen = 2701;
+    client.keepTutorialState.bossEntitySource = 'fallback';
     client.keepTutorialState.helperEntityIds = [2702, 2703];
     (client as any).character = {
         name: 'Alpha',
@@ -797,6 +806,7 @@ function testCraftTownTutorialReinforcementSeedingRestoresMissingHelpers(): void
     client.currentRoomId = 1;
     client.keepTutorialState = createKeepTutorialState();
     client.keepTutorialState.helperEntityIds = [CRAFT_TOWN_HELPER_IDS[0]];
+    client.keepTutorialState.bossEntitySource = 'fallback';
 
     const loneHelper = {
         id: CRAFT_TOWN_HELPER_IDS[0],
@@ -815,9 +825,82 @@ function testCraftTownTutorialReinforcementSeedingRestoresMissingHelpers(): void
     (LevelHandler as any).summonCraftTownTutorialReinforcements(client as never);
 
     assert.deepEqual(client.keepTutorialState?.helperEntityIds, CRAFT_TOWN_HELPER_IDS);
-    for (const helperId of CRAFT_TOWN_HELPER_IDS) {
+    assert.deepEqual(client.keepTutorialState?.helperWaveActiveIds, CRAFT_TOWN_HELPER_IDS.slice(0, 3));
+    for (const helperId of CRAFT_TOWN_HELPER_IDS.slice(0, 3)) {
         assert.equal(client.entities.get(helperId)?.entState, 0, `helper ${helperId} should be active`);
         assert.equal(client.entities.get(helperId)?.untargetable, false, `helper ${helperId} should be targetable`);
+    }
+    for (const helperId of CRAFT_TOWN_HELPER_IDS.slice(3)) {
+        assert.equal(client.entities.has(helperId), false, `helper ${helperId} should stay hidden until its wave`);
+        assert.equal(GlobalState.levelEntities.get('CraftTownTutorial#keep-seed')?.get(helperId)?.entState, 2, `helper ${helperId} should remain boarded`);
+    }
+}
+
+function testCraftTownTutorialKnownHelpersUseStateUpdatesInsteadOfDuplicateSpawns(): void {
+    const client = createFakeClient('Alpha');
+    client.currentLevel = 'CraftTownTutorial';
+    client.levelInstanceId = 'keep-known';
+    client.currentRoomId = 1;
+    client.keepTutorialState = createKeepTutorialState();
+    client.keepTutorialState.helperEntityIds = CRAFT_TOWN_HELPER_IDS.slice(0, 3);
+    client.keepTutorialState.bossEntitySource = 'fallback';
+
+    const levelMap = new Map<number, any>();
+    for (const [index, helperId] of CRAFT_TOWN_HELPER_IDS.slice(0, 3).entries()) {
+        const helper = {
+            id: helperId,
+            name: 'GoblinDagger',
+            x: index * 80,
+            y: 1459,
+            entState: 2,
+            untargetable: true,
+            dramaAnim: 'Board',
+            facingLeft: false
+        };
+        levelMap.set(helperId, helper);
+        client.entities.set(helperId, { ...helper });
+        client.knownEntityIds.add(helperId);
+    }
+
+    GlobalState.levelEntities.set('CraftTownTutorial#keep-known', levelMap);
+
+    (LevelHandler as any).summonCraftTownTutorialReinforcements(client as never);
+
+    assert.equal(client.sentPackets.filter((packet) => packet.id === 0x0F).length, 0, 'known helpers should not be re-spawned');
+    assert.equal(client.sentPackets.filter((packet) => packet.id === 0xAE).length, 3, 'known helpers should receive untargetable updates');
+    assert.equal(client.sentPackets.filter((packet) => packet.id === 0x07).length, 3, 'known helpers should receive state updates');
+}
+
+async function testCraftTownTutorialHelperWaveRespawnsAfterAllHelpersDie(): Promise<void> {
+    const client = createFakeClient('Alpha');
+    client.currentLevel = 'CraftTownTutorial';
+    client.levelInstanceId = 'keep-wave';
+    client.currentRoomId = 1;
+    client.keepTutorialState = createKeepTutorialState();
+    client.keepTutorialState.bossEntitySource = 'fallback';
+    (client as any).character = {
+        name: 'Alpha',
+        CurrentLevel: { name: 'CraftTownTutorial', x: 80, y: 1450 }
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set('CraftTownTutorial#keep-wave', new Map<number, any>());
+
+    (LevelHandler as any).summonCraftTownTutorialReinforcements(client as never);
+
+    const firstWave = [...(client.keepTutorialState?.helperWaveActiveIds ?? [])];
+    assert.deepEqual(firstWave, CRAFT_TOWN_HELPER_IDS.slice(0, 3));
+
+    for (const helperId of firstWave) {
+        await CombatHandler.handleEntityDestroy(client as never, buildDestroyEntityPayload(helperId));
+    }
+
+    const secondWave = [...(client.keepTutorialState?.helperWaveActiveIds ?? [])];
+    assert.equal(secondWave.length, 2, 'next helper wave should spawn two reinforcements');
+    assert.equal(secondWave.some((helperId) => firstWave.includes(helperId)), false, 'next helper wave should rotate to fresh helpers');
+    for (const helperId of secondWave) {
+        assert.equal(client.entities.get(helperId)?.entState, 0, `helper ${helperId} should be active in the next wave`);
+        assert.equal(client.entities.get(helperId)?.untargetable, false, `helper ${helperId} should be targetable in the next wave`);
     }
 }
 
@@ -1507,7 +1590,7 @@ function testGoblinRiverDungeonJoinerSkipsStartedRoomReplayFromPartyAnchor(): vo
     }
 }
 
-function main(): void {
+async function main(): Promise<void> {
     ensureLevelConfigLoaded();
 
     const levelEntities = new Map(GlobalState.levelEntities);
@@ -1637,6 +1720,16 @@ function main(): void {
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
+        testCraftTownTutorialKnownHelpersUseStateUpdatesInsteadOfDuplicateSpawns();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        await testCraftTownTutorialHelperWaveRespawnsAfterAllHelpersDie();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
         testSoloDungeonHostileReferencePromotesToPartyJoinerSeed();
 
         GlobalState.levelEntities.clear();
@@ -1693,10 +1786,8 @@ function main(): void {
     console.log('client_spawn_level_regression: ok');
 }
 
-try {
-    main();
-} catch (error) {
+void main().catch((error) => {
     console.error('client_spawn_level_regression: failed');
     console.error(error);
     process.exitCode = 1;
-}
+});

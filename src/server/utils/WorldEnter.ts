@@ -267,6 +267,7 @@ export class WorldEnter {
         const isCraftTown =
             newInternal.toLowerCase().includes('crafttown') ||
             newLevelSwf.toLowerCase().includes('crafttown');
+        const isCraftTownTutorial = newInternal === 'CraftTownTutorial';
 
         bb.writeMethod11(isCraftTown ? 1 : 0, 1);
         if (isCraftTown && character) {
@@ -280,10 +281,11 @@ export class WorldEnter {
                 Number(statsByBuilding[buildingId.toString()] ?? statsByBuilding[buildingId] ?? 0);
 
             const towerBuildingId = WorldEnter.MASTERCLASS_TO_BUILDING[masterClassId] ?? BuildingID.JusticarTower;
-            const scaffoldingLevel = Number(character.buildingUpgrade?.buildingID ?? 0);
+            const keepRank = isCraftTownTutorial ? 0 : getStat(BuildingID.Keep);
+            const scaffoldingLevel = isCraftTownTutorial ? 0 : Number(character.buildingUpgrade?.buildingID ?? 0);
 
             bb.writeMethod6(getStat(BuildingID.Forge), 5);
-            bb.writeMethod6(getStat(BuildingID.Keep), 5);
+            bb.writeMethod6(keepRank, 5);
             bb.writeMethod6(getStat(towerBuildingId), 5);
             bb.writeMethod6(getStat(BuildingID.Tome), 5);
             bb.writeMethod6(getStat(BuildingID.Barn), 5);

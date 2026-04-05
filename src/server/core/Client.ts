@@ -40,6 +40,10 @@ export interface KeepTutorialState {
     bossWounded60: boolean;
     bossWounded30: boolean;
     helperEntityIds: number[];
+    helperWaveActiveIds: number[];
+    helperWaveRespawnTimer: NodeJS.Timeout | null;
+    helperWaveCursor: number;
+    helperWaveUseSmallNext: boolean;
 }
 
 interface SessionCleanupSnapshot {
@@ -68,6 +72,10 @@ export function createKeepTutorialState(): KeepTutorialState {
         bossWounded60: false,
         bossWounded30: false,
         helperEntityIds: [],
+        helperWaveActiveIds: [],
+        helperWaveRespawnTimer: null,
+        helperWaveCursor: 0,
+        helperWaveUseSmallNext: false,
     };
 }
 
@@ -89,6 +97,11 @@ export function clearKeepTutorialTimers(state: KeepTutorialState | null | undefi
     if (state.recoveryActivateTimer) {
         clearTimeout(state.recoveryActivateTimer);
         state.recoveryActivateTimer = null;
+    }
+
+    if (state.helperWaveRespawnTimer) {
+        clearTimeout(state.helperWaveRespawnTimer);
+        state.helperWaveRespawnTimer = null;
     }
 }
 

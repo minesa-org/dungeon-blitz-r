@@ -1,4 +1,4 @@
-import { Client } from '../core/Client';
+import { Client, clearKeepTutorialTimers } from '../core/Client';
 import { BitReader } from '../network/protocol/bitReader';
 import { GlobalState } from '../core/GlobalState';
 import { BitBuffer } from '../network/protocol/bitBuffer';
@@ -990,6 +990,10 @@ export class CombatHandler {
             const entityName = String(destroyedEntity?.name ?? '');
             if (entityName === 'GoblinShamanHood' || entityName === 'IntroGoblinShamanHood') {
                 client.keepTutorialState.bossDefeated = true;
+                client.keepTutorialState.helperWaveActiveIds = [];
+                clearKeepTutorialTimers(client.keepTutorialState);
+            } else if (entityName === 'GoblinDagger') {
+                LevelHandler.noteCraftTownTutorialHelperDestroyed(client, entityId);
             }
         }
 

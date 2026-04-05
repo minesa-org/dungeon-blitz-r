@@ -63,6 +63,7 @@ type TransferSyncAnchorCandidate = {
 export class LevelHandler {
     private static readonly GOBLIN_RIVER_INITIAL_PROGRESS = 11;
     private static readonly TUTORIAL_DUNGEON_INITIAL_PROGRESS = 11;
+    private static readonly KEEP_TUTORIAL_HELPER_RESPAWN_DELAY_MS = 1200;
     private static readonly GOBLIN_RIVER_BOSS_INTRO_TEXTS = new Set<string>([
         "You're the one that killed our Kraken!",
         'That was the last of our Monster Fleet!'
@@ -1149,7 +1150,9 @@ export class LevelHandler {
             if (state.bossEntitySource === 'fallback' || stillLocked) {
                 LevelHandler.activateCraftTownTutorialBoss(client, bossId);
             }
-            LevelHandler.summonCraftTownTutorialReinforcements(client);
+            if (state.bossEntitySource === 'fallback') {
+                LevelHandler.summonCraftTownTutorialReinforcements(client);
+            }
         }, LevelHandler.KEEP_TUTORIAL_BOSS_INTRO_TOTAL_MS);
     }
 
@@ -1707,15 +1710,83 @@ export class LevelHandler {
         LevelHandler.armCraftTownTutorialBossRecovery(client, bossId);
     }
 
-    /**
-     * Summon all tracked reinforcement helpers that aren't already alive.
-     * Each helper entity is sent to the client, set to active state, and made targetable.
-     */
+    private static pruneCraftTownTutorialActiveHelperIds(client: Client, state: KeepTutorialState): void {
+        const levelMap = LevelHandler.getCurrentLevelMap(client);
+        state.helperWaveActiveIds = state.helperWaveActiveIds.filter((helperId) => {
+            const helper = levelMap?.get(helperId) ?? client.entities.get(helperId);
+            if (!helper) {
+                return false;
+            }
+
+            const entState = Number(helper.entState ?? helper.ent_state ?? 0);
+            return !Boolean(helper.dead) && entState !== 3 && entState !== 6;
+        });
+    }
+
+    private static getNextCraftTownTutorialHelperWaveIds(state: KeepTutorialState, helperIds: number[]): number[] {
+        if (helperIds.length === 0) {
+            return [];
+        }
+
+        const preferredSize = state.helperWaveUseSmallNext ? 2 : 3;
+        state.helperWaveUseSmallNext = !state.helperWaveUseSmallNext;
+
+        const waveSize = Math.min(helperIds.length, preferredSize);
+        const startIndex = helperIds.length > 0 ? state.helperWaveCursor % helperIds.length : 0;
+        const selectedIds: number[] = [];
+
+        for (let offset = 0; offset < helperIds.length && selectedIds.length < waveSize; offset++) {
+            const helperId = helperIds[(startIndex + offset) % helperIds.length];
+            if (!selectedIds.includes(helperId)) {
+                selectedIds.push(helperId);
+            }
+        }
+
+        if (helperIds.length > 0) {
+            state.helperWaveCursor = (startIndex + selectedIds.length) % helperIds.length;
+        }
+
+        return selectedIds;
+    }
+
+    private static scheduleCraftTownTutorialReinforcementRespawn(client: Client, delayMs: number): void {
+        const state = LevelHandler.getCraftTownTutorialState(client);
+        if (!state || state.bossDefeated || state.helperWaveRespawnTimer) {
+            return;
+        }
+
+        LevelHandler.pruneCraftTownTutorialActiveHelperIds(client, state);
+        if (state.helperWaveActiveIds.length > 0) {
+            return;
+        }
+
+        const levelName = client.currentLevel;
+        const levelScope = getClientLevelScope(client);
+        state.helperWaveRespawnTimer = setTimeout(() => {
+            state.helperWaveRespawnTimer = null;
+            if (getClientLevelScope(client) !== levelScope || client.currentLevel !== levelName || state.bossDefeated) {
+                return;
+            }
+
+            LevelHandler.summonCraftTownTutorialReinforcements(client);
+        }, delayMs);
+    }
+
     private static summonCraftTownTutorialReinforcements(client: Client): void {
         const state = LevelHandler.getCraftTownTutorialState(client);
         if (!state || !client.currentLevel) {
             return;
         }
+
+        LevelHandler.pruneCraftTownTutorialActiveHelperIds(client, state);
+        if (state.helperWaveActiveIds.length > 0) {
+            return;
+        }
+
+        const preferredHelperIds = state.helperEntityIds.filter((helperId) => {
+            const helper = LevelHandler.getCurrentLevelMap(client)?.get(helperId);
+            return Boolean(helper);
+        });
 
         LevelHandler.ensureCraftTownTutorialBossEncounterEntities(client);
         const levelMap = LevelHandler.getCurrentLevelMap(client);
@@ -1723,46 +1794,74 @@ export class LevelHandler {
             return;
         }
 
+        const orderedHelperIds = Array.from(new Set([...preferredHelperIds, ...state.helperEntityIds]));
+        const waveIds = LevelHandler.getNextCraftTownTutorialHelperWaveIds(state, orderedHelperIds);
+        if (waveIds.length === 0) {
+            return;
+        }
+
         let spawnedCount = 0;
-        for (const helperId of state.helperEntityIds) {
+        const activeIds: number[] = [];
+        for (const helperId of waveIds) {
             const helper = levelMap.get(helperId);
             if (!helper) {
                 continue;
             }
 
-            const helperDramaAnim = String(helper.dramaAnim ?? helper.DramaAnim ?? '');
-            const alreadyActive = !Boolean(helper.untargetable) && Number(helper.entState ?? 0) !== 2 && helperDramaAnim !== 'Board';
-            if (alreadyActive) {
-                continue;
-            }
-
-            // Activate the helper: make it targetable and set to active state
             helper.untargetable = false;
             helper.entState = 0;
             helper.dramaAnim = '';
             helper.DramaAnim = '';
 
-            // Send entity to client if not already tracked
-            if (!client.entities.has(helperId)) {
-                client.entities.set(helperId, { ...helper });
-                EntityHandler.sendEntity(client, helper);
-            } else {
-                // If already known, just update state and send activation packets
-                const existing = client.entities.get(helperId);
-                if (existing) {
-                    existing.untargetable = false;
-                    existing.entState = 0;
-                }
+            const existing = client.entities.get(helperId);
+            if (existing) {
+                existing.untargetable = false;
+                existing.entState = 0;
+                existing.dramaAnim = '';
+                existing.DramaAnim = '';
             }
 
-            LevelHandler.sendSetUntargetable(client, helperId, false);
-            LevelHandler.sendNpcState(client, helperId, 0, Boolean(helper.facing_left ?? helper.facingLeft));
+            const helperSnapshot = { ...helper };
+            client.entities.set(helperId, helperSnapshot);
+
+            if (!client.knownEntityIds.has(helperId)) {
+                EntityHandler.sendEntity(client, helperSnapshot);
+            } else {
+                LevelHandler.sendSetUntargetable(client, helperId, false);
+                LevelHandler.sendNpcState(client, helperId, 0, Boolean(helper.facing_left ?? helper.facingLeft));
+            }
+
+            activeIds.push(helperId);
             spawnedCount++;
         }
 
+        state.helperWaveActiveIds = activeIds;
+
         if (spawnedCount > 0) {
-            console.log(`[CraftTownTutorial] Summoned ${spawnedCount} reinforcements.`);
+            console.log(`[CraftTownTutorial] Summoned helper wave (${spawnedCount}): ${activeIds.join(', ')}.`);
         }
+    }
+
+    static noteCraftTownTutorialHelperDestroyed(client: Client, entityId: number): void {
+        const state = LevelHandler.getCraftTownTutorialState(client);
+        if (
+            !state ||
+            state.bossDefeated ||
+            state.bossEntitySource !== 'fallback' ||
+            !state.helperEntityIds.includes(entityId)
+        ) {
+            return;
+        }
+
+        state.helperWaveActiveIds = state.helperWaveActiveIds.filter((helperId) => helperId !== entityId);
+        if (state.helperWaveActiveIds.length > 0) {
+            return;
+        }
+
+        LevelHandler.scheduleCraftTownTutorialReinforcementRespawn(
+            client,
+            LevelHandler.KEEP_TUTORIAL_HELPER_RESPAWN_DELAY_MS
+        );
     }
 
     /**
@@ -1771,7 +1870,7 @@ export class LevelHandler {
      */
     static checkCraftTownTutorialBossHealth(client: Client, targetId: number, damage: number): void {
         const state = LevelHandler.getCraftTownTutorialState(client);
-        if (!state || state.bossDefeated) {
+        if (!state || state.bossDefeated || state.bossEntitySource !== 'fallback') {
             return;
         }
 
@@ -1798,19 +1897,18 @@ export class LevelHandler {
         // For now, use damage thresholds based on typical boss HP (~3000-5000).
         const totalDamageDealt = Math.abs(healthDelta);
 
-        // 60% HP trigger: boss has lost 40% of max HP
-        // We use a heuristic: after significant damage has been dealt
         if (!state.bossWounded60 && totalDamageDealt > 1500) {
             state.bossWounded60 = true;
-            console.log(`[CraftTownTutorial] Boss wounded (60%)! Summoning first wave.`);
-            LevelHandler.summonCraftTownTutorialReinforcements(client);
+            console.log('[CraftTownTutorial] Boss wounded (60%).');
         }
 
-        // 30% HP trigger: boss has lost 70% of max HP
         if (!state.bossWounded30 && totalDamageDealt > 3000) {
             state.bossWounded30 = true;
-            console.log(`[CraftTownTutorial] Boss critical (30%)! Summoning second wave.`);
-            LevelHandler.summonCraftTownTutorialReinforcements(client);
+            console.log('[CraftTownTutorial] Boss critical (30%).');
+        }
+
+        if (state.helperWaveActiveIds.length === 0 && !state.helperWaveRespawnTimer) {
+            LevelHandler.scheduleCraftTownTutorialReinforcementRespawn(client, 0);
         }
     }
 
