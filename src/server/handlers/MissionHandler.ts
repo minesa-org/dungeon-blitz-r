@@ -1,8 +1,10 @@
 import { Client } from '../core/Client';
 import { GlobalState } from '../core/GlobalState';
+import { getActiveDungeonRunStats } from '../core/DungeonRunStats';
 import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
 import {
+    getSharedDungeonProgressTotals,
     getOrCreateSharedDungeonProgressState,
     hasSharedDungeonProgressHostiles,
     recomputeSharedDungeonProgress,
@@ -19,6 +21,26 @@ import { BitReader } from '../network/protocol/bitReader';
 const db = new JsonAdapter();
 
 type MissionEntry = Record<string, any>;
+type DungeonCompletionResult = {
+    actualKills: number;
+    totalScore: number;
+    stars: number;
+    resultBar: number;
+    rank: number;
+    killsScore: number;
+    accuracyScore: number;
+    deathsScore: number;
+    treasureScore: number;
+    timeBonusScore: number;
+};
+
+type DungeonMissionUpdateResult = {
+    missionId: number;
+    state: number;
+    newlyCompleted: boolean;
+    persistedStars: number;
+    persistedScore: number;
+};
 
 export class MissionHandler {
     private static readonly MISSION_NOT_STARTED = 0;
@@ -200,31 +222,47 @@ export class MissionHandler {
             didMutate = true;
         }
 
+        const completionResult = MissionHandler.buildDungeonCompletionResult(
+            client,
+            currentLevel,
+            levelScope,
+            {
+                completionPercent,
+                bonusScoreTotal,
+                goldReward,
+                requiredKills,
+                actualKills
+            }
+        );
+
         let completedMissionId = 0;
         if (clearedDungeon) {
-            completedMissionId = MissionHandler.completeActiveDungeonMission(client.character, currentLevel, {
-                stars: Math.max(0, levelWidthScore),
-                score: Math.max(0, bonusScoreTotal),
+            const missionUpdate = MissionHandler.updateDungeonMissionResult(client.character, currentLevel, {
+                stars: completionResult.stars,
+                score: completionResult.totalScore,
                 completedAt: Math.floor(Date.now() / 1000)
             });
+            completedMissionId = missionUpdate.missionId;
             if (completedMissionId) {
                 didMutate = true;
-                MissionHandler.sendMissionComplete(client, completedMissionId);
+                if (missionUpdate.newlyCompleted) {
+                    MissionHandler.sendMissionComplete(client, completedMissionId);
+                }
 
                 const completedMissionDef = MissionLoader.getMissionDef(completedMissionId);
-                const completedMissionState = MissionHandler.getMissionState(client.character, completedMissionId);
 
                 if (
+                    missionUpdate.newlyCompleted &&
+                    missionUpdate.state >= MissionHandler.MISSION_CLAIMED &&
                     completedMissionId !== MissionID.DefendTheShip &&
                     completedMissionDef &&
-                    !MissionHandler.missionRequiresTurnIn(completedMissionDef) &&
-                    completedMissionState >= MissionHandler.MISSION_CLAIMED
+                    !MissionHandler.missionRequiresTurnIn(completedMissionDef)
                 ) {
                     MissionHandler.sendMissionCompleteUi(
                         client,
                         completedMissionId,
-                        levelWidthScore || 3,
-                        bonusScoreTotal
+                        missionUpdate.persistedStars,
+                        missionUpdate.persistedScore
                     );
                 }
             }
@@ -239,9 +277,14 @@ export class MissionHandler {
         }
 
         MissionHandler.sendDungeonComplete(client, {
-            stars: levelWidthScore || 3,
-            kills: actualKills,
-            treasure: goldReward
+            stars: completionResult.stars,
+            resultBar: completionResult.resultBar,
+            rank: completionResult.rank,
+            kills: completionResult.killsScore,
+            accuracy: completionResult.accuracyScore,
+            deaths: completionResult.deathsScore,
+            treasure: completionResult.treasureScore,
+            timeBonus: completionResult.timeBonusScore
         });
     }
 
@@ -286,7 +329,7 @@ export class MissionHandler {
         await MissionHandler.saveCharacter(client);
     }
 
-    private static completeActiveDungeonMission(
+    private static updateDungeonMissionResult(
         character: Character,
         currentLevel: string,
         completion: {
@@ -294,7 +337,7 @@ export class MissionHandler {
             score: number;
             completedAt: number;
         }
-    ): number {
+    ): DungeonMissionUpdateResult {
         const missions = MissionHandler.getMissionStateMap(character);
 
         for (const [missionIdText, rawEntry] of Object.entries(missions)) {
@@ -304,7 +347,8 @@ export class MissionHandler {
             }
 
             const entry = MissionHandler.asMissionEntry(rawEntry);
-            if (Number(entry.state ?? MissionHandler.MISSION_NOT_STARTED) !== MissionHandler.MISSION_IN_PROGRESS) {
+            const currentState = Number(entry.state ?? MissionHandler.MISSION_NOT_STARTED);
+            if (currentState <= MissionHandler.MISSION_NOT_STARTED) {
                 continue;
             }
 
@@ -313,20 +357,50 @@ export class MissionHandler {
                 continue;
             }
 
-            const completionState = MissionHandler.missionRequiresTurnIn(missionDef)
-                ? MissionHandler.MISSION_READY_TO_TURN_IN
-                : MissionHandler.MISSION_CLAIMED;
+            let nextState = currentState;
+            let newlyCompleted = false;
+            const existingStars = Math.max(0, Number(entry.Tier ?? 0));
+            const existingScore = Math.max(0, Number(entry.highscore ?? 0));
+            const shouldReplaceBest =
+                completion.score > existingScore ||
+                (completion.score === existingScore && completion.stars > existingStars);
+            const persistedStars = shouldReplaceBest ? completion.stars : existingStars;
+            const persistedScore = shouldReplaceBest ? completion.score : existingScore;
+            const persistedTime = shouldReplaceBest
+                ? completion.completedAt
+                : Math.max(0, Number(entry.Time ?? completion.completedAt));
 
-            MissionHandler.setMissionState(character, missionId, completionState, missionDef, {
-                currCount: Math.max(1, Number(missionDef.CompleteCount ?? 1)),
-                Tier: completion.stars,
-                highscore: completion.score,
-                Time: completion.completedAt
+            if (currentState === MissionHandler.MISSION_IN_PROGRESS) {
+                nextState = MissionHandler.missionRequiresTurnIn(missionDef)
+                    ? MissionHandler.MISSION_READY_TO_TURN_IN
+                    : MissionHandler.MISSION_CLAIMED;
+                newlyCompleted = true;
+            }
+
+            MissionHandler.setMissionState(character, missionId, nextState, missionDef, {
+                currCount: nextState >= MissionHandler.MISSION_READY_TO_TURN_IN
+                    ? Math.max(1, Number(missionDef.CompleteCount ?? 1))
+                    : Number(entry.currCount ?? 0),
+                Tier: persistedStars,
+                highscore: persistedScore,
+                Time: persistedTime
             });
-            return missionId;
+            return {
+                missionId,
+                state: nextState,
+                newlyCompleted,
+                persistedStars,
+                persistedScore
+            };
         }
 
-        return 0;
+        return {
+            missionId: 0,
+            state: MissionHandler.MISSION_NOT_STARTED,
+            newlyCompleted: false,
+            persistedStars: 0,
+            persistedScore: 0
+        };
     }
 
     private static autoAcceptFollowupMission(
@@ -534,6 +608,102 @@ export class MissionHandler {
         bb.writeMethod4(0);
         bb.writeMethod11(client.character.showHigher ? 1 : 0, 1);
         client.sendBitBuffer(0xA1, bb);
+    }
+
+    private static clamp(value: number, min: number, max: number): number {
+        return Math.max(min, Math.min(max, Math.round(Number(value) || 0)));
+    }
+
+    private static getDungeonScoreScale(levelName: string): number {
+        return LevelConfig.get(levelName).isHard ? 2 : 1;
+    }
+
+    private static getDungeonParTimeMs(levelName: string, killTarget: number): number {
+        const normalizedKillTarget = Math.max(1, Math.round(Number(killTarget) || 0));
+        const baseMinutes = 8 + (normalizedKillTarget * 0.3);
+        const hardMultiplier = LevelConfig.get(levelName).isHard ? 1.1 : 1;
+        return Math.max(60_000, Math.round(baseMinutes * hardMultiplier * 60_000));
+    }
+
+    private static buildDungeonCompletionResult(
+        client: Client,
+        currentLevel: string,
+        levelScope: string,
+        raw: {
+            completionPercent: number;
+            bonusScoreTotal: number;
+            goldReward: number;
+            requiredKills: number;
+            actualKills: number;
+        }
+    ): DungeonCompletionResult {
+        const runStats = getActiveDungeonRunStats(client);
+        const scoreScale = MissionHandler.getDungeonScoreScale(currentLevel);
+        const maxKillsScore = 40000 * scoreScale;
+        const maxAccuracyScore = 20000 * scoreScale;
+        const maxDeathsScore = 20000 * scoreScale;
+        const maxTreasureScore = 10000 * scoreScale;
+        const maxTimeBonusScore = 10000 * scoreScale;
+        const maxTotalScore = maxKillsScore + maxAccuracyScore + maxDeathsScore + maxTreasureScore + maxTimeBonusScore;
+        const trackedTotals = usesSharedDungeonProgress(currentLevel) && levelScope
+            ? getSharedDungeonProgressTotals(levelScope)
+            : { total: Math.max(raw.requiredKills, raw.actualKills, runStats?.kills ?? 0), defeated: 0 };
+        const effectiveKillCount = Math.max(raw.actualKills, runStats?.kills ?? 0);
+        const effectiveKillTarget = Math.max(1, trackedTotals.total, raw.requiredKills, effectiveKillCount);
+        const killsScore = MissionHandler.clamp((effectiveKillCount / effectiveKillTarget) * maxKillsScore, 0, maxKillsScore);
+
+        const castCount = Math.max(0, Number(runStats?.powerCasts ?? 0));
+        const landedHitCount = Math.max(0, Number(runStats?.landedHits ?? 0));
+        const effectiveAttackCount = Math.max(1, castCount, landedHitCount);
+        const accuracyPercent = castCount <= 0 && landedHitCount <= 0
+            ? Math.max(50, MissionHandler.clamp(raw.completionPercent, 0, 100))
+            : MissionHandler.clamp((Math.min(landedHitCount, effectiveAttackCount) / effectiveAttackCount) * 100, 0, 100);
+        const accuracyScore = MissionHandler.clamp((accuracyPercent / 100) * maxAccuracyScore, 0, maxAccuracyScore);
+
+        const deathCount = Math.max(0, Number(runStats?.deaths ?? 0));
+        const deathPenaltyPerDeath = 5000 * scoreScale;
+        const deathsScore = MissionHandler.clamp(maxDeathsScore - (deathCount * deathPenaltyPerDeath), 0, maxDeathsScore);
+
+        const treasureGold = Math.max(0, Number(runStats?.treasureGold ?? raw.goldReward ?? 0));
+        const treasureScore = MissionHandler.clamp(
+            treasureGold > 0 ? treasureGold * 100 : raw.goldReward,
+            0,
+            maxTreasureScore
+        );
+
+        const elapsedMs = Math.max(0, Date.now() - Number(runStats?.startedAt ?? Date.now()));
+        const timeWindowMs = MissionHandler.getDungeonParTimeMs(currentLevel, effectiveKillTarget);
+        const fallbackTimeScore = Math.max(
+            0,
+            Math.min(
+                maxTimeBonusScore,
+                Number(raw.bonusScoreTotal ?? 0) - killsScore - accuracyScore - treasureScore
+            )
+        );
+        const timeBonusScore = runStats
+            ? MissionHandler.clamp((1 - Math.min(elapsedMs, timeWindowMs) / timeWindowMs) * maxTimeBonusScore, 0, maxTimeBonusScore)
+            : fallbackTimeScore;
+
+        const totalScore = MissionHandler.clamp(
+            killsScore + accuracyScore + deathsScore + treasureScore + timeBonusScore,
+            0,
+            maxTotalScore
+        );
+        const stars = MissionHandler.clamp((totalScore / Math.max(1, maxTotalScore)) * 10, 0, 10);
+        const rank = MissionHandler.clamp(11 - stars, 1, 10);
+
+        return {
+            actualKills: effectiveKillCount,
+            totalScore,
+            stars,
+            resultBar: scoreScale,
+            rank,
+            killsScore,
+            accuracyScore,
+            deathsScore,
+            treasureScore,
+            timeBonusScore
+        };
     }
 
     private static sendDungeonComplete(

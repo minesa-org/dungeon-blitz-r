@@ -16,6 +16,7 @@ import { SocialHandler } from './SocialHandler';
 import { GuildHandler } from './GuildHandler';
 import { EntityHandler } from './EntityHandler';
 import { DebugLogger } from '../core/Debug';
+import { syncClientDungeonRunState } from '../core/DungeonRunStats';
 import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
 import { getPartyIdForClient, areClientsInSameParty } from '../core/PartySync';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
@@ -718,6 +719,7 @@ export class CharacterHandler {
         client.startedRoomEvents.clear();
         client.pendingLoot.clear();
         client.processedRewardSources.clear();
+        syncClientDungeonRunState(client);
 
         if (entry.targetLevel === 'CraftTownTutorial') {
             LevelHandler.resetCraftTownTutorialInstance();

@@ -4,6 +4,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { GameData } from '../core/GameData';
 import { GlobalState } from '../core/GlobalState';
 import { JsonAdapter } from '../database/JsonAdapter';
+import { noteDungeonRunTreasure } from '../core/DungeonRunStats';
 import { CombatHandler } from './CombatHandler';
 import { getClientCharacterKey, getPartyIdForClient } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
@@ -484,6 +485,7 @@ export class RewardHandler {
 
         if (reward.gold && reward.gold > 0) {
             client.character.gold = Number(client.character.gold ?? 0) + reward.gold;
+            noteDungeonRunTreasure(client, reward.gold);
             RewardHandler.sendGoldReward(client, reward.gold, false);
             shouldSave = true;
         }

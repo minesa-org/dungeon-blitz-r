@@ -10,6 +10,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { LevelConfig } from '../core/LevelConfig';
 import { GlobalState, PendingTransfer } from '../core/GlobalState';
 import { DebugLogger } from '../core/Debug';
+import { cloneDungeonRunStats } from '../core/DungeonRunStats';
 import { WorldEnter } from '../utils/WorldEnter';
 import { Config } from '../core/config';
 import { MissionLoader } from '../data/MissionLoader';
@@ -117,6 +118,7 @@ export class LevelHandler {
         target.syncAnchorCharacterName = String(source.syncAnchorCharacterName ?? '').trim();
         target.entities = new Map(source.entities);
         target.startedRoomEvents = new Set(source.startedRoomEvents);
+        target.dungeonRun = cloneDungeonRunStats(source.dungeonRun);
     }
 
     private static findActiveTransferSession(userId: number | null, characterName: string | null | undefined): Client | null {
@@ -2111,6 +2113,7 @@ export class LevelHandler {
         client.playerSpawned = false;
         client.pendingLoot.clear();
         client.processedRewardSources.clear();
+        client.dungeonRun = null;
         client.currentRoomId = 0;
         client.startedRoomEvents.clear();
         client.levelInstanceId = '';

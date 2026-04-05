@@ -23,6 +23,17 @@ export interface PendingLootDrop {
     material?: number;
 }
 
+export interface DungeonRunStats {
+    levelName: string;
+    levelScope: string;
+    startedAt: number;
+    powerCasts: number;
+    landedHits: number;
+    kills: number;
+    treasureGold: number;
+    deaths: number;
+}
+
 export interface KeepTutorialState {
     phase: number;
     bossDefeated: boolean;
@@ -153,6 +164,7 @@ export class Client {
     public knownEntityIds: Set<number> = new Set();
     public pendingLoot: Map<number, PendingLootDrop> = new Map();
     public processedRewardSources: Set<string> = new Set();
+    public dungeonRun: DungeonRunStats | null = null;
     public pendingMissionTurnIns: Set<number> = new Set();
     public authoritativeMaxHp: number = 100;
     public authoritativeCurrentHp: number = 100;
@@ -300,6 +312,7 @@ export class Client {
         this.knownEntityIds.clear();
         this.pendingLoot.clear();
         this.processedRewardSources.clear();
+        this.dungeonRun = null;
         this.pendingMissionTurnIns.clear();
         this.authoritativeMaxHp = 100;
         this.authoritativeCurrentHp = 100;
