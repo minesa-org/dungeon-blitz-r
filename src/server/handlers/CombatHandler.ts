@@ -916,7 +916,11 @@ export class CombatHandler {
 
         const sourceSession = CombatHandler.resolveCombatSourceSession(getClientLevelScope(client), info.sourceId, client);
         if (sourceSession) {
-            noteDungeonRunCast(sourceSession);
+            noteDungeonRunCast(sourceSession, {
+                sourceId: info.sourceId,
+                projectileId: info.projectileId,
+                isPersistent: info.isPersistent
+            });
         }
 
         const relayPayload = CombatHandler.normalizePowerCastRelay(client, info, data);
@@ -965,7 +969,12 @@ export class CombatHandler {
             Number(targetEntity.team ?? 0) === EntityTeam.ENEMY &&
             damage > 0
         ) {
-            noteDungeonRunHit(sourceSession);
+            noteDungeonRunHit(sourceSession, {
+                sourceId,
+                targetId,
+                targetEntity,
+                damage
+            });
         }
 
         let relayDamage = damage;
@@ -1055,7 +1064,7 @@ export class CombatHandler {
                 GlobalState.levelEntities.delete(levelScope);
             }
             if (contributionSnapshot?.contributors?.length) {
-                noteDungeonRunKill(levelScope, contributionSnapshot.contributors);
+                noteDungeonRunKill(levelScope, contributionSnapshot.contributors, entityId, destroyedEntity);
             }
             CombatHandler.noteEntityDestroyed(levelScope, entityId);
             EntityHandler.forgetKnownEntity(levelName, entityId, client.levelInstanceId);

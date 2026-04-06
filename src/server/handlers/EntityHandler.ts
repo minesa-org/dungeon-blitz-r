@@ -8,6 +8,7 @@ import { Entity, EntityProps, EntityState } from '../core/Entity';
 import { LevelConfig } from '../core/LevelConfig';
 import { PetHandler } from './PetHandler';
 import { BuildingHandler } from './BuildingHandler';
+import { noteDungeonRunEntitySeen } from '../core/DungeonRunStats';
 import { areClientsInSameParty, getPartyIdForClient, isClientPartyLeader, sharesRoomIds } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope, getLevelScopeKey } from '../core/LevelScope';
 
@@ -1267,6 +1268,7 @@ export class EntityHandler {
         }
 
         client.entities.set(entityId, props);
+        noteDungeonRunEntitySeen(client, entityId, props);
         EntityHandler.rememberEntityKnown(client, levelName, props);
 
         // Update GlobalState
@@ -1329,6 +1331,7 @@ export class EntityHandler {
             if (entityProps?.isPlayer) continue;
             if (entityProps?.clientSpawned) continue;
             client.entities.set(id, { ...entityProps });
+            noteDungeonRunEntitySeen(client, id, entityProps);
             EntityHandler.sendEntity(client, entityProps);
         }
     }

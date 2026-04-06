@@ -10,7 +10,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { LevelConfig } from '../core/LevelConfig';
 import { GlobalState, PendingTransfer } from '../core/GlobalState';
 import { DebugLogger } from '../core/Debug';
-import { cloneDungeonRunStats } from '../core/DungeonRunStats';
+import { cloneDungeonRunStats, finalizeDungeonRun, noteDungeonRunEntitySeen } from '../core/DungeonRunStats';
 import { WorldEnter } from '../utils/WorldEnter';
 import { Config } from '../core/config';
 import { MissionLoader } from '../data/MissionLoader';
@@ -1034,9 +1034,11 @@ export class LevelHandler {
                 if (!client.entities.has(entityId)) {
                     const bossProps = { ...entity, clientSpawned: false };
                     client.entities.set(entityId, bossProps);
+                    noteDungeonRunEntitySeen(client, entityId, bossProps);
                     EntityHandler.sendEntity(client, bossProps);
                 } else {
                     client.entities.set(entityId, entity);
+                    noteDungeonRunEntitySeen(client, entityId, entity);
                 }
                 LevelHandler.markCraftTownTutorialBossSeen(client, entityId, 'fallback');
                 return entityId;
@@ -1058,6 +1060,7 @@ export class LevelHandler {
         };
 
         client.entities.set(boss.id, boss);
+        noteDungeonRunEntitySeen(client, boss.id, boss);
         levelMap.set(boss.id, boss);
         EntityHandler.sendEntity(client, boss);
         LevelHandler.markCraftTownTutorialBossSeen(client, boss.id, 'fallback');
@@ -1407,6 +1410,7 @@ export class LevelHandler {
                 continue;
             }
             client.entities.set(entityId, { ...entity });
+            noteDungeonRunEntitySeen(client, entityId, entity);
             EntityHandler.sendEntity(client, entity);
             sentCount++;
         }
@@ -1842,6 +1846,7 @@ export class LevelHandler {
 
             const helperSnapshot = { ...helper };
             client.entities.set(helperId, helperSnapshot);
+            noteDungeonRunEntitySeen(client, helperId, helperSnapshot);
 
             if (!client.knownEntityIds.has(helperId)) {
                 EntityHandler.sendEntity(client, helperSnapshot);
@@ -2113,6 +2118,7 @@ export class LevelHandler {
         client.playerSpawned = false;
         client.pendingLoot.clear();
         client.processedRewardSources.clear();
+        finalizeDungeonRun(client, 'leave');
         client.dungeonRun = null;
         client.currentRoomId = 0;
         client.startedRoomEvents.clear();

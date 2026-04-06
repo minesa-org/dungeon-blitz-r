@@ -4,6 +4,7 @@ import { PacketRouter } from '../network/packetRouter';
 import { UserAccount, Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { DebugLogger } from './Debug';
+import type { DungeonRunStats } from './DungeonRunStats';
 import { LevelConfig } from './LevelConfig';
 
 const db = new JsonAdapter();
@@ -21,17 +22,6 @@ export interface PendingLootDrop {
     gear?: number;
     tier?: number;
     material?: number;
-}
-
-export interface DungeonRunStats {
-    levelName: string;
-    levelScope: string;
-    startedAt: number;
-    powerCasts: number;
-    landedHits: number;
-    kills: number;
-    treasureGold: number;
-    deaths: number;
 }
 
 export interface KeepTutorialState {

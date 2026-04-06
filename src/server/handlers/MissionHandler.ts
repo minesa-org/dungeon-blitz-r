@@ -1,6 +1,12 @@
 import { Client } from '../core/Client';
+import {
+    buildDefaultDungeonScoreProfile,
+    getDungeonScoreProfile,
+    getDungeonScoreTotalCap,
+    type ResolvedDungeonScoreProfile
+} from '../core/DungeonScoreProfiles';
 import { GlobalState } from '../core/GlobalState';
-import { getActiveDungeonRunStats } from '../core/DungeonRunStats';
+import { finalizeDungeonRun, getActiveDungeonRunStats, noteDungeonRunCompletionProgress } from '../core/DungeonRunStats';
 import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
 import {
@@ -169,6 +175,7 @@ export class MissionHandler {
 
         const currentLevel = client.currentLevel || String(client.character.CurrentLevel?.name ?? '');
         const levelScope = getClientLevelScope(client);
+        noteDungeonRunCompletionProgress(client, completionPercent);
         let actualKills = Math.max(requiredKills - remainingKills, 0);
         let clearedDungeon =
             completionPercent >= 100 ||
@@ -198,7 +205,9 @@ export class MissionHandler {
         let didMutate = false;
         if (currentLevel === 'TutorialBoat' || currentLevel === 'TutorialDungeon') {
             clearedDungeon = true;
-            actualKills = Math.max(actualKills, requiredKills, 1);
+            if (currentLevel === 'TutorialBoat') {
+                actualKills = Math.max(actualKills, requiredKills, 1);
+            }
             if (Number(client.character.questTrackerState ?? 0) !== 100) {
                 client.character.questTrackerState = 100;
                 didMutate = true;
@@ -231,7 +240,8 @@ export class MissionHandler {
                 bonusScoreTotal,
                 goldReward,
                 requiredKills,
-                actualKills
+                actualKills,
+                dungeonCompleted: clearedDungeon
             }
         );
 
@@ -614,10 +624,6 @@ export class MissionHandler {
         return Math.max(min, Math.min(max, Math.round(Number(value) || 0)));
     }
 
-    private static getDungeonScoreScale(levelName: string): number {
-        return LevelConfig.get(levelName).isHard ? 2 : 1;
-    }
-
     private static getDungeonParTimeMs(levelName: string, killTarget: number): number {
         const normalizedKillTarget = Math.max(1, Math.round(Number(killTarget) || 0));
         const baseMinutes = 8 + (normalizedKillTarget * 0.3);
@@ -635,43 +641,70 @@ export class MissionHandler {
             goldReward: number;
             requiredKills: number;
             actualKills: number;
+            dungeonCompleted: boolean;
         }
     ): DungeonCompletionResult {
         const runStats = getActiveDungeonRunStats(client);
-        const scoreScale = MissionHandler.getDungeonScoreScale(currentLevel);
-        const maxKillsScore = 40000 * scoreScale;
-        const maxAccuracyScore = 20000 * scoreScale;
-        const maxDeathsScore = 20000 * scoreScale;
-        const maxTreasureScore = 10000 * scoreScale;
-        const maxTimeBonusScore = 10000 * scoreScale;
-        const maxTotalScore = maxKillsScore + maxAccuracyScore + maxDeathsScore + maxTreasureScore + maxTimeBonusScore;
+        const finalizedRun = finalizeDungeonRun(
+            client,
+            raw.dungeonCompleted ? 'success' : 'fail',
+            {
+                completionPercent: raw.completionPercent,
+                dungeonCompleted: raw.dungeonCompleted
+            }
+        );
+        const profile: ResolvedDungeonScoreProfile =
+            getDungeonScoreProfile(currentLevel) ?? buildDefaultDungeonScoreProfile(currentLevel);
+        const maxKillsScore = profile.killCap;
+        const maxAccuracyScore = profile.accuracyCap;
+        const maxDeathsScore = profile.deathCap;
+        const maxTreasureScore = profile.treasureCap;
+        const maxTimeBonusScore = profile.timeBonusCap;
+        const maxTotalScore = getDungeonScoreTotalCap(profile);
         const trackedTotals = usesSharedDungeonProgress(currentLevel) && levelScope
             ? getSharedDungeonProgressTotals(levelScope)
-            : { total: Math.max(raw.requiredKills, raw.actualKills, runStats?.kills ?? 0), defeated: 0 };
-        const effectiveKillCount = Math.max(raw.actualKills, runStats?.kills ?? 0);
-        const effectiveKillTarget = Math.max(1, trackedTotals.total, raw.requiredKills, effectiveKillCount);
+            : {
+                total: Math.max(raw.requiredKills, raw.actualKills, finalizedRun?.totalEnemiesEligible ?? 0),
+                defeated: finalizedRun?.killedEnemies ?? 0
+            };
+        const effectiveKillCount = Math.max(raw.actualKills, finalizedRun?.killedEnemies ?? 0);
+        const effectiveKillTarget = Math.max(
+            1,
+            trackedTotals.total,
+            finalizedRun?.totalEnemiesEligible ?? 0,
+            raw.requiredKills,
+            effectiveKillCount
+        );
         const killsScore = MissionHandler.clamp((effectiveKillCount / effectiveKillTarget) * maxKillsScore, 0, maxKillsScore);
 
-        const castCount = Math.max(0, Number(runStats?.powerCasts ?? 0));
-        const landedHitCount = Math.max(0, Number(runStats?.landedHits ?? 0));
+        const castCount = Math.max(0, Number(finalizedRun?.totalShots ?? 0));
+        const landedHitCount = Math.max(0, Number(finalizedRun?.successfulHits ?? 0));
         const effectiveAttackCount = Math.max(1, castCount, landedHitCount);
         const accuracyPercent = castCount <= 0 && landedHitCount <= 0
             ? Math.max(50, MissionHandler.clamp(raw.completionPercent, 0, 100))
             : MissionHandler.clamp((Math.min(landedHitCount, effectiveAttackCount) / effectiveAttackCount) * 100, 0, 100);
         const accuracyScore = MissionHandler.clamp((accuracyPercent / 100) * maxAccuracyScore, 0, maxAccuracyScore);
 
-        const deathCount = Math.max(0, Number(runStats?.deaths ?? 0));
-        const deathPenaltyPerDeath = 5000 * scoreScale;
+        const deathCount = Math.max(0, Number(finalizedRun?.playerDeaths ?? 0));
+        const deathPenaltyPerDeath = Math.max(1, Math.round(maxDeathsScore / 4));
         const deathsScore = MissionHandler.clamp(maxDeathsScore - (deathCount * deathPenaltyPerDeath), 0, maxDeathsScore);
 
-        const treasureGold = Math.max(0, Number(runStats?.treasureGold ?? raw.goldReward ?? 0));
-        const treasureScore = MissionHandler.clamp(
-            treasureGold > 0 ? treasureGold * 100 : raw.goldReward,
-            0,
-            maxTreasureScore
-        );
+        const chestEligible = Math.max(0, Number(finalizedRun?.totalChestsEligible ?? 0));
+        const openedChests = Math.max(0, Number(finalizedRun?.openedChests ?? 0));
+        const treasureScore = chestEligible > 0
+            ? MissionHandler.clamp((Math.min(openedChests, chestEligible) / Math.max(1, chestEligible)) * maxTreasureScore, 0, maxTreasureScore)
+            : MissionHandler.clamp(
+                Math.max(0, Number(finalizedRun?.treasureGold ?? runStats?.treasureGold ?? raw.goldReward ?? 0)) > 0
+                    ? Math.max(0, Number(finalizedRun?.treasureGold ?? runStats?.treasureGold ?? raw.goldReward ?? 0)) * 100
+                    : raw.goldReward,
+                0,
+                maxTreasureScore
+            );
 
-        const elapsedMs = Math.max(0, Date.now() - Number(runStats?.startedAt ?? Date.now()));
+        const elapsedMs = Math.max(
+            0,
+            Number(finalizedRun?.elapsedMs ?? (Date.now() - Number(runStats?.runStartTime ?? Date.now())))
+        );
         const timeWindowMs = MissionHandler.getDungeonParTimeMs(currentLevel, effectiveKillTarget);
         const fallbackTimeScore = Math.max(
             0,
@@ -680,7 +713,7 @@ export class MissionHandler {
                 Number(raw.bonusScoreTotal ?? 0) - killsScore - accuracyScore - treasureScore
             )
         );
-        const timeBonusScore = runStats
+        const timeBonusScore = finalizedRun || runStats
             ? MissionHandler.clamp((1 - Math.min(elapsedMs, timeWindowMs) / timeWindowMs) * maxTimeBonusScore, 0, maxTimeBonusScore)
             : fallbackTimeScore;
 
@@ -696,7 +729,7 @@ export class MissionHandler {
             actualKills: effectiveKillCount,
             totalScore,
             stars,
-            resultBar: scoreScale,
+            resultBar: profile.resultBar,
             rank,
             killsScore,
             accuracyScore,
