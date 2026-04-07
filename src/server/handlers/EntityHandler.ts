@@ -8,7 +8,7 @@ import { Entity, EntityProps, EntityState } from '../core/Entity';
 import { LevelConfig } from '../core/LevelConfig';
 import { PetHandler } from './PetHandler';
 import { BuildingHandler } from './BuildingHandler';
-import { noteDungeonRunEntitySeen } from '../core/DungeonRunStats';
+import { noteDungeonRunBossCutscene, noteDungeonRunEntitySeen } from '../core/DungeonRunStats';
 import { areClientsInSameParty, getPartyIdForClient, isClientPartyLeader, sharesRoomIds } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope, getLevelScopeKey } from '../core/LevelScope';
 
@@ -804,6 +804,7 @@ export class EntityHandler {
             }
             other.send(0xAC, payload);
         }
+        noteDungeonRunBossCutscene(scopeKey, roomId, bossId);
     }
 
     private static sendRoomSound(

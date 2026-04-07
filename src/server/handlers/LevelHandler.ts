@@ -10,7 +10,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { LevelConfig } from '../core/LevelConfig';
 import { GlobalState, PendingTransfer } from '../core/GlobalState';
 import { DebugLogger } from '../core/Debug';
-import { cloneDungeonRunStats, finalizeDungeonRun, noteDungeonRunEntitySeen } from '../core/DungeonRunStats';
+import { cloneDungeonRunStats, finalizeDungeonRun, noteDungeonRunBossCutscene, noteDungeonRunEntitySeen } from '../core/DungeonRunStats';
 import { WorldEnter } from '../utils/WorldEnter';
 import { Config } from '../core/config';
 import { MissionLoader } from '../data/MissionLoader';
@@ -783,6 +783,7 @@ export class LevelHandler {
             }
             other.send(0xAC, payload);
         }
+        noteDungeonRunBossCutscene(scopeKey, roomId, bossId);
     }
 
     private static sendRoomSound(
@@ -2867,10 +2868,11 @@ export class LevelHandler {
         const br = new BitReader(data);
         const roomId = br.readMethod9();
         LevelHandler.cacheRoomId(client, roomId);
-        br.readMethod9();
+        const bossId = br.readMethod9();
         br.readMethod26();
         br.readMethod9();
         br.readMethod26();
+        noteDungeonRunBossCutscene(getClientLevelScope(client), roomId, bossId);
 
         LevelHandler.relayToLevel(client, 0xAC, data);
     }

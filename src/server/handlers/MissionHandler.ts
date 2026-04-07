@@ -7,6 +7,7 @@ import {
 } from '../core/DungeonScoreProfiles';
 import { GlobalState } from '../core/GlobalState';
 import { finalizeDungeonRun, getActiveDungeonRunStats, noteDungeonRunCompletionProgress } from '../core/DungeonRunStats';
+import { buildDungeonRunScoreSummary } from '../core/DungeonRunStats';
 import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
 import {
@@ -653,83 +654,28 @@ export class MissionHandler {
                 dungeonCompleted: raw.dungeonCompleted
             }
         );
+        const scoreSummary = finalizedRun?.scoreSummary ?? (runStats ? buildDungeonRunScoreSummary(runStats) : null);
         const profile: ResolvedDungeonScoreProfile =
-            getDungeonScoreProfile(currentLevel) ?? buildDefaultDungeonScoreProfile(currentLevel);
-        const maxKillsScore = profile.killCap;
-        const maxAccuracyScore = profile.accuracyCap;
-        const maxDeathsScore = profile.deathCap;
-        const maxTreasureScore = profile.treasureCap;
-        const maxTimeBonusScore = profile.timeBonusCap;
+            scoreSummary?.profile ?? getDungeonScoreProfile(currentLevel) ?? buildDefaultDungeonScoreProfile(currentLevel);
         const maxTotalScore = getDungeonScoreTotalCap(profile);
-        const trackedTotals = usesSharedDungeonProgress(currentLevel) && levelScope
-            ? getSharedDungeonProgressTotals(levelScope)
-            : {
-                total: Math.max(raw.requiredKills, raw.actualKills, finalizedRun?.totalEnemiesEligible ?? 0),
-                defeated: finalizedRun?.killedEnemies ?? 0
-            };
-        const effectiveKillCount = Math.max(raw.actualKills, finalizedRun?.killedEnemies ?? 0);
-        const effectiveKillTarget = Math.max(
-            1,
-            trackedTotals.total,
-            finalizedRun?.totalEnemiesEligible ?? 0,
-            raw.requiredKills,
-            effectiveKillCount
-        );
-        const killsScore = MissionHandler.clamp((effectiveKillCount / effectiveKillTarget) * maxKillsScore, 0, maxKillsScore);
-
-        const castCount = Math.max(0, Number(finalizedRun?.totalShots ?? 0));
-        const landedHitCount = Math.max(0, Number(finalizedRun?.successfulHits ?? 0));
-        const effectiveAttackCount = Math.max(1, castCount, landedHitCount);
-        const accuracyPercent = castCount <= 0 && landedHitCount <= 0
-            ? Math.max(50, MissionHandler.clamp(raw.completionPercent, 0, 100))
-            : MissionHandler.clamp((Math.min(landedHitCount, effectiveAttackCount) / effectiveAttackCount) * 100, 0, 100);
-        const accuracyScore = MissionHandler.clamp((accuracyPercent / 100) * maxAccuracyScore, 0, maxAccuracyScore);
-
-        const deathCount = Math.max(0, Number(finalizedRun?.playerDeaths ?? 0));
-        const deathPenaltyPerDeath = Math.max(1, Math.round(maxDeathsScore / 4));
-        const deathsScore = MissionHandler.clamp(maxDeathsScore - (deathCount * deathPenaltyPerDeath), 0, maxDeathsScore);
-
-        const chestEligible = Math.max(0, Number(finalizedRun?.totalChestsEligible ?? 0));
-        const openedChests = Math.max(0, Number(finalizedRun?.openedChests ?? 0));
-        const treasureScore = chestEligible > 0
-            ? MissionHandler.clamp((Math.min(openedChests, chestEligible) / Math.max(1, chestEligible)) * maxTreasureScore, 0, maxTreasureScore)
-            : MissionHandler.clamp(
-                Math.max(0, Number(finalizedRun?.treasureGold ?? runStats?.treasureGold ?? raw.goldReward ?? 0)) > 0
-                    ? Math.max(0, Number(finalizedRun?.treasureGold ?? runStats?.treasureGold ?? raw.goldReward ?? 0)) * 100
-                    : raw.goldReward,
-                0,
-                maxTreasureScore
-            );
-
-        const elapsedMs = Math.max(
+        const killsScore = Math.max(0, Number(scoreSummary?.finalStat.kills ?? 0));
+        const accuracyScore = Math.max(0, Number(scoreSummary?.finalStat.accuracy ?? 0));
+        const deathsScore = Math.max(0, Number(scoreSummary?.finalStat.deaths ?? 0));
+        const treasureScore = Math.max(0, Number(scoreSummary?.finalStat.treasure ?? 0));
+        const timeBonusScore = Math.max(0, Number(scoreSummary?.finalStat.timeBonus ?? 0));
+        const totalScore = Math.max(0, Number(scoreSummary?.finalStat.total ?? (killsScore + accuracyScore + deathsScore + treasureScore + timeBonusScore)));
+        const stars = Math.max(0, Math.min(10, Number(scoreSummary?.stars ?? 0)));
+        const rank = Math.max(1, Math.min(10, Number(scoreSummary?.rank ?? 10)));
+        const effectiveKillCount = Math.max(
             0,
-            Number(finalizedRun?.elapsedMs ?? (Date.now() - Number(runStats?.runStartTime ?? Date.now())))
+            Number(finalizedRun?.killedEnemies ?? runStats?.killedEnemies ?? raw.actualKills ?? 0)
         );
-        const timeWindowMs = MissionHandler.getDungeonParTimeMs(currentLevel, effectiveKillTarget);
-        const fallbackTimeScore = Math.max(
-            0,
-            Math.min(
-                maxTimeBonusScore,
-                Number(raw.bonusScoreTotal ?? 0) - killsScore - accuracyScore - treasureScore
-            )
-        );
-        const timeBonusScore = finalizedRun || runStats
-            ? MissionHandler.clamp((1 - Math.min(elapsedMs, timeWindowMs) / timeWindowMs) * maxTimeBonusScore, 0, maxTimeBonusScore)
-            : fallbackTimeScore;
-
-        const totalScore = MissionHandler.clamp(
-            killsScore + accuracyScore + deathsScore + treasureScore + timeBonusScore,
-            0,
-            maxTotalScore
-        );
-        const stars = MissionHandler.clamp((totalScore / Math.max(1, maxTotalScore)) * 10, 0, 10);
-        const rank = MissionHandler.clamp(11 - stars, 1, 10);
 
         return {
             actualKills: effectiveKillCount,
             totalScore,
             stars,
-            resultBar: profile.resultBar,
+            resultBar: scoreSummary?.resultBar ?? profile.resultBar,
             rank,
             killsScore,
             accuracyScore,
@@ -743,24 +689,24 @@ export class MissionHandler {
         client: Client,
         stats: {
             stars: number;
-            resultBar?: number;
-            rank?: number;
+            resultBar: number;
+            rank: number;
             kills: number;
-            accuracy?: number;
-            deaths?: number;
+            accuracy: number;
+            deaths: number;
             treasure: number;
-            timeBonus?: number;
+            timeBonus: number;
         }
     ): void {
         const bb = new BitBuffer(false);
         bb.writeMethod6(Math.max(0, Math.min(stats.stars, 15)), 4);
-        bb.writeMethod4(stats.resultBar ?? 1);
-        bb.writeMethod4(stats.rank ?? 1);
+        bb.writeMethod4(Math.max(0, stats.resultBar));
+        bb.writeMethod4(Math.max(0, stats.rank));
         bb.writeMethod4(Math.max(0, stats.kills));
-        bb.writeMethod4(stats.accuracy ?? 50);
-        bb.writeMethod4(stats.deaths ?? 0);
+        bb.writeMethod4(Math.max(0, stats.accuracy));
+        bb.writeMethod4(Math.max(0, stats.deaths));
         bb.writeMethod4(Math.max(0, stats.treasure));
-        bb.writeMethod4(stats.timeBonus ?? 0);
+        bb.writeMethod4(Math.max(0, stats.timeBonus));
         client.sendBitBuffer(0x87, bb);
     }
 

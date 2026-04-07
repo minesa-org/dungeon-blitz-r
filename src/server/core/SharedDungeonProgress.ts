@@ -1,7 +1,8 @@
 import { GlobalState, SharedDungeonProgressState } from './GlobalState';
+import { getActiveDungeonRunStats } from './DungeonRunStats';
 import { LevelConfig } from './LevelConfig';
 import { getClientLevelScope, getScopeLevelName } from './LevelScope';
-import { getPartyLeaderCharacterKeyForClient } from './PartySync';
+import { getClientCharacterKey, getPartyLeaderCharacterKeyForClient } from './PartySync';
 import { normalizeCharacterKey } from './SocialState';
 import { EntityState } from './Entity';
 
@@ -67,10 +68,50 @@ export function getOrCreateSharedDungeonProgressState(
         progress: 0,
         authorityToken: 0,
         trackedHostileIds: new Set<number>(),
-        defeatedHostileIds: new Set<number>()
+        defeatedHostileIds: new Set<number>(),
+        liveStatsByCharacter: new Map()
     };
     GlobalState.levelQuestProgress.set(scopeKey, created);
     return created;
+}
+
+function refreshSharedDungeonLiveStats(
+    state: SharedDungeonProgressState,
+    levelScope: string
+): void {
+    state.liveStatsByCharacter ??= new Map();
+    state.liveStatsByCharacter.clear();
+
+    for (const session of GlobalState.sessionsByToken.values()) {
+        if (!session?.playerSpawned || getClientLevelScope(session) !== levelScope) {
+            continue;
+        }
+
+        const characterKey = getClientCharacterKey(session);
+        if (!characterKey) {
+            continue;
+        }
+
+        const runStats = getActiveDungeonRunStats(session);
+        const scoreSummary = runStats?.scoreSummary;
+        if (!runStats || !scoreSummary) {
+            continue;
+        }
+
+        state.liveStatsByCharacter.set(characterKey, {
+            updatedAt: Date.now(),
+            levelName: runStats.levelName,
+            scoreMode: runStats.scoreMode,
+            totalScore: scoreSummary.finalStat.total,
+            kills: scoreSummary.finalStat.kills,
+            treasure: scoreSummary.finalStat.treasure,
+            accuracy: scoreSummary.finalStat.accuracy,
+            deaths: scoreSummary.finalStat.deaths,
+            timeBonus: scoreSummary.finalStat.timeBonus,
+            resultBar: scoreSummary.resultBar,
+            rank: scoreSummary.rank
+        });
+    }
 }
 
 function isSharedDungeonTrackedHostile(entity: any): boolean {
@@ -243,7 +284,8 @@ export function getSharedDungeonProgressTotals(
 
 export function recomputeSharedDungeonProgress(levelScope: string | null | undefined): SharedDungeonProgressState | null {
     const state = getOrCreateSharedDungeonProgressState(levelScope);
-    if (!state) {
+    const scopeKey = String(levelScope ?? '').trim();
+    if (!state || !scopeKey) {
         return null;
     }
 
@@ -253,12 +295,14 @@ export function recomputeSharedDungeonProgress(levelScope: string | null | undef
         state.progress = totals.total > 0
             ? clampProgress(GOBLIN_RIVER_INITIAL_PROGRESS + ((totals.defeated / totals.total) * (100 - GOBLIN_RIVER_INITIAL_PROGRESS)))
             : GOBLIN_RIVER_INITIAL_PROGRESS;
+        refreshSharedDungeonLiveStats(state, scopeKey);
         return state;
     }
 
     state.progress = totals.total > 0
         ? clampProgress((totals.defeated / totals.total) * 100)
         : 0;
+    refreshSharedDungeonLiveStats(state, scopeKey);
     return state;
 }
 

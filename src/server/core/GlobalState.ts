@@ -24,6 +24,19 @@ export type SharedDungeonProgressState = {
     authorityToken: number;
     trackedHostileIds?: Set<number>;
     defeatedHostileIds?: Set<number>;
+    liveStatsByCharacter?: Map<string, {
+        updatedAt: number;
+        levelName: string;
+        scoreMode: string;
+        totalScore: number;
+        kills: number;
+        treasure: number;
+        accuracy: number;
+        deaths: number;
+        timeBonus: number;
+        resultBar: number;
+        rank: number;
+    }>;
 };
 
 export class GlobalState {

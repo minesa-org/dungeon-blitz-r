@@ -1,7 +1,15 @@
 import { strict as assert } from 'assert';
 import * as path from 'path';
+import {
+    noteDungeonRunCast,
+    noteDungeonRunEntitySeen,
+    noteDungeonRunKill,
+    syncClientDungeonRunState
+} from '../core/DungeonRunStats';
 import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
+import { getClientLevelScope } from '../core/LevelScope';
+import { getSharedDungeonProgressState } from '../core/SharedDungeonProgress';
 import { LevelHandler } from '../handlers/LevelHandler';
 import { MissionHandler } from '../handlers/MissionHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
@@ -19,6 +27,7 @@ type FakeClient = {
     currentLevel: string;
     levelInstanceId: string;
     currentRoomId: number;
+    clientEntID: number;
     character: {
         name: string;
         level: number;
@@ -28,6 +37,8 @@ type FakeClient = {
         questTrackerState: number;
     };
     characters: any[];
+    entities: Map<number, any>;
+    dungeonRun: any;
     sentPackets: SentPacket[];
     send: (id: number, payload: Buffer) => void;
     sendBitBuffer: (id: number, bb: BitBuffer) => void;
@@ -57,8 +68,11 @@ function createClient(token: number, name: string): FakeClient {
         currentLevel: 'GoblinRiverDungeon',
         levelInstanceId: 'goblin-shared',
         currentRoomId: 1,
+        clientEntID: token + 9000,
         character,
         characters: [character],
+        entities: new Map<number, any>(),
+        dungeonRun: null,
         sentPackets,
         send(id: number, payload: Buffer) {
             sentPackets.push({ id, payload: Buffer.from(payload) });
@@ -92,6 +106,40 @@ function createLevelCompletePacket(progress: number = 100, remainingKills: numbe
 function parseQuestProgress(payload: Buffer): number {
     const br = new BitReader(payload);
     return br.readMethod4();
+}
+
+function parseDungeonComplete(payload: Buffer): {
+    stars: number;
+    resultBar: number;
+    rank: number;
+    kills: number;
+    accuracy: number;
+    deaths: number;
+    treasure: number;
+    timeBonus: number;
+} {
+    const br = new BitReader(payload);
+    return {
+        stars: br.readMethod6(4),
+        resultBar: br.readMethod4(),
+        rank: br.readMethod4(),
+        kills: br.readMethod4(),
+        accuracy: br.readMethod4(),
+        deaths: br.readMethod4(),
+        treasure: br.readMethod4(),
+        timeBonus: br.readMethod4()
+    };
+}
+
+function assertDungeonCompleteMatchesTracker(client: FakeClient, payload: Buffer): void {
+    const result = parseDungeonComplete(payload);
+    const summary = client.dungeonRun?.finalizedStats?.scoreSummary;
+    assert.ok(summary, 'shared-progress completion should finalize tracker score summary');
+    assert.equal(result.kills, summary.finalStat.kills, 'kill score should come from the authoritative tracker');
+    assert.equal(result.accuracy, summary.finalStat.accuracy, 'accuracy should come from the authoritative tracker');
+    assert.equal(result.deaths, summary.finalStat.deaths, 'death score should come from the authoritative tracker');
+    assert.equal(result.treasure, summary.finalStat.treasure, 'treasure score should come from the authoritative tracker');
+    assert.equal(result.timeBonus, summary.finalStat.timeBonus, 'time bonus should come from the authoritative tracker');
 }
 
 function setPartyLeader(leader: FakeClient, ...members: FakeClient[]): void {
@@ -240,6 +288,65 @@ async function testGoblinRiverLevelCompleteWaitsForSharedProgressCompletion(): P
     );
 }
 
+async function testGoblinRiverFinalPacketUsesTrackerSummaryWithoutFallbackStats(): Promise<void> {
+    const authority = createClient(821, 'Leader');
+    const levelScope = 'GoblinRiverDungeon#goblin-shared';
+    const hostileAlive = {
+        id: 5201,
+        name: 'GoblinClub',
+        isPlayer: false,
+        team: 2,
+        entState: 0,
+        hp: 100,
+        clientSpawned: true,
+        ownerToken: authority.token,
+        roomId: 1
+    };
+    const hostileDead = {
+        ...hostileAlive,
+        hp: 0,
+        dead: true,
+        entState: 6
+    };
+
+    GlobalState.sessionsByToken.set(authority.token, authority as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [hostileAlive.id, { ...hostileAlive }]
+    ]));
+
+    syncClientDungeonRunState(authority as never);
+    authority.entities.set(hostileAlive.id, { ...hostileAlive });
+    noteDungeonRunEntitySeen(authority as never, hostileAlive.id, hostileAlive);
+    noteDungeonRunCast(authority as never, {
+        sourceId: authority.clientEntID,
+        projectileId: null,
+        isPersistent: false
+    });
+
+    authority.entities.set(hostileDead.id, { ...hostileDead });
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [hostileDead.id, { ...hostileDead }]
+    ]));
+    noteDungeonRunKill(getClientLevelScope(authority as never), [authority.character.name], hostileDead.id, hostileDead);
+
+    LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
+    const sharedState = getSharedDungeonProgressState(levelScope);
+    assert.equal(
+        sharedState?.liveStatsByCharacter?.get('leader')?.totalScore,
+        authority.dungeonRun.scoreSummary.finalStat.total,
+        'shared dungeon progress should keep a live tracker snapshot alongside percent progress'
+    );
+    await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 1));
+
+    const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
+    assert.ok(resultPacket, 'shared-progress dungeon completion should still send 0x87');
+    assertDungeonCompleteMatchesTracker(authority, resultPacket!.payload);
+
+    const result = parseDungeonComplete(resultPacket!.payload);
+    assert.equal(result.accuracy, 0, 'an unresolved cast should finalize as a miss instead of falling back to default accuracy');
+    assert.notEqual(result.accuracy, 50, 'accuracy should not fall back to the legacy default');
+}
+
 async function main(): Promise<void> {
     ensureLevelConfigLoaded();
 
@@ -270,6 +377,13 @@ async function main(): Promise<void> {
         GlobalState.partyByMember.clear();
         GlobalState.partyGroups.clear();
         await testGoblinRiverLevelCompleteWaitsForSharedProgressCompletion();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.partyGroups.clear();
+        await testGoblinRiverFinalPacketUsesTrackerSummaryWithoutFallbackStats();
     } finally {
         GlobalState.levelEntities = levelEntities;
         GlobalState.sessionsByToken = sessionsByToken;
