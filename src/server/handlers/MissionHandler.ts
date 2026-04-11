@@ -169,6 +169,10 @@ export class MissionHandler {
             didMutate = true;
         }
 
+        if (MissionHandler.repairCompletedDungeonMissionStates(character, currentLevel)) {
+            didMutate = true;
+        }
+
         if (
             MissionHandler.getMissionState(character, MissionID.ClearYourHouse) >= MissionHandler.MISSION_CLAIMED &&
             Number(character.questTrackerState ?? 0) < 100
@@ -277,6 +281,7 @@ export class MissionHandler {
             client.currentLevel ||
             String(client.character.CurrentLevel?.name ?? '');
         const levelScope = getClientLevelScope(client);
+        const forceSharedDungeonCompletion = Boolean(levelScope) && client.forcedDungeonCompletionScope === levelScope;
         const trackerCompletionPercent = Math.max(0, Number(client.character.questTrackerState ?? 0));
         let effectiveCompletionPercent = isWolfsEndDungeonLevel(currentLevel)
             ? Math.max(completionPercent, trackerCompletionPercent)
@@ -287,18 +292,28 @@ export class MissionHandler {
             (requiredKills > 0 && remainingKills <= 0);
 
         if (usesSharedDungeonProgress(currentLevel) && levelScope) {
-            const sharedState = recomputeSharedDungeonProgress(levelScope) ?? getOrCreateSharedDungeonProgressState(levelScope);
+            const sharedState = forceSharedDungeonCompletion
+                ? getOrCreateSharedDungeonProgressState(levelScope)
+                : recomputeSharedDungeonProgress(levelScope) ?? getOrCreateSharedDungeonProgressState(levelScope);
             if (sharedState) {
-                if (sharedState.progress < 100) {
+                if (!forceSharedDungeonCompletion && sharedState.progress < 100) {
                     if (!hasSharedDungeonProgressHostiles(levelScope)) {
                         return;
                     }
                     return;
                 }
 
-                effectiveCompletionPercent = Math.max(effectiveCompletionPercent, Number(sharedState.progress ?? 0));
+                if (forceSharedDungeonCompletion) {
+                    sharedState.progress = 100;
+                    effectiveCompletionPercent = 100;
+                    client.character.questTrackerState = 100;
+                    MissionHandler.broadcastSharedDungeonQuestProgress(levelScope, 100);
+                } else {
+                    effectiveCompletionPercent = Math.max(effectiveCompletionPercent, Number(sharedState.progress ?? 0));
+                }
                 noteDungeonRunCompletionProgress(client, effectiveCompletionPercent);
                 clearedDungeon =
+                    forceSharedDungeonCompletion ||
                     effectiveCompletionPercent >= 100 ||
                     (requiredKills > 0 && remainingKills <= 0);
 
@@ -307,7 +322,7 @@ export class MissionHandler {
                     sharedState.authorityToken = liveAuthorityToken;
                 }
 
-                if (sharedState.authorityToken > 0 && client.token !== sharedState.authorityToken) {
+                if (!forceSharedDungeonCompletion && sharedState.authorityToken > 0 && client.token !== sharedState.authorityToken) {
                     return;
                 }
             }
@@ -408,6 +423,54 @@ export class MissionHandler {
             treasure: completionResult.treasureScore,
             timeBonus: completionResult.timeBonusScore
         });
+        if (forceSharedDungeonCompletion && client.forcedDungeonCompletionScope === levelScope) {
+            client.forcedDungeonCompletionScope = '';
+        }
+    }
+
+    static async handleForcedGoblinRiverBossCompletion(client: Client, destroyedEntity: any): Promise<void> {
+        if (!client.character) {
+            return;
+        }
+
+        const currentLevel =
+            LevelConfig.normalizeLevelName(client.currentLevel || String(client.character.CurrentLevel?.name ?? '')) ||
+            client.currentLevel ||
+            String(client.character.CurrentLevel?.name ?? '');
+        if (currentLevel !== 'GoblinRiverDungeon' && currentLevel !== 'GoblinRiverDungeonHard') {
+            return;
+        }
+
+        const entityName = String(destroyedEntity?.name ?? '');
+        if (entityName !== 'GoblinBoss2' && entityName !== 'GoblinBoss2Hard') {
+            return;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        if (!levelScope || client.forcedDungeonCompletionScope === levelScope) {
+            return;
+        }
+
+        const authorityToken = resolveSharedDungeonProgressAuthorityToken(levelScope);
+        if (authorityToken > 0 && authorityToken !== client.token) {
+            return;
+        }
+
+        if (getActiveDungeonRunStats(client)?.finalizedStats) {
+            return;
+        }
+
+        client.forcedDungeonCompletionScope = levelScope;
+        try {
+            await MissionHandler.handleSetLevelComplete(
+                client,
+                MissionHandler.buildSyntheticLevelCompletePacket(100)
+            );
+        } finally {
+            if (client.forcedDungeonCompletionScope === levelScope && getActiveDungeonRunStats(client)?.finalizedStats) {
+                client.forcedDungeonCompletionScope = '';
+            }
+        }
     }
 
     static async handleBadgeRequest(client: Client, data: Buffer): Promise<void> {
@@ -831,6 +894,20 @@ export class MissionHandler {
         client.sendBitBuffer(0x87, bb);
     }
 
+    private static buildSyntheticLevelCompletePacket(completionPercent: number): Buffer {
+        const bb = new BitBuffer(false);
+        bb.writeMethod9(Math.max(0, Math.min(100, Math.round(Number(completionPercent ?? 0)))));
+        bb.writeMethod9(0);
+        bb.writeMethod9(0);
+        bb.writeMethod9(0);
+        bb.writeMethod9(0);
+        bb.writeMethod9(0);
+        bb.writeMethod9(0);
+        bb.writeMethod9(1);
+        bb.writeMethod9(3);
+        return bb.toBuffer();
+    }
+
     private static getMissionStateMap(character: Character): Record<string, MissionEntry> {
         const raw = character.missions;
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -864,6 +941,59 @@ export class MissionHandler {
                 missionId,
                 MissionHandler.MISSION_READY_TO_TURN_IN,
                 missionDef
+            );
+            didMutate = true;
+        }
+
+        return didMutate;
+    }
+
+    private static repairCompletedDungeonMissionStates(
+        character: Character,
+        currentLevelRaw: string
+    ): boolean {
+        if (Number(character.questTrackerState ?? 0) < 100) {
+            return false;
+        }
+
+        const currentLevel =
+            LevelConfig.normalizeLevelName(currentLevelRaw || String(character.CurrentLevel?.name ?? '')) ||
+            String(currentLevelRaw || character.CurrentLevel?.name || '');
+        const missions = MissionHandler.getMissionStateMap(character);
+        let didMutate = false;
+
+        for (const [missionIdText, rawEntry] of Object.entries(missions)) {
+            const missionId = Number(missionIdText);
+            if (!Number.isFinite(missionId)) {
+                continue;
+            }
+
+            const entry = MissionHandler.asMissionEntry(rawEntry);
+            if (Number(entry.state ?? MissionHandler.MISSION_NOT_STARTED) !== MissionHandler.MISSION_IN_PROGRESS) {
+                continue;
+            }
+
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            const dungeonLevel =
+                LevelConfig.normalizeLevelName(String(missionDef?.Dungeon ?? '')) ||
+                String(missionDef?.Dungeon ?? '').trim();
+            if (!missionDef || !dungeonLevel || currentLevel === dungeonLevel) {
+                continue;
+            }
+
+            MissionHandler.setMissionState(
+                character,
+                missionId,
+                MissionHandler.missionRequiresTurnIn(missionDef)
+                    ? MissionHandler.MISSION_READY_TO_TURN_IN
+                    : MissionHandler.MISSION_CLAIMED,
+                missionDef,
+                {
+                    currCount: Math.max(1, Number(missionDef.CompleteCount ?? 1)),
+                    Tier: Number(entry.Tier ?? 0),
+                    highscore: Number(entry.highscore ?? 0),
+                    Time: Number(entry.Time ?? 0)
+                }
             );
             didMutate = true;
         }

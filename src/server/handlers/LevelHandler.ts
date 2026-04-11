@@ -33,6 +33,8 @@ import { areClientsInSameParty, getPartyIdForClient, sharesRoomIds } from '../co
 import {
     getSharedDungeonInitialProgress,
     getOrCreateSharedDungeonProgressState,
+    getSharedDungeonProgressState,
+    getSharedDungeonProgressTotals,
     hasSharedDungeonProgressHostiles,
     recomputeSharedDungeonProgress,
     resolveSharedDungeonProgressAuthorityToken,
@@ -721,6 +723,7 @@ export class LevelHandler {
             return 0;
         }
 
+        const previousProgress = Number(getSharedDungeonProgressState(scopeKey)?.progress ?? 0);
         const sharedState = recomputeSharedDungeonProgress(scopeKey);
         const progress = sharedState?.progress ?? 0;
         if (sharedState) {
@@ -731,7 +734,61 @@ export class LevelHandler {
         }
 
         LevelHandler.broadcastSharedDungeonQuestProgress(scopeKey, progress);
+        if (progress >= 100 && previousProgress < 100) {
+            LevelHandler.maybeAutoCompleteSharedDungeon(scopeKey, sharedState);
+        }
         return progress;
+    }
+
+    private static buildSharedDungeonAutoCompletePayload(requiredKills: number): Buffer {
+        const bb = new BitBuffer(false);
+        bb.writeMethod9(100);
+        bb.writeMethod9(0);
+        bb.writeMethod9(0);
+        bb.writeMethod9(0);
+        bb.writeMethod9(0);
+        bb.writeMethod9(0);
+        bb.writeMethod9(0);
+        bb.writeMethod9(Math.max(1, requiredKills));
+        bb.writeMethod9(3);
+        return bb.toBuffer();
+    }
+
+    private static maybeAutoCompleteSharedDungeon(levelScope: string, sharedState: any): void {
+        if (!sharedState || sharedState.completionRequested) {
+            return;
+        }
+
+        let authorityClient: Client | null = null;
+        const authorityToken = Number(sharedState.authorityToken ?? 0);
+        if (authorityToken > 0) {
+            const authoritySession = GlobalState.sessionsByToken.get(authorityToken);
+            if (authoritySession?.playerSpawned && getClientLevelScope(authoritySession) === levelScope) {
+                authorityClient = authoritySession;
+            }
+        }
+
+        if (!authorityClient) {
+            for (const other of GlobalState.sessionsByToken.values()) {
+                if (other.playerSpawned && getClientLevelScope(other) === levelScope) {
+                    authorityClient = other;
+                    break;
+                }
+            }
+        }
+
+        if (!authorityClient?.character || authorityClient.dungeonRun?.finalizedAt) {
+            return;
+        }
+
+        sharedState.completionRequested = true;
+        const requiredKills = Math.max(1, getSharedDungeonProgressTotals(levelScope).total);
+        void MissionHandler.handleSetLevelComplete(
+            authorityClient,
+            LevelHandler.buildSharedDungeonAutoCompletePayload(requiredKills)
+        ).then(() => {
+            recomputeSharedDungeonProgress(levelScope);
+        });
     }
 
     static syncSharedDungeonQuestProgressState(client: Client): void {

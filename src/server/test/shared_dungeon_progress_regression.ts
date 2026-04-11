@@ -12,6 +12,7 @@ import { GlobalState } from '../core/GlobalState';
 import { GameData } from '../core/GameData';
 import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
+import { MissionLoader } from '../data/MissionLoader';
 import { getSharedDungeonProgressState } from '../core/SharedDungeonProgress';
 import { CombatHandler } from '../handlers/CombatHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
@@ -54,6 +55,9 @@ function ensureLevelConfigLoaded(): void {
     }
     if (!GameData.getEntType('GoblinClub')) {
         GameData.load(path.resolve(__dirname, '../data'));
+    }
+    if (!MissionLoader.getMissionDef(271)) {
+        MissionLoader.load(path.resolve(__dirname, '../data'));
     }
 }
 
@@ -356,13 +360,20 @@ async function testGoblinRiverFinalPacketUsesTrackerSummaryWithoutFallbackStats(
     noteDungeonRunKill(getClientLevelScope(authority as never), [authority.character.name], hostileDead.id, hostileDead);
 
     LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
+    await new Promise((resolve) => setTimeout(resolve, 25));
     const sharedState = getSharedDungeonProgressState(levelScope);
+    const authoritativeTotalScore =
+        authority.dungeonRun.finalizedStats?.scoreSummary.finalStat.total ??
+        authority.dungeonRun.scoreSummary.finalStat.total;
     assert.equal(
         sharedState?.liveStatsByCharacter?.get('leader')?.totalScore,
-        authority.dungeonRun.scoreSummary.finalStat.total,
+        authoritativeTotalScore,
         'shared dungeon progress should keep a live tracker snapshot alongside percent progress'
     );
-    await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 1));
+
+    if (!authority.sentPackets.some((packet) => packet.id === 0x87)) {
+        await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 1));
+    }
 
     const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
     assert.ok(resultPacket, 'shared-progress dungeon completion should still send 0x87');
@@ -779,6 +790,52 @@ async function testGoblinRiverCompletionProgressFullClearOverridesIncompleteObse
     assert.equal(result.kills, unlockedCap.kills, 'Wolf\'s End full clear should max kills from completion progress even if observed kill tracking was incomplete');
 }
 
+async function testGoblinRiverAutoCompletesWhenSharedProgressReachesFullClear(): Promise<void> {
+    const authority = createClient(865, 'Leader');
+    const levelScope = getClientLevelScope(authority as never);
+    const boss = {
+        id: 5651,
+        name: 'GoblinBoss2',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 0,
+        hp: 100,
+        clientSpawned: true,
+        ownerToken: authority.token,
+        roomId: 1
+    };
+
+    authority.character.missions = {
+        '271': {
+            state: 1,
+            currCount: 0
+        }
+    };
+
+    GlobalState.sessionsByToken.set(authority.token, authority as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [boss.id, { ...boss }]
+    ]));
+    syncClientDungeonRunState(authority as never);
+    authority.entities.set(boss.id, { ...boss });
+    noteDungeonRunEntitySeen(authority as never, boss.id, boss);
+
+    const bossDead = { ...boss, hp: 0, dead: true, entState: 6 };
+    authority.entities.set(boss.id, bossDead);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [boss.id, bossDead]
+    ]));
+    noteDungeonRunKill(levelScope, [authority.character.name], bossDead.id, bossDead);
+
+    LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
+    await new Promise((resolve) => setTimeout(resolve, 25));
+
+    const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
+    assert.ok(resultPacket, 'Goblin River should auto-send the completion packet when shared progress reaches 100%');
+    assert.equal(Number(authority.character.missions['271']?.state ?? 0), 2, 'Goblin River should promote the active dungeon mission to ready-to-turn-in');
+}
+
 async function testDreamDragonSharedProgressBlocksBossOnlyCompletionUntilFullClear(): Promise<void> {
     const authority = createClient(870, 'Leader', 'DreamDragonDungeon');
     const levelScope = getClientLevelScope(authority as never);
@@ -947,6 +1004,13 @@ async function main(): Promise<void> {
         GlobalState.partyByMember.clear();
         GlobalState.partyGroups.clear();
         await testGoblinRiverCompletionProgressFullClearOverridesIncompleteObservedKills();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.partyGroups.clear();
+        await testGoblinRiverAutoCompletesWhenSharedProgressReachesFullClear();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

@@ -29,14 +29,6 @@ export class NpcHandler {
     private static readonly RETURN_DIALOGUE_BASE_MS = 10;
     private static readonly RETURN_DIALOGUE_CHAR_MS = 1;
     private static readonly DEFAULT_TURN_IN_STARS = 3;
-    private static readonly DELAYED_FOLLOWUP_TURN_INS = new Set<number>([
-        MissionID.MeetTheTown,
-        MissionID.FindAnnasFather,
-        MissionID.KillNephit,
-        MissionID.SlayTheDragon,
-        MissionID.GetGoblinNoserings,
-        MissionID.GetGoblinNoseringsHard
-    ]);
     private static readonly DEFAULT_DIALOGUE_LANGUAGE = 'en';
 
     static async handleTalkToNpc(client: Client, data: Buffer): Promise<void> {
@@ -146,21 +138,6 @@ export class NpcHandler {
                             await db.saveCharacters(client.userId, client.characters);
                         }
 
-                        if (NpcHandler.shouldAutoAcceptFollowupMission(missionId)) {
-                            const followupMissionId = NpcHandler.autoAcceptFollowupMission(
-                                client.character,
-                                missionNpcKey,
-                                missionId
-                            );
-                            if (followupMissionId) {
-                                NpcHandler.sendMissionAdded(
-                                    client,
-                                    followupMissionId,
-                                    NpcHandler.getMissionState(client.character, followupMissionId)
-                                );
-                            }
-                        }
-
                         didMutate = true;
                     }
                 }
@@ -264,48 +241,6 @@ export class NpcHandler {
         }
 
         return best ? { missionId: best.missionId, dialogueId: best.dialogueId, state: best.state } : null;
-    }
-
-    private static autoAcceptFollowupMission(
-        character: Character,
-        npcKey: string,
-        excludeMissionId: number
-    ): number {
-        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
-            if (missionId === excludeMissionId) {
-                continue;
-            }
-
-            const missionDef = MissionLoader.getMissionDef(missionId);
-            if (!missionDef) {
-                continue;
-            }
-
-            if (NpcHandler.getMissionState(character, missionId) !== NpcHandler.MISSION_NOT_STARTED) {
-                continue;
-            }
-
-            if (NpcHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '') !== npcKey) {
-                continue;
-            }
-
-            if (!NpcHandler.canStartMission(character, missionDef)) {
-                continue;
-            }
-
-            NpcHandler.setMissionState(
-                character,
-                missionId,
-                NpcHandler.getInitialMissionState(missionDef)
-            );
-            return missionId;
-        }
-
-        return 0;
-    }
-
-    private static shouldAutoAcceptFollowupMission(missionId: number): boolean {
-        return !NpcHandler.DELAYED_FOLLOWUP_TURN_INS.has(missionId);
     }
 
     private static canStartMission(character: Character, missionDef: MissionDef): boolean {

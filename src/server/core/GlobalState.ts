@@ -22,6 +22,7 @@ export interface PendingTransfer {
 export type SharedDungeonProgressState = {
     progress: number;
     authorityToken: number;
+    completionRequested?: boolean;
     trackedHostileIds?: Set<number>;
     defeatedHostileIds?: Set<number>;
     liveStatsByCharacter?: Map<string, {

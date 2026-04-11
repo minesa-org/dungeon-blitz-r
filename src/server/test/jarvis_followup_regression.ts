@@ -182,9 +182,85 @@ async function testJarvisTurnInClaimsRecoverRingsThenOffersGoblinTakedownOnSecon
     );
 }
 
+async function testAnnaTurnInClaimsLastOfTheGoblinsThenOffersNephitsQuestOnSecondTalk(): Promise<void> {
+    const client = createFakeClient(
+        'NewbieRoad',
+        {
+            [String(MissionID.ClearYourHouse)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.GoblinRiver)]: {
+                state: 2,
+                currCount: 1
+            }
+        },
+        100
+    );
+    client.entities.set(4186850, { id: 4186850, characterName: 'NR_QuestAnna01' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(4186850));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GoblinRiver)]?.state ?? 0),
+        3,
+        'the first Anna talk should only claim Last of the Goblins'
+    );
+    assert.equal(
+        client.character.missions[String(MissionID.KillNephit)],
+        undefined,
+        "Nephit's Quest should not auto-start during the same Anna reward turn-in"
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x84),
+        true,
+        'claiming Last of the Goblins should still show the mission-complete reward UI'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x85),
+        false,
+        "claiming Last of the Goblins should not send a Nephit's Quest mission-added packet yet"
+    );
+
+    client.sentPackets.length = 0;
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(4186850));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.KillNephit)]?.state ?? 0),
+        1,
+        "the second Anna talk should accept Nephit's Quest"
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x85),
+        true,
+        "accepting Nephit's Quest on the second talk should send the mission-added packet"
+    );
+
+    client.sentPackets.length = 0;
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(4186850));
+
+    const skitPacket = client.sentPackets.find((packet) => packet.id === 0x7B);
+    assert.ok(
+        skitPacket,
+        "talking to Anna after accepting Nephit's Quest should still start a mission skit"
+    );
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 4186850,
+            dialogueId: 3,
+            missionId: MissionID.KillNephit
+        },
+        "Anna should continue with Nephit's Quest active dialogue after the mission is accepted"
+    );
+}
+
 async function main(): Promise<void> {
     ensureDataLoaded();
     await testJarvisTurnInClaimsRecoverRingsThenOffersGoblinTakedownOnSecondTalk();
+    await testAnnaTurnInClaimsLastOfTheGoblinsThenOffersNephitsQuestOnSecondTalk();
     console.log('jarvis_followup_regression: ok');
 }
 

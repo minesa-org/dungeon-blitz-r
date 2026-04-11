@@ -163,6 +163,7 @@ export class Client {
     public keepTutorialState: KeepTutorialState | null = null;
     public goblinRiverBossIntroLockUntil: number = 0;
     public goblinRiverBossIntroUnlockTimer: NodeJS.Timeout | null = null;
+    public forcedDungeonCompletionScope: string = "";
 
     constructor(socket: net.Socket, router: PacketRouter) {
         this.socket = socket;
@@ -315,6 +316,7 @@ export class Client {
             this.goblinRiverBossIntroUnlockTimer = null;
         }
         this.goblinRiverBossIntroLockUntil = 0;
+        this.forcedDungeonCompletionScope = "";
     }
 
     private clearIdentityState(): void {

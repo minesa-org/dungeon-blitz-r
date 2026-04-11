@@ -1,6 +1,8 @@
 import { strict as assert } from 'assert';
+import * as path from 'path';
 import { Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
+import { MissionLoader } from '../data/MissionLoader';
 import { AbilityHandler } from '../handlers/AbilityHandler';
 import { CharacterHandler } from '../handlers/CharacterHandler';
 import { MissionHandler } from '../handlers/MissionHandler';
@@ -180,6 +182,27 @@ function testStoryRepairUpgradesLostAtSeaTurnInInsideTutorialBoat(): void {
     assert.equal(Number(character.missions?.['1']?.currCount ?? 0), 1);
 }
 
+function testStoryRepairFinalizesCompletedGoblinRiverOutsideDungeon(): void {
+    MissionLoader.load(path.resolve(__dirname, '..', 'data'));
+
+    const character = createCharacter('GoblinRiverRepair');
+    character.CurrentLevel = { name: 'NewbieRoad', x: 11083, y: 539 };
+    character.PreviousLevel = { name: 'CraftTown', x: 1083, y: 1448 };
+    character.questTrackerState = 100;
+    character.missions = {
+        '271': {
+            state: 1,
+            currCount: 0
+        }
+    };
+
+    const repair = MissionHandler.repairEarlyStoryOnLogin(character, 'NewbieRoad');
+
+    assert.equal(repair.didMutate, true);
+    assert.equal(Number(character.missions?.['271']?.state ?? 0), 2);
+    assert.equal(Number(character.missions?.['271']?.currCount ?? 0), 1);
+}
+
 function testMissionSyncDoesNotReplayQuestPopupsOnLogin(): void {
     const character = createCharacter('QuestSync');
     character.questTrackerState = 100;
@@ -279,6 +302,7 @@ async function main(): Promise<void> {
     testMissionSyncDoesNotReplayQuestPopupsOnLogin();
     testBootstrappedStoryMissionSendsGoblinAssaultAssignment();
     testMissingBootstrappedMissionDoesNotReplayGoblinAssaultAssignment();
+    testStoryRepairFinalizesCompletedGoblinRiverOutsideDungeon();
     console.log('character_login_regression: ok');
 }
 
