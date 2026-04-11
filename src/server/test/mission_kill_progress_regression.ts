@@ -200,10 +200,72 @@ async function testRecoverRingsIgnoresNonBruteGoblinKills(): Promise<void> {
     );
 }
 
+async function testGoblinTakedownProgressesOnAnyNewbieRoadGoblinKill(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.KillGoblins)]: {
+            state: 1,
+            currCount: 0
+        }
+    });
+
+    await destroyEnemy(client, 7001, 'GoblinDagger');
+    await destroyEnemy(client, 7002, 'GoblinShamanSkullHat');
+    await destroyEnemy(client, 7003, 'GoblinMiniBoss');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.KillGoblins)]?.currCount ?? 0),
+        3,
+        'Goblin Takedown should count different goblin enemy types from NewbieRoad'
+    );
+    assert.equal(
+        client.sentPackets.filter((packet) => packet.id === 0x83).length,
+        3,
+        'Goblin Takedown should emit one mission-progress delta packet per goblin kill'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [
+            { missionId: MissionID.KillGoblins, progress: 1 },
+            { missionId: MissionID.KillGoblins, progress: 1 },
+            { missionId: MissionID.KillGoblins, progress: 1 }
+        ],
+        'Goblin Takedown should use additive mission progress packets for every goblin kill'
+    );
+}
+
+async function testGoblinTakedownIgnoresNonGoblinKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.KillGoblins)]: {
+            state: 1,
+            currCount: 0
+        }
+    });
+
+    await destroyEnemy(client, 8001, 'SkeletonClub');
+    await destroyEnemy(client, 8002, 'Devourer');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.KillGoblins)]?.currCount ?? 0),
+        0,
+        'Goblin Takedown should ignore non-goblin enemies from NewbieRoad'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x83 || packet.id === 0x86),
+        false,
+        'Goblin Takedown should not send progress or completion packets for non-goblin kills'
+    );
+}
+
 async function main(): Promise<void> {
     ensureDataLoaded();
     await testRecoverRingsProgressesOnGoblinBruteKills();
     await testRecoverRingsIgnoresNonBruteGoblinKills();
+    await testGoblinTakedownProgressesOnAnyNewbieRoadGoblinKill();
+    await testGoblinTakedownIgnoresNonGoblinKills();
     console.log('mission_kill_progress_regression: ok');
 }
 

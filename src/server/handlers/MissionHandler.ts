@@ -56,9 +56,31 @@ export class MissionHandler {
     private static readonly MISSION_READY_TO_TURN_IN = 2;
     private static readonly MISSION_CLAIMED = 3;
     private static readonly ACHIEVEMENT_MAMMOTH_IDOL_REWARD = 10;
+    private static readonly NEWBIE_ROAD_GOBLIN_KILL_NAMES = new Set([
+        'GoblinArmorSword',
+        'GoblinBrute',
+        'GoblinClub',
+        'GoblinDagger',
+        'GoblinHatchet',
+        'GoblinMiniBoss',
+        'GoblinShamanHood',
+        'GoblinShamanSkullHat'
+    ]);
+    private static readonly NEWBIE_ROAD_HARD_GOBLIN_KILL_NAMES = new Set([
+        'GoblinArmorSwordHard',
+        'GoblinBruteHard',
+        'GoblinClubHard',
+        'GoblinDaggerHard',
+        'GoblinHatchetHard',
+        'GoblinMiniBossHard',
+        'GoblinShamanHoodHard',
+        'GoblinShamanSkullHatHard'
+    ]);
     private static readonly KILL_PROGRESS_TARGETS: Readonly<Record<number, ReadonlySet<string>>> = {
         [MissionID.GetGoblinNoserings]: new Set(['GoblinBrute']),
         [MissionID.GetGoblinNoseringsHard]: new Set(['GoblinBruteHard']),
+        [MissionID.KillGoblins]: MissionHandler.NEWBIE_ROAD_GOBLIN_KILL_NAMES,
+        [MissionID.KillGoblinsHard]: MissionHandler.NEWBIE_ROAD_HARD_GOBLIN_KILL_NAMES,
         [MissionID.GetHobgoblinNoserings]: new Set(['BlackGoblinBrute']),
         [MissionID.GetHobgoblinNoseringsHard]: new Set(['BlackGoblinBruteHard'])
     };
