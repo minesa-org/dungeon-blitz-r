@@ -33,7 +33,9 @@ export class NpcHandler {
         MissionID.MeetTheTown,
         MissionID.FindAnnasFather,
         MissionID.KillNephit,
-        MissionID.SlayTheDragon
+        MissionID.SlayTheDragon,
+        MissionID.GetGoblinNoserings,
+        MissionID.GetGoblinNoseringsHard
     ]);
     private static readonly DEFAULT_DIALOGUE_LANGUAGE = 'en';
 
