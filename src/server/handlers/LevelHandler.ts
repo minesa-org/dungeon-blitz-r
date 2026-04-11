@@ -72,11 +72,31 @@ export class LevelHandler {
     private static readonly GOBLIN_RIVER_INITIAL_PROGRESS = 11;
     private static readonly TUTORIAL_DUNGEON_INITIAL_PROGRESS = 11;
     private static readonly KEEP_TUTORIAL_HELPER_RESPAWN_DELAY_MS = 1200;
+    private static craftTownTutorialHelperIdsCache: number[] | null = null;
     private static readonly GOBLIN_RIVER_BOSS_INTRO_TEXTS = new Set<string>([
         "You're the one that killed our Kraken!",
         'That was the last of our Monster Fleet!'
     ]);
     private static readonly GOBLIN_RIVER_BOSS_INTRO_DEFAULT_MS = 5000;
+
+    private static getCraftTownTutorialAuthoredHelperIds(): number[] {
+        if (LevelHandler.craftTownTutorialHelperIdsCache) {
+            return [...LevelHandler.craftTownTutorialHelperIdsCache];
+        }
+
+        const helperIds = NpcLoader.getRawNpcsForLevel('CraftTownTutorial')
+            .filter((npc) =>
+                String(npc?.name ?? '') === 'GoblinDagger' &&
+                String(npc?.DramaAnim ?? '') === 'Board' &&
+                Number(npc?.team ?? 0) === EntityTeam.ENEMY
+            )
+            .sort((left, right) => Number(left?.x ?? 0) - Number(right?.x ?? 0))
+            .map((npc) => Number(npc.id ?? 0))
+            .filter((id) => id > 0);
+
+        LevelHandler.craftTownTutorialHelperIdsCache = helperIds;
+        return [...helperIds];
+    }
 
     private static resolveTransferSourceLevel(client: Client, character: any): string {
         // Keep-clear flows intentionally preserve the safe return point in Character.CurrentLevel
@@ -1232,6 +1252,7 @@ export class LevelHandler {
         bossId: number | null;
         helperIds: number[];
     } {
+        const authoredHelperIds = new Set(LevelHandler.getCraftTownTutorialAuthoredHelperIds());
         let bossId: number | null = null;
         let bossDistance = Number.POSITIVE_INFINITY;
         let lastGuyId: number | null = null;
@@ -1258,7 +1279,7 @@ export class LevelHandler {
                 continue;
             }
 
-            if (entityName === 'GoblinDagger' && dramaAnim === 'Board') {
+            if (entityName === 'GoblinDagger' && dramaAnim === 'Board' && authoredHelperIds.has(entityId)) {
                 helperCandidates.push({ x: entityX, id: entityId });
                 continue;
             }
@@ -1365,7 +1386,14 @@ export class LevelHandler {
             }
         }
 
-        LevelHandler.mergeCraftTownTutorialHelperIds(state, levelMap, rawEncounter.helperIds);
+        if (rawEncounter.helperIds.length > 0) {
+            // Prefer the canonical keep-tutorial helper set from the authored NPC data.
+            // Client-spawn tracking can surface transient boarded goblins with unstable IDs,
+            // and promoting those into the recovery wave can crash the client LinkUpdater flow.
+            state.helperEntityIds = [...rawEncounter.helperIds];
+        } else {
+            LevelHandler.mergeCraftTownTutorialHelperIds(state, levelMap, rawEncounter.helperIds);
+        }
     }
 
     private static sendNearestCraftTownTutorialParrotSkit(client: Client): void {
@@ -1806,6 +1834,11 @@ export class LevelHandler {
         const state = LevelHandler.getCraftTownTutorialState(client);
         if (!state || !client.currentLevel) {
             return;
+        }
+
+        const authoredHelperIds = new Set(LevelHandler.getCraftTownTutorialAuthoredHelperIds());
+        if (authoredHelperIds.size > 0) {
+            state.helperEntityIds = state.helperEntityIds.filter((helperId) => authoredHelperIds.has(helperId));
         }
 
         LevelHandler.pruneCraftTownTutorialActiveHelperIds(client, state);

@@ -50,12 +50,33 @@ export class EntityHandler {
         'GoblinRiverDungeon',
         'GoblinRiverDungeonHard'
     ]);
+    private static craftTownTutorialHelperIdsCache: Set<number> | null = null;
 
     private static normalizeIdentityName(value: unknown): string {
         return String(value ?? '')
             .trim()
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '');
+    }
+
+    private static getCraftTownTutorialAuthoredHelperIds(): Set<number> {
+        if (EntityHandler.craftTownTutorialHelperIdsCache) {
+            return new Set(EntityHandler.craftTownTutorialHelperIdsCache);
+        }
+
+        const helperIds = new Set<number>(
+            NpcLoader.getRawNpcsForLevel('CraftTownTutorial')
+                .filter((npc) =>
+                    String(npc?.name ?? '') === 'GoblinDagger' &&
+                    String(npc?.DramaAnim ?? '') === 'Board' &&
+                    Number(npc?.team ?? 0) === 2
+                )
+                .map((npc) => Number(npc.id ?? 0))
+                .filter((id) => id > 0)
+        );
+
+        EntityHandler.craftTownTutorialHelperIdsCache = helperIds;
+        return new Set(helperIds);
     }
 
     private static usesClientSpawn(levelName: string): boolean {
@@ -1031,6 +1052,9 @@ export class EntityHandler {
         }
 
         if (entityName === 'GoblinDagger' && dramaAnim === 'Board') {
+            if (!EntityHandler.getCraftTownTutorialAuthoredHelperIds().has(entityId)) {
+                return;
+            }
             if (!state.helperEntityIds.includes(entityId)) {
                 state.helperEntityIds.push(entityId);
             }

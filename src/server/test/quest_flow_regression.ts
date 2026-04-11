@@ -765,6 +765,57 @@ async function testSwampRoadNorthStoryNpcDoesNotAssignBeforeSwampUnlock(): Promi
     );
 }
 
+async function testJarvisDoesNotAutoTurnInRecoverRingsWhileInProgress(): Promise<void> {
+    const client = createFakeClient(
+        'NewbieRoad',
+        {
+            [String(MissionID.ClearYourHouse)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.GetGoblinNoserings)]: {
+                state: 1,
+                currCount: 0
+            }
+        },
+        100
+    );
+    client.character.CurrentLevel = { name: 'NewbieRoad', x: 12858, y: 2299 };
+    client.entities.set(4121314, { id: 4121314, characterName: 'NR_Villager02' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(4121314));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetGoblinNoserings)]?.state ?? 0),
+        1,
+        'Recover Rings should remain active until the goblin nosering objective is actually completed'
+    );
+    assert.equal(
+        client.character.missions[String(MissionID.KillGoblins)],
+        undefined,
+        'Goblin Takedown should not auto-start before Recover Rings is properly turned in'
+    );
+    assert.equal(
+        client.sentPackets.some((entry) => entry.id === 0x84),
+        false,
+        'Jarvis should not send the mission-complete UI for an in-progress Recover Rings quest'
+    );
+
+    const skitPacket = client.sentPackets.find((entry) => entry.id === 0x7B);
+    assert.ok(skitPacket, 'Jarvis should continue with the active Recover Rings dialogue');
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 4121314,
+            dialogueId: 3,
+            missionId: MissionID.GetGoblinNoserings
+        },
+        'Jarvis should play the active Recover Rings dialogue instead of the turn-in dialogue'
+    );
+}
+
 async function main(): Promise<void> {
     ensureDataLoaded();
     await testTutorialBoatCompletionPersistsDungeonHoverStats();
@@ -782,6 +833,7 @@ async function main(): Promise<void> {
     await testSwampRoadNorthAffricUsesSrnMayorDialogueKey();
     await testNewbieRoadOdemDoesNotStartBlackRoseMireQuestEarly();
     await testSwampRoadNorthStoryNpcDoesNotAssignBeforeSwampUnlock();
+    await testJarvisDoesNotAutoTurnInRecoverRingsWhileInProgress();
     console.log('quest_flow_regression: ok');
 }
 

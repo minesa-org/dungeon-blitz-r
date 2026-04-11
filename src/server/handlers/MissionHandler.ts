@@ -56,6 +56,12 @@ export class MissionHandler {
     private static readonly MISSION_READY_TO_TURN_IN = 2;
     private static readonly MISSION_CLAIMED = 3;
     private static readonly ACHIEVEMENT_MAMMOTH_IDOL_REWARD = 10;
+    private static readonly KILL_PROGRESS_TARGETS: Readonly<Record<number, ReadonlySet<string>>> = {
+        [MissionID.GetGoblinNoserings]: new Set(['GoblinBrute']),
+        [MissionID.GetGoblinNoseringsHard]: new Set(['GoblinBruteHard']),
+        [MissionID.GetHobgoblinNoserings]: new Set(['BlackGoblinBrute']),
+        [MissionID.GetHobgoblinNoseringsHard]: new Set(['BlackGoblinBruteHard'])
+    };
 
     static repairEarlyStoryOnLogin(
         character: Character,
@@ -158,6 +164,75 @@ export class MissionHandler {
         }
 
         MissionHandler.sendQuestProgress(client, Math.max(0, Number(client.character.questTrackerState ?? 0)));
+    }
+
+    static async handleEnemyDefeatMissionProgress(client: Client, entityNameRaw: string): Promise<void> {
+        if (!client.character) {
+            return;
+        }
+
+        const entityName = String(entityNameRaw ?? '').trim();
+        if (!entityName) {
+            return;
+        }
+
+        const currentLevel =
+            LevelConfig.normalizeLevelName(client.currentLevel || String(client.character.CurrentLevel?.name ?? '')) ||
+            client.currentLevel ||
+            String(client.character.CurrentLevel?.name ?? '');
+        if (!currentLevel) {
+            return;
+        }
+
+        const missions = MissionHandler.getMissionStateMap(client.character);
+        let didMutate = false;
+
+        for (const [missionIdText, rawEntry] of Object.entries(missions)) {
+            const missionId = Number(missionIdText);
+            if (!Number.isFinite(missionId)) {
+                continue;
+            }
+
+            const targetNames = MissionHandler.KILL_PROGRESS_TARGETS[missionId];
+            if (!targetNames?.has(entityName)) {
+                continue;
+            }
+
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            if (!missionDef || !MissionHandler.isMissionAvailableInCurrentLevel(missionDef, currentLevel)) {
+                continue;
+            }
+
+            const entry = MissionHandler.asMissionEntry(rawEntry);
+            if (Number(entry.state ?? MissionHandler.MISSION_NOT_STARTED) !== MissionHandler.MISSION_IN_PROGRESS) {
+                continue;
+            }
+
+            const currentCount = Math.max(0, Number(entry.currCount ?? 0));
+            const completeCount = Math.max(1, Number(missionDef.CompleteCount ?? 1));
+            if (currentCount >= completeCount) {
+                continue;
+            }
+
+            const nextCount = Math.min(completeCount, currentCount + 1);
+            const nextState =
+                nextCount >= completeCount
+                    ? MissionHandler.MISSION_READY_TO_TURN_IN
+                    : MissionHandler.MISSION_IN_PROGRESS;
+
+            MissionHandler.setMissionState(client.character, missionId, nextState, missionDef, {
+                currCount: nextCount
+            });
+            MissionHandler.sendMissionProgress(client, missionId, 1);
+            if (nextState === MissionHandler.MISSION_READY_TO_TURN_IN) {
+                MissionHandler.sendMissionComplete(client, missionId);
+            }
+            didMutate = true;
+        }
+
+        if (didMutate) {
+            await MissionHandler.saveCharacter(client);
+        }
     }
 
     static async handleSetLevelComplete(client: Client, data: Buffer): Promise<void> {
@@ -503,6 +578,15 @@ export class MissionHandler {
         }
 
         return MissionHandler.getMissionState(character, MissionID.DeliverToSwamp) >= MissionHandler.MISSION_CLAIMED;
+    }
+
+    private static isMissionAvailableInCurrentLevel(missionDef: MissionDef, currentLevel: string): boolean {
+        const zoneSet = String(missionDef.ZoneSet ?? '')
+            .split(',')
+            .map((entry) => entry.trim())
+            .filter(Boolean);
+
+        return !zoneSet.length || zoneSet.includes(currentLevel);
     }
 
     private static moveCharacterBackToSafeLevel(character: Character, currentLevel: string): boolean {

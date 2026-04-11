@@ -6,5 +6,9 @@
   {
     "email": "test@example.com",
     "user_id": 2
+  },
+  {
+    "email": "neo@gmail.com",
+    "user_id": 3
   }
 ]

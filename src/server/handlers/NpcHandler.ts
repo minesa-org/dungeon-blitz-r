@@ -219,17 +219,12 @@ export class NpcHandler {
             const state = NpcHandler.getMissionState(character, missionId);
             const contactKey = NpcHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '');
             const returnKey = NpcHandler.normalizeMissionNpcKey(missionDef.ReturnName ?? '');
-            const isDungeonMission = Boolean(String(missionDef.Dungeon ?? '').trim());
-
             let priority = 0;
             let dialogueId = 0;
 
             if (
                 npcKey === returnKey &&
-                (
-                    state === NpcHandler.MISSION_READY_TO_TURN_IN ||
-                    (state === NpcHandler.MISSION_IN_PROGRESS && !isDungeonMission)
-                )
+                state === NpcHandler.MISSION_READY_TO_TURN_IN
             ) {
                 priority = 4;
                 dialogueId = 4;

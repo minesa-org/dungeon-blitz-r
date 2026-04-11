@@ -11,6 +11,7 @@ import {
 import { LevelHandler } from './LevelHandler';
 import { EntityState, EntityTeam } from '../core/Entity';
 import { EntityHandler } from './EntityHandler';
+import { MissionHandler } from './MissionHandler';
 import { areClientsInSameParty, getClientCharacterKey, sharesRoomIds, shouldShareCombatView } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope, getScopeLevelName } from '../core/LevelScope';
 import {
@@ -1075,6 +1076,10 @@ export class CombatHandler {
             if (usesSharedDungeonProgress(getScopeLevelName(levelScope)) && destroyedEntity) {
                 LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
             }
+        }
+
+        if (destroyedEntity && !destroyedEntity.isPlayer && Number(destroyedEntity.team ?? 0) === EntityTeam.ENEMY) {
+            await MissionHandler.handleEnemyDefeatMissionProgress(client, String(destroyedEntity.name ?? ''));
         }
 
         if (shouldRelayDestroy) {
