@@ -22,6 +22,7 @@ export interface PendingLootDrop {
     gear?: number;
     tier?: number;
     material?: number;
+    dye?: number;
 }
 
 export interface KeepTutorialState {
