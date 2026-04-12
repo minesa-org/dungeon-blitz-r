@@ -1,4 +1,6 @@
 import { BitBuffer } from '../network/protocol/bitBuffer';
+import { normalizeCharacterInventoryGears } from './GearInventory';
+import { PetHandler } from '../handlers/PetHandler';
 import { Character } from '../database/Database';
 import { MissionDef, MissionLoader } from '../data/MissionLoader';
 import { BuildingID, ClassID, MasterClassID } from '../core/Enums';
@@ -473,7 +475,7 @@ export class WorldEnter {
         if (sendExtended) {
             bb.writeMethod6(1, 1);
 
-            const inventoryGears = WorldEnter.asArray(character.inventoryGears);
+            const inventoryGears = normalizeCharacterInventoryGears(character);
             bb.writeMethod6(inventoryGears.length, 11);
             for (const rawGear of inventoryGears) {
                 const gear = WorldEnter.asRecord(rawGear);
@@ -524,7 +526,7 @@ export class WorldEnter {
 
             bb.writeMethod11(0, 1);
 
-            const mounts = WorldEnter.asArray(character.mounts);
+            const mounts = PetHandler.normalizeMountState(character);
             bb.writeMethod4(mounts.length);
             for (const mountId of mounts) {
                 bb.writeMethod4(Number(mountId ?? 0));

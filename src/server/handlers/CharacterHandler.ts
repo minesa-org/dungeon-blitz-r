@@ -7,6 +7,7 @@ import { LevelConfig } from '../core/LevelConfig';
 import { LevelHandler } from './LevelHandler';
 import { MissionHandler } from './MissionHandler';
 import { WorldEnter } from '../utils/WorldEnter';
+import { normalizeCharacterInventoryGears } from '../utils/GearInventory';
 import { Config } from '../core/config';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { Character } from '../database/Database';
@@ -15,6 +16,7 @@ import { AbilityHandler } from './AbilityHandler';
 import { SocialHandler } from './SocialHandler';
 import { GuildHandler } from './GuildHandler';
 import { EntityHandler } from './EntityHandler';
+import { PetHandler } from './PetHandler';
 import { DebugLogger } from '../core/Debug';
 import { syncClientDungeonRunState } from '../core/DungeonRunStats';
 import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
@@ -284,7 +286,7 @@ export class CharacterHandler {
 
     private static buildLevelGearsPacket(character: Character): BitBuffer {
         const bb = new BitBuffer(false);
-        const inventoryGears = Array.isArray(character.inventoryGears) ? character.inventoryGears : [];
+        const inventoryGears = normalizeCharacterInventoryGears(character);
 
         bb.writeMethod4(inventoryGears.length);
         for (const rawGear of inventoryGears) {
@@ -681,6 +683,7 @@ export class CharacterHandler {
         const sendExtended = firstLogin || Boolean(GlobalState.pendingExtended.get(token));
 
         client.character = entry.character;
+        PetHandler.normalizeMountState(client.character);
         client.userId = entry.userId;
         client.token = token;
         client.clientEntID = 0;

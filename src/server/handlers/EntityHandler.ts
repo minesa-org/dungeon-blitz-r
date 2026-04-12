@@ -1009,6 +1009,41 @@ export class EntityHandler {
         }
     }
 
+    private static buildPlayerSnapshot(client: Client): EntityProps | null {
+        if (!client.character || !client.currentLevel) {
+            return null;
+        }
+
+        const entityId = Number(client.clientEntID || 0);
+        if (entityId <= 0) {
+            return null;
+        }
+
+        const current = client.entities.get(entityId) ?? EntityHandler.getLevelMapForClient(client)?.get(entityId) ?? {};
+        const playerEntity = Entity.fromCharacter(entityId, client.character, {
+            ...current,
+            roomId: client.currentRoomId
+        });
+        const persistedEntity = {
+            ...current,
+            ...playerEntity,
+            clientSpawned: false,
+            ownerToken: client.token || 0,
+            ownerUserId: client.userId || 0,
+            roomId: client.currentRoomId
+        };
+
+        client.entities.set(entityId, persistedEntity);
+        EntityHandler.rememberEntityKnown(client, client.currentLevel, persistedEntity);
+        let levelMap = EntityHandler.getLevelMapForClient(client);
+        if (!levelMap) {
+            levelMap = EntityHandler.getLevelMapForClient(client, true) ?? new Map<number, any>();
+        }
+        levelMap.set(entityId, persistedEntity);
+
+        return playerEntity;
+    }
+
     private static sendOtherPlayerMountToJoiner(joiner: Client, other: Client): void {
         if (!other.character || other.clientEntID <= 0) {
             return;
@@ -1473,36 +1508,10 @@ export class EntityHandler {
     }
 
     static refreshPlayerSnapshot(client: Client, includeSelf: boolean = false): void {
-        if (!client.character || !client.currentLevel) {
+        const playerEntity = EntityHandler.buildPlayerSnapshot(client);
+        if (!playerEntity) {
             return;
         }
-
-        const entityId = Number(client.clientEntID || 0);
-        if (entityId <= 0) {
-            return;
-        }
-
-        const current = client.entities.get(entityId) ?? EntityHandler.getLevelMapForClient(client)?.get(entityId) ?? {};
-        const playerEntity = Entity.fromCharacter(entityId, client.character, {
-            ...current,
-            roomId: client.currentRoomId
-        });
-        const persistedEntity = {
-            ...current,
-            ...playerEntity,
-            clientSpawned: false,
-            ownerToken: client.token || 0,
-            ownerUserId: client.userId || 0,
-            roomId: client.currentRoomId
-        };
-
-        client.entities.set(entityId, persistedEntity);
-        EntityHandler.rememberEntityKnown(client, client.currentLevel, persistedEntity);
-        let levelMap = EntityHandler.getLevelMapForClient(client);
-        if (!levelMap) {
-            levelMap = EntityHandler.getLevelMapForClient(client, true) ?? new Map<number, any>();
-        }
-        levelMap.set(entityId, persistedEntity);
 
         for (const other of GlobalState.sessionsByToken.values()) {
             if ((!includeSelf && other === client) || !other.playerSpawned || !areClientsInSameLevelScope(client, other)) {

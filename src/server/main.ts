@@ -24,6 +24,7 @@ import { BuildingHandler } from './handlers/BuildingHandler';
 import { SystemHandler } from './handlers/SystemHandler';
 import { AILogic } from './core/AILogic';
 import { MissionHandler } from './handlers/MissionHandler';
+import { LockboxHandler } from './handlers/LockboxHandler';
 import { NpcHandler } from './handlers/NpcHandler';
 import { RewardHandler } from './handlers/RewardHandler';
 import { EquipmentHandler } from './handlers/EquipmentHandler';
@@ -68,6 +69,9 @@ router.register(0x2A, RewardHandler.handleGrantReward); // Grant Reward
 router.register(0x38, RewardHandler.handlePickupLootdrop); // Pickup Lootdrop
 router.register(0x30, EquipmentHandler.handleUpdateEquipment); // Update Equipment
 router.register(0x31, EquipmentHandler.handleUpdateSingleGear); // Update Single Gear
+router.register(0x105, LockboxHandler.handleBuyLockboxKeys); // Buy Dragon Keys
+router.register(0x107, LockboxHandler.handleLockboxReward); // Open Lockbox / Treasure Trove
+router.register(0x114, LockboxHandler.handleBuyTreasureTrove); // Buy Treasure Trove
 router.register(0xBD, AbilityHandler.handleActiveAbilitiesUpdate); // Active Ability Loadout
 router.register(0xBE, AbilityHandler.handleStartAbilityResearch); // Start Ability Research
 router.register(0x41, LevelHandler.handleRequestDoorState); // Request Door State

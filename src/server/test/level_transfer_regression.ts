@@ -5,6 +5,7 @@ import { Client } from '../core/Client';
 import { Character } from '../database/Database';
 import { GlobalState } from '../core/GlobalState';
 import { CharacterHandler } from '../handlers/CharacterHandler';
+import { EntityHandler } from '../handlers/EntityHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
 import { PetHandler } from '../handlers/PetHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
@@ -46,6 +47,7 @@ function createClient(): any {
         playerSpawned: false,
         mountTransferGraceUntil: 0,
         startedRoomEvents: new Set<string>(),
+        knownEntityIds: new Set<number>(),
         sentPackets,
         armPendingTransferGrace() {
             return undefined;
@@ -257,7 +259,7 @@ function testStorePendingTransferTokenKeepsTokenCharInSyncAndRequestsExtendedSta
     );
 }
 
-function testStorePendingTransferTokenRequestsExtendedStateForTransfers(): void {
+function testStorePendingTransferTokenSkipsExtendedStateForTransfers(): void {
     const character = createCharacter('Hero');
 
     (LevelHandler as any).storePendingTransferToken(
@@ -269,14 +271,14 @@ function testStorePendingTransferTokenRequestsExtendedStateForTransfers(): void 
         1273,
         1441,
         true,
-        true,
+        false,
         null
     );
 
     assert.equal(
         GlobalState.pendingExtended.get(50003),
-        true,
-        'level transfers should request the extended player-data payload so mount and hotbar state rebuilds reliably'
+        false,
+        'level transfers should not request the extended player-data payload because the client keeps it in memory and duplicate sends duplicate inventory'
     );
 }
 
@@ -807,6 +809,75 @@ function testRoomChangeReassertsMountedState(): void {
     assert.equal(parsed.mountId, 37);
 }
 
+function testTransferSpawnDoesNotRespawnLocalPlayerEntity(): void {
+    const client = createClient();
+    client.token = 8005;
+    client.userId = 41;
+    client.clientEntID = 913;
+    client.currentLevel = 'CraftTown';
+    client.currentRoomId = 2;
+    client.playerSpawned = false;
+    client.character = {
+        ...createCharacter('PetHero'),
+        equippedMount: 37,
+        activePet: {
+            typeID: 21,
+            special_id: 11
+        }
+    };
+
+    const originalSessionsByToken = GlobalState.sessionsByToken;
+    const originalSetTimeout = global.setTimeout;
+    GlobalState.sessionsByToken = new Map([[client.token, client as never]]);
+    global.setTimeout = ((fn: (...args: any[]) => void) => {
+        fn();
+        return 0 as any;
+    }) as typeof setTimeout;
+
+    try {
+        const payload = (EntityHandler as any).buildEntityFullUpdatePayload({
+            id: client.clientEntID,
+            name: client.character.name,
+            isPlayer: true,
+            x: 640,
+            y: 512,
+            v: 0,
+            team: 1,
+            entState: 0
+        });
+
+        EntityHandler.handleEntityFullUpdate(client as never, payload);
+    } finally {
+        GlobalState.sessionsByToken = originalSessionsByToken;
+        global.setTimeout = originalSetTimeout;
+    }
+
+    assert.equal(client.playerSpawned, true, 'first spawn should mark the transferred player as spawned');
+    const selfEntityPackets = client.sentPackets.filter((packet: { id: number }) => packet.id === 0x0F);
+    assert.equal(
+        selfEntityPackets.length,
+        0,
+        'non-extended transfers must not resend the local player entity back to the same client'
+    );
+
+    const localEntity = client.entities.get(client.clientEntID);
+    assert.equal(localEntity?.activePet?.typeID ?? localEntity?.activePet?.petID, 21);
+    assert.equal(localEntity?.activePet?.special_id, 11);
+    assert.equal(localEntity?.equippedMount, 37);
+
+    const persistedEntity = GlobalState.levelEntities.get('CraftTown')?.get(client.clientEntID);
+    assert.equal(persistedEntity?.activePet?.typeID ?? persistedEntity?.activePet?.petID, 21);
+    assert.equal(persistedEntity?.activePet?.special_id, 11);
+    assert.equal(persistedEntity?.equippedMount, 37);
+
+    const mountPackets = client.sentPackets.filter((packet: { id: number }) => packet.id === 0xB2);
+    assert.ok(mountPackets.length > 0, 'first spawn should still reassert the equipped mount');
+
+    const parsedMount = parseMountEquipPacket(mountPackets[0].payload);
+    assert.equal(parsedMount.entityId, 913);
+    assert.equal(parsedMount.mountId, 37);
+}
+
 async function testDoorTransferIgnoresTransientMountClear(): Promise<void> {
     const client = createClient();
     client.token = 8004;
@@ -833,6 +904,17 @@ async function testDoorTransferIgnoresTransientMountClear(): Promise<void> {
         Number(client.mountTransferGraceUntil) > Date.now(),
         'door transfers should arm mount travel grace before transient mount clear packets arrive'
     );
+}
+
+function testNormalizeMountStateKeepsEquippedMountOwned(): void {
+    const character = createCharacter('MountedHero') as any;
+    character.mounts = [12, 12];
+    character.equippedMount = 37;
+
+    const normalized = PetHandler.normalizeMountState(character);
+
+    assert.deepEqual(normalized, [12, 37]);
+    assert.deepEqual(character.mounts, [12, 37]);
 }
 
 function testTutorialDungeonDropTutorialStartsRoomFiveOnTraversalInput(): void {
@@ -1014,7 +1096,7 @@ async function main(): Promise<void> {
         GlobalState.pendingExtended.clear();
         GlobalState.tokenChar.clear();
 
-        testStorePendingTransferTokenRequestsExtendedStateForTransfers();
+        testStorePendingTransferTokenSkipsExtendedStateForTransfers();
 
         GlobalState.pendingWorld.clear();
         GlobalState.pendingExtended.clear();
@@ -1158,7 +1240,17 @@ async function main(): Promise<void> {
 
         testRoomChangeReassertsMountedState();
 
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+
+        testTransferSpawnDoesNotRespawnLocalPlayerEntity();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+
         await testDoorTransferIgnoresTransientMountClear();
+
+        testNormalizeMountStateKeepsEquippedMountOwned();
 
         testTutorialDungeonDropTutorialStartsRoomFiveOnTraversalInput();
     } finally {

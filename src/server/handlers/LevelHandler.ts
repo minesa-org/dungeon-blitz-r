@@ -3242,7 +3242,7 @@ export class LevelHandler {
             : LevelConfig.isDungeonLevel(targetLevel)
                 ? LevelConfig.normalizeLevelName(syncState?.syncEntryLevel) || oldLevel
                 : oldLevel;
-        const sendExtendedOnTransfer = true;
+        const sendExtendedOnTransfer = false;
         LevelHandler.storePendingTransferToken(
             newToken,
             activeCharacter,

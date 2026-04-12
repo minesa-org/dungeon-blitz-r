@@ -8,6 +8,7 @@ import { noteDungeonRunChestOpened, noteDungeonRunTreasure } from '../core/Dunge
 import { CombatHandler } from './CombatHandler';
 import { getClientCharacterKey, getPartyIdForClient } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
+import { upsertInventoryGear } from '../utils/GearInventory';
 
 const db = new JsonAdapter();
 
@@ -506,16 +507,17 @@ export class RewardHandler {
         }
 
         if (reward.gear && reward.gear > 0) {
-            const inventory = Array.isArray(client.character.inventoryGears) ? client.character.inventoryGears : [];
-            inventory.push({
-                gearID: reward.gear,
-                tier: reward.tier ?? 0,
-                runes: [0, 0, 0],
-                colors: [0, 0]
-            });
-            client.character.inventoryGears = inventory;
-            RewardHandler.sendGearReward(client, reward.gear, reward.tier ?? 0);
-            shouldSave = true;
+            const inserted = upsertInventoryGear(
+                client.character,
+                reward.gear,
+                reward.tier ?? 0,
+                [0, 0, 0],
+                [0, 0]
+            ).inserted;
+            if (inserted) {
+                RewardHandler.sendGearReward(client, reward.gear, reward.tier ?? 0);
+                shouldSave = true;
+            }
         }
 
         if (reward.health && reward.health > 0) {

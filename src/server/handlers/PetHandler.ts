@@ -12,6 +12,33 @@ const db = new JsonAdapter();
 export class PetHandler {
     private static readonly MOUNT_REASSERT_DELAYS_MS = [0, 300, 1200, 2500, 4000];
 
+    static normalizeMountState(character: any): number[] {
+        const mountIds = Array.isArray(character?.mounts) ? character!.mounts : [];
+        const normalized: number[] = [];
+        const seen = new Set<number>();
+
+        for (const rawMountId of mountIds) {
+            const mountId = Number(rawMountId ?? 0);
+            if (!Number.isFinite(mountId) || mountId <= 0 || seen.has(mountId)) {
+                continue;
+            }
+
+            seen.add(mountId);
+            normalized.push(mountId);
+        }
+
+        const equippedMount = Number(character?.equippedMount ?? 0);
+        if (Number.isFinite(equippedMount) && equippedMount > 0 && !seen.has(equippedMount)) {
+            normalized.push(equippedMount);
+        }
+
+        if (character) {
+            character.mounts = normalized;
+        }
+
+        return normalized;
+    }
+
     static armMountTravelProtection(client: Client, durationMs: number = 4000, reassert: boolean = false): void {
         const mountId = Number(client.character?.equippedMount ?? 0);
         if (mountId <= 0) {
@@ -125,6 +152,8 @@ export class PetHandler {
             return;
         }
 
+        PetHandler.normalizeMountState(client.character);
+
         const br = new BitReader(data);
         const entityId = br.readMethod4();
         const mountId = br.readMethod6(7);
@@ -139,6 +168,18 @@ export class PetHandler {
                 `[PetHandler] Ignoring transient travel mount clear for ${client.character?.name ?? 'unknown'} in ${client.currentLevel || '(loading)'} grace=${graceRemainingMs}ms spawned=${client.playerSpawned}`
             );
             PetHandler.reassertEquippedMount(client);
+            return;
+        }
+
+        if (mountId > 0 && !PetHandler.normalizeMountState(client.character).includes(mountId)) {
+            return;
+        }
+
+        if (Number(client.character.equippedMount ?? 0) === mountId) {
+            PetHandler.updateLiveMount(client);
+            if (client.currentLevel && client.playerSpawned) {
+                PetHandler.sendMountEquipPacket(client, client.clientEntID, mountId);
+            }
             return;
         }
 

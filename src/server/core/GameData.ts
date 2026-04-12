@@ -9,6 +9,7 @@ export class GameData {
     static MOUNT_IDS: { [key: string]: number } = {};
     static CONSUMABLES: any[] = [];
     static CHARMS: any[] = [];
+    static DYES: Array<{ id: number; name: string; rarity: string }> = [];
     static ENTTYPES: { [key: string]: any } = {};
     static MATERIALS: any[] = [];
     static MATERIALS_BY_REALM: Record<string, { M: number[]; R: number[]; L: number[] }> = {};
@@ -77,6 +78,21 @@ export class GameData {
         }
 
         try {
+            const dyesPath = path.join(dataDir, 'DyeTypes.json');
+            if (fs.existsSync(dyesPath)) {
+                const rawDyes = JSON.parse(fs.readFileSync(dyesPath, 'utf-8'));
+                GameData.DYES = Object.entries(rawDyes).map(([id, value]) => ({
+                    id: Number(id),
+                    name: String((value as { name?: string }).name ?? ''),
+                    rarity: String((value as { rarity?: string }).rarity ?? 'M')
+                }));
+                console.log(`[GameData] Loaded ${GameData.DYES.length} dyes.`);
+            }
+        } catch (err) {
+            console.error(`[GameData] Failed to load DyeTypes.json:`, err);
+        }
+
+        try {
             const materialsPath = path.join(dataDir, 'Materials.json');
             if (fs.existsSync(materialsPath)) {
                 GameData.MATERIALS = JSON.parse(fs.readFileSync(materialsPath, 'utf-8'));
@@ -124,6 +140,13 @@ export class GameData {
              resolved = GameData.resolveEntType(item.parent, rawDict);
         }
         return { ...resolved, ...item };
+    }
+
+    private static normalizeLookupKey(value: string | null | undefined): string {
+        return String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '');
     }
 
     private static buildEnumValueSet(enumObject: Record<string, string | number>): Set<number> {
@@ -175,6 +198,21 @@ export class GameData {
     static getCharmId(name: string): number {
         const item = GameData.CHARMS.find(c => c.CharmName === name);
         return item ? parseInt(item.CharmID) : 0;
+    }
+
+    static getDyeId(nameOrId: string | number): number {
+        const numericId = Number(nameOrId);
+        if (Number.isFinite(numericId) && numericId > 0) {
+            return Math.round(numericId);
+        }
+
+        const lookupKey = GameData.normalizeLookupKey(String(nameOrId));
+        if (!lookupKey) {
+            return 0;
+        }
+
+        const entry = GameData.DYES.find((dye) => GameData.normalizeLookupKey(dye.name) === lookupKey);
+        return entry?.id ?? 0;
     }
 
     static getPlayerLevelFromXp(xp: number): number {
