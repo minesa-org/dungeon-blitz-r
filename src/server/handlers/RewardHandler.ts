@@ -47,12 +47,7 @@ export class RewardHandler {
         MiniBoss: 0.8,
         Boss: 1
     };
-    private static readonly DYE_DROP_CHANCE_BY_RANK: Record<string, number> = {
-        Minion: 0.75,
-        Lieutenant: 0.9,
-        MiniBoss: 1,
-        Boss: 1
-    };
+    private static readonly DYE_DROP_CHANCE = 0.01;
     private static readonly DUNGEON_REALM_MAP: Record<string, string> = {
         GoblinRiverDungeon: 'Goblin',
         GoblinRiverDungeonHard: 'Goblin',
@@ -216,11 +211,35 @@ export class RewardHandler {
         return Math.max(0, Math.min(1, baseChance * multiplier));
     }
 
-    private static resolveDyeDropChance(entType: any, reward: RewardRequest): number {
+    private static isHardDungeon(levelName: string | null | undefined): boolean {
+        return /Hard$/i.test(String(levelName ?? '').trim());
+    }
+
+    private static resolveDyeDropRarity(client: Client, entType: any): string | null {
         const rank = String(entType?.EntRank ?? 'Minion');
-        const baseChance = RewardHandler.DYE_DROP_CHANCE_BY_RANK[rank] ?? RewardHandler.DYE_DROP_CHANCE_BY_RANK.Minion;
-        const multiplier = reward.dropItem ? RewardHandler.sanitizeDropMultiplier(reward.itemMultiplier) : 1;
-        return Math.max(0, Math.min(1, baseChance * multiplier));
+        if (rank !== 'Lieutenant' && rank !== 'MiniBoss' && rank !== 'Boss') {
+            return null;
+        }
+
+        if (Math.random() >= RewardHandler.DYE_DROP_CHANCE) {
+            return null;
+        }
+
+        const rarityRoll = Math.random();
+        if (RewardHandler.isHardDungeon(client.currentLevel)) {
+            if (rarityRoll < 0.72) {
+                return 'M';
+            }
+            if (rarityRoll < 0.92) {
+                return 'R';
+            }
+            return 'L';
+        }
+
+        if (rarityRoll < 0.95) {
+            return 'M';
+        }
+        return 'R';
     }
 
     private static spawnLoot(client: Client, x: number, y: number, reward: LootReward, offsetX: number = 0, offsetY: number = 0): void {
@@ -269,7 +288,7 @@ export class RewardHandler {
         const playerClass = String(client.character?.class ?? '');
         const realm = String(entType?.Realm ?? RewardHandler.DUNGEON_REALM_MAP[client.currentLevel] ?? '');
         const materialChance = realm ? RewardHandler.resolveMaterialDropChance(entType, reward) : 0;
-        const dyeChance = RewardHandler.resolveDyeDropChance(entType, reward);
+        const dyeRarity = RewardHandler.resolveDyeDropRarity(client, entType);
 
         // Küçük Intro düşmanlar (Minion rank) ve Chains entitylerinden eşya düşmez
         const isIntroEnemy = entName.startsWith('Intro');
@@ -281,8 +300,8 @@ export class RewardHandler {
         if (realm && materialChance > 0 && Math.random() < materialChance) {
             materialId = GameData.getRandomMaterialForRealm(realm);
         }
-        if (allowItemDrop && dyeChance > 0 && Math.random() < dyeChance) {
-            dyeId = GameData.getRandomDyeId(Array.isArray(client.character?.OwnedDyes) ? client.character.OwnedDyes : []);
+        if (allowItemDrop && dyeRarity) {
+            dyeId = GameData.getRandomDyeId([dyeRarity]);
         }
         if (reward.dropGear && allowItemDrop) {
             gearId = GameData.getGearIdForEntity(entName, playerClass);

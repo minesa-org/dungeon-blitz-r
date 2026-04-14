@@ -77,6 +77,10 @@ function createFakeClient(token: number, name: string): FakeClient {
     };
 }
 
+function getDyeRarity(dyeId: number): string {
+    return String(GameData.DYES.find((dye) => dye.id === dyeId)?.rarity ?? '');
+}
+
 function buildGrantRewardPayload(sourceId: number): Buffer {
     const bb = new BitBuffer(false);
     bb.writeMethod4(0);
@@ -134,7 +138,7 @@ async function withMockedRandom(values: number[], fn: () => Promise<void>): Prom
     }
 }
 
-async function testEnemyRewardCanSpawnAndGrantDye(): Promise<void> {
+async function testNormalEliteRewardDropsOnlyMagicOrRareDye(): Promise<void> {
     ensureGameDataLoaded();
 
     const alpha = createFakeClient(2, 'Alpha');
@@ -143,7 +147,7 @@ async function testEnemyRewardCanSpawnAndGrantDye(): Promise<void> {
     const sourceId = 9100;
     addLevelEntity(alpha, {
         id: sourceId,
-        name: 'GoblinDagger',
+        name: 'GoblinBrute',
         isPlayer: false,
         team: 2,
         x: 120,
@@ -151,7 +155,7 @@ async function testEnemyRewardCanSpawnAndGrantDye(): Promise<void> {
     });
     setContributors(getClientLevelScope(alpha as never), sourceId, ['alpha']);
 
-    await withMockedRandom([0.95, 0, 0.4, 0.99, 0.99, 0.2, 0.3, 0.4], async () => {
+    await withMockedRandom([0.0, 0.94, 0.4, 0.95, 0.99, 0.99, 0.2, 0.3, 0.4], async () => {
         await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId));
     });
 
@@ -161,11 +165,41 @@ async function testEnemyRewardCanSpawnAndGrantDye(): Promise<void> {
     const [lootId, reward] = dyeEntry!;
     const dyeId = Number(reward.dye ?? 0);
     assert.ok(dyeId > 0, 'queued dye loot should include a dye id');
+    assert.notEqual(getDyeRarity(dyeId), 'L', 'normal mode should not drop legendary dyes');
 
     await RewardHandler.handlePickupLootdrop(alpha as never, buildPickupPayload(lootId));
 
     assert.equal(alpha.character.OwnedDyes.includes(dyeId), true, 'picking up dye loot should persist the owned dye');
     assert.equal(alpha.sentPackets.some((packet) => packet.id === 0x10A), true, 'picking up dye loot should emit the dye reward packet');
+}
+
+async function testHardBossRewardCanDropLegendaryDye(): Promise<void> {
+    ensureGameDataLoaded();
+
+    const alpha = createFakeClient(3, 'Beta');
+    alpha.currentLevel = 'GoblinRiverDungeonHard';
+    GlobalState.sessionsByToken.set(alpha.token, alpha as never);
+
+    const sourceId = 9200;
+    addLevelEntity(alpha, {
+        id: sourceId,
+        name: 'GoblinBoss1Hard',
+        isPlayer: false,
+        team: 2,
+        x: 120,
+        y: 220
+    });
+    setContributors(getClientLevelScope(alpha as never), sourceId, ['beta']);
+
+    await withMockedRandom([0.0, 0.99, 0.1, 0.5, 0.99, 0.99, 0.2, 0.3, 0.4], async () => {
+        await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId));
+    });
+
+    const dyeEntry = Array.from(alpha.pendingLoot.entries()).find(([, reward]) => Number(reward?.dye ?? 0) > 0);
+    assert.ok(dyeEntry, 'hard mode boss reward should be able to queue a dye lootdrop');
+
+    const dyeId = Number(dyeEntry?.[1]?.dye ?? 0);
+    assert.equal(getDyeRarity(dyeId), 'L', 'hard mode should allow legendary dye drops');
 }
 
 async function main(): Promise<void> {
@@ -177,7 +211,12 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.combatContributions.clear();
-        await testEnemyRewardCanSpawnAndGrantDye();
+        await testNormalEliteRewardDropsOnlyMagicOrRareDye();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.combatContributions.clear();
+        await testHardBossRewardCanDropLegendaryDye();
         console.log('reward_dye_drop_regression: ok');
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;

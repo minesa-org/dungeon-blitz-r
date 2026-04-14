@@ -215,28 +215,25 @@ export class GameData {
         return entry?.id ?? 0;
     }
 
-    static getRandomDyeId(ownedDyeIds?: Iterable<number>): number {
+    static getRandomDyeId(allowedRarities?: Iterable<string>): number {
         if (!Array.isArray(GameData.DYES) || GameData.DYES.length === 0) {
             return 0;
         }
 
-        const owned = new Set<number>();
-        if (ownedDyeIds) {
-            for (const dyeId of ownedDyeIds) {
-                const normalized = Number(dyeId);
-                if (Number.isFinite(normalized) && normalized > 0) {
-                    owned.add(Math.round(normalized));
+        const allowed = new Set<string>();
+        if (allowedRarities) {
+            for (const rarity of allowedRarities) {
+                const normalized = String(rarity ?? '').trim().toUpperCase();
+                if (normalized) {
+                    allowed.add(normalized);
                 }
             }
         }
 
-        const available = GameData.DYES.filter((dye) => !owned.has(dye.id));
-        const pool = available.length > 0 ? available : GameData.DYES;
-        const roll = Math.random();
-        const rarity = roll < 0.03 ? 'L' : roll < 0.25 ? 'R' : 'M';
-        const rarityPool = pool.filter((dye) => dye.rarity === rarity);
-        const finalPool = rarityPool.length > 0 ? rarityPool : pool;
-        return finalPool[Math.floor(Math.random() * finalPool.length)]?.id ?? 0;
+        const pool = allowed.size > 0
+            ? GameData.DYES.filter((dye) => allowed.has(String(dye.rarity).toUpperCase()))
+            : GameData.DYES;
+        return pool[Math.floor(Math.random() * pool.length)]?.id ?? 0;
     }
 
     static getPlayerLevelFromXp(xp: number): number {
