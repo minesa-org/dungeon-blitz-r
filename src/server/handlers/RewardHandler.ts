@@ -9,6 +9,7 @@ import { CombatHandler } from './CombatHandler';
 import { getClientCharacterKey, getPartyIdForClient } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
 import { upsertInventoryGear } from '../utils/GearInventory';
+import { PetHandler } from './PetHandler';
 
 const db = new JsonAdapter();
 
@@ -324,9 +325,13 @@ export class RewardHandler {
             return false;
         }
 
-        client.character.xp = Number(client.character.xp ?? 0) + amount;
+        const petBonuses = PetHandler.getActivePetBonusRates(client.character);
+        const totalAmount = Math.max(0, Math.round(amount * (1 + petBonuses.expBonus)));
+
+        client.character.xp = Number(client.character.xp ?? 0) + totalAmount;
         client.character.level = GameData.getPlayerLevelFromXp(Number(client.character.xp ?? 0));
-        RewardHandler.sendXpReward(client, amount);
+        RewardHandler.sendXpReward(client, totalAmount);
+        PetHandler.applyActivePetExperience(client, totalAmount);
         return true;
     }
 
@@ -373,6 +378,7 @@ export class RewardHandler {
         let gearId = 0;
         let gearTier = 0;
         let dyeId = 0;
+        const petBonuses = PetHandler.getActivePetBonusRates(client.character);
 
         const entName = String(sourceEntity?.name ?? '');
 
@@ -388,10 +394,10 @@ export class RewardHandler {
         const realm = String(entType?.Realm ?? RewardHandler.DUNGEON_REALM_MAP[client.currentLevel] ?? '');
         const itemLootAllowedByClass = RewardHandler.rewardClassAllowsItemLoot(entType);
         const materialChance = realm && reward.dropMaterial && itemLootAllowedByClass
-            ? RewardHandler.resolveMaterialDropChance(entType, reward)
+            ? Math.max(0, Math.min(1, RewardHandler.resolveMaterialDropChance(entType, reward) * (1 + petBonuses.craftFind)))
             : 0;
         const gearChance = reward.dropGear && itemLootAllowedByClass
-            ? RewardHandler.resolveGearDropChance(entType, reward)
+            ? Math.max(0, Math.min(1, RewardHandler.resolveGearDropChance(entType, reward) * (1 + petBonuses.itemFind)))
             : 0;
         const dyeRarity = RewardHandler.resolveDyeDropRarity(client, entType);
 
@@ -411,6 +417,10 @@ export class RewardHandler {
         if (allowItemDrop && gearChance > 0 && Math.random() < gearChance) {
             gearId = GameData.getGearIdForEntity(entName, playerClass, ownedGearIds);
             gearTier = RewardHandler.resolveGearTier(client, entName);
+        }
+
+        if (gold > 0 && petBonuses.goldFind > 0) {
+            gold = Math.max(0, Math.round(gold * (1 + petBonuses.goldFind)));
         }
 
         const needsFallback = gold <= 0 && !reward.dropGear && !reward.dropMaterial;

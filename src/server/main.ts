@@ -142,6 +142,7 @@ router.register(0xE6, PetHandler.handleEggHatch);
 router.register(0xE9, PetHandler.handleEggSpeedUp);
 router.register(0xEA, PetHandler.handleCollectHatchedEgg);
 router.register(0xE8, PetHandler.handleCancelEggHatch);
+router.register(0x110, PetHandler.handleUseConsumable);
 
 // Combat
 router.register(0x9, CombatHandler.handlePowerCast);
