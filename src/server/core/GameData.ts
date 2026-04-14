@@ -159,23 +159,43 @@ export class GameData {
         return ids;
     }
 
-    private static filterGearDropsForClass(dropIds: number[] | undefined, className: string | null | undefined): number[] {
+    private static filterGearDropsForClass(
+        dropIds: number[] | undefined,
+        className: string | null | undefined,
+        excludedGearIds?: Iterable<number>
+    ): number[] {
         if (!Array.isArray(dropIds) || dropIds.length === 0) {
             return [];
         }
 
+        const excluded = new Set<number>();
+        if (excludedGearIds) {
+            for (const gearId of excludedGearIds) {
+                const normalized = Number(gearId);
+                if (Number.isFinite(normalized) && normalized > 0) {
+                    excluded.add(Math.round(normalized));
+                }
+            }
+        }
+
         const allowedIds = GameData.CLASS_GEAR_IDS[String(className ?? '').trim().toLowerCase()];
         if (!allowedIds) {
-            return dropIds.filter((id) => Number.isFinite(Number(id))).map((id) => Number(id));
+            return dropIds
+                .map((id) => Number(id))
+                .filter((id) => Number.isFinite(id) && !excluded.has(id));
         }
 
         return dropIds
             .map((id) => Number(id))
-            .filter((id) => Number.isFinite(id) && allowedIds.has(id));
+            .filter((id) => Number.isFinite(id) && allowedIds.has(id) && !excluded.has(id));
     }
 
-    private static pickRandomGearId(dropIds: number[] | undefined, className: string | null | undefined): number {
-        const filtered = GameData.filterGearDropsForClass(dropIds, className);
+    private static pickRandomGearId(
+        dropIds: number[] | undefined,
+        className: string | null | undefined,
+        excludedGearIds?: Iterable<number>
+    ): number {
+        const filtered = GameData.filterGearDropsForClass(dropIds, className, excludedGearIds);
         if (filtered.length === 0) {
             return 0;
         }
@@ -279,27 +299,27 @@ export class GameData {
         return Math.round(GameData.MONSTER_EXP_TABLE[index] * expMult);
     }
 
-    static getGearIdForEntity(entName: string, className?: string): number {
+    static getGearIdForEntity(entName: string, className?: string, excludedGearIds?: Iterable<number>): number {
         const entType = GameData.getEntType(entName);
         if (!entType) {
             return 0;
         }
 
         const bossDrops = GameData.GEAR_DATA.boss_drops?.[entName];
-        const bossGearId = GameData.pickRandomGearId(bossDrops, className);
+        const bossGearId = GameData.pickRandomGearId(bossDrops, className, excludedGearIds);
         if (bossGearId > 0) {
             return bossGearId;
         }
 
         const realm = String(entType.Realm ?? '');
         const realmDrops = GameData.GEAR_DATA.realm_drops?.[realm];
-        const realmGearId = GameData.pickRandomGearId(realmDrops, className);
+        const realmGearId = GameData.pickRandomGearId(realmDrops, className, excludedGearIds);
         if (realmGearId > 0) {
             return realmGearId;
         }
 
         const globalDrops = GameData.GEAR_DATA.global_drops;
-        const globalGearId = GameData.pickRandomGearId(globalDrops, className);
+        const globalGearId = GameData.pickRandomGearId(globalDrops, className, excludedGearIds);
         if (globalGearId > 0) {
             return globalGearId;
         }
@@ -307,22 +327,37 @@ export class GameData {
         return 0;
     }
 
-    static getRandomMaterialForRealm(realm: string): number {
+    static getRandomMaterialForRealm(realm: string, allowedRarities?: Iterable<string>): number {
         const drops = GameData.MATERIALS_BY_REALM[realm];
         if (!drops) {
             return 0;
         }
 
-        const roll = Math.random();
-        if (roll < 0.05 && drops.L.length > 0) {
-            return drops.L[Math.floor(Math.random() * drops.L.length)] ?? 0;
+        const allowed = new Set<string>();
+        if (allowedRarities) {
+            for (const rarity of allowedRarities) {
+                const normalized = String(rarity ?? '').trim().toUpperCase();
+                if (normalized) {
+                    allowed.add(normalized);
+                }
+            }
         }
-        if (roll < 0.30 && drops.R.length > 0) {
-            return drops.R[Math.floor(Math.random() * drops.R.length)] ?? 0;
+
+        const pool: number[] = [];
+        if (!allowed.size || allowed.has('M')) {
+            pool.push(...drops.M);
         }
-        if (drops.M.length > 0) {
-            return drops.M[Math.floor(Math.random() * drops.M.length)] ?? 0;
+        if (!allowed.size || allowed.has('R')) {
+            pool.push(...drops.R);
         }
+        if (!allowed.size || allowed.has('L')) {
+            pool.push(...drops.L);
+        }
+
+        if (pool.length > 0) {
+            return pool[Math.floor(Math.random() * pool.length)] ?? 0;
+        }
+
         return 0;
     }
 }

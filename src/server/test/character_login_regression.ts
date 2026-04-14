@@ -108,6 +108,27 @@ function testAbilityRepairSyncsUnlockedActiveAbilityIntoLearnedAbilities(): void
     ]);
 }
 
+function testPaperDollPacketNormalizesLegacyLowercaseGender(): void {
+    const character = createCharacter('GenderNormalize');
+    character.gender = 'male';
+    character.headSet = 'Head03';
+    character.hairSet = 'MDo03';
+    character.mouthSet = 'MM06';
+    character.faceSet = 'MF03';
+    character.hairColor = 0x515151;
+    character.skinColor = 0xffc3b2;
+    character.shirtColor = 0x101010;
+    character.pantColor = 0x202020;
+    character.equippedGears = [];
+
+    const bb = (CharacterHandler as any).buildPaperDollPacket(character);
+    const br = new BitReader(bb.toBuffer());
+
+    assert.equal(br.readMethod13(), 'GenderNormalize');
+    assert.equal(br.readMethod13(), 'Mage');
+    assert.equal(br.readMethod13(), 'Male');
+}
+
 function testCraftTownLoginRepairsCompletedKeepQuestProgress(): void {
     const character = createCharacter('Neodevil');
     character.questTrackerState = 92;
@@ -295,6 +316,7 @@ async function main(): Promise<void> {
     await testReloadCurrentCharacterFromSavePrefersFreshDiskState();
     await testReloadCurrentCharacterFromSaveKeepsUnsavedCharacterWhenMissingOnDisk();
     testAbilityRepairSyncsUnlockedActiveAbilityIntoLearnedAbilities();
+    testPaperDollPacketNormalizesLegacyLowercaseGender();
     testCraftTownLoginRepairsCompletedKeepQuestProgress();
     testNewbieRoadLoginRepairsCompletedKeepQuestProgress();
     testStoryRepairRestoresLostAtSeaTurnInWhenMissionIsMissing();

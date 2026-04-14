@@ -2,6 +2,7 @@
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { Game } from './Enums'; // We might need to create this or import from a centralized place
 import { Character } from '../database/Database';
+import { normalizeGender } from '../utils/normalizeGender';
 
 // Assuming these enums exist or need to be defined
 export enum EntityTeam {
@@ -112,7 +113,7 @@ export class Entity {
 
         // Player specific fields
         ent.class = char.class || "";
-        ent.gender = char.gender || "";
+        ent.gender = normalizeGender(char.gender || "");
         ent.headSet = char.headSet || "";
         ent.hairSet = char.hairSet || "";
         ent.mouthSet = char.mouthSet || "";
@@ -166,7 +167,7 @@ export class Entity {
             idleReset: Boolean(npc?.idle_reset),
             spawnFx: Boolean(npc?.spawn_fx),
             class: String(npc?.class ?? ''),
-            gender: String(npc?.gender ?? ''),
+            gender: normalizeGender(npc?.gender ?? ''),
             headSet: String(npc?.headSet ?? ''),
             hairSet: String(npc?.hairSet ?? ''),
             mouthSet: String(npc?.mouthSet ?? ''),
@@ -223,7 +224,7 @@ export class Entity {
         if (entity.isPlayer) {
             bb.writeMethod6(1, 1);
             bb.writeMethod13(entity.class || "");
-            bb.writeMethod13(entity.gender || "");
+            bb.writeMethod13(normalizeGender(entity.gender || ""));
             bb.writeMethod13(entity.headSet || "");
             bb.writeMethod13(entity.hairSet || "");
             bb.writeMethod13(entity.mouthSet || "");

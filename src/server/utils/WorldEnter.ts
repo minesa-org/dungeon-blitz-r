@@ -6,6 +6,7 @@ import { MissionDef, MissionLoader } from '../data/MissionLoader';
 import { BuildingID, ClassID, MasterClassID } from '../core/Enums';
 import { GlobalState } from '../core/GlobalState';
 import { normalizeFriendEntries } from '../core/SocialState';
+import { normalizeGender } from './normalizeGender';
 
 export class WorldEnter {
     private static readonly MASTERCLASS_TO_BUILDING: Record<number, number> = {
@@ -418,7 +419,7 @@ export class WorldEnter {
         bb.writeMethod13(character.name || '');
         bb.writeMethod11(1, 1);
         bb.writeMethod13(character.class || '');
-        bb.writeMethod13(character.gender || '');
+        bb.writeMethod13(normalizeGender(character.gender || ''));
         bb.writeMethod13(character.headSet || '');
         bb.writeMethod13(character.hairSet || '');
         bb.writeMethod13(character.mouthSet || '');

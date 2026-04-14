@@ -22,6 +22,7 @@ import { syncClientDungeonRunState } from '../core/DungeonRunStats';
 import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
 import { getPartyIdForClient, areClientsInSameParty } from '../core/PartySync';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
+import { normalizeGender } from '../utils/normalizeGender';
 import {
     createDungeonInstanceId,
     getClientLevelScope,
@@ -233,7 +234,7 @@ export class CharacterHandler {
         for (const value of [
             character.name,
             character.class,
-            character.gender,
+            normalizeGender(character.gender),
             character.headSet,
             character.hairSet,
             character.mouthSet,
@@ -277,7 +278,7 @@ export class CharacterHandler {
         bb.writeMethod13(String(character.hairSet ?? ''));
         bb.writeMethod13(String(character.mouthSet ?? ''));
         bb.writeMethod13(String(character.faceSet ?? ''));
-        bb.writeMethod13(String(character.gender ?? ''));
+        bb.writeMethod13(normalizeGender(character.gender));
         bb.writeMethod6(Number(character.hairColor ?? 0), 24);
         bb.writeMethod6(Number(character.skinColor ?? 0), 24);
 
@@ -310,7 +311,7 @@ export class CharacterHandler {
                 return;
             }
 
-            entity.gender = character.gender;
+            entity.gender = normalizeGender(character.gender);
             entity.headSet = character.headSet;
             entity.hairSet = character.hairSet;
             entity.mouthSet = character.mouthSet;
@@ -406,7 +407,7 @@ export class CharacterHandler {
         character.hairSet = hairSet;
         character.mouthSet = mouthSet;
         character.faceSet = faceSet;
-        character.gender = gender;
+        character.gender = normalizeGender(gender);
         character.hairColor = Number(hairColor ?? 0);
         character.skinColor = Number(skinColor ?? 0);
 
@@ -474,7 +475,7 @@ export class CharacterHandler {
 
         // Apply Customization
         newChar.name = name;
-        newChar.gender = gender;
+        newChar.gender = normalizeGender(gender);
         newChar.headSet = head;
         newChar.hairSet = hair;
         newChar.mouthSet = mouth;
