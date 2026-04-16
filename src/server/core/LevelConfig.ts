@@ -18,6 +18,10 @@ export class LevelConfig {
     private static LEVELS: Record<string, LevelSpec> = {};
     private static DOOR_MAP: Map<string, string> = new Map(); // Key: "LevelName_DoorID"
     private static LEVEL_NAME_CANONICAL: Record<string, string> = {};
+    private static readonly NON_DUNGEON_OVERRIDES = new Set([
+        'CraftTown',
+        'CraftTownTutorial'
+    ]);
     private static readonly LEVEL_ALIASES: Record<string, string> = {
         "blackrosemire": "SwampRoadNorth",
         "blackrosemirehard": "SwampRoadNorthHard",
@@ -107,7 +111,8 @@ export class LevelConfig {
                     const swf = parts[0]; // e.g., LevelsNR.swf/a_Level_NewbieRoad
                     const mapId = parseInt(parts[1], 10);
                     const baseId = parseInt(parts[2], 10);
-                    const isDungeon = parts[3].toLowerCase() === 'true';
+                    const isDungeon = parts[3].toLowerCase() === 'true'
+                        && !LevelConfig.NON_DUNGEON_OVERRIDES.has(name);
                     const isHard = parts.length > 4 && parts[4] === 'Hard';
 
                     LevelConfig.LEVELS[name] = { swf, mapId, baseId, isDungeon, isHard };

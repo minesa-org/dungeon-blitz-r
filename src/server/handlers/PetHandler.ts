@@ -672,9 +672,9 @@ export class PetHandler {
 
         const eggID = Number(eggData.EggID ?? 0);
         
-        const petDef = PetConfig.getPetDef(eggID);
+        const petDef = PetConfig.resolveRandomPetForEgg(eggID);
         if (!petDef) {
-            console.log(`[PetHandler] No pet def for EggID ${eggID}`);
+            console.log(`[PetHandler] No hatchable pet found for EggID ${eggID}`);
             return;
         }
         

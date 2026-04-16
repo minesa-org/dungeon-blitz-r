@@ -116,6 +116,16 @@ function parseGoldReward(payload: Buffer): { amount: number; suppress: boolean }
     };
 }
 
+function parsePetReward(payload: Buffer): { typeId: number; specialId: number; level: number; suppress: boolean } {
+    const br = new BitReader(payload);
+    return {
+        typeId: br.readMethod6(7),
+        specialId: br.readMethod4(),
+        level: br.readMethod6(6),
+        suppress: br.readMethod15()
+    };
+}
+
 function parseLockboxReveal(payload: Buffer): { packId: number; rewardIndex: number; hasName: number; name: string } {
     const br = new BitReader(payload);
     return {
@@ -209,11 +219,50 @@ async function testOpenTreasureTroveConsumesCountsAndGrantsReward(): Promise<voi
     });
 }
 
+async function testOpenTreasureTroveEggRewardGrantsEligibleLevelTenPet(): Promise<void> {
+    const client = createFakeClient();
+    client.character.gold = 100;
+    client.character.DragonKeys = 1;
+    client.character.lockboxes = [{ lockboxID: 1, count: 1 }];
+    const expectedEggPets = new Set(
+        PetConfig.getHatchablePetsForEggName('GenericBrown').map((pet) => Number(pet?.PetID ?? 0))
+    );
+
+    await withMockedRandom([0.11, 0, 0.5], async () => {
+        await LockboxHandler.handleLockboxReward(client as never, Buffer.alloc(0));
+    });
+
+    assert.equal(client.character.pets.length, 1, 'egg reward should persist the granted pet');
+    assert.equal(
+        expectedEggPets.has(Number(client.character.pets[0]?.typeID ?? 0)),
+        true,
+        'egg reward should grant a pet that can hatch from the selected egg pool'
+    );
+    assert.equal(client.character.pets[0]?.level, 10, 'egg reward pets should start at level 10');
+
+    const revealPacket = client.sentPackets.find((packet) => packet.id === 0x108);
+    const petPacket = client.sentPackets.find((packet) => packet.id === 0x37);
+    assert.ok(revealPacket, 'egg reward should send a reveal packet');
+    assert.ok(petPacket, 'egg reward should send the new pet reward packet');
+
+    const revealedName = parseLockboxReveal(revealPacket!.payload).name;
+    const petReward = parsePetReward(petPacket!.payload);
+    const revealedPetDef = PetConfig.getPetDef(petReward.typeId);
+    assert.equal(revealedName, String(revealedPetDef?.PetName ?? ''), 'reveal packet should name the granted pet');
+    assert.deepEqual(petReward, {
+        typeId: Number(client.character.pets[0]?.typeID ?? 0),
+        specialId: 1,
+        level: 10,
+        suppress: false
+    });
+}
+
 async function main(): Promise<void> {
     ensureGameDataLoaded();
     await testBuyTreasureTroveUpdatesInventoryAndSendsDelta();
     await testBuyDragonKeysUpdatesAccountState();
     await testOpenTreasureTroveConsumesCountsAndGrantsReward();
+    await testOpenTreasureTroveEggRewardGrantsEligibleLevelTenPet();
     console.log('lockbox_regression: ok');
 }
 

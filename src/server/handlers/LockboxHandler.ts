@@ -329,12 +329,21 @@ export class LockboxHandler {
 
         const rewardName = selectedReward.name ?? '';
         if (selectedReward.type === 'egg') {
-            const petDisplayName = LockboxHandler.getEggDisplayPetName(rewardName);
+            const petDef = PetConfig.resolveRandomPetForEggName(rewardName);
+            if (!petDef) {
+                return {
+                    index: selectedReward.index,
+                    type: 'gold',
+                    grantName: '750,000 Gold',
+                    packetName: '750,000 Gold',
+                    goldAmount: 750000
+                };
+            }
             return {
                 index: selectedReward.index,
                 type: 'egg',
-                grantName: rewardName,
-                packetName: petDisplayName || rewardName
+                grantName: String(petDef.PetName ?? rewardName),
+                packetName: String(petDef.PetName ?? rewardName)
             };
         }
 
@@ -350,16 +359,6 @@ export class LockboxHandler {
     private static getAvailableClassGearIds(className: string, ownedGearIds: Set<number>): number[] {
         const classGearIds = LockboxHandler.CLASS_GEAR_IDS[className] ?? LockboxHandler.CLASS_GEAR_IDS.paladin;
         return classGearIds.filter((gearId) => !ownedGearIds.has(gearId));
-    }
-
-    private static getEggDisplayPetName(eggName: string): string {
-        const eggDef = PetConfig.EGG_TYPES.find((egg) => String(egg.EggName) === eggName);
-        if (!eggDef) {
-            return eggName;
-        }
-
-        const petDef = PetConfig.PET_TYPES.find((pet) => Number(pet.PetID ?? 0) === Number(eggDef.EggID ?? 0));
-        return String(petDef?.PetName ?? eggName);
     }
 
     private static async applyReward(client: Client, reward: ResolvedLockboxReward): Promise<void> {
@@ -429,11 +428,7 @@ export class LockboxHandler {
         }
 
         if (reward.type === 'pet' || reward.type === 'egg') {
-            const petDef = reward.type === 'pet'
-                ? PetConfig.PET_TYPES.find((pet) => String(pet.PetName) === reward.grantName)
-                : PetConfig.PET_TYPES.find((pet) => Number(pet.PetID ?? 0) === Number(
-                    PetConfig.EGG_TYPES.find((egg) => String(egg.EggName) === reward.grantName)?.EggID ?? 0
-                ));
+            const petDef = PetConfig.PET_TYPES.find((pet) => String(pet.PetName) === reward.grantName);
             if (!petDef) {
                 return;
             }

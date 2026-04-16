@@ -86,6 +86,9 @@ async function withMockedCharacterSave<T>(fn: () => Promise<T>): Promise<T> {
 
 async function testEggSpeedupAndCollectAcceptStringBackedIds(): Promise<void> {
     const client = createClient();
+    const expectedEggPets = new Set(
+        PetConfig.getHatchablePetsForEgg(5).map((pet) => Number(pet?.PetID ?? 0))
+    );
 
     await withMockedCharacterSave(async () => {
         await PetHandler.handleEggSpeedUp(client as never, createEggSpeedupPacket(13));
@@ -100,7 +103,11 @@ async function testEggSpeedupAndCollectAcceptStringBackedIds(): Promise<void> {
     });
 
     assert.equal(client.character.pets?.length ?? 0, 1, 'collect should grant the hatched pet');
-    assert.equal(Number(client.character.pets?.[0]?.typeID ?? 0), 5, 'collect should grant the pet matching the egg ID');
+    assert.equal(
+        expectedEggPets.has(Number(client.character.pets?.[0]?.typeID ?? 0)),
+        true,
+        'collect should grant a valid hatch result for the egg type'
+    );
     assert.deepEqual(client.character.OwnedEggsID, [1], 'collect should remove the hatched egg slot');
     assert.equal(Number(client.character.EggHachery?.EggID ?? -1), 0, 'collect should reset the hatchery state');
     assert.equal(client.sentPackets.some((packet) => packet.id === 0x37), true, 'collect should send the new pet reward packet');

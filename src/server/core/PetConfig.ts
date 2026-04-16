@@ -4,6 +4,14 @@ import * as path from 'path';
 export class PetConfig {
     static PET_TYPES: any[] = [];
     static EGG_TYPES: any[] = [];
+    private static readonly STANDARD_EGG_COLORS = ['Red', 'Yellow', 'Blue', 'Green'];
+    private static readonly EGG_EXCLUDED_PET_CLASS: Record<string, string> = {
+        Generic: 'Ancient',
+        Common: 'Bird',
+        Ordinary: 'Ghost',
+        Plain: 'Dragon'
+    };
+    private static readonly EGG_FIXED_PET_CLASSES = new Set(['Dragon', 'Bird', 'Ancient', 'Ghost']);
     
     // Constants from class_16 (pets.py)
     static NEW_EGG_SET_TIME = 72000; // 20 hours
@@ -53,5 +61,76 @@ export class PetConfig {
     static getEggDef(eggId: number) {
          const normalizedEggId = Number(eggId ?? 0);
          return PetConfig.EGG_TYPES.find((e) => Number(e?.EggID ?? 0) === normalizedEggId);
+    }
+
+    static getEggDefByName(eggName: string) {
+        const normalizedEggName = String(eggName ?? '').trim();
+        return PetConfig.EGG_TYPES.find((egg) => String(egg?.EggName ?? '') === normalizedEggName);
+    }
+
+    static getHatchablePetsForEgg(eggId: number): any[] {
+        return PetConfig.getHatchablePetsForEggDef(PetConfig.getEggDef(eggId));
+    }
+
+    static getHatchablePetsForEggName(eggName: string): any[] {
+        return PetConfig.getHatchablePetsForEggDef(PetConfig.getEggDefByName(eggName));
+    }
+
+    static resolveRandomPetForEgg(eggId: number, randomValue = Math.random()): any | undefined {
+        return PetConfig.resolveRandomPetFromPool(PetConfig.getHatchablePetsForEgg(eggId), randomValue);
+    }
+
+    static resolveRandomPetForEggName(eggName: string, randomValue = Math.random()): any | undefined {
+        return PetConfig.resolveRandomPetFromPool(PetConfig.getHatchablePetsForEggName(eggName), randomValue);
+    }
+
+    private static getHatchablePetsForEggDef(eggDef: any): any[] {
+        if (!eggDef) {
+            return [];
+        }
+
+        const eggClassType = String(eggDef?.ClassType ?? '').trim();
+        const eggColor = String(eggDef?.Color ?? '').trim();
+        const allowedColors = PetConfig.getAllowedEggColors(eggColor);
+        const fixedPetClass = PetConfig.EGG_FIXED_PET_CLASSES.has(eggClassType) ? eggClassType : null;
+        const excludedPetClass = fixedPetClass ? null : PetConfig.EGG_EXCLUDED_PET_CLASS[eggClassType] ?? null;
+
+        return PetConfig.PET_TYPES.filter((pet) => {
+            const petId = Number(pet?.PetID ?? 0);
+            if (petId <= 0 || Boolean(pet?.UseVanityPower)) {
+                return false;
+            }
+
+            const petClassType = String(pet?.ClassType ?? '').trim();
+            const petColor = String(pet?.Color ?? '').trim();
+            if (!allowedColors.includes(petColor)) {
+                return false;
+            }
+            if (fixedPetClass) {
+                return petClassType === fixedPetClass;
+            }
+            if (excludedPetClass) {
+                return petClassType !== excludedPetClass;
+            }
+            return true;
+        });
+    }
+
+    private static getAllowedEggColors(color: string): string[] {
+        if (color === 'Brown' || color === 'White') {
+            return PetConfig.STANDARD_EGG_COLORS;
+        }
+        return PetConfig.STANDARD_EGG_COLORS.includes(color)
+            ? [color]
+            : [];
+    }
+
+    private static resolveRandomPetFromPool(pets: any[], randomValue: number): any | undefined {
+        if (pets.length === 0) {
+            return undefined;
+        }
+
+        const normalizedRandom = Number.isFinite(randomValue) ? Math.max(0, Math.min(randomValue, 0.999999999)) : 0;
+        return pets[Math.floor(normalizedRandom * pets.length)] ?? pets[0];
     }
 }

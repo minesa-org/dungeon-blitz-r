@@ -1,5 +1,6 @@
 import { strict as assert } from 'assert';
 import { BitReader } from '../network/protocol/bitReader';
+import { LevelConfig } from '../core/LevelConfig';
 import { WorldEnter } from '../utils/WorldEnter';
 
 function createCharacter(): any {
@@ -45,12 +46,14 @@ function decodeCraftTownVisualData(packet: Buffer) {
     const newInternal = br.readMethod13();
     br.readMethod13();
     br.readMethod13();
-    br.readMethod20(1);
+    const isDungeon = br.readMethod20(1) === 1;
 
     const hasNewCoord = br.readMethod20(1) === 1;
+    let newX = 0;
+    let newY = 0;
     if (hasNewCoord) {
-        br.readMethod45();
-        br.readMethod45();
+        newX = br.readMethod45();
+        newY = br.readMethod45();
     }
 
     const isCraftTown = br.readMethod20(1) === 1;
@@ -65,6 +68,10 @@ function decodeCraftTownVisualData(packet: Buffer) {
 
     return {
         newInternal,
+        isDungeon,
+        hasNewCoord,
+        newX,
+        newY,
         isCraftTown,
         transferToken,
         masterClassId,
@@ -78,6 +85,7 @@ function decodeCraftTownVisualData(packet: Buffer) {
 }
 
 function buildCraftTownPacket(levelName: string): Buffer {
+    const levelSpec = LevelConfig.get(levelName);
     return WorldEnter.buildEnterWorldPacket(
         77,
         0,
@@ -93,7 +101,7 @@ function buildCraftTownPacket(levelName: string): Buffer {
         levelName,
         '',
         '',
-        true,
+        levelSpec.isDungeon,
         true,
         10,
         20,
@@ -114,9 +122,18 @@ function testCraftTownPreservesLiveKeepUpgradeVisuals(): void {
     const decoded = decodeCraftTownVisualData(buildCraftTownPacket('CraftTown'));
 
     assert.equal(decoded.newInternal, 'CraftTown');
+    assert.equal(decoded.isDungeon, false, 'town enter-world packet should not flag CraftTown as a dungeon');
+    assert.equal(decoded.hasNewCoord, true, 'town enter-world packet should include explicit spawn coordinates');
+    assert.equal(decoded.newX, 10);
+    assert.equal(decoded.newY, 20);
     assert.equal(decoded.isCraftTown, true);
     assert.equal(decoded.keepRank, 5, 'town keep should continue to use the player keep rank');
     assert.equal(decoded.scaffoldingLevel, 12, 'town keep should continue to use the live scaffolding state');
+}
+
+function testCraftTownLevelConfigTreatsTownAsNonDungeon(): void {
+    assert.equal(LevelConfig.get('CraftTown').isDungeon, false, 'CraftTown should not be treated as a dungeon level');
+    assert.equal(LevelConfig.get('CraftTownTutorial').isDungeon, false, 'CraftTownTutorial should not be treated as a dungeon level');
 }
 
 function testCraftTownTutorialPlayerDataSuppressesKeepUpgradeState(): void {
@@ -139,8 +156,10 @@ function testCraftTownPlayerDataPreservesLiveKeepUpgradeState(): void {
 }
 
 function main(): void {
+    LevelConfig.load(require('path').resolve(__dirname, '..', 'data'));
     testCraftTownTutorialSuppressesKeepUpgradeVisuals();
     testCraftTownPreservesLiveKeepUpgradeVisuals();
+    testCraftTownLevelConfigTreatsTownAsNonDungeon();
     testCraftTownTutorialPlayerDataSuppressesKeepUpgradeState();
     testCraftTownPlayerDataPreservesLiveKeepUpgradeState();
     console.log('world_enter_crafttown_visual_state_regression: ok');

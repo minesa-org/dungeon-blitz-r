@@ -126,6 +126,9 @@ async function testPetTrainingCannotBeCollectedBeforeReadyTime(): Promise<void> 
 
 async function testEggHatchCannotBeCollectedBeforeReadyTimeAndRefreshesIdols(): Promise<void> {
     const client = createClient();
+    const expectedEggPets = new Set(
+        PetConfig.getHatchablePetsForEgg(5).map((pet) => Number(pet?.PetID ?? 0))
+    );
 
     await withMockedCharacterSave(async () => {
         await PetHandler.handleEggHatch(client as never, createEggHatchPacket(1, true));
@@ -159,6 +162,11 @@ async function testEggHatchCannotBeCollectedBeforeReadyTimeAndRefreshesIdols(): 
     });
 
     assert.equal(client.character.pets?.length ?? 0, initialPetCount + 1, 'ready egg should grant a new pet');
+    assert.equal(
+        expectedEggPets.has(Number(client.character.pets?.[initialPetCount]?.typeID ?? 0)),
+        true,
+        'ready egg should hatch into a valid pet for the egg type'
+    );
     assert.deepEqual(client.character.OwnedEggsID, [1], 'hatched egg should be removed from owned eggs');
     assert.equal(Number(client.character.EggHachery?.EggID ?? 0), 0, 'hatchery should reset after collection');
 }
