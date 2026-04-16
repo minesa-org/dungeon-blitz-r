@@ -12,7 +12,10 @@ type SentPacket = {
 };
 
 type FakeClient = {
+    token: number;
     userId: number | null;
+    currentLevel: string;
+    levelInstanceId: string;
     character: any;
     characters: any[];
     sentPackets: SentPacket[];
@@ -33,7 +36,10 @@ function ensureGameDataLoaded(): void {
 function createFakeClient(): FakeClient {
     const sentPackets: SentPacket[] = [];
     return {
+        token: 1,
         userId: null,
+        currentLevel: 'CraftTown',
+        levelInstanceId: '',
         character: {
             name: 'Neodev',
             class: 'Paladin',
@@ -49,7 +55,12 @@ function createFakeClient(): FakeClient {
             equippedGears: [],
             OwnedDyes: [],
             charms: [],
-            consumables: []
+            consumables: [],
+            CurrentLevel: {
+                name: 'CraftTown',
+                x: 0,
+                y: 0
+            }
         },
         characters: [],
         sentPackets,
@@ -181,9 +192,11 @@ async function testOpenTreasureTroveConsumesCountsAndGrantsReward(): Promise<voi
     const revealPacket = client.sentPackets.find((packet) => packet.id === 0x108);
     const sigilPacket = client.sentPackets.find((packet) => packet.id === 0x112);
     const goldRewardPacket = client.sentPackets.find((packet) => packet.id === 0x35);
+    const playerDataRefreshPacket = client.sentPackets.find((packet) => packet.id === 0x10);
     assert.ok(revealPacket, 'opening a treasure trove should send the reward reveal packet');
     assert.ok(sigilPacket, 'opening a treasure trove should award Royal Sigils');
     assert.ok(goldRewardPacket, 'gold rewards should emit the gold reward packet');
+    assert.equal(playerDataRefreshPacket, undefined, 'opening a treasure trove should not resend the full player data packet');
     assert.deepEqual(parseLockboxReveal(revealPacket!.payload), {
         packId: 1,
         rewardIndex: 17,

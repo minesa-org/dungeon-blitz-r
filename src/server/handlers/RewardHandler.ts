@@ -9,6 +9,8 @@ import { CombatHandler } from './CombatHandler';
 import { getClientCharacterKey, getPartyIdForClient } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
 import { upsertInventoryGear } from '../utils/GearInventory';
+import { getEquippedCharmBonuses } from '../utils/CharmBonuses';
+import { PetHandler } from './PetHandler';
 
 const db = new JsonAdapter();
 
@@ -193,17 +195,15 @@ export class RewardHandler {
         return levelMap?.get(sourceId) ?? null;
     }
 
-    private static resolveDropPosition(client: Client, sourceEntity: any, fallbackX: number, fallbackY: number): { x: number; y: number } {
-        const x = Number(sourceEntity?.x ?? sourceEntity?.pos_x ?? fallbackX);
-        let y = Number(sourceEntity?.y ?? sourceEntity?.pos_y ?? fallbackY);
-        const entType = sourceEntity?.name ? GameData.getEntType(String(sourceEntity.name)) : null;
-        if (String(entType?.Flying ?? '').toLowerCase() === 'true') {
-            const playerEnt = client.entities.get(client.clientEntID);
-            y = Number(playerEnt?.y ?? playerEnt?.pos_y ?? y);
-        }
+    private static resolveDropPosition(_client: Client, sourceEntity: any, fallbackX: number, fallbackY: number): { x: number; y: number } {
+        const entityX = Number(sourceEntity?.x ?? sourceEntity?.pos_x ?? 0);
+        const entityY = Number(sourceEntity?.y ?? sourceEntity?.pos_y ?? 0);
+        // The client already projects reward packet coordinates onto the floor before sending them.
+        const x = Number.isFinite(fallbackX) ? fallbackX : entityX;
+        const y = Number.isFinite(fallbackY) ? fallbackY : entityY;
         return {
-            x: Math.round(Number.isFinite(x) ? x : fallbackX),
-            y: Math.round(Number.isFinite(y) ? y : fallbackY)
+            x: Math.round(Number.isFinite(x) ? x : 0),
+            y: Math.round(Number.isFinite(y) ? y : 0)
         };
     }
 
@@ -324,9 +324,13 @@ export class RewardHandler {
             return false;
         }
 
-        client.character.xp = Number(client.character.xp ?? 0) + amount;
+        const petBonuses = PetHandler.getActivePetBonusRates(client.character);
+        const totalAmount = Math.max(0, Math.round(amount * (1 + petBonuses.expBonus)));
+
+        client.character.xp = Number(client.character.xp ?? 0) + totalAmount;
         client.character.level = GameData.getPlayerLevelFromXp(Number(client.character.xp ?? 0));
-        RewardHandler.sendXpReward(client, amount);
+        RewardHandler.sendXpReward(client, totalAmount);
+        PetHandler.applyActivePetExperience(client, totalAmount);
         return true;
     }
 
@@ -373,6 +377,8 @@ export class RewardHandler {
         let gearId = 0;
         let gearTier = 0;
         let dyeId = 0;
+        const petBonuses = PetHandler.getActivePetBonusRates(client.character);
+        const charmBonuses = getEquippedCharmBonuses(client.character);
 
         const entName = String(sourceEntity?.name ?? '');
 
@@ -387,11 +393,14 @@ export class RewardHandler {
         const ownedGearIds = RewardHandler.collectOwnedGearIds(client);
         const realm = String(entType?.Realm ?? RewardHandler.DUNGEON_REALM_MAP[client.currentLevel] ?? '');
         const itemLootAllowedByClass = RewardHandler.rewardClassAllowsItemLoot(entType);
+        const materialFindRate = petBonuses.craftFind + charmBonuses.craftFind;
+        const itemFindRate = petBonuses.itemFind + charmBonuses.itemFind;
+        const goldFindRate = petBonuses.goldFind + charmBonuses.goldFind;
         const materialChance = realm && reward.dropMaterial && itemLootAllowedByClass
-            ? RewardHandler.resolveMaterialDropChance(entType, reward)
+            ? Math.max(0, Math.min(1, RewardHandler.resolveMaterialDropChance(entType, reward) * (1 + materialFindRate)))
             : 0;
         const gearChance = reward.dropGear && itemLootAllowedByClass
-            ? RewardHandler.resolveGearDropChance(entType, reward)
+            ? Math.max(0, Math.min(1, RewardHandler.resolveGearDropChance(entType, reward) * (1 + itemFindRate)))
             : 0;
         const dyeRarity = RewardHandler.resolveDyeDropRarity(client, entType);
 
@@ -411,6 +420,10 @@ export class RewardHandler {
         if (allowItemDrop && gearChance > 0 && Math.random() < gearChance) {
             gearId = GameData.getGearIdForEntity(entName, playerClass, ownedGearIds);
             gearTier = RewardHandler.resolveGearTier(client, entName);
+        }
+
+        if (gold > 0 && goldFindRate > 0) {
+            gold = Math.max(0, Math.round(gold * (1 + goldFindRate)));
         }
 
         const needsFallback = gold <= 0 && !reward.dropGear && !reward.dropMaterial;

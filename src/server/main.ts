@@ -64,7 +64,10 @@ router.register(0xF4, CharacterHandler.handleRequestArmoryGears); // Armory Gear
 // Missing Packets
 router.register(0x8, EntityHandler.handleEntityFullUpdate); // Entity Full Update
 router.register(0xA2, CommandHandler.handleLinkUpdater); // Link Updater
+router.register(0x10D, CommandHandler.handleActivatePotion); // Active Potion Sync
 router.register(0x10E, CommandHandler.handleQueuePotion); // Queue Potion
+router.register(0xBB, CommandHandler.handleHpIncreaseNotice); // Max HP Delta
+router.register(0xFC, CommandHandler.handleSendCombatStats); // Combat Stat Sync
 router.register(0x2A, RewardHandler.handleGrantReward); // Grant Reward
 router.register(0x38, RewardHandler.handlePickupLootdrop); // Pickup Lootdrop
 router.register(0x30, EquipmentHandler.handleUpdateEquipment); // Update Equipment
@@ -142,6 +145,7 @@ router.register(0xE6, PetHandler.handleEggHatch);
 router.register(0xE9, PetHandler.handleEggSpeedUp);
 router.register(0xEA, PetHandler.handleCollectHatchedEgg);
 router.register(0xE8, PetHandler.handleCancelEggHatch);
+router.register(0x110, PetHandler.handleUseConsumable);
 
 // Combat
 router.register(0x9, CombatHandler.handlePowerCast);

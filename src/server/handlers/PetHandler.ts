@@ -3,6 +3,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { PetConfig } from '../core/PetConfig';
+import { GameData } from '../core/GameData';
 import { GlobalState } from '../core/GlobalState';
 import { EntityHandler } from './EntityHandler';
 import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
@@ -11,6 +12,122 @@ const db = new JsonAdapter();
 
 export class PetHandler {
     private static readonly MOUNT_REASSERT_DELAYS_MS = [0, 300, 1200, 2500, 4000];
+    private static readonly PET_BONUS_RATE_PER_LEVEL = 0.01;
+
+    private static sendMammothIdolUpdate(client: Client): void {
+        if (!client.character) {
+            return;
+        }
+
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(Number(client.character.mammothIdols ?? 0));
+        bb.writeMethod4(0);
+        bb.writeMethod11(client.character.showHigher ? 1 : 0, 1);
+        client.sendBitBuffer(0xA1, bb);
+    }
+
+    private static sendGoldLoss(client: Client, amount: number): void {
+        if (amount <= 0) {
+            return;
+        }
+
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(amount);
+        client.sendBitBuffer(0xB4, bb);
+    }
+
+    private static sendConsumableUpdate(client: Client, consumableId: number, count: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod6(Math.max(0, consumableId), 5);
+        bb.writeMethod4(Math.max(0, count));
+        client.sendBitBuffer(0x10C, bb);
+    }
+
+    private static sendPetXpUpdate(client: Client, xpAmount: number): void {
+        if (xpAmount <= 0) {
+            return;
+        }
+
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(xpAmount);
+        client.sendBitBuffer(0xF2, bb);
+    }
+
+    static getActivePetRecord(character: any): any | null {
+        if (!character) {
+            return null;
+        }
+
+        const activePet = character.activePet ?? {};
+        const petTypeId = Number(activePet.typeID ?? activePet.petID ?? 0);
+        const petSpecialId = Number(activePet.special_id ?? 0);
+        if (petTypeId <= 0) {
+            return null;
+        }
+
+        const pets = Array.isArray(character.pets) ? character.pets : [];
+        return pets.find((pet: any) => {
+            const typeId = Number(pet?.typeID ?? 0);
+            const specialId = Number(pet?.special_id ?? 0);
+            if (typeId !== petTypeId) {
+                return false;
+            }
+            return petSpecialId <= 0 || specialId === petSpecialId;
+        }) ?? null;
+    }
+
+    static getActivePetBonusRates(character: any): { goldFind: number; itemFind: number; craftFind: number; expBonus: number } {
+        const bonuses = {
+            goldFind: 0,
+            itemFind: 0,
+            craftFind: 0,
+            expBonus: 0
+        };
+        const pet = PetHandler.getActivePetRecord(character);
+        if (!pet) {
+            return bonuses;
+        }
+
+        const petDef = PetConfig.getPetDef(Number(pet.typeID ?? 0));
+        if (!petDef) {
+            return bonuses;
+        }
+
+        const petLevel = Math.max(0, Number(pet.level ?? 1));
+        const bonus = petLevel * PetHandler.PET_BONUS_RATE_PER_LEVEL;
+
+        if (petDef.GoldFind) bonuses.goldFind += bonus;
+        if (petDef.ItemFind) bonuses.itemFind += bonus;
+        if (petDef.CraftFind) bonuses.craftFind += bonus;
+        if (petDef.ExpBonus) bonuses.expBonus += bonus;
+
+        return bonuses;
+    }
+
+    static applyActivePetExperience(client: Client, xpAmount: number, bonusLevelUps: number = 0): boolean {
+        if (!client.character || xpAmount <= 0) {
+            return false;
+        }
+
+        const pet = PetHandler.getActivePetRecord(client.character);
+        if (!pet) {
+            return false;
+        }
+
+        pet.xp = Math.max(0, Number(pet.xp ?? 0) + xpAmount);
+        if (bonusLevelUps > 0) {
+            pet.level = Math.min(20, Math.max(1, Number(pet.level ?? 1) + bonusLevelUps));
+        }
+
+        if (client.character.activePet && Number(client.character.activePet.typeID ?? 0) === Number(pet.typeID ?? 0)) {
+            client.character.activePet.xp = pet.xp;
+            client.character.activePet.level = pet.level;
+            client.character.activePet.special_id = Number(pet.special_id ?? client.character.activePet.special_id ?? 0);
+        }
+
+        PetHandler.sendPetXpUpdate(client, xpAmount);
+        return true;
+    }
 
     static normalizeMountState(character: any): number[] {
         const mountIds = Array.isArray(character?.mounts) ? character!.mounts : [];
@@ -335,9 +452,11 @@ export class PetHandler {
         if (useIdols) {
             if ((client.character.mammothIdols || 0) < idolCost) return;
             client.character.mammothIdols = (client.character.mammothIdols || 0) - idolCost;
+            PetHandler.sendMammothIdolUpdate(client);
         } else {
             if ((client.character.gold || 0) < goldCost) return;
             client.character.gold = (client.character.gold || 0) - goldCost;
+            PetHandler.sendGoldLoss(client, goldCost);
         }
 
         const readyAt = Math.floor(Date.now() / 1000) + trainTime;
@@ -358,6 +477,12 @@ export class PetHandler {
         if (tpList.length === 0) return;
 
         const tp = tpList[0];
+        const readyTime = Number(tp.trainingTime ?? 0);
+        const now = Math.floor(Date.now() / 1000);
+        if (readyTime > 0 && readyTime > now) {
+            return;
+        }
+
         const typeID = tp.typeID;
         const specialID = tp.special_id;
 
@@ -402,6 +527,7 @@ export class PetHandler {
         if ((client.character.mammothIdols || 0) < idolCost) return;
         
         client.character.mammothIdols = (client.character.mammothIdols || 0) - idolCost;
+        PetHandler.sendMammothIdolUpdate(client);
         
         const tpList = client.character.trainingPet || [];
         if (tpList.length > 0) {
@@ -436,9 +562,11 @@ export class PetHandler {
         if (useIdols) {
             if ((client.character.mammothIdols || 0) < idolCost) return;
             client.character.mammothIdols = (client.character.mammothIdols || 0) - idolCost;
+            PetHandler.sendMammothIdolUpdate(client);
         } else {
             if ((client.character.gold || 0) < goldCost) return;
             client.character.gold = (client.character.gold || 0) - goldCost;
+            PetHandler.sendGoldLoss(client, goldCost);
         }
 
         const eggRank = eggDef.EggRank || 0;
@@ -476,6 +604,7 @@ export class PetHandler {
         if ((client.character.mammothIdols || 0) < idolCost) return;
         
         client.character.mammothIdols = (client.character.mammothIdols || 0) - idolCost;
+        PetHandler.sendMammothIdolUpdate(client);
         
         if (client.character.EggHachery) {
             client.character.EggHachery.ReadyTime = 0;
@@ -491,6 +620,12 @@ export class PetHandler {
         if (!client.character || !client.character.EggHachery) return;
         
         const eggData = client.character.EggHachery;
+        const readyTime = Number(eggData.ReadyTime ?? 0);
+        const now = Math.floor(Date.now() / 1000);
+        if (readyTime > 0 && readyTime > now) {
+            return;
+        }
+
         const eggID = eggData.EggID;
         
         const petDef = PetConfig.getPetDef(eggID);
@@ -549,6 +684,41 @@ export class PetHandler {
             slotIndex: 0
         };
         client.character.activeEggCount = 0;
+        await PetHandler.saveCharacter(client);
+    }
+
+    static async handleUseConsumable(client: Client, data: Buffer): Promise<void> {
+        if (!client.character) {
+            return;
+        }
+
+        const br = new BitReader(data);
+        const consumableId = br.readMethod20(5);
+        const consumableDef = GameData.CONSUMABLES.find((consumable) => Number(consumable?.ConsumableID ?? 0) === consumableId);
+        if (!consumableDef) {
+            return;
+        }
+
+        if (String(consumableDef.Type ?? '') !== 'PetFood') {
+            return;
+        }
+
+        const consumables = Array.isArray(client.character.consumables) ? client.character.consumables : [];
+        const entry = consumables.find((consumable: any) => Number(consumable?.consumableID ?? 0) === consumableId);
+        if (!entry || Number(entry.count ?? 0) <= 0) {
+            return;
+        }
+
+        const xpAmount = Math.max(0, Number(consumableDef.Magnitude ?? 0));
+        const bonusLevels = String(consumableDef.ConsumableName ?? '') === 'RarePetFood' ? 1 : 0;
+        const applied = PetHandler.applyActivePetExperience(client, xpAmount, bonusLevels);
+        if (!applied) {
+            return;
+        }
+
+        entry.count = Math.max(0, Number(entry.count ?? 0) - 1);
+        client.character.consumables = consumables;
+        PetHandler.sendConsumableUpdate(client, consumableId, Number(entry.count ?? 0));
         await PetHandler.saveCharacter(client);
     }
 
