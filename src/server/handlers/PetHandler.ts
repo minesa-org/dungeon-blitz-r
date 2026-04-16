@@ -364,7 +364,7 @@ export class PetHandler {
         if (!client.character) return;
         
         const now = Math.floor(Date.now() / 1000);
-        let owned = client.character.OwnedEggsID || [];
+        let owned = PetHandler.normalizeOwnedEggIds(client.character);
         let resetTime = client.character.EggResetTime || 0;
 
         if (now >= resetTime) {
@@ -434,6 +434,48 @@ export class PetHandler {
         
         bb.writeMethod4(resetTime);
         return bb;
+    }
+
+    private static normalizeOwnedEggIds(character: any): number[] {
+        const eggs = Array.isArray(character?.OwnedEggsID) ? character.OwnedEggsID : [];
+        const normalized = eggs
+            .map((eggId: unknown) => Number(eggId ?? 0))
+            .filter((eggId: number) => Number.isFinite(eggId) && eggId >= 0);
+
+        if (character) {
+            character.OwnedEggsID = normalized;
+        }
+
+        return normalized;
+    }
+
+    private static getNormalizedEggHatchery(character: any): { EggID: number; ReadyTime: number; slotIndex: number } | null {
+        const eggData = character?.EggHachery;
+        if (!eggData || typeof eggData !== 'object') {
+            return null;
+        }
+
+        const normalized = {
+            EggID: Number(eggData.EggID ?? 0),
+            ReadyTime: Number(eggData.ReadyTime ?? 0),
+            slotIndex: Number(eggData.slotIndex ?? 0)
+        };
+
+        character.EggHachery = normalized;
+        return normalized;
+    }
+
+    private static resetEggHatchery(character: any): void {
+        if (!character) {
+            return;
+        }
+
+        character.EggHachery = {
+            EggID: 0,
+            ReadyTime: 0,
+            slotIndex: 0
+        };
+        character.activeEggCount = 0;
     }
 
     static async handleTrainPet(client: Client, data: Buffer): Promise<void> {
@@ -549,10 +591,10 @@ export class PetHandler {
         const useIdols = br.readMethod15();
 
         if (!client.character) return;
-        const owned = client.character.OwnedEggsID || [];
-        if (slotIndex >= owned.length) return;
+        const owned = PetHandler.normalizeOwnedEggIds(client.character);
+        if (slotIndex < 0 || slotIndex >= owned.length) return;
 
-        const eggID = owned[slotIndex];
+        const eggID = Number(owned[slotIndex] ?? 0);
         const eggDef = PetConfig.getEggDef(eggID);
         if (!eggDef) return;
 
@@ -590,10 +632,6 @@ export class PetHandler {
         client.character.activeEggCount = 1;
         
         await PetHandler.saveCharacter(client);
-        
-        const bb = new BitBuffer();
-        bb.writeMethod6(eggID, 6);
-        client.sendBitBuffer(0xE7, bb);
     }
     
     static async handleEggSpeedUp(client: Client, data: Buffer): Promise<void> {
@@ -606,27 +644,33 @@ export class PetHandler {
         client.character.mammothIdols = (client.character.mammothIdols || 0) - idolCost;
         PetHandler.sendMammothIdolUpdate(client);
         
-        if (client.character.EggHachery) {
-            client.character.EggHachery.ReadyTime = 0;
+        const eggData = PetHandler.getNormalizedEggHatchery(client.character);
+        if (eggData && eggData.EggID > 0) {
+            eggData.ReadyTime = 0;
+            client.character.EggHachery = eggData;
             await PetHandler.saveCharacter(client);
             
-             const bb = new BitBuffer();
-             bb.writeMethod6(client.character.EggHachery.EggID, 6);
-             client.sendBitBuffer(0xE7, bb);
+            const bb = new BitBuffer();
+            bb.writeMethod6(eggData.EggID, 6);
+            client.sendBitBuffer(0xE7, bb);
         }
     }
 
     static async handleCollectHatchedEgg(client: Client, data: Buffer): Promise<void> {
-        if (!client.character || !client.character.EggHachery) return;
+        if (!client.character) return;
         
-        const eggData = client.character.EggHachery;
+        const eggData = PetHandler.getNormalizedEggHatchery(client.character);
+        if (!eggData || eggData.EggID <= 0) {
+            return;
+        }
+
         const readyTime = Number(eggData.ReadyTime ?? 0);
         const now = Math.floor(Date.now() / 1000);
         if (readyTime > 0 && readyTime > now) {
             return;
         }
 
-        const eggID = eggData.EggID;
+        const eggID = Number(eggData.EggID ?? 0);
         
         const petDef = PetConfig.getPetDef(eggID);
         if (!petDef) {
@@ -634,7 +678,7 @@ export class PetHandler {
             return;
         }
         
-        const petTypeID = petDef.PetID;
+        const petTypeID = Number(petDef.PetID ?? eggID);
         const startingRank = 1;
         
         const pets = client.character.pets || [];
@@ -649,17 +693,13 @@ export class PetHandler {
         });
         client.character.pets = pets;
         
-        const slotIndex = eggData.slotIndex;
-        if (client.character.OwnedEggsID && typeof slotIndex === 'number') {
-            client.character.OwnedEggsID.splice(slotIndex, 1);
+        const slotIndex = Number(eggData.slotIndex ?? 0);
+        const ownedEggs = PetHandler.normalizeOwnedEggIds(client.character);
+        if (slotIndex >= 0 && slotIndex < ownedEggs.length) {
+            ownedEggs.splice(slotIndex, 1);
         }
-        
-        client.character.EggHachery = {
-            EggID: 0,
-            ReadyTime: 0,
-            slotIndex: 0
-        };
-        client.character.activeEggCount = 0;
+        client.character.OwnedEggsID = ownedEggs;
+        PetHandler.resetEggHatchery(client.character);
         
         await PetHandler.saveCharacter(client);
         
@@ -672,18 +712,13 @@ export class PetHandler {
         client.sendBitBuffer(0x37, bb);
         
         // 0xE5 Refresh Hatchery
-        const pkt = PetHandler.buildHatcheryPacket(client.character.OwnedEggsID || [], client.character.EggResetTime || 0);
+        const pkt = PetHandler.buildHatcheryPacket(PetHandler.normalizeOwnedEggIds(client.character), client.character.EggResetTime || 0);
         client.sendBitBuffer(0xE5, pkt);
     }
 
     static async handleCancelEggHatch(client: Client, data: Buffer): Promise<void> {
         if (!client.character) return;
-        client.character.EggHachery = {
-            EggID: 0,
-            ReadyTime: 0,
-            slotIndex: 0
-        };
-        client.character.activeEggCount = 0;
+        PetHandler.resetEggHatchery(client.character);
         await PetHandler.saveCharacter(client);
     }
 

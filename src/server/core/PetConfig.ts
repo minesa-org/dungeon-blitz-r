@@ -46,10 +46,12 @@ export class PetConfig {
     }
 
     static getPetDef(petId: number) {
-        return PetConfig.PET_TYPES.find(p => p.PetID === petId);
+        const normalizedPetId = Number(petId ?? 0);
+        return PetConfig.PET_TYPES.find((p) => Number(p?.PetID ?? 0) === normalizedPetId);
     }
 
     static getEggDef(eggId: number) {
-         return PetConfig.EGG_TYPES.find(e => e.EggID === eggId);
+         const normalizedEggId = Number(eggId ?? 0);
+         return PetConfig.EGG_TYPES.find((e) => Number(e?.EggID ?? 0) === normalizedEggId);
     }
 }
