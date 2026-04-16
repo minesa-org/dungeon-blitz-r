@@ -18,6 +18,7 @@ import { SocialHandler } from './SocialHandler';
 import { GuildHandler } from './GuildHandler';
 import { EntityHandler } from './EntityHandler';
 import { PetHandler } from './PetHandler';
+import { ForgeHandler } from './ForgeHandler';
 import { DebugLogger } from '../core/Debug';
 import { syncClientDungeonRunState } from '../core/DungeonRunStats';
 import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
@@ -803,6 +804,7 @@ export class CharacterHandler {
         }
 
         client.character = char;
+        await ForgeHandler.syncCompletionState(client);
         console.log(`[CharacterSelect] Selected ${char.name}`);
         
         CharacterHandler.sendEnterWorld(client, char);
@@ -1005,6 +1007,7 @@ export class CharacterHandler {
         }
 
         await CharacterHandler.reloadCurrentCharacterFromSave(client);
+        await ForgeHandler.syncCompletionState(client);
 
         await GuildHandler.refreshClientGuildState(client);
         const socialRepairDidMutate = ensureCharacterSocialState(client.character);

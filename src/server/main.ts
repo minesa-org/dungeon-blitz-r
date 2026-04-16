@@ -31,6 +31,7 @@ import { EquipmentHandler } from './handlers/EquipmentHandler';
 import { AbilityHandler } from './handlers/AbilityHandler';
 import { DebugLogger } from './core/Debug';
 import { GuildHandler } from './handlers/GuildHandler';
+import { ForgeHandler } from './handlers/ForgeHandler';
 import * as path from 'path';
 
 import { StaticServer } from './core/StaticServer';
@@ -146,7 +147,15 @@ router.register(0xE6, PetHandler.handleEggHatch);
 router.register(0xE9, PetHandler.handleEggSpeedUp);
 router.register(0xEA, PetHandler.handleCollectHatchedEgg);
 router.register(0xE8, PetHandler.handleCancelEggHatch);
-router.register(0x110, PetHandler.handleUseConsumable);
+router.register(0x110, ForgeHandler.handleUseForgeConsumable);
+
+// Forge
+router.register(0xB1, ForgeHandler.handleStartForge);
+router.register(0xE2, ForgeHandler.handleForgeSpeedUpPacket);
+router.register(0xD0, ForgeHandler.handleCollectForgeCharm);
+router.register(0xE1, ForgeHandler.handleCancelForge);
+router.register(0xD3, ForgeHandler.handleAllocateMagicForgeArtisanSkillPoints);
+router.register(0xCF, ForgeHandler.handleMagicForgeReroll);
 
 // Combat
 router.register(0x9, CombatHandler.handlePowerCast);
