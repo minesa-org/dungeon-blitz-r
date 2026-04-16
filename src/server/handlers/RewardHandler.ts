@@ -45,36 +45,26 @@ interface LootReward {
 export class RewardHandler {
     private static nextLootId = 900000;
     private static readonly MATERIAL_DROP_CHANCE_BY_RANK: Record<string, number> = {
-        Minion: 0.04,
-        Lieutenant: 0.08,
-        MiniBoss: 0.15,
-        Boss: 0.25
+        Minion: 0.03,
+        Lieutenant: 0.15,
+        MiniBoss: 0.5,
+        Boss: 1
     };
     private static readonly DYE_DROP_CHANCE = 0.01;
     private static readonly MATERIAL_RARITY_WEIGHTS_NORMAL: Array<{ rarity: 'M' | 'R' | 'L'; weight: number }> = [
-        { rarity: 'M', weight: 0.85 },
-        { rarity: 'R', weight: 0.13 },
-        { rarity: 'L', weight: 0.02 }
+        { rarity: 'M', weight: 0.82 },
+        { rarity: 'R', weight: 0.15 },
+        { rarity: 'L', weight: 0.03 }
     ];
     private static readonly MATERIAL_RARITY_WEIGHTS_HARD: Array<{ rarity: 'M' | 'R' | 'L'; weight: number }> = [
-        { rarity: 'M', weight: 0.72 },
-        { rarity: 'R', weight: 0.22 },
+        { rarity: 'M', weight: 0.62 },
+        { rarity: 'R', weight: 0.32 },
         { rarity: 'L', weight: 0.06 }
     ];
-    private static readonly GEAR_RARITY_WEIGHTS_RANDOM: Array<{ tier: 0 | 1 | 2; weight: number }> = [
-        { tier: 0, weight: 0.86 },
-        { tier: 1, weight: 0.12 },
-        { tier: 2, weight: 0.02 }
-    ];
-    private static readonly GEAR_RARITY_WEIGHTS_FIXED: Array<{ tier: 0 | 1 | 2; weight: number }> = [
-        { tier: 0, weight: 0.65 },
-        { tier: 1, weight: 0.25 },
-        { tier: 2, weight: 0.10 }
-    ];
     private static readonly GEAR_RARITY_WEIGHTS_HARD: Array<{ tier: 0 | 1 | 2; weight: number }> = [
-        { tier: 0, weight: 0.60 },
-        { tier: 1, weight: 0.28 },
-        { tier: 2, weight: 0.12 }
+        { tier: 0, weight: 0.65 },
+        { tier: 1, weight: 0.30 },
+        { tier: 2, weight: 0.05 }
     ];
     private static readonly DUNGEON_REALM_MAP: Record<string, string> = {
         GoblinRiverDungeon: 'Goblin',
@@ -222,8 +212,6 @@ export class RewardHandler {
     }
 
     private static resolveGearTier(client: Client, entName: string): number {
-        const entType = GameData.getEntType(entName) || {};
-        const rewardClass = String(entType.RewardClass ?? '').trim();
         if (RewardHandler.isHardDungeon(client.currentLevel)) {
             return RewardHandler.pickWeighted<number>(RewardHandler.GEAR_RARITY_WEIGHTS_HARD.map((entry) => ({
                 value: entry.tier,
@@ -231,17 +219,7 @@ export class RewardHandler {
             })));
         }
 
-        if (rewardClass === 'FixedItem' || rewardClass === 'SuperItem') {
-            return RewardHandler.pickWeighted<number>(RewardHandler.GEAR_RARITY_WEIGHTS_FIXED.map((entry) => ({
-                value: entry.tier,
-                weight: entry.weight
-            })));
-        }
-
-        return RewardHandler.pickWeighted<number>(RewardHandler.GEAR_RARITY_WEIGHTS_RANDOM.map((entry) => ({
-            value: entry.tier,
-            weight: entry.weight
-        })));
+        return 0;
     }
 
     private static sanitizeDropMultiplier(value: number | undefined): number {
