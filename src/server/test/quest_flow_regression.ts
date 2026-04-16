@@ -217,7 +217,7 @@ async function testRescueAnnaCompletionLeavesFindAnnasFatherAvailableOnAnna(): P
     );
 }
 
-async function testPrimedFindAnnasFatherBlocksMayorUntilAnnaShowsOffer(): Promise<void> {
+async function testPrimedFindAnnasFatherCanStillBeTurnedInToMayor(): Promise<void> {
     const client = createFakeClient(
         'NewbieRoad',
         {
@@ -246,13 +246,13 @@ async function testPrimedFindAnnasFatherBlocksMayorUntilAnnaShowsOffer(): Promis
 
     assert.equal(
         Number(client.character.missions[String(MissionID.FindAnnasFather)]?.state ?? 0),
-        2,
-        "Mayor should not claim Find Anna's Father before Anna has shown the follow-up offer"
+        3,
+        "Mayor should still be able to claim Find Anna's Father while Anna's follow-up offer is primed"
     );
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x84),
-        false,
-        "Mayor should not show the mission-complete reward UI before Anna's offer dialogue"
+        true,
+        "Mayor should still show the mission-complete reward UI while Anna's follow-up offer is primed"
     );
 
     client.sentPackets.length = 0;
@@ -260,25 +260,25 @@ async function testPrimedFindAnnasFatherBlocksMayorUntilAnnaShowsOffer(): Promis
 
     assert.equal(
         Number(client.character.missions[String(MissionID.FindAnnasFather)]?.currCount ?? 0),
-        0,
-        "Talking to Anna should clear the primed follow-up sentinel after showing the offer"
+        -1,
+        "Talking to Anna after Mayor turn-in should not mutate the already-claimed follow-up sentinel"
     );
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x85),
         false,
-        'Anna should not re-send the mission-added packet when the primed follow-up is already synced'
+        'Anna should not re-send the mission-added packet after the follow-up has already been claimed'
     );
 
     const skitPacket = client.sentPackets.find((packet) => packet.id === 0x7B);
-    assert.ok(skitPacket, 'Anna should still start the follow-up offer skit after the dungeon completion prime');
+    assert.ok(skitPacket, 'Anna should continue with claimed dialogue once the Mayor has already claimed the follow-up');
     assert.deepEqual(
         decodeStartSkitPacket(skitPacket!.payload),
         {
             npcId: 6218466,
-            dialogueId: 2,
+            dialogueId: 5,
             missionId: MissionID.FindAnnasFather
         },
-        "Anna should keep using Find Anna's Father offer dialogue while the primed follow-up marker is active"
+        "Anna should no longer use the Find Anna's Father offer dialogue after the Mayor turn-in is complete"
     );
 }
 
@@ -947,7 +947,7 @@ async function main(): Promise<void> {
     ensureDataLoaded();
     await testTutorialBoatCompletionPersistsDungeonHoverStats();
     await testRescueAnnaCompletionLeavesFindAnnasFatherAvailableOnAnna();
-    await testPrimedFindAnnasFatherBlocksMayorUntilAnnaShowsOffer();
+    await testPrimedFindAnnasFatherCanStillBeTurnedInToMayor();
     testFindAnnasFatherUsesOverworldAnnaContact();
     await testRescueAnnaRerunRefreshesDungeonHoverStats();
     await testRescueAnnaLowerScoreRerunKeepsBestHoverStats();

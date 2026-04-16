@@ -222,8 +222,7 @@ export class NpcHandler {
 
             if (
                 npcKey === returnKey &&
-                state === NpcHandler.MISSION_READY_TO_TURN_IN &&
-                !primedContactOffer
+                state === NpcHandler.MISSION_READY_TO_TURN_IN
             ) {
                 priority = 4;
                 dialogueId = 4;
