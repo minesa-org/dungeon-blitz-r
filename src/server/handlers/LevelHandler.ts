@@ -128,7 +128,7 @@ export class LevelHandler {
             ],
             {
                 fallbackLevel: 'NewbieRoad',
-                excludedLevels: ['CraftTown']
+                excludedLevels: ['CraftTown', 'CraftTownTutorial']
             }
         );
     }
@@ -1166,58 +1166,7 @@ export class LevelHandler {
     }
 
     private static spawnCraftTownTutorialFallbackBoss(client: Client): number | null {
-        const state = LevelHandler.getCraftTownTutorialState(client);
-        if (!state || !client.currentLevel) {
-            return null;
-        }
-
-        if (state.bossEntitySeen && state.bossEntitySource === 'fallback') {
-            return state.bossEntitySeen;
-        }
-
-        const levelMap = LevelHandler.getCurrentLevelMap(client, true) ?? new Map<number, any>();
-
-        for (const [entityId, entity] of levelMap.entries()) {
-            const entityName = String(entity?.name ?? entity?.props?.name ?? '');
-            const clientSpawned = Boolean(entity?.clientSpawned ?? entity?.props?.clientSpawned);
-            if (entityName === 'GoblinShamanHood' || entityName === 'IntroGoblinShamanHood') {
-                if (clientSpawned) {
-                    continue;
-                }
-                if (!client.entities.has(entityId)) {
-                    const bossProps = { ...entity, clientSpawned: false };
-                    client.entities.set(entityId, bossProps);
-                    noteDungeonRunEntitySeen(client, entityId, bossProps);
-                    EntityHandler.sendEntity(client, bossProps);
-                } else {
-                    client.entities.set(entityId, entity);
-                    noteDungeonRunEntitySeen(client, entityId, entity);
-                }
-                LevelHandler.markCraftTownTutorialBossSeen(client, entityId, 'fallback');
-                return entityId;
-            }
-        }
-
-        const template = LevelHandler.findCraftTownTutorialBossTemplate();
-        if (!template) {
-            return null;
-        }
-
-        const boss = {
-            ...template,
-            name: 'IntroGoblinShamanHood',
-            character_name: ',IntroGoblinShamanHood',
-            entState: 2,
-            untargetable: true,
-            clientSpawned: false
-        };
-
-        client.entities.set(boss.id, boss);
-        noteDungeonRunEntitySeen(client, boss.id, boss);
-        levelMap.set(boss.id, boss);
-        EntityHandler.sendEntity(client, boss);
-        LevelHandler.markCraftTownTutorialBossSeen(client, boss.id, 'fallback');
-        return boss.id;
+        return null;
     }
 
     private static activateCraftTownTutorialBoss(client: Client, bossId: number): void {
@@ -1480,45 +1429,19 @@ export class LevelHandler {
             return;
         }
 
-        const levelMap = LevelHandler.getCurrentLevelMap(client, true) ?? new Map<number, any>();
+        const levelMap = LevelHandler.getCurrentLevelMap(client, true);
+        if (!levelMap) {
+            return;
+        }
+
         const existing = LevelHandler.classifyCraftTownTutorialFallbackEntities(levelMap);
 
-        const rawLevelMap = new Map<number, any>();
-        for (const npc of NpcLoader.getRawNpcsForLevel('CraftTownTutorial')) {
-            const entity = {
-                ...Entity.fromNpc(npc),
-                clientSpawned: false
-            };
-            rawLevelMap.set(entity.id, entity);
+        if (existing.bossId !== null && state.bossEntitySeen === null) {
+            LevelHandler.markCraftTownTutorialBossSeen(client, existing.bossId, 'client');
         }
 
-        const rawEncounter = LevelHandler.prepareCraftTownTutorialFallbackEntities(rawLevelMap);
-
-        if (existing.bossId === null && rawEncounter.bossId !== null) {
-            const rawBoss = rawLevelMap.get(rawEncounter.bossId);
-            if (rawBoss && !levelMap.has(rawEncounter.bossId)) {
-                levelMap.set(rawEncounter.bossId, { ...rawBoss });
-            }
-        }
-
-        for (const helperId of rawEncounter.helperIds) {
-            if (levelMap.has(helperId)) {
-                continue;
-            }
-
-            const rawHelper = rawLevelMap.get(helperId);
-            if (rawHelper) {
-                levelMap.set(helperId, { ...rawHelper });
-            }
-        }
-
-        if (rawEncounter.helperIds.length > 0) {
-            // Prefer the canonical keep-tutorial helper set from the authored NPC data.
-            // Client-spawn tracking can surface transient boarded goblins with unstable IDs,
-            // and promoting those into the recovery wave can crash the client LinkUpdater flow.
-            state.helperEntityIds = [...rawEncounter.helperIds];
-        } else {
-            LevelHandler.mergeCraftTownTutorialHelperIds(state, levelMap, rawEncounter.helperIds);
+        if (existing.helperIds.length > 0) {
+            state.helperEntityIds = [...existing.helperIds];
         }
     }
 
@@ -1544,7 +1467,7 @@ export class LevelHandler {
         }
 
         const levelMap = new Map<number, any>();
-        for (const npc of NpcLoader.getRawNpcsForLevel(client.currentLevel)) {
+        for (const npc of NpcLoader.getNpcsForLevel(client.currentLevel)) {
             const entity = {
                 ...Entity.fromNpc(npc),
                 clientSpawned: false
@@ -1973,12 +1896,14 @@ export class LevelHandler {
         }
 
         const preferredHelperIds = state.helperEntityIds.filter((helperId) => {
-            const helper = LevelHandler.getCurrentLevelMap(client)?.get(helperId);
+            const helper =
+                LevelHandler.getCurrentLevelMap(client)?.get(helperId) ??
+                client.entities.get(helperId);
             return Boolean(helper);
         });
 
         LevelHandler.ensureCraftTownTutorialBossEncounterEntities(client);
-        const levelMap = LevelHandler.getCurrentLevelMap(client);
+        const levelMap = LevelHandler.getCurrentLevelMap(client, true);
         if (!levelMap) {
             return;
         }
@@ -1992,9 +1917,13 @@ export class LevelHandler {
         let spawnedCount = 0;
         const activeIds: number[] = [];
         for (const helperId of waveIds) {
-            const helper = levelMap.get(helperId);
+            const helper = levelMap.get(helperId) ?? client.entities.get(helperId);
             if (!helper) {
                 continue;
+            }
+
+            if (!levelMap.has(helperId)) {
+                levelMap.set(helperId, { ...helper });
             }
 
             helper.untargetable = false;
@@ -2544,13 +2473,29 @@ export class LevelHandler {
     }
 
     private static resolveDoorTarget(client: Client, currentLevel: string, doorId: number): string | null {
-        if (
-            doorId === 999 &&
-            currentLevel !== 'CraftTownTutorial' &&
-            LevelHandler.getMissionState(client, LevelHandler.FIRST_KEEP_MISSION_ID) ===
+        if (doorId === 999 && currentLevel === 'CraftTown') {
+            if (
+                LevelHandler.getMissionState(client, LevelHandler.FIRST_KEEP_MISSION_ID) ===
                 LevelHandler.MISSION_IN_PROGRESS
-        ) {
-            return 'CraftTownTutorial';
+            ) {
+                return 'CraftTownTutorial';
+            }
+
+            return LevelHandler.resolveCraftTownReturnLevel(
+                client,
+                client.character,
+                currentLevel,
+                null
+            );
+        }
+
+        if (doorId === 0 && (currentLevel === 'CraftTown' || currentLevel === 'CraftTownTutorial')) {
+            return LevelHandler.resolveCraftTownReturnLevel(
+                client,
+                client.character,
+                currentLevel,
+                null
+            );
         }
 
         return LevelConfig.getDoorTarget(currentLevel, doorId);

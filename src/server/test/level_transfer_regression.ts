@@ -459,6 +459,29 @@ function testResolveCraftTownReturnLevelRejectsCraftTownLoop(): void {
     assert.equal(resolved, 'NewbieRoad');
 }
 
+function testResolveCraftTownReturnLevelRejectsCraftTownTutorialLoop(): void {
+    const client = createClient();
+    client.currentLevel = 'CraftTownTutorial';
+    client.entryLevel = 'CraftTownTutorial';
+    const character = createCharacter('KeepRunner');
+    character.CurrentLevel = { name: 'CraftTownTutorial', x: 80, y: 1450 };
+    character.PreviousLevel = { name: 'CraftTownTutorial', x: 80, y: 1450 };
+
+    const resolved = (LevelHandler as any).resolveCraftTownReturnLevel(
+        client,
+        character,
+        'CraftTownTutorial',
+        {
+            x: 0,
+            y: 0,
+            hasCoord: false,
+            syncEntryLevel: 'CraftTownTutorial'
+        }
+    );
+
+    assert.equal(resolved, 'NewbieRoad');
+}
+
 function testSyncTransferSourcePositionFromLiveEntityUsesOverworldCoords(): void {
     const character = createCharacter('Hero');
     character.CurrentLevel = { name: 'NewbieRoad', x: 1421, y: 826 };
@@ -512,6 +535,25 @@ function testResolveDungeonExitSpawnUsesRecordedDungeonEntryCoords(): void {
     assert.deepEqual(spawn, { x: 13816, y: 605, hasCoord: true });
 }
 
+function testResolveDungeonExitSpawnUsesCraftTownTutorialStartPoint(): void {
+    const client = createClient();
+    client.currentLevel = 'CraftTown';
+
+    const character = createCharacter('KeepRunner');
+    character.CurrentLevel = { name: 'CraftTown', x: 918, y: 1440 };
+    character.PreviousLevel = { name: 'NewbieRoad', x: 1210, y: 880 };
+
+    const spawn = (LevelHandler as any).resolveDungeonExitSpawn(
+        client,
+        character,
+        'CraftTown',
+        'CraftTownTutorial',
+        null
+    );
+
+    assert.deepEqual(spawn, { x: 80, y: 1450, hasCoord: true });
+}
+
 function testRecoverTransferSessionStateRepairsCraftTownEntryLoop(): void {
     const client = createClient();
     const character = createCharacter('KeepRunner');
@@ -537,6 +579,42 @@ function testCraftTownDoorFallsBackToPreviousOverworld(): void {
     client.currentLevel = 'CraftTown';
     client.entryLevel = 'CraftTown';
     client.character = createCharacter('KeepRunner');
+    client.character.PreviousLevel = { name: 'WolfsEnd', x: 1210, y: 880 };
+
+    LevelHandler.handleOpenDoor(client as never, createOpenDoorPacket(0));
+
+    assert.equal(client.lastDoorId, 0);
+    assert.equal(client.lastDoorTargetLevel, 'NewbieRoad');
+}
+
+function testCraftTownDoor999FallsBackToPreviousOverworldAfterKeepCompletion(): void {
+    const client = createClient();
+    client.currentLevel = 'CraftTown';
+    client.entryLevel = 'NewbieRoad';
+    client.character = createCharacter('KeepRunner');
+    client.character.CurrentLevel = { name: 'CraftTown', x: 918, y: 1440 };
+    client.character.PreviousLevel = { name: 'WolfsEnd', x: 1210, y: 880 };
+    client.character.missions = {
+        '5': {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        }
+    };
+
+    LevelHandler.handleOpenDoor(client as never, createOpenDoorPacket(999));
+
+    assert.equal(client.lastDoorId, 999);
+    assert.equal(client.lastDoorTargetLevel, 'NewbieRoad');
+}
+
+function testCraftTownTutorialDoorFallsBackToPreviousOverworld(): void {
+    const client = createClient();
+    client.currentLevel = 'CraftTownTutorial';
+    client.entryLevel = 'NewbieRoad';
+    client.character = createCharacter('KeepRunner');
+    client.character.CurrentLevel = { name: 'CraftTown', x: 918, y: 1440 };
     client.character.PreviousLevel = { name: 'WolfsEnd', x: 1210, y: 880 };
 
     LevelHandler.handleOpenDoor(client as never, createOpenDoorPacket(0));
@@ -1172,12 +1250,14 @@ async function main(): Promise<void> {
         testResolveTransferSourceLevelPrefersLiveSessionLevel();
 
         testResolveCraftTownReturnLevelRejectsCraftTownLoop();
+        testResolveCraftTownReturnLevelRejectsCraftTownTutorialLoop();
 
         testSyncTransferSourcePositionFromLiveEntityUsesOverworldCoords();
 
         testSyncTransferSourcePositionFromLiveEntityDoesNotOverwriteDungeonReturnPoint();
 
         testResolveDungeonExitSpawnUsesRecordedDungeonEntryCoords();
+        testResolveDungeonExitSpawnUsesCraftTownTutorialStartPoint();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();
@@ -1200,6 +1280,8 @@ async function main(): Promise<void> {
         GlobalState.transferTokenAliases.clear();
 
         testCraftTownDoorFallsBackToPreviousOverworld();
+        testCraftTownDoor999FallsBackToPreviousOverworldAfterKeepCompletion();
+        testCraftTownTutorialDoorFallsBackToPreviousOverworld();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();

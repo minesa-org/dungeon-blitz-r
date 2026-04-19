@@ -58,8 +58,13 @@ export class MissionHandler {
     private static readonly MISSION_CLAIMED = 3;
     static readonly DUNGEON_COMPLETION_SKIT_SETTLE_MS = 1500;
     static readonly DUNGEON_COMPLETION_MAX_DEFER_MS = 15000;
+    static readonly CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS = 43 * 250;
     private static readonly PRIMED_CONTACT_DIALOGUE_COUNT = -1;
     private static readonly ACHIEVEMENT_MAMMOTH_IDOL_REWARD = 10;
+    private static readonly CRAFT_TOWN_TUTORIAL_BOSS_NAMES = new Set([
+        'GoblinShamanHood',
+        'IntroGoblinShamanHood'
+    ]);
     private static readonly NEWBIE_ROAD_GOBLIN_KILL_NAMES = new Set([
         'GoblinArmorSword',
         'GoblinBrute',
@@ -277,6 +282,15 @@ export class MissionHandler {
             return;
         }
 
+        const pendingScope = String(client.pendingDungeonCompletionScope ?? '').trim();
+        if (
+            pendingScope &&
+            !client.pendingDungeonCompletionFlushActive &&
+            pendingScope === getClientLevelScope(client)
+        ) {
+            MissionHandler.clearPendingDungeonCompletion(client);
+        }
+
         const br = new BitReader(data);
         const completionPercent = br.readMethod9();
         const bonusScoreTotal = br.readMethod9();
@@ -301,6 +315,10 @@ export class MissionHandler {
         let clearedDungeon =
             effectiveCompletionPercent >= 100 ||
             (requiredKills > 0 && remainingKills <= 0);
+        const allowCraftTownTutorialClientCompletion =
+            currentLevel === 'CraftTownTutorial' &&
+            Boolean(client.keepTutorialState?.bossDefeated) &&
+            clearedDungeon;
 
         if (usesSharedDungeonProgress(currentLevel) && levelScope) {
             const sharedState = forceSharedDungeonCompletion
@@ -308,10 +326,17 @@ export class MissionHandler {
                 : recomputeSharedDungeonProgress(levelScope) ?? getOrCreateSharedDungeonProgressState(levelScope);
             if (sharedState) {
                 if (!forceSharedDungeonCompletion && sharedState.progress < 100) {
-                    if (!hasSharedDungeonProgressHostiles(levelScope)) {
+                    if (allowCraftTownTutorialClientCompletion) {
+                        sharedState.progress = 100;
+                        effectiveCompletionPercent = 100;
+                        client.character.questTrackerState = 100;
+                        MissionHandler.broadcastSharedDungeonQuestProgress(levelScope, 100);
+                    } else {
+                        if (!hasSharedDungeonProgressHostiles(levelScope)) {
+                            return;
+                        }
                         return;
                     }
-                    return;
                 }
 
                 if (forceSharedDungeonCompletion) {
@@ -457,7 +482,32 @@ export class MissionHandler {
             LevelConfig.normalizeLevelName(client.currentLevel || String(client.character.CurrentLevel?.name ?? '')) ||
             client.currentLevel ||
             String(client.character.CurrentLevel?.name ?? '');
-        if (!currentLevel || !LevelConfig.isDungeonLevel(currentLevel)) {
+        if (!currentLevel) {
+            return;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        if (!levelScope || client.forcedDungeonCompletionScope === levelScope) {
+            return;
+        }
+
+        if (currentLevel === 'CraftTownTutorial') {
+            if (!MissionHandler.isCraftTownTutorialBossEntity(destroyedEntity)) {
+                return;
+            }
+
+            MissionHandler.scheduleDungeonCompletion(
+                client,
+                MissionHandler.buildSyntheticLevelCompletePacket(100),
+                {
+                    forcedDungeonCompletionScope: levelScope,
+                    initialDelayMs: MissionHandler.CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS
+                }
+            );
+            return;
+        }
+
+        if (!LevelConfig.isDungeonLevel(currentLevel)) {
             return;
         }
 
@@ -466,11 +516,6 @@ export class MissionHandler {
         }
 
         if (!MissionHandler.isDungeonBossEntity(destroyedEntity)) {
-            return;
-        }
-
-        const levelScope = getClientLevelScope(client);
-        if (!levelScope || client.forcedDungeonCompletionScope === levelScope) {
             return;
         }
 
@@ -1107,6 +1152,10 @@ export class MissionHandler {
         const entType = entityName ? GameData.getEntType(entityName) ?? {} : {};
         const entRank = String(entity?.entRank ?? entType?.EntRank ?? '').trim();
         return entRank === 'Boss';
+    }
+
+    private static isCraftTownTutorialBossEntity(entity: any): boolean {
+        return MissionHandler.CRAFT_TOWN_TUTORIAL_BOSS_NAMES.has(String(entity?.name ?? '').trim());
     }
 
     private static getMissionStateMap(character: Character): Record<string, MissionEntry> {
