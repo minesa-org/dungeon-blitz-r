@@ -850,12 +850,14 @@ export class LevelHandler {
 
         sharedState.completionRequested = true;
         const requiredKills = Math.max(1, getSharedDungeonProgressTotals(levelScope).total);
-        void MissionHandler.handleSetLevelComplete(
+        MissionHandler.scheduleDungeonCompletion(
             authorityClient,
             LevelHandler.buildSharedDungeonAutoCompletePayload(requiredKills)
-        ).then(() => {
+        );
+        const refreshDelay = MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 50;
+        setTimeout(() => {
             recomputeSharedDungeonProgress(levelScope);
-        });
+        }, refreshDelay).unref?.();
     }
 
     static syncSharedDungeonQuestProgressState(client: Client): void {

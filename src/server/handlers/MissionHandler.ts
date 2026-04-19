@@ -56,6 +56,8 @@ export class MissionHandler {
     private static readonly MISSION_IN_PROGRESS = 1;
     private static readonly MISSION_READY_TO_TURN_IN = 2;
     private static readonly MISSION_CLAIMED = 3;
+    static readonly DUNGEON_COMPLETION_SKIT_SETTLE_MS = 1500;
+    static readonly DUNGEON_COMPLETION_MAX_DEFER_MS = 15000;
     private static readonly PRIMED_CONTACT_DIALOGUE_COUNT = -1;
     private static readonly ACHIEVEMENT_MAMMOTH_IDOL_REWARD = 10;
     private static readonly NEWBIE_ROAD_GOBLIN_KILL_NAMES = new Set([
@@ -418,7 +420,11 @@ export class MissionHandler {
                 }
             }
 
-            if (currentLevel !== 'CraftTownTutorial' && MissionHandler.moveCharacterBackToSafeLevel(client.character, currentLevel)) {
+            if (
+                currentLevel !== 'CraftTownTutorial' &&
+                currentLevel !== 'TutorialBoat' &&
+                MissionHandler.moveCharacterBackToSafeLevel(client.character, currentLevel)
+            ) {
                 didMutate = true;
             }
         }
@@ -455,6 +461,10 @@ export class MissionHandler {
             return;
         }
 
+        if (currentLevel === 'TutorialBoat') {
+            return;
+        }
+
         if (!MissionHandler.isDungeonBossEntity(destroyedEntity)) {
             return;
         }
@@ -473,14 +483,133 @@ export class MissionHandler {
             return;
         }
 
-        client.forcedDungeonCompletionScope = levelScope;
-        try {
-            await MissionHandler.handleSetLevelComplete(
+        MissionHandler.scheduleDungeonCompletion(
+            client,
+            MissionHandler.buildSyntheticLevelCompletePacket(100),
+            { forcedDungeonCompletionScope: levelScope }
+        );
+    }
+
+    static scheduleDungeonCompletion(
+        client: Client,
+        payload: Buffer,
+        options: {
+            forcedDungeonCompletionScope?: string;
+            initialDelayMs?: number;
+        } = {}
+    ): void {
+        const levelScope = getClientLevelScope(client);
+        if (!client.character || !levelScope) {
+            return;
+        }
+
+        const now = Date.now();
+        const initialDelayMs = Math.max(
+            0,
+            Math.round(Number(options.initialDelayMs ?? MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS))
+        );
+        client.pendingDungeonCompletionScope = levelScope;
+        client.pendingDungeonCompletionRequestedAt = now;
+        client.pendingDungeonCompletionLastSkitAt = now;
+        client.pendingDungeonCompletionNotBeforeAt = now + initialDelayMs;
+        client.pendingDungeonCompletionPayload = Buffer.from(payload);
+        client.pendingDungeonCompletionForceSharedScope = String(options.forcedDungeonCompletionScope ?? '').trim();
+
+        MissionHandler.armPendingDungeonCompletionTimer(client, initialDelayMs);
+    }
+
+    static noteDungeonSkitActivity(client: Client): void {
+        const pendingScope = String(client.pendingDungeonCompletionScope ?? '').trim();
+        if (!pendingScope || getClientLevelScope(client) !== pendingScope) {
+            return;
+        }
+
+        client.pendingDungeonCompletionLastSkitAt = Date.now();
+        const remainingNotBeforeMs = Math.max(
+            0,
+            Number(client.pendingDungeonCompletionNotBeforeAt ?? 0) - Date.now()
+        );
+        MissionHandler.armPendingDungeonCompletionTimer(
+            client,
+            Math.max(remainingNotBeforeMs, MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS)
+        );
+    }
+
+    private static armPendingDungeonCompletionTimer(client: Client, delayMs: number): void {
+        if (client.pendingDungeonCompletionTimer) {
+            clearTimeout(client.pendingDungeonCompletionTimer);
+        }
+
+        const safeDelay = Math.max(0, Math.round(Number(delayMs ?? 0)));
+        client.pendingDungeonCompletionTimer = setTimeout(() => {
+            client.pendingDungeonCompletionTimer = null;
+            void MissionHandler.flushPendingDungeonCompletion(client);
+        }, safeDelay);
+        client.pendingDungeonCompletionTimer.unref?.();
+    }
+
+    private static clearPendingDungeonCompletion(client: Client): void {
+        if (client.pendingDungeonCompletionTimer) {
+            clearTimeout(client.pendingDungeonCompletionTimer);
+            client.pendingDungeonCompletionTimer = null;
+        }
+        client.pendingDungeonCompletionScope = '';
+        client.pendingDungeonCompletionRequestedAt = 0;
+        client.pendingDungeonCompletionLastSkitAt = 0;
+        client.pendingDungeonCompletionNotBeforeAt = 0;
+        client.pendingDungeonCompletionPayload = null;
+        client.pendingDungeonCompletionForceSharedScope = '';
+        client.pendingDungeonCompletionFlushActive = false;
+    }
+
+    private static async flushPendingDungeonCompletion(client: Client): Promise<void> {
+        const pendingScope = String(client.pendingDungeonCompletionScope ?? '').trim();
+        const currentScope = getClientLevelScope(client);
+        const payload = client.pendingDungeonCompletionPayload;
+        if (!client.character || !pendingScope || !payload || currentScope !== pendingScope) {
+            MissionHandler.clearPendingDungeonCompletion(client);
+            return;
+        }
+
+        const now = Date.now();
+        const requestedAt = Math.max(0, Number(client.pendingDungeonCompletionRequestedAt ?? 0));
+        const lastSkitAt = Math.max(requestedAt, Number(client.pendingDungeonCompletionLastSkitAt ?? 0));
+        const notBeforeAt = Math.max(requestedAt, Number(client.pendingDungeonCompletionNotBeforeAt ?? 0));
+        const quietForMs = now - lastSkitAt;
+        const maxQuietWaitDeadline = Math.max(
+            requestedAt + MissionHandler.DUNGEON_COMPLETION_MAX_DEFER_MS,
+            notBeforeAt + MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS
+        );
+
+        if (now < notBeforeAt) {
+            MissionHandler.armPendingDungeonCompletionTimer(client, notBeforeAt - now);
+            return;
+        }
+
+        if (
+            quietForMs < MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS &&
+            now < maxQuietWaitDeadline
+        ) {
+            MissionHandler.armPendingDungeonCompletionTimer(
                 client,
-                MissionHandler.buildSyntheticLevelCompletePacket(100)
+                MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS - quietForMs
             );
+            return;
+        }
+
+        const forcedScope = String(client.pendingDungeonCompletionForceSharedScope ?? '').trim();
+        MissionHandler.clearPendingDungeonCompletion(client);
+
+        if (forcedScope) {
+            client.forcedDungeonCompletionScope = forcedScope;
+        }
+
+        try {
+            client.pendingDungeonCompletionFlushActive = true;
+            await MissionHandler.handleSetLevelComplete(client, payload);
         } finally {
-            if (client.forcedDungeonCompletionScope === levelScope && getActiveDungeonRunStats(client)?.finalizedStats) {
+            client.pendingDungeonCompletionFlushActive = false;
+            if (forcedScope && client.forcedDungeonCompletionScope === forcedScope && getActiveDungeonRunStats(client)?.finalizedStats) {
                 client.forcedDungeonCompletionScope = '';
             }
         }

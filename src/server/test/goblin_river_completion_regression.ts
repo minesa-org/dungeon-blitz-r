@@ -98,6 +98,10 @@ function createClient(levelName: string, missionId: MissionID, characterName: st
     };
 }
 
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function testGoblinRiverBossKillForcesDungeonCompleteScreen(): Promise<void> {
     const client = createClient('GoblinRiverDungeon', MissionID.GoblinRiver, 'GoblinBossTester');
     const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
@@ -135,8 +139,25 @@ async function testGoblinRiverBossKillForcesDungeonCompleteScreen(): Promise<voi
 
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'killing GoblinBoss2 should defer dungeon completion long enough for post-boss skits to play'
+    );
+
+    MissionHandler.noteDungeonSkitActivity(client as never);
+    await sleep(Math.max(25, MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS - 250));
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'recent skit activity should keep the dungeon completion screen from cutting off dialogue'
+    );
+
+    await sleep(400);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
         true,
-        'killing GoblinBoss2 should force the dungeon completion screen even if the shared tracker still has other hostiles'
+        'killing GoblinBoss2 should still force the dungeon completion screen after the skit window settles'
     );
     assert.equal(
         Number(client.character.missions[String(MissionID.GoblinRiver)]?.state ?? 0),
@@ -192,8 +213,16 @@ async function testNephitBossKillForcesDungeonCompleteScreen(): Promise<void> {
 
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'killing Nephit should not immediately interrupt any trailing dungeon dialogue'
+    );
+
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
         true,
-        'killing Nephit should force the dungeon completion screen even if other hostiles remain alive'
+        'killing Nephit should still force the dungeon completion screen once the defer window expires'
     );
     assert.equal(
         Number(client.character.missions[String(MissionID.KillNephit)]?.state ?? 0),
