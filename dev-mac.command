@@ -45,11 +45,11 @@ else
   echo
 fi
 
-echo "Starting server (npm run dev)..."
+echo "Starting server + Discord RPC (npm run dev:with-discord)..."
 echo "When it's ready, open the URL shown in the logs."
 echo
 set +e
-npm run dev
+npm run dev:with-discord
 EXIT_CODE=$?
 set -e
 

@@ -65,7 +65,7 @@ export class LevelConfig {
         "NewbieRoad": { x: 1421, y: 826 },
         "NewbieRoadHard": { x: 1421, y: 826 },
         "CraftTown": { x: 360, y: 1460 },
-        "CraftTownTutorial": { x: 80, y: 1450 },
+        "CraftTownTutorial": { x: -6886, y: 1623 },
         "BridgeTown": { x: 3944, y: 838 },
         "BridgeTownHard": { x: 3944, y: 838 },
         "SwampRoadNorth": { x: 4360, y: 595 },
@@ -334,6 +334,11 @@ export class LevelConfig {
 
         if (this.isDungeonLevel(targetLevel)) {
             return { x: 0, y: 0, hasCoord: false };
+        }
+
+        if (targetLevel === 'CraftTownTutorial') {
+            const spawn = this.getSpawn(targetLevel);
+            return { x: Math.round(spawn.x), y: Math.round(spawn.y), hasCoord: true };
         }
 
         const currentRecord = this.asLevelRecord(char?.CurrentLevel);

@@ -702,6 +702,7 @@ export class LevelHandler {
     private static readonly FIRST_KEEP_MISSION_ID = MissionID.ClearYourHouse;
     private static readonly MISSION_NOT_STARTED = 0;
     private static readonly MISSION_IN_PROGRESS = 1;
+    private static readonly MISSION_CLAIMED = 3;
     private static readonly KEEP_TUTORIAL_BOSS_TRIGGER_X = Number.MAX_SAFE_INTEGER;
     private static readonly KEEP_TUTORIAL_CUTSCENE_STEP_MS = 250;
     private static readonly KEEP_TUTORIAL_BOSS_INTRO_TOTAL_MS = 14750;
@@ -890,7 +891,8 @@ export class LevelHandler {
     static shouldSkipDungeonRoomProgressSync(levelName: string | null | undefined): boolean {
         const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
         return usesSharedDungeonProgress(normalizedLevel) ||
-            normalizedLevel === 'TutorialDungeon';
+            normalizedLevel === 'TutorialDungeon' ||
+            normalizedLevel === 'CraftTownTutorial';
     }
 
     static prepareGoblinRiverDungeonEntryState(client: Client): void {
@@ -902,6 +904,13 @@ export class LevelHandler {
             client.currentRoomId = 0;
             client.startedRoomEvents.clear();
             client.character.questTrackerState = LevelHandler.TUTORIAL_DUNGEON_INITIAL_PROGRESS;
+            return;
+        }
+
+        if (client.currentLevel === 'CraftTownTutorial') {
+            client.currentRoomId = 0;
+            client.startedRoomEvents.clear();
+            client.character.questTrackerState = 0;
             return;
         }
 
@@ -2077,9 +2086,14 @@ export class LevelHandler {
         const state = LevelHandler.getCraftTownTutorialState(client);
 
         const missionState = LevelHandler.getCharacterMissionState(client.character, LevelHandler.FIRST_KEEP_MISSION_ID);
+        const shouldResetKeepMission =
+            missionState === LevelHandler.MISSION_IN_PROGRESS ||
+            (
+                missionState === LevelHandler.MISSION_NOT_STARTED &&
+                LevelHandler.canStartMission(client.character, LevelHandler.FIRST_KEEP_MISSION_ID)
+            );
         if (
-            missionState === LevelHandler.MISSION_NOT_STARTED &&
-            LevelHandler.canStartMission(client.character, LevelHandler.FIRST_KEEP_MISSION_ID)
+            shouldResetKeepMission
         ) {
             const missions =
                 client.character.missions &&
@@ -2101,7 +2115,9 @@ export class LevelHandler {
                 missionId: LevelHandler.FIRST_KEEP_MISSION_ID
             });
 
-            LevelHandler.sendMissionAdded(client, LevelHandler.FIRST_KEEP_MISSION_ID);
+            if (missionState === LevelHandler.MISSION_NOT_STARTED) {
+                LevelHandler.sendMissionAdded(client, LevelHandler.FIRST_KEEP_MISSION_ID);
+            }
             LevelHandler.sendQuestProgress(client, 0);
 
             if (client.userId) {
@@ -2472,6 +2488,18 @@ export class LevelHandler {
         const entry = missions[String(missionId)];
         const state = entry && typeof entry === 'object' ? entry.state : undefined;
         return Number(state ?? LevelHandler.MISSION_NOT_STARTED);
+    }
+
+    private static resolveKeepTutorialTransferTarget(client: Client, targetLevel: string): string {
+        if (
+            targetLevel === 'CraftTown' &&
+            LevelHandler.getMissionState(client, LevelHandler.FIRST_KEEP_MISSION_ID) ===
+                LevelHandler.MISSION_IN_PROGRESS
+        ) {
+            return 'CraftTownTutorial';
+        }
+
+        return targetLevel;
     }
 
     private static resolveDoorTarget(client: Client, currentLevel: string, doorId: number): string | null {
@@ -3115,6 +3143,8 @@ export class LevelHandler {
             console.log(`[Level] Invalid transfer target '${targetLevel}', falling back to last door target ${lastDoorTarget}`);
             targetLevel = lastDoorTarget;
         }
+
+        targetLevel = LevelHandler.resolveKeepTutorialTransferTarget(client, targetLevel);
 
         if (!LevelConfig.has(targetLevel)) {
             const safeFallback = LevelConfig.normalizeLevelName(client.currentLevel || "NewbieRoad") || "NewbieRoad";

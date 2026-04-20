@@ -58,10 +58,10 @@ if not exist "src\server\node_modules\" (
   echo.
 )
 
-echo Starting server (npm run dev)...
+echo Starting server + Discord RPC (npm run dev:with-discord)...
 echo When it's ready, open the URL shown in the logs.
 echo.
-call npm run dev
+call npm run dev:with-discord
 set EXIT_CODE=%errorlevel%
 
 echo.
