@@ -1,76 +1,70 @@
 @echo off
 setlocal enabledelayedexpansion
 
-title Dungeon Blitz (local dev server)
-
-REM Switch to repo root (directory of this script)
+:: Script'in bulundugu klasore git
 cd /d "%~dp0"
 
-echo Dungeon Blitz (local dev server)
+echo Dungeon Blitz ^(local dev server^)
 echo.
 
+:: Node kontrol
 where node >nul 2>nul
-if errorlevel 1 (
-  echo ERROR: Node.js is not installed or not on PATH.
-  echo Install Node.js (LTS) then re-run this file.
-  echo.
-  pause
-  exit /b 1
+if %errorlevel% neq 0 (
+    echo ERROR: Node.js is not installed or not on PATH.
+    echo Install Node.js ^(LTS^) then re-run this file.
+    echo.
+    pause
+    exit /b 1
 )
 
+:: npm kontrol
 where npm >nul 2>nul
-if errorlevel 1 (
-  echo ERROR: npm is not installed or not on PATH.
-  echo Reinstall Node.js (LTS) then re-run this file.
-  echo.
-  pause
-  exit /b 1
+if %errorlevel% neq 0 (
+    echo ERROR: npm is not installed or not on PATH.
+    echo Reinstall Node.js ^(LTS^) then re-run this file.
+    echo.
+    pause
+    exit /b 1
 )
 
-for /f "delims=" %%v in ('node -v') do set NODE_VER=%%v
-for /f "delims=" %%v in ('npm -v') do set NPM_VER=%%v
-echo Node: %NODE_VER%
-echo npm:  %NPM_VER%
+:: Versiyonlar
+echo Node:
+node -v
+echo npm:
+call npm -v
 echo.
 
-if not exist "node_modules\" (
-  echo Installing root dependencies...
-  call npm install
-  if errorlevel 1 goto :fail
-  echo.
+:: Root dependencies
+if not exist node_modules (
+    echo Installing root dependencies...
+    call npm install
+    echo.
 ) else (
-  echo Root dependencies already installed; skipping.
-  echo.
+    echo Root dependencies already installed; skipping.
+    echo.
 )
 
-if not exist "src\server\node_modules\" (
-  echo Installing server dependencies...
-  pushd "src\server"
-  call npm install
-  if errorlevel 1 (
-    popd
-    goto :fail
-  )
-  popd
-  echo.
+:: Server dependencies
+if not exist src\server\node_modules (
+    echo Installing server dependencies...
+    cd src\server
+    call npm install
+    cd /d "%~dp0"
+    echo.
 ) else (
-  echo Server dependencies already installed; skipping.
-  echo.
+    echo Server dependencies already installed; skipping.
+    echo.
 )
 
-echo Starting server (npm run dev)...
+:: SERVER BASLAT
+echo Starting server with Discord RPC ^(npm run dev:discord^)^...
 echo When it's ready, open the URL shown in the logs.
 echo.
-call npm run dev
+
+call npm run dev:discord
 set EXIT_CODE=%errorlevel%
 
 echo.
 echo Server exited with code %EXIT_CODE%
 pause
 exit /b %EXIT_CODE%
-
-:fail
-echo.
-echo ERROR: Command failed.
-pause
-exit /b 1
