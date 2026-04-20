@@ -1223,6 +1223,10 @@ export class MissionHandler {
                 continue;
             }
 
+            if (missionId === MissionID.ClearYourHouse) {
+                continue;
+            }
+
             const missionDef = MissionLoader.getMissionDef(missionId);
             const dungeonLevel =
                 LevelConfig.normalizeLevelName(String(missionDef?.Dungeon ?? '')) ||
