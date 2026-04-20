@@ -37,3 +37,6 @@ Open the game in Flash Projector using:
 ```sh
 http://localhost/p/cbv/DungeonBlitz.swf?fv=cbq&gv=cbv
 ```
+
+[^1]: GitHub Desktop is optional to download.
+[^2]: You won't run multiplayer version.
