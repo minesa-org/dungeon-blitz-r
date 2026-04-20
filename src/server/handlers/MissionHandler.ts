@@ -501,7 +501,8 @@ export class MissionHandler {
                 MissionHandler.buildSyntheticLevelCompletePacket(100),
                 {
                     forcedDungeonCompletionScope: levelScope,
-                    initialDelayMs: MissionHandler.CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS
+                    initialDelayMs: MissionHandler.CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS,
+                    settleDelayMs: 0
                 }
             );
             return;
@@ -541,6 +542,7 @@ export class MissionHandler {
         options: {
             forcedDungeonCompletionScope?: string;
             initialDelayMs?: number;
+            settleDelayMs?: number;
         } = {}
     ): void {
         const levelScope = getClientLevelScope(client);
@@ -553,10 +555,15 @@ export class MissionHandler {
             0,
             Math.round(Number(options.initialDelayMs ?? MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS))
         );
+        const settleDelayMs = Math.max(
+            0,
+            Math.round(Number(options.settleDelayMs ?? MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS))
+        );
         client.pendingDungeonCompletionScope = levelScope;
         client.pendingDungeonCompletionRequestedAt = now;
         client.pendingDungeonCompletionLastSkitAt = now;
         client.pendingDungeonCompletionNotBeforeAt = now + initialDelayMs;
+        client.pendingDungeonCompletionSettleMs = settleDelayMs;
         client.pendingDungeonCompletionPayload = Buffer.from(payload);
         client.pendingDungeonCompletionForceSharedScope = String(options.forcedDungeonCompletionScope ?? '').trim();
 
@@ -570,13 +577,14 @@ export class MissionHandler {
         }
 
         client.pendingDungeonCompletionLastSkitAt = Date.now();
+        const settleDelayMs = Math.max(0, Number(client.pendingDungeonCompletionSettleMs ?? MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS));
         const remainingNotBeforeMs = Math.max(
             0,
             Number(client.pendingDungeonCompletionNotBeforeAt ?? 0) - Date.now()
         );
         MissionHandler.armPendingDungeonCompletionTimer(
             client,
-            Math.max(remainingNotBeforeMs, MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS)
+            Math.max(remainingNotBeforeMs, settleDelayMs)
         );
     }
 
@@ -602,6 +610,7 @@ export class MissionHandler {
         client.pendingDungeonCompletionRequestedAt = 0;
         client.pendingDungeonCompletionLastSkitAt = 0;
         client.pendingDungeonCompletionNotBeforeAt = 0;
+        client.pendingDungeonCompletionSettleMs = 0;
         client.pendingDungeonCompletionPayload = null;
         client.pendingDungeonCompletionForceSharedScope = '';
         client.pendingDungeonCompletionFlushActive = false;
@@ -620,10 +629,11 @@ export class MissionHandler {
         const requestedAt = Math.max(0, Number(client.pendingDungeonCompletionRequestedAt ?? 0));
         const lastSkitAt = Math.max(requestedAt, Number(client.pendingDungeonCompletionLastSkitAt ?? 0));
         const notBeforeAt = Math.max(requestedAt, Number(client.pendingDungeonCompletionNotBeforeAt ?? 0));
+        const settleDelayMs = Math.max(0, Number(client.pendingDungeonCompletionSettleMs ?? MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS));
         const quietForMs = now - lastSkitAt;
         const maxQuietWaitDeadline = Math.max(
             requestedAt + MissionHandler.DUNGEON_COMPLETION_MAX_DEFER_MS,
-            notBeforeAt + MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS
+            notBeforeAt + settleDelayMs
         );
 
         if (now < notBeforeAt) {
@@ -632,12 +642,12 @@ export class MissionHandler {
         }
 
         if (
-            quietForMs < MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS &&
+            quietForMs < settleDelayMs &&
             now < maxQuietWaitDeadline
         ) {
             MissionHandler.armPendingDungeonCompletionTimer(
                 client,
-                MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS - quietForMs
+                settleDelayMs - quietForMs
             );
             return;
         }

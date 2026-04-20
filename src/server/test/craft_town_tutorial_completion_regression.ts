@@ -5,6 +5,7 @@ import { LevelConfig } from '../core/LevelConfig';
 import { MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
 import { MissionHandler } from '../handlers/MissionHandler';
+import { LevelHandler } from '../handlers/LevelHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 
 type SentPacket = {
@@ -27,6 +28,7 @@ type FakeClient = {
     pendingDungeonCompletionRequestedAt?: number;
     pendingDungeonCompletionLastSkitAt?: number;
     pendingDungeonCompletionNotBeforeAt?: number;
+    pendingDungeonCompletionSettleMs?: number;
     pendingDungeonCompletionPayload?: Buffer | null;
     pendingDungeonCompletionForceSharedScope?: string;
     pendingDungeonCompletionTimer?: NodeJS.Timeout | null;
@@ -70,6 +72,7 @@ function createFakeClient(): FakeClient {
         pendingDungeonCompletionRequestedAt: 0,
         pendingDungeonCompletionLastSkitAt: 0,
         pendingDungeonCompletionNotBeforeAt: 0,
+        pendingDungeonCompletionSettleMs: 0,
         pendingDungeonCompletionPayload: null,
         pendingDungeonCompletionForceSharedScope: '',
         pendingDungeonCompletionTimer: null,
@@ -171,11 +174,14 @@ async function testCraftTownTutorialBossKillSchedulesDelayedFallbackCompletion()
         'CraftTownTutorial#keep-run',
         'keep fallback completion should bypass the shared-progress empty-board guard once Ranik is down'
     );
+    assert.equal(
+        Number(client.pendingDungeonCompletionSettleMs ?? -1),
+        0,
+        'keep fallback completion should not add extra settle delay after the defeat skit finishes'
+    );
 
     await sleep(
-        MissionHandler.CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS +
-            MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS +
-            300
+        MissionHandler.CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS + 300
     );
 
     assert.equal(
@@ -220,6 +226,39 @@ async function testCraftTownTutorialRealCompletionCancelsPendingFallback(): Prom
     );
 }
 
+function testCraftTownTutorialSharedProgressDoesNotAutoCompleteBeforeBossDefeat(): void {
+    const client = createFakeClient();
+    client.keepTutorialState = { bossDefeated: false };
+    (client as FakeClient & { playerSpawned?: boolean; token?: number; dungeonRun?: { finalizedAt?: number } }).playerSpawned = true;
+    (client as FakeClient & { playerSpawned?: boolean; token?: number; dungeonRun?: { finalizedAt?: number } }).token = 7001;
+
+    GlobalState.sessionsByToken.set(7001, client as never);
+    GlobalState.levelQuestProgress.set('CraftTownTutorial#keep-run', {
+        progress: 100,
+        authorityToken: 7001,
+        completionRequested: false,
+        trackedHostileIds: new Set<number>(),
+        defeatedHostileIds: new Set<number>(),
+        liveStatsByCharacter: new Map()
+    });
+
+    (LevelHandler as any).maybeAutoCompleteSharedDungeon(
+        'CraftTownTutorial#keep-run',
+        GlobalState.levelQuestProgress.get('CraftTownTutorial#keep-run')
+    );
+
+    assert.equal(
+        GlobalState.levelQuestProgress.get('CraftTownTutorial#keep-run')?.completionRequested,
+        false,
+        'keep intro progress should not auto-complete the dungeon before Ranik is actually defeated'
+    );
+    assert.equal(
+        client.pendingDungeonCompletionScope,
+        '',
+        'keep intro progress should not queue a forced completion while the boss cutscene is only starting'
+    );
+}
+
 async function main(): Promise<void> {
     ensureLevelConfigLoaded();
 
@@ -236,7 +275,11 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
         await testCraftTownTutorialCompletionPreservesReturnCoordinatesUntilExitTransfer();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelQuestProgress.clear();
+        testCraftTownTutorialSharedProgressDoesNotAutoCompleteBeforeBossDefeat();
     } finally {
+        GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities = levelEntities;
         GlobalState.levelQuestProgress = levelQuestProgress;
     }

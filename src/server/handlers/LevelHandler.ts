@@ -851,6 +851,13 @@ export class LevelHandler {
             return;
         }
 
+        if (
+            LevelConfig.normalizeLevelName(authorityClient.currentLevel) === 'CraftTownTutorial' &&
+            !authorityClient.keepTutorialState?.bossDefeated
+        ) {
+            return;
+        }
+
         sharedState.completionRequested = true;
         const requiredKills = Math.max(1, getSharedDungeonProgressTotals(levelScope).total);
         MissionHandler.scheduleDungeonCompletion(

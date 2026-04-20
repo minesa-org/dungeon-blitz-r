@@ -174,6 +174,7 @@ export class Client {
     public pendingDungeonCompletionRequestedAt: number = 0;
     public pendingDungeonCompletionLastSkitAt: number = 0;
     public pendingDungeonCompletionNotBeforeAt: number = 0;
+    public pendingDungeonCompletionSettleMs: number = 0;
     public pendingDungeonCompletionPayload: Buffer | null = null;
     public pendingDungeonCompletionForceSharedScope: string = "";
     public pendingDungeonCompletionTimer: NodeJS.Timeout | null = null;
@@ -342,6 +343,7 @@ export class Client {
         this.pendingDungeonCompletionRequestedAt = 0;
         this.pendingDungeonCompletionLastSkitAt = 0;
         this.pendingDungeonCompletionNotBeforeAt = 0;
+        this.pendingDungeonCompletionSettleMs = 0;
         this.pendingDungeonCompletionPayload = null;
         this.pendingDungeonCompletionForceSharedScope = "";
         if (this.pendingDungeonCompletionTimer) {
