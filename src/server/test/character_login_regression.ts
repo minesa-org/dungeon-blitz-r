@@ -203,25 +203,39 @@ function testStoryRepairUpgradesLostAtSeaTurnInInsideTutorialBoat(): void {
     assert.equal(Number(character.missions?.['1']?.currCount ?? 0), 1);
 }
 
-function testStoryRepairFinalizesCompletedGoblinRiverOutsideDungeon(): void {
+function testStoryRepairDoesNotAutoCompleteUnrelatedSwampDungeonOnLogin(): void {
     MissionLoader.load(path.resolve(__dirname, '..', 'data'));
 
-    const character = createCharacter('GoblinRiverRepair');
-    character.CurrentLevel = { name: 'NewbieRoad', x: 11083, y: 539 };
-    character.PreviousLevel = { name: 'CraftTown', x: 1083, y: 1448 };
+    const character = createCharacter('SwampDungeonRepairGuard');
+    character.CurrentLevel = { name: 'SwampRoadNorth', x: 4801, y: 579 };
+    character.PreviousLevel = { name: 'NewbieRoad', x: 20512, y: 639 };
     character.questTrackerState = 100;
     character.missions = {
-        '271': {
+        '1': { state: 3, currCount: 1, claimed: 1, complete: 1 },
+        '2': { state: 3, claimed: 1, complete: 1 },
+        '3': { state: 3, currCount: 1, claimed: 1, complete: 1 },
+        '4': { state: 3, currCount: 0, claimed: 1, complete: 1 },
+        '5': { state: 3, currCount: 1, claimed: 1, complete: 1 },
+        '6': { state: 3, currCount: 1, claimed: 1, complete: 1 },
+        '7': { state: 3, currCount: 1, claimed: 1, complete: 1 },
+        '8': { state: 3, claimed: 1, complete: 1 },
+        '15': {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        '20': {
             state: 1,
             currCount: 0
         }
     };
 
-    const repair = MissionHandler.repairEarlyStoryOnLogin(character, 'NewbieRoad');
+    const repair = MissionHandler.repairEarlyStoryOnLogin(character, 'SwampRoadNorth');
 
-    assert.equal(repair.didMutate, true);
-    assert.equal(Number(character.missions?.['271']?.state ?? 0), 2);
-    assert.equal(Number(character.missions?.['271']?.currCount ?? 0), 1);
+    assert.equal(repair.didMutate, false);
+    assert.equal(Number(character.missions?.['20']?.state ?? 0), 1);
+    assert.equal(Number(character.missions?.['20']?.currCount ?? 0), 0);
 }
 
 function testStoryRepairDoesNotAutoClaimKeepQuestOutsideDungeon(): void {
@@ -366,7 +380,7 @@ async function main(): Promise<void> {
     testMissionSyncDoesNotReplayQuestPopupsOnLogin();
     testBootstrappedStoryMissionSendsGoblinAssaultAssignment();
     testMissingBootstrappedMissionDoesNotReplayGoblinAssaultAssignment();
-    testStoryRepairFinalizesCompletedGoblinRiverOutsideDungeon();
+    testStoryRepairDoesNotAutoCompleteUnrelatedSwampDungeonOnLogin();
     testStoryRepairDoesNotAutoClaimKeepQuestOutsideDungeon();
     console.log('character_login_regression: ok');
 }

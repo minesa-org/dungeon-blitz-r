@@ -27,6 +27,7 @@ import { MissionDef, MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
+import { CharacterSync } from '../utils/CharacterSync';
 
 const db = new JsonAdapter();
 
@@ -178,10 +179,6 @@ export class MissionHandler {
         }
 
         if (MissionHandler.normalizeInstantReturnMissionStates(character)) {
-            didMutate = true;
-        }
-
-        if (MissionHandler.repairCompletedDungeonMissionStates(character, currentLevel)) {
             didMutate = true;
         }
 
@@ -473,6 +470,13 @@ export class MissionHandler {
 
         if (didMutate) {
             await MissionHandler.saveCharacter(client);
+        }
+
+        if (didMutate) {
+            // The Flash client does not rebuild the mission roster from dungeon packets alone.
+            // Push the extended player snapshot before the completion modal so quest/map state
+            // reflects the newly completed dungeon without requiring a relog or transfer.
+            CharacterSync.sendPlayerDataRefresh(client, { includeExtended: true });
         }
 
         MissionHandler.sendDungeonComplete(client, {
@@ -1265,63 +1269,6 @@ export class MissionHandler {
                 missionId,
                 MissionHandler.MISSION_READY_TO_TURN_IN,
                 missionDef
-            );
-            didMutate = true;
-        }
-
-        return didMutate;
-    }
-
-    private static repairCompletedDungeonMissionStates(
-        character: Character,
-        currentLevelRaw: string
-    ): boolean {
-        if (Number(character.questTrackerState ?? 0) < 100) {
-            return false;
-        }
-
-        const currentLevel =
-            LevelConfig.normalizeLevelName(currentLevelRaw || String(character.CurrentLevel?.name ?? '')) ||
-            String(currentLevelRaw || character.CurrentLevel?.name || '');
-        const missions = MissionHandler.getMissionStateMap(character);
-        let didMutate = false;
-
-        for (const [missionIdText, rawEntry] of Object.entries(missions)) {
-            const missionId = Number(missionIdText);
-            if (!Number.isFinite(missionId)) {
-                continue;
-            }
-
-            const entry = MissionHandler.asMissionEntry(rawEntry);
-            if (Number(entry.state ?? MissionHandler.MISSION_NOT_STARTED) !== MissionHandler.MISSION_IN_PROGRESS) {
-                continue;
-            }
-
-            if (missionId === MissionID.ClearYourHouse) {
-                continue;
-            }
-
-            const missionDef = MissionLoader.getMissionDef(missionId);
-            const dungeonLevel =
-                LevelConfig.normalizeLevelName(String(missionDef?.Dungeon ?? '')) ||
-                String(missionDef?.Dungeon ?? '').trim();
-            if (!missionDef || !dungeonLevel || currentLevel === dungeonLevel) {
-                continue;
-            }
-
-            MissionHandler.setMissionState(
-                character,
-                missionId,
-                MissionHandler.missionRequiresTurnIn(missionDef)
-                    ? MissionHandler.MISSION_READY_TO_TURN_IN
-                    : MissionHandler.MISSION_CLAIMED,
-                missionDef,
-                {
-                    currCount: Math.max(1, Number(missionDef.CompleteCount ?? 1)),
-                    Tier: Number(entry.Tier ?? 0),
-                    highscore: Number(entry.highscore ?? 0),
-                    Time: Number(entry.Time ?? 0)
-                }
             );
             didMutate = true;
         }
