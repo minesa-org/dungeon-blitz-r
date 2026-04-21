@@ -32,7 +32,6 @@ type FakeClient = {
     };
     entities: Map<number, unknown>;
     sentPackets: SentPacket[];
-    send: (id: number, payload: Buffer) => void;
     sendBitBuffer: (id: number, bb: BitBuffer) => void;
 };
 
@@ -80,9 +79,6 @@ function createFakeClient(): FakeClient {
         },
         entities: new Map(),
         sentPackets,
-        send(id: number, payload: Buffer): void {
-            sentPackets.push({ id, payload: Buffer.from(payload) });
-        },
         sendBitBuffer(id: number, bb: BitBuffer): void {
             sentPackets.push({ id, payload: bb.toBuffer() });
         }
@@ -149,11 +145,6 @@ async function testDungeonCompletionSyncsReadyMissionStateImmediately(): Promise
         client.sentPackets.some((packet) => packet.id === 0xB7),
         true,
         'even low incoming progress should be overridden so the client shows the dungeon as finished immediately'
-    );
-    assert.equal(
-        client.sentPackets.some((packet) => packet.id === 0x10),
-        true,
-        'dungeon completion should resend the extended player data snapshot so the client refreshes mission state immediately'
     );
 }
 

@@ -5,12 +5,7 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 import { WorldEnter } from './WorldEnter';
 
 export class CharacterSync {
-    static sendPlayerDataRefresh(
-        client: Client,
-        options: {
-            includeExtended?: boolean;
-        } = {}
-    ): void {
+    static sendPlayerDataRefresh(client: Client): void {
         if (!client.character || !client.currentLevel) {
             return;
         }
@@ -28,7 +23,7 @@ export class CharacterSync {
             Math.round(hasCoord ? x : 0),
             Math.round(hasCoord ? y : 0),
             hasCoord,
-            Boolean(options.includeExtended)
+            false
         );
 
         client.send(0x10, payload.toBuffer());
