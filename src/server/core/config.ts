@@ -62,7 +62,7 @@ function parseStringEnv(name: string, fallback: string): string {
 
 const MULTIPLAYER_MODE = parseBooleanEnv('MULTIPLAYER_MODE', false);
 const LOCAL_HOST = 'localhost';
-const MULTIPLAYER_HOST = parseStringEnv('MULTIPLAYER_BASE_IP', '10.179.241.95');
+const MULTIPLAYER_HOST = parseStringEnv('MULTIPLAYER_BASE_IP', 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp');
 const DEFAULT_STATIC_PORT = MULTIPLAYER_MODE ? 80 : 8000;
 const DEFAULT_GAME_PORT = 8080;
 const DEFAULT_POLICY_PORT = 843;
