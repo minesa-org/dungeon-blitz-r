@@ -21,6 +21,8 @@ import {
     usesSharedDungeonProgress
 } from '../core/SharedDungeonProgress';
 import { EquipmentHandler } from './EquipmentHandler';
+import { GameData } from '../core/GameData';
+import { CharacterSync } from '../utils/CharacterSync';
 
 type CombatRelayOptions = {
     includeAnchor?: boolean;
@@ -73,6 +75,18 @@ type NpcHitResolution = {
 
 export class CombatHandler {
     private static readonly RESPAWN_ENEMY_HEAL = 1_000_000;
+    private static readonly PLAYER_OUT_OF_COMBAT_REGEN_DELAY_MS = 5_000;
+    private static readonly PLAYER_OUT_OF_COMBAT_REGEN_INTERVAL_MS = 1_000;
+    private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS = 5_500;
+    private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS = 500;
+    private static readonly PLAYER_REGEN_RATE = 0.1;
+    private static readonly HOSTILE_REGEN_RATE = 0.01;
+    private static readonly HOSTILE_BASE_HITPOINTS = [
+        100, 4920, 5580, 6020, 6520, 7040, 7580, 8180, 8800, 9480, 10180, 10960, 11740, 12640, 13540, 14540,
+        15560, 16660, 17860, 19120, 20440, 21860, 23360, 24960, 26680, 28460, 30380, 32420, 34580, 36900, 39320,
+        41920, 44660, 47560, 50660, 53940, 57420, 61080, 64980, 69120, 73520, 78160, 83100, 88300, 93820, 99700,
+        105880, 112460, 119400, 126760, 134560
+    ] as const;
     // Extracted from Game.swz power metadata: these target methods require a real target entity on the client.
     private static readonly UNSAFE_REMOTE_DIRECT_TARGET_POWER_IDS = new Set<number>([
         39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
@@ -204,11 +218,63 @@ export class CombatHandler {
         return CombatHandler.getBaseHpForLevel(1);
     }
 
-    private static sendCharRegen(client: Client, entityId: number, amount: number): void {
+    private static getHostileBaseHpForLevel(level: number): number {
+        const maxIndex = CombatHandler.HOSTILE_BASE_HITPOINTS.length - 1;
+        const clampedLevel = Math.max(1, Math.min(maxIndex, Math.floor(Number(level) || 1)));
+        return CombatHandler.HOSTILE_BASE_HITPOINTS[clampedLevel];
+    }
+
+    private static getBestKnownPositiveValue(...values: number[]): number {
+        let best = 0;
+        for (const rawValue of values) {
+            const value = Math.round(Number(rawValue));
+            if (Number.isFinite(value) && value > best) {
+                best = value;
+            }
+        }
+        return best;
+    }
+
+    private static resolvePlayerMaxHp(client: Client, entity: any, levelEntity: any): number {
+        const baseMaxHp = CombatHandler.getBaseHpForLevel(Number(client.character?.level ?? 1));
+        const bestKnownMaxHp = CombatHandler.getBestKnownPositiveValue(
+            Number(entity?.maxHp ?? 0),
+            Number(levelEntity?.maxHp ?? 0),
+            Number(client.authoritativeMaxHp ?? 0)
+        );
+        const bestKnownCurrentHp = CombatHandler.getBestKnownPositiveValue(
+            Number(entity?.hp ?? 0),
+            Number(levelEntity?.hp ?? 0),
+            Number(client.authoritativeCurrentHp ?? 0)
+        );
+        if (bestKnownMaxHp > 100) {
+            return Math.max(1, bestKnownMaxHp, bestKnownCurrentHp);
+        }
+
+        return Math.max(1, baseMaxHp, bestKnownCurrentHp);
+    }
+
+    private static ensureFreshPlayerCombatStats(client: Client, nowMs: number): boolean {
+        if (!client.combatStatsDirty) {
+            return false;
+        }
+
+        if (nowMs - Math.max(0, client.lastCombatStatsRefreshRequestAt) >= 1_000) {
+            client.lastCombatStatsRefreshRequestAt = nowMs;
+            CharacterSync.requestCombatStatsRefresh(client);
+        }
+        return true;
+    }
+
+    private static buildCharRegenPayload(entityId: number, amount: number): Buffer {
         const bb = new BitBuffer(false);
         bb.writeMethod4(entityId);
-        bb.writeMethod24(amount);
-        client.sendBitBuffer(0x3B, bb);
+        bb.writeMethod4(amount);
+        return bb.toBuffer();
+    }
+
+    private static sendCharRegen(client: Client, entityId: number, amount: number): void {
+        client.send(0x3B, CombatHandler.buildCharRegenPayload(entityId, amount));
     }
 
     private static buildHpDeltaPayload(entityId: number, delta: number): Buffer {
@@ -232,6 +298,307 @@ export class CombatHandler {
         bb.writeMethod15(false);
         bb.writeMethod15(false);
         return bb.toBuffer();
+    }
+
+    private static getEntityCombatActivityAt(entity: any): number {
+        return Math.max(0, Math.round(Number(entity?.lastCombatActivityAt ?? 0)));
+    }
+
+    private static setEntityCombatActivity(entity: any, atMs: number): void {
+        if (!entity || typeof entity !== 'object') {
+            return;
+        }
+
+        entity.lastCombatActivityAt = Math.max(0, Math.round(atMs));
+    }
+
+    private static getEntityLastRegenTickAt(entity: any): number {
+        return Math.max(0, Math.round(Number(entity?.lastCombatRegenTickAt ?? 0)));
+    }
+
+    private static setEntityLastRegenTickAt(entity: any, atMs: number): void {
+        if (!entity || typeof entity !== 'object') {
+            return;
+        }
+
+        entity.lastCombatRegenTickAt = Math.max(0, Math.round(atMs));
+    }
+
+    private static notePlayerCombatActivity(client: Client, atMs: number): void {
+        client.lastCombatActivityAt = Math.max(0, Math.round(atMs));
+        client.lastCombatRegenTickAt = 0;
+    }
+
+    private static noteHostileCombatActivity(entity: any, atMs: number): void {
+        CombatHandler.setEntityCombatActivity(entity, atMs);
+        CombatHandler.setEntityLastRegenTickAt(entity, 0);
+    }
+
+    private static getPendingRegenTicks(
+        lastCombatActivityAt: number,
+        lastRegenTickAt: number,
+        nowMs: number,
+        delayMs: number,
+        intervalMs: number
+    ): { ticks: number; baseTickAt: number } | null {
+        if (lastCombatActivityAt <= 0) {
+            return null;
+        }
+
+        const regenReadyAt = lastCombatActivityAt + delayMs;
+        const baseTickAt = Math.max(regenReadyAt, lastRegenTickAt || regenReadyAt);
+        const elapsedMs = nowMs - baseTickAt;
+        if (elapsedMs < intervalMs) {
+            return null;
+        }
+
+        return {
+            ticks: Math.floor(elapsedMs / intervalMs),
+            baseTickAt
+        };
+    }
+
+    private static isEntityDead(entity: any): boolean {
+        return Boolean(entity?.dead) || Number(entity?.entState ?? EntityState.ACTIVE) === EntityState.DEAD;
+    }
+
+    private static estimateHostileMaxHp(entity: any): number {
+        const entType = GameData.getEntType(String(entity?.name ?? '')) ?? {};
+        const rawLevel = Number(entity?.level ?? entType?.Level ?? entType?.baseLevel ?? entType?.ExpLevel ?? 1);
+        const hitPointScale = Number(entity?.HitPoints ?? entity?.hitPoints ?? entType?.HitPoints ?? NaN);
+        if (!Number.isFinite(hitPointScale) || hitPointScale <= 0) {
+            return 0;
+        }
+
+        return Math.max(1, Math.round(CombatHandler.getHostileBaseHpForLevel(rawLevel) * hitPointScale));
+    }
+
+    private static getNpcHealthState(entity: any): { maxHp: number; currentHp: number; authoritativeKill: boolean } | null {
+        if (!entity || entity.isPlayer) {
+            return null;
+        }
+
+        const explicitMaxHp = Math.max(0, Math.round(Number(entity.maxHp ?? 0)));
+        const maxHp = explicitMaxHp > 0 ? explicitMaxHp : CombatHandler.estimateHostileMaxHp(entity);
+        if (maxHp <= 0) {
+            return null;
+        }
+
+        const rawHp = Number(entity.hp ?? NaN);
+        let currentHp = 0;
+        if (Number.isFinite(rawHp)) {
+            currentHp = Math.round(rawHp);
+        } else {
+            const healthDelta = Math.round(Number(entity.healthDelta ?? entity.health_delta ?? 0));
+            currentHp = maxHp + Math.min(0, healthDelta);
+        }
+
+        return {
+            maxHp,
+            currentHp: Math.max(0, Math.min(maxHp, currentHp)),
+            authoritativeKill: !Boolean(entity.clientSpawned) || (explicitMaxHp > 0 && Number.isFinite(rawHp))
+        };
+    }
+
+    private static applyNpcHealthState(entity: any, maxHp: number, currentHp: number, authoritativeKill: boolean): number {
+        if (!entity || typeof entity !== 'object') {
+            return 0;
+        }
+
+        const normalizedHp = authoritativeKill
+            ? Math.max(0, Math.min(maxHp, Math.round(currentHp)))
+            : Math.max(1, Math.min(maxHp, Math.round(currentHp)));
+        const healthDelta = normalizedHp - maxHp;
+
+        entity.maxHp = maxHp;
+        entity.hp = normalizedHp;
+        entity.healthDelta = healthDelta;
+        entity.health_delta = healthDelta;
+        entity.dead = authoritativeKill ? normalizedHp <= 0 : false;
+        if (entity.dead) {
+            entity.entState = EntityState.DEAD;
+        } else if (Number(entity.entState ?? EntityState.ACTIVE) === EntityState.DEAD) {
+            entity.entState = EntityState.ACTIVE;
+        }
+
+        return normalizedHp;
+    }
+
+    private static noteCombatInteraction(levelScope: string, sourceId: number, targetId: number, fallbackClient: Client, atMs: number = Date.now()): void {
+        if (!levelScope || sourceId <= 0 || targetId <= 0) {
+            return;
+        }
+
+        const sourceEntity = CombatHandler.resolveLevelEntity(levelScope, sourceId);
+        const targetEntity = CombatHandler.resolveLevelEntity(levelScope, targetId);
+        const sourceSession = CombatHandler.resolveCombatSourceSession(levelScope, sourceId, fallbackClient);
+        const targetSession = CombatHandler.findPlayerSessionByEntityId(targetId);
+        const hostileSource = sourceEntity && !sourceEntity.isPlayer && Number(sourceEntity.team ?? 0) === EntityTeam.ENEMY
+            ? sourceEntity
+            : null;
+        const hostileTarget = targetEntity && !targetEntity.isPlayer && Number(targetEntity.team ?? 0) === EntityTeam.ENEMY
+            ? targetEntity
+            : null;
+
+        if (sourceSession && hostileTarget && getClientLevelScope(sourceSession) === levelScope) {
+            CombatHandler.notePlayerCombatActivity(sourceSession, atMs);
+        }
+        if (targetSession && hostileSource && getClientLevelScope(targetSession) === levelScope) {
+            CombatHandler.notePlayerCombatActivity(targetSession, atMs);
+        }
+        if (hostileSource) {
+            CombatHandler.noteHostileCombatActivity(hostileSource, atMs);
+        }
+        if (hostileTarget) {
+            CombatHandler.noteHostileCombatActivity(hostileTarget, atMs);
+        }
+    }
+
+    private static processPlayerOutOfCombatRegen(client: Client, nowMs: number): void {
+        if (!client.playerSpawned || !client.character || client.clientEntID <= 0) {
+            return;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        if (!levelScope) {
+            return;
+        }
+        if (CombatHandler.ensureFreshPlayerCombatStats(client, nowMs)) {
+            return;
+        }
+
+        const entity = client.entities.get(client.clientEntID) ??
+            CombatHandler.resolveLevelEntity(levelScope, client.clientEntID);
+        const levelEntity = CombatHandler.resolveLevelEntity(levelScope, client.clientEntID);
+        if (CombatHandler.isEntityDead(entity) || CombatHandler.isEntityDead(levelEntity)) {
+            return;
+        }
+
+        const maxHp = CombatHandler.resolvePlayerMaxHp(client, entity, levelEntity);
+        const currentHp = Math.max(
+            0,
+            Math.min(
+                maxHp,
+                Math.round(Number(entity?.hp ?? levelEntity?.hp ?? client.authoritativeCurrentHp ?? maxHp))
+            )
+        );
+        if (currentHp <= 0 || currentHp >= maxHp) {
+            return;
+        }
+
+        const regenState = CombatHandler.getPendingRegenTicks(
+            Math.max(0, client.lastCombatActivityAt),
+            Math.max(0, client.lastCombatRegenTickAt),
+            nowMs,
+            CombatHandler.PLAYER_OUT_OF_COMBAT_REGEN_DELAY_MS,
+            CombatHandler.PLAYER_OUT_OF_COMBAT_REGEN_INTERVAL_MS
+        );
+        if (!regenState) {
+            return;
+        }
+
+        const healPerTick = Math.max(1, Math.round(CombatHandler.PLAYER_REGEN_RATE * maxHp));
+        const healAmount = Math.min(maxHp - currentHp, healPerTick * regenState.ticks);
+        if (healAmount <= 0) {
+            return;
+        }
+
+        const nextHp = currentHp + healAmount;
+        if (entity && typeof entity === 'object') {
+            entity.maxHp = maxHp;
+            entity.hp = nextHp;
+            entity.dead = false;
+            if (Number(entity.entState ?? EntityState.ACTIVE) === EntityState.DEAD) {
+                entity.entState = EntityState.ACTIVE;
+            }
+        }
+
+        if (levelEntity && typeof levelEntity === 'object') {
+            levelEntity.maxHp = maxHp;
+            levelEntity.hp = nextHp;
+            levelEntity.dead = false;
+            if (Number(levelEntity.entState ?? EntityState.ACTIVE) === EntityState.DEAD) {
+                levelEntity.entState = EntityState.ACTIVE;
+            }
+        }
+
+        client.authoritativeMaxHp = maxHp;
+        client.authoritativeCurrentHp = nextHp;
+        client.lastCombatRegenTickAt = regenState.baseTickAt + (regenState.ticks * CombatHandler.PLAYER_OUT_OF_COMBAT_REGEN_INTERVAL_MS);
+
+        const payload = CombatHandler.buildCharRegenPayload(client.clientEntID, healAmount);
+        client.send(0x3B, payload);
+        CombatHandler.broadcastToSameLevel(levelScope, 0x3B, payload, [client.clientEntID], client);
+    }
+
+    private static processHostileOutOfCombatRegen(levelScope: string, entity: any, nowMs: number): void {
+        if (!entity || entity.isPlayer || Number(entity.team ?? 0) !== EntityTeam.ENEMY) {
+            return;
+        }
+
+        const healthState = CombatHandler.getNpcHealthState(entity);
+        if (!healthState || CombatHandler.isEntityDead(entity) || healthState.currentHp <= 0 || healthState.currentHp >= healthState.maxHp) {
+            return;
+        }
+
+        const regenState = CombatHandler.getPendingRegenTicks(
+            CombatHandler.getEntityCombatActivityAt(entity),
+            CombatHandler.getEntityLastRegenTickAt(entity),
+            nowMs,
+            CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS,
+            CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS
+        );
+        if (!regenState) {
+            return;
+        }
+
+        const healPerTick = Math.max(1, Math.round(CombatHandler.HOSTILE_REGEN_RATE * healthState.maxHp));
+        const requestedHeal = Math.min(healthState.maxHp - healthState.currentHp, healPerTick * regenState.ticks);
+        if (requestedHeal <= 0) {
+            return;
+        }
+
+        const nextHp = CombatHandler.applyNpcHealthState(
+            entity,
+            healthState.maxHp,
+            healthState.currentHp + requestedHeal,
+            healthState.authoritativeKill
+        );
+        const actualHeal = nextHp - healthState.currentHp;
+        if (actualHeal <= 0) {
+            return;
+        }
+
+        CombatHandler.setEntityLastRegenTickAt(
+            entity,
+            regenState.baseTickAt + (regenState.ticks * CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS)
+        );
+
+        const payload = CombatHandler.buildCharRegenPayload(Number(entity.id ?? 0), actualHeal);
+        CombatHandler.broadcastEntityViewPacket(levelScope, entity, 0x3B, payload, [Number(entity.id ?? 0)]);
+    }
+
+    static processOutOfCombatRegen(levelScope: string, nowMs: number = Date.now()): void {
+        if (!levelScope) {
+            return;
+        }
+
+        for (const session of GlobalState.sessionsByToken.values()) {
+            if (!session.playerSpawned || getClientLevelScope(session) !== levelScope) {
+                continue;
+            }
+
+            CombatHandler.processPlayerOutOfCombatRegen(session, nowMs);
+        }
+
+        const levelMap = GlobalState.levelEntities.get(levelScope);
+        if (!levelMap) {
+            return;
+        }
+
+        for (const entity of levelMap.values()) {
+            CombatHandler.processHostileOutOfCombatRegen(levelScope, entity, nowMs);
+        }
     }
 
     private static buildPowerCastPayload(info: PowerCastRelayInfo): Buffer {
@@ -296,6 +663,12 @@ export class CombatHandler {
             }
 
             CombatHandler.clearEntityRewardTracking(levelScope, entityId);
+            const healthState = CombatHandler.getNpcHealthState(entity);
+            if (healthState) {
+                CombatHandler.applyNpcHealthState(entity, healthState.maxHp, healthState.maxHp, healthState.authoritativeKill);
+            }
+            CombatHandler.setEntityCombatActivity(entity, 0);
+            CombatHandler.setEntityLastRegenTickAt(entity, 0);
             CombatHandler.sendCharRegen(client, entityId, CombatHandler.RESPAWN_ENEMY_HEAL);
         }
     }
@@ -733,6 +1106,27 @@ export class CombatHandler {
         }
     }
 
+    private static parseBuffTickDotInfo(data: Buffer): { targetId: number; sourceId: number; powerId: number; damage: number } | null {
+        const br = new BitReader(data);
+
+        try {
+            const targetId = br.readMethod9();
+            const sourceId = br.readMethod9();
+            const powerId = br.readMethod9();
+            const damage = Math.max(0, Math.round(Math.abs(br.readMethod45())));
+            br.readMethod20(5);
+
+            return {
+                targetId,
+                sourceId,
+                powerId,
+                damage
+            };
+        } catch {
+            return null;
+        }
+    }
+
     private static shouldPreventHostilePlayerDeath(levelScope: string, sourceId: number, targetSession: Client): boolean {
         if (!levelScope || sourceId <= 0 || targetSession.clientEntID <= 0 || sourceId === targetSession.clientEntID) {
             return false;
@@ -760,16 +1154,13 @@ export class CombatHandler {
         }
 
         const entity = targetSession.entities.get(targetSession.clientEntID) ?? {};
-        const baseMaxHp = CombatHandler.getBaseHpForLevel(Number(targetSession.character.level ?? 1));
-        const knownMaxHp = Math.max(
-            1,
-            Math.round(Number(entity.maxHp ?? targetSession.authoritativeMaxHp ?? baseMaxHp))
-        );
+        const levelEntity = CombatHandler.resolveLevelEntity(getClientLevelScope(targetSession), targetSession.clientEntID);
+        const knownMaxHp = CombatHandler.resolvePlayerMaxHp(targetSession, entity, levelEntity);
         const currentHp = Math.max(
             0,
             Math.min(
                 knownMaxHp,
-                Math.round(Number(entity.hp ?? targetSession.authoritativeCurrentHp ?? knownMaxHp))
+                Math.round(Number(entity.hp ?? levelEntity?.hp ?? targetSession.authoritativeCurrentHp ?? knownMaxHp))
             )
         );
         if (currentHp <= 0) {
@@ -790,7 +1181,6 @@ export class CombatHandler {
         entity.entState = nextHp <= 0 ? EntityState.DEAD : EntityState.ACTIVE;
         targetSession.entities.set(targetSession.clientEntID, entity);
 
-        const levelEntity = CombatHandler.resolveLevelEntity(getClientLevelScope(targetSession), targetSession.clientEntID);
         if (levelEntity && typeof levelEntity === 'object') {
             levelEntity.maxHp = knownMaxHp;
             levelEntity.hp = nextHp;
@@ -822,15 +1212,23 @@ export class CombatHandler {
             };
         }
 
-        const hp = Number(entity.hp ?? NaN);
-        const wasAlive = !Boolean(entity.dead) && Number(entity.entState ?? EntityState.ACTIVE) !== EntityState.DEAD;
-        if (Number.isFinite(hp)) {
-            entity.hp = Math.max(0, Math.round(hp) - Math.max(0, Math.round(damage)));
+        const healthState = CombatHandler.getNpcHealthState(entity);
+        if (!healthState) {
+            return {
+                entity,
+                killed: false
+            };
         }
-        if (Number(entity.hp ?? 1) <= 0) {
-            entity.dead = true;
-            entity.entState = EntityState.DEAD;
-        }
+
+        const wasAlive = !Boolean(entity.dead) &&
+            Number(entity.entState ?? EntityState.ACTIVE) !== EntityState.DEAD &&
+            healthState.currentHp > 0;
+        const requestedDamage = Math.max(0, Math.round(damage));
+        const minHpAfterHit = healthState.authoritativeKill ? 0 : 1;
+        const appliedDamage = Math.max(0, Math.min(requestedDamage, healthState.currentHp - minHpAfterHit));
+        const nextHp = Math.max(minHpAfterHit, healthState.currentHp - appliedDamage);
+
+        CombatHandler.applyNpcHealthState(entity, healthState.maxHp, nextHp, healthState.authoritativeKill);
 
         if (usesSharedDungeonProgress(getScopeLevelName(levelName))) {
             noteSharedDungeonHostileState(levelName, targetId, entity);
@@ -839,7 +1237,9 @@ export class CombatHandler {
 
         return {
             entity,
-            killed: wasAlive && (Boolean(entity.dead) || Number(entity.entState ?? EntityState.ACTIVE) === EntityState.DEAD)
+            killed: healthState.authoritativeKill &&
+                wasAlive &&
+                (Boolean(entity.dead) || Number(entity.entState ?? EntityState.ACTIVE) === EntityState.DEAD)
         };
     }
 
@@ -1032,6 +1432,10 @@ export class CombatHandler {
             LevelHandler.checkCraftTownTutorialBossHealth(client, targetId, damage);
         }
 
+        if (damage > 0) {
+            CombatHandler.noteCombatInteraction(levelScope, sourceId, targetId, client);
+        }
+
         CombatHandler.maybeRecordNpcContribution(levelScope, targetId, sourceId, damage, client);
         const sourceSession = CombatHandler.resolveCombatSourceSession(levelScope, sourceId, client);
         if (
@@ -1192,6 +1596,8 @@ export class CombatHandler {
             ent.entState = EntityState.ACTIVE;
             ent.hp = healAmount;
             ent.maxHp = Math.max(Math.round(Number(ent.maxHp ?? 0)), healAmount);
+            ent.lastCombatActivityAt = 0;
+            ent.lastCombatRegenTickAt = 0;
         }
 
         if (client.currentLevel) {
@@ -1201,6 +1607,8 @@ export class CombatHandler {
                 levelEntity.entState = EntityState.ACTIVE;
                 levelEntity.hp = healAmount;
                 levelEntity.maxHp = Math.max(Math.round(Number(levelEntity.maxHp ?? 0)), healAmount);
+                levelEntity.lastCombatActivityAt = 0;
+                levelEntity.lastCombatRegenTickAt = 0;
             }
         }
 
@@ -1216,6 +1624,8 @@ export class CombatHandler {
         if (entId === client.clientEntID) {
             client.authoritativeCurrentHp = healAmount;
             client.authoritativeMaxHp = Math.max(client.authoritativeMaxHp, healAmount);
+            client.lastCombatActivityAt = 0;
+            client.lastCombatRegenTickAt = 0;
             const facingLeft = Boolean(ent?.facingLeft ?? false);
             const statePayload = CombatHandler.buildEntityStatePayload(client.clientEntID, EntityState.ACTIVE, facingLeft);
             CombatHandler.broadcastToSameLevel(getClientLevelScope(client), 0x07, statePayload, [client.clientEntID], client);
@@ -1229,6 +1639,10 @@ export class CombatHandler {
     }
 
     static async handleBuffTickDot(client: Client, data: Buffer): Promise<void> {
+        const info = CombatHandler.parseBuffTickDotInfo(data);
+        if (info && info.damage > 0) {
+            CombatHandler.noteCombatInteraction(getClientLevelScope(client), info.sourceId, info.targetId, client);
+        }
         CombatHandler.broadcastCombatPacket(client, 0x79, data);
     }
 

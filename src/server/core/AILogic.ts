@@ -36,6 +36,7 @@ export class AILogic {
         const levelEntities = GlobalState.levelEntities.get(levelScope);
         if (!levelEntities) return;
         const levelName = getScopeLevelName(levelScope);
+        const nowMs = Date.now();
 
         const players: Client[] = [];
         for (const session of GlobalState.sessionsByToken.values()) {
@@ -45,6 +46,7 @@ export class AILogic {
         }
 
         if (players.length === 0) return;
+        CombatHandler.processOutOfCombatRegen(levelScope, nowMs);
 
         // Iterate over Map entries to get ID and Object
         for (const [entId, npc] of levelEntities.entries()) {

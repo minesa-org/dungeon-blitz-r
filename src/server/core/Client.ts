@@ -162,6 +162,10 @@ export class Client {
     public pendingMissionTurnIns: Set<number> = new Set();
     public authoritativeMaxHp: number = 100;
     public authoritativeCurrentHp: number = 100;
+    public combatStatsDirty: boolean = false;
+    public lastCombatStatsRefreshRequestAt: number = 0;
+    public lastCombatActivityAt: number = 0;
+    public lastCombatRegenTickAt: number = 0;
     public activePotionDrainAtMs: number = 0;
     public clientSpawnConfirmed: boolean = false;
     public clientSpawnFallbackTimer: NodeJS.Timeout | null = null;
@@ -325,6 +329,10 @@ export class Client {
         this.pendingMissionTurnIns.clear();
         this.authoritativeMaxHp = 100;
         this.authoritativeCurrentHp = 100;
+        this.combatStatsDirty = false;
+        this.lastCombatStatsRefreshRequestAt = 0;
+        this.lastCombatActivityAt = 0;
+        this.lastCombatRegenTickAt = 0;
         this.clientSpawnConfirmed = false;
         clearClientSpawnFallbackTimer(this);
         if (this.talentResearchTimer) {

@@ -2,7 +2,9 @@ import { Client } from '../core/Client';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { BitReader } from '../network/protocol/bitReader';
 import { GameData } from '../core/GameData';
+import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
+import { getClientLevelScope } from '../core/LevelScope';
 import { CharacterSync } from '../utils/CharacterSync';
 import {
     ensureActiveDungeonPotionReserved,
@@ -87,6 +89,8 @@ export class CommandHandler {
 
         CharacterSync.updateLiveActiveConsumable(client, activeConsumableId);
         CharacterSync.sendActiveConsumableUpdate(client, entityId || client.clientEntID, activeConsumableId);
+        client.combatStatsDirty = true;
+        client.lastCombatStatsRefreshRequestAt = Date.now();
         CharacterSync.requestCombatStatsRefresh(client);
         await CommandHandler.saveCharacter(client);
     }
@@ -105,6 +109,13 @@ export class CommandHandler {
             entity.maxHp = newMaxHp;
             entity.hp = Math.min(Math.max(0, Number(entity.hp ?? newMaxHp)), newMaxHp);
         }
+
+        const levelEntity = client.clientEntID > 0 ? GlobalState.levelEntities.get(getClientLevelScope(client))?.get(client.clientEntID) : null;
+        if (levelEntity && typeof levelEntity === 'object') {
+            levelEntity.maxHp = newMaxHp;
+            levelEntity.hp = Math.min(Math.max(0, Number(levelEntity.hp ?? newMaxHp)), newMaxHp);
+        }
+        client.combatStatsDirty = false;
     }
 
     static handleSendCombatStats(client: Client, data: Buffer): void {
@@ -126,6 +137,14 @@ export class CommandHandler {
             entity.magicDamage = magicDamage;
         }
 
+        const levelEntity = client.clientEntID > 0 ? GlobalState.levelEntities.get(getClientLevelScope(client))?.get(client.clientEntID) : null;
+        if (levelEntity && typeof levelEntity === 'object') {
+            levelEntity.maxHp = maxHp;
+            levelEntity.hp = Math.min(Math.max(0, Number(levelEntity.hp ?? maxHp)), maxHp);
+            levelEntity.meleeDamage = meleeDamage;
+            levelEntity.magicDamage = magicDamage;
+        }
+        client.combatStatsDirty = false;
     }
 
     private static isValidPotionSelection(client: Client, consumableId: number): boolean {
