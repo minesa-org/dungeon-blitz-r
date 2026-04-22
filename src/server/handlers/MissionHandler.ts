@@ -86,6 +86,20 @@ export class MissionHandler {
         'GoblinShamanHoodHard',
         'GoblinShamanSkullHatHard'
     ]);
+    private static readonly SWAMP_SPIDER_KILL_NAMES = new Set([
+        'SwampSpider',
+        'SwampSpider2',
+        'SwampSpiderGiant',
+        'SwampSpiderSuperGiant',
+        'SwampSpiderQueen'
+    ]);
+    private static readonly SWAMP_SPIDER_HARD_KILL_NAMES = new Set([
+        'SwampSpiderHard',
+        'SwampSpider2Hard',
+        'SwampSpiderGiantHard',
+        'SwampSpiderSuperGiantHard',
+        'SwampSpiderQueenHard'
+    ]);
     private static readonly KILL_PROGRESS_TARGETS: Readonly<Record<number, ReadonlySet<string>>> = {
         [MissionID.GetGoblinNoserings]: new Set(['GoblinBrute']),
         [MissionID.GetGoblinWands]: new Set(['GoblinShamanHood', 'GoblinShamanSkullHat']),
@@ -93,6 +107,8 @@ export class MissionHandler {
         [MissionID.GetGoblinWandsHard]: new Set(['GoblinShamanHoodHard', 'GoblinShamanSkullHatHard']),
         [MissionID.KillGoblins]: MissionHandler.NEWBIE_ROAD_GOBLIN_KILL_NAMES,
         [MissionID.KillGoblinsHard]: MissionHandler.NEWBIE_ROAD_HARD_GOBLIN_KILL_NAMES,
+        [MissionID.GetSpiderFangs]: MissionHandler.SWAMP_SPIDER_KILL_NAMES,
+        [MissionID.GetSpiderFangsHard]: MissionHandler.SWAMP_SPIDER_HARD_KILL_NAMES,
         [MissionID.GetHobgoblinNoserings]: new Set(['BlackGoblinBrute']),
         [MissionID.GetHobgoblinNoseringsHard]: new Set(['BlackGoblinBruteHard'])
     };
@@ -178,10 +194,6 @@ export class MissionHandler {
         }
 
         if (MissionHandler.normalizeInstantReturnMissionStates(character)) {
-            didMutate = true;
-        }
-
-        if (MissionHandler.repairCompletedDungeonMissionStates(character, currentLevel)) {
             didMutate = true;
         }
 
@@ -1265,63 +1277,6 @@ export class MissionHandler {
                 missionId,
                 MissionHandler.MISSION_READY_TO_TURN_IN,
                 missionDef
-            );
-            didMutate = true;
-        }
-
-        return didMutate;
-    }
-
-    private static repairCompletedDungeonMissionStates(
-        character: Character,
-        currentLevelRaw: string
-    ): boolean {
-        if (Number(character.questTrackerState ?? 0) < 100) {
-            return false;
-        }
-
-        const currentLevel =
-            LevelConfig.normalizeLevelName(currentLevelRaw || String(character.CurrentLevel?.name ?? '')) ||
-            String(currentLevelRaw || character.CurrentLevel?.name || '');
-        const missions = MissionHandler.getMissionStateMap(character);
-        let didMutate = false;
-
-        for (const [missionIdText, rawEntry] of Object.entries(missions)) {
-            const missionId = Number(missionIdText);
-            if (!Number.isFinite(missionId)) {
-                continue;
-            }
-
-            const entry = MissionHandler.asMissionEntry(rawEntry);
-            if (Number(entry.state ?? MissionHandler.MISSION_NOT_STARTED) !== MissionHandler.MISSION_IN_PROGRESS) {
-                continue;
-            }
-
-            if (missionId === MissionID.ClearYourHouse) {
-                continue;
-            }
-
-            const missionDef = MissionLoader.getMissionDef(missionId);
-            const dungeonLevel =
-                LevelConfig.normalizeLevelName(String(missionDef?.Dungeon ?? '')) ||
-                String(missionDef?.Dungeon ?? '').trim();
-            if (!missionDef || !dungeonLevel || currentLevel === dungeonLevel) {
-                continue;
-            }
-
-            MissionHandler.setMissionState(
-                character,
-                missionId,
-                MissionHandler.missionRequiresTurnIn(missionDef)
-                    ? MissionHandler.MISSION_READY_TO_TURN_IN
-                    : MissionHandler.MISSION_CLAIMED,
-                missionDef,
-                {
-                    currCount: Math.max(1, Number(missionDef.CompleteCount ?? 1)),
-                    Tier: Number(entry.Tier ?? 0),
-                    highscore: Number(entry.highscore ?? 0),
-                    Time: Number(entry.Time ?? 0)
-                }
             );
             didMutate = true;
         }

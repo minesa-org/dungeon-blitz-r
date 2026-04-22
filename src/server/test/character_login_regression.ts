@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { MissionLoader } from '../data/MissionLoader';
+import { MissionID } from '../data/runtime';
 import { AbilityHandler } from '../handlers/AbilityHandler';
 import { CharacterHandler } from '../handlers/CharacterHandler';
 import { MissionHandler } from '../handlers/MissionHandler';
@@ -203,7 +204,7 @@ function testStoryRepairUpgradesLostAtSeaTurnInInsideTutorialBoat(): void {
     assert.equal(Number(character.missions?.['1']?.currCount ?? 0), 1);
 }
 
-function testStoryRepairFinalizesCompletedGoblinRiverOutsideDungeon(): void {
+function testStoryRepairDoesNotAutoCompleteGoblinRiverOutsideDungeon(): void {
     MissionLoader.load(path.resolve(__dirname, '..', 'data'));
 
     const character = createCharacter('GoblinRiverRepair');
@@ -211,6 +212,17 @@ function testStoryRepairFinalizesCompletedGoblinRiverOutsideDungeon(): void {
     character.PreviousLevel = { name: 'CraftTown', x: 1083, y: 1448 };
     character.questTrackerState = 100;
     character.missions = {
+        '1': {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        '2': {
+            state: 3,
+            claimed: 1,
+            complete: 1
+        },
         '271': {
             state: 1,
             currCount: 0
@@ -219,9 +231,9 @@ function testStoryRepairFinalizesCompletedGoblinRiverOutsideDungeon(): void {
 
     const repair = MissionHandler.repairEarlyStoryOnLogin(character, 'NewbieRoad');
 
-    assert.equal(repair.didMutate, true);
-    assert.equal(Number(character.missions?.['271']?.state ?? 0), 2);
-    assert.equal(Number(character.missions?.['271']?.currCount ?? 0), 1);
+    assert.equal(repair.didMutate, false);
+    assert.equal(Number(character.missions?.['271']?.state ?? 0), 1);
+    assert.equal(Number(character.missions?.['271']?.currCount ?? 0), 0);
 }
 
 function testStoryRepairDoesNotAutoClaimKeepQuestOutsideDungeon(): void {
@@ -264,6 +276,52 @@ function testStoryRepairDoesNotAutoClaimKeepQuestOutsideDungeon(): void {
 
     assert.equal(Number(character.missions?.['5']?.state ?? 0), 1);
     assert.equal(Number(character.missions?.['5']?.currCount ?? 0), 0);
+}
+
+function testStoryRepairDoesNotAutoCompleteOtherSwampDungeonMission(): void {
+    MissionLoader.load(path.resolve(__dirname, '..', 'data'));
+
+    const character = createCharacter('SwampRepairGuard');
+    character.CurrentLevel = { name: 'SwampRoadNorth', x: 8331, y: 579 };
+    character.PreviousLevel = { name: 'NewbieRoad', x: 20298, y: 639 };
+    character.questTrackerState = 100;
+    character.missions = {
+        [String(MissionID.DefendTheShip)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        [String(MissionID.MeetTheTown)]: {
+            state: 3,
+            claimed: 1,
+            complete: 1
+        },
+        [String(MissionID.StopCastout)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        [String(MissionID.SlayYornak)]: {
+            state: 1,
+            currCount: 0
+        }
+    };
+
+    const repair = MissionHandler.repairEarlyStoryOnLogin(character, 'SwampRoadNorth');
+
+    assert.equal(repair.didMutate, false);
+    assert.equal(
+        Number(character.missions?.[String(MissionID.SlayYornak)]?.state ?? 0),
+        1,
+        'login repair should not auto-complete another Black Rose Mire dungeon just because questTrackerState is 100'
+    );
+    assert.equal(
+        Number(character.missions?.[String(MissionID.SlayYornak)]?.currCount ?? 0),
+        0,
+        'login repair should leave the unrelated swamp dungeon mission untouched'
+    );
 }
 
 function testMissionSyncDoesNotReplayQuestPopupsOnLogin(): void {
@@ -366,8 +424,9 @@ async function main(): Promise<void> {
     testMissionSyncDoesNotReplayQuestPopupsOnLogin();
     testBootstrappedStoryMissionSendsGoblinAssaultAssignment();
     testMissingBootstrappedMissionDoesNotReplayGoblinAssaultAssignment();
-    testStoryRepairFinalizesCompletedGoblinRiverOutsideDungeon();
+    testStoryRepairDoesNotAutoCompleteGoblinRiverOutsideDungeon();
     testStoryRepairDoesNotAutoClaimKeepQuestOutsideDungeon();
+    testStoryRepairDoesNotAutoCompleteOtherSwampDungeonMission();
     console.log('character_login_regression: ok');
 }
 

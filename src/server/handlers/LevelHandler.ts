@@ -2497,6 +2497,29 @@ export class LevelHandler {
         return Number(state ?? LevelHandler.MISSION_NOT_STARTED);
     }
 
+    private static isBlackRoseMireMissionDoorUnlocked(client: Client, currentLevel: string, targetLevelRaw: string | null): boolean {
+        const normalizedCurrentLevel =
+            LevelConfig.normalizeLevelName(currentLevel) ||
+            String(currentLevel ?? '').trim();
+        if (normalizedCurrentLevel !== 'SwampRoadNorth' && normalizedCurrentLevel !== 'SwampRoadNorthHard') {
+            return true;
+        }
+
+        const targetLevel =
+            LevelConfig.normalizeLevelName(targetLevelRaw || '') ||
+            String(targetLevelRaw || '').trim();
+        if (!targetLevel.startsWith('SRN_Mission')) {
+            return true;
+        }
+
+        const missionDef = MissionLoader.findPrimaryMissionByDungeon(targetLevel);
+        if (!missionDef) {
+            return true;
+        }
+
+        return LevelHandler.getMissionState(client, missionDef.MissionID) > LevelHandler.MISSION_NOT_STARTED;
+    }
+
     private static resolveKeepTutorialTransferTarget(client: Client, targetLevel: string): string {
         if (
             targetLevel === 'CraftTown' &&
@@ -2865,11 +2888,12 @@ export class LevelHandler {
         // Lookup door target in LevelConfig
         const currentLevel = client.currentLevel || "NewbieRoad";
         const target = LevelHandler.resolveDoorTarget(client, currentLevel, doorId);
+        const isUnlocked = LevelHandler.isBlackRoseMireMissionDoorUnlocked(client, currentLevel, target);
         
         const bb = new BitBuffer();
         bb.writeMethod4(doorId);
         
-        if (target) {
+        if (target && isUnlocked) {
             // If target exists, door is open/usable (State 1 = Static/Open)
             bb.writeMethod91(1); // DOORSTATE_STATIC
             bb.writeMethod13(target);
@@ -2892,9 +2916,16 @@ export class LevelHandler {
         const doorId = br.readMethod9();
 
         const currentLevel = LevelConfig.normalizeLevelName(client.currentLevel || "NewbieRoad") || "NewbieRoad";
-        let targetLevel = LevelConfig.normalizeLevelName(
-            LevelHandler.resolveDoorTarget(client, currentLevel, doorId)
-        );
+        const rawTargetLevel = LevelHandler.resolveDoorTarget(client, currentLevel, doorId);
+        let targetLevel = LevelConfig.normalizeLevelName(rawTargetLevel);
+
+        if (
+            rawTargetLevel &&
+            !LevelHandler.isBlackRoseMireMissionDoorUnlocked(client, currentLevel, rawTargetLevel)
+        ) {
+            console.log(`[Level] Open Door ${doorId} in ${currentLevel} blocked until the matching Black Rose Mire quest is accepted`);
+            return;
+        }
 
         if (!targetLevel && doorId === 999) {
             targetLevel = "CraftTown";

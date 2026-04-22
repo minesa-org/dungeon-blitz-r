@@ -427,6 +427,47 @@ async function testRecoverWandsProgressesOnGoblinShamanKills(): Promise<void> {
     );
 }
 
+async function testGetSpiderFangsProgressesOnSwampSpiderKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.GetSpiderFangs)]: {
+            state: 1,
+            currCount: 8
+        }
+    }, 'SwampRoadNorth');
+
+    await destroyEnemy(client, 8451, 'SwampSpider');
+    await destroyEnemy(client, 8452, 'SwampSpiderGiant');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetSpiderFangs)]?.currCount ?? 0),
+        10,
+        'Get Spider Fangs should count swamp spider kills toward the fang total'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetSpiderFangs)]?.state ?? 0),
+        2,
+        'Get Spider Fangs should become ready to turn in once enough spiders are slain'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [
+            { missionId: MissionID.GetSpiderFangs, progress: 1 },
+            { missionId: MissionID.GetSpiderFangs, progress: 1 }
+        ],
+        'Get Spider Fangs should emit additive mission progress packets for spider kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.GetSpiderFangs,
+        'Get Spider Fangs should notify the client once the fang objective is complete'
+    );
+}
+
 async function testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce(): Promise<void> {
     resetGlobalState();
     const client = createClient({
@@ -529,6 +570,7 @@ async function main(): Promise<void> {
     await testBoneyardMonsterCompletesOnGraveyardSkeletonKill();
     await testLootersHardCompletesOnGoblinThiefHardKill();
     await testRecoverWandsProgressesOnGoblinShamanKills();
+    await testGetSpiderFangsProgressesOnSwampSpiderKills();
     await testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
     await testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
     console.log('mission_kill_progress_regression: ok');
