@@ -127,6 +127,16 @@ function buildPowerHitPayload(targetId: number, sourceId: number, damage: number
     return bb.toBuffer();
 }
 
+function buildBuffTickDotPayload(targetId: number, sourceId: number, damage: number, powerId: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod9(targetId);
+    bb.writeMethod9(sourceId);
+    bb.writeMethod9(powerId);
+    bb.writeMethod45(damage);
+    bb.writeMethod20(5, 0);
+    return bb.toBuffer();
+}
+
 function decodeMissionProgressPacket(payload: Buffer): { missionId: number; progress: number } {
     const br = new BitReader(payload);
     return {
@@ -463,6 +473,52 @@ async function testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce(
     );
 }
 
+async function testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.GetGoblinNoserings)]: {
+            state: 1,
+            currCount: 0
+        }
+    }, 'GoblinRiverDungeon');
+    client.levelInstanceId = 'side-quest-dot-dungeon';
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    const levelScope = getClientLevelScope(client as never);
+    const hostile = {
+        id: 8502,
+        name: 'GoblinBrute',
+        isPlayer: false,
+        team: 2,
+        hp: 1,
+        entState: 0,
+        roomId: 0,
+        ownerToken: client.token
+    };
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [hostile.id, hostile]
+    ]));
+
+    await CombatHandler.handleBuffTickDot(
+        client as never,
+        buildBuffTickDotPayload(hostile.id, client.clientEntID, 5, 77)
+    );
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetGoblinNoserings)]?.currCount ?? 0),
+        1,
+        'side-quest DoT kills should progress inside dungeons as soon as the enemy enters the dead state'
+    );
+
+    await CombatHandler.handleEntityDestroy(client as never, createDestroyEntityPacket(hostile.id));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetGoblinNoserings)]?.currCount ?? 0),
+        1,
+        'DoT dead-state side-quest progress should not count a second time when the corpse later disappears'
+    );
+}
+
 async function main(): Promise<void> {
     ensureDataLoaded();
     await testRecoverRingsProgressesOnGoblinBruteKills();
@@ -474,6 +530,7 @@ async function main(): Promise<void> {
     await testLootersHardCompletesOnGoblinThiefHardKill();
     await testRecoverWandsProgressesOnGoblinShamanKills();
     await testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
+    await testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
     console.log('mission_kill_progress_regression: ok');
 }
 

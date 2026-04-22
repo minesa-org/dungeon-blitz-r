@@ -63,6 +63,13 @@ type PowerHitRelayInfo = {
     isCrit: boolean;
 };
 
+type BuffTickDotInfo = {
+    targetId: number;
+    sourceId: number;
+    powerId: number;
+    damage: number;
+};
+
 type PlayerHitResolution = {
     appliedDamage: number;
     killed: boolean;
@@ -379,12 +386,17 @@ export class CombatHandler {
         }
 
         const explicitMaxHp = Math.max(0, Math.round(Number(entity.maxHp ?? 0)));
-        const maxHp = explicitMaxHp > 0 ? explicitMaxHp : CombatHandler.estimateHostileMaxHp(entity);
+        const rawHp = Number(entity.hp ?? NaN);
+        const estimatedMaxHp = CombatHandler.estimateHostileMaxHp(entity);
+        const maxHp = explicitMaxHp > 0
+            ? explicitMaxHp
+            : estimatedMaxHp > 0
+                ? estimatedMaxHp
+                : (Number.isFinite(rawHp) ? Math.max(1, Math.round(rawHp)) : 0);
         if (maxHp <= 0) {
             return null;
         }
 
-        const rawHp = Number(entity.hp ?? NaN);
         let currentHp = 0;
         if (Number.isFinite(rawHp)) {
             currentHp = Math.round(rawHp);
@@ -1106,7 +1118,7 @@ export class CombatHandler {
         }
     }
 
-    private static parseBuffTickDotInfo(data: Buffer): { targetId: number; sourceId: number; powerId: number; damage: number } | null {
+    private static parseBuffTickDotInfo(data: Buffer): BuffTickDotInfo | null {
         const br = new BitReader(data);
 
         try {
@@ -1640,10 +1652,47 @@ export class CombatHandler {
 
     static async handleBuffTickDot(client: Client, data: Buffer): Promise<void> {
         const info = CombatHandler.parseBuffTickDotInfo(data);
-        if (info && info.damage > 0) {
-            CombatHandler.noteCombatInteraction(getClientLevelScope(client), info.sourceId, info.targetId, client);
+        if (!info) {
+            CombatHandler.broadcastCombatPacket(client, 0x79, data);
+            return;
         }
-        CombatHandler.broadcastCombatPacket(client, 0x79, data);
+
+        const { targetId, sourceId, damage } = info;
+        const levelScope = getClientLevelScope(client);
+        const targetEntity = CombatHandler.resolveLevelEntity(levelScope, targetId);
+        if (targetEntity && !targetEntity.isPlayer && Boolean(targetEntity.untargetable)) {
+            return;
+        }
+
+        if (damage > 0) {
+            CombatHandler.noteCombatInteraction(levelScope, sourceId, targetId, client);
+        }
+
+        CombatHandler.maybeRecordNpcContribution(levelScope, targetId, sourceId, damage, client);
+        const sourceSession = CombatHandler.resolveCombatSourceSession(levelScope, sourceId, client);
+        if (
+            sourceSession &&
+            targetEntity &&
+            !targetEntity.isPlayer &&
+            Number(targetEntity.team ?? 0) === EntityTeam.ENEMY &&
+            damage > 0
+        ) {
+            noteDungeonRunHit(sourceSession, {
+                sourceId,
+                targetId,
+                targetEntity,
+                damage
+            });
+        }
+
+        const resolution = CombatHandler.updateNpcTargetAfterHit(levelScope, targetId, damage);
+        if (resolution.killed && resolution.entity) {
+            await CombatHandler.handleEnemyDefeatState(sourceSession ?? client, levelScope, targetId, resolution.entity);
+        }
+
+        CombatHandler.broadcastCombatPacket(client, 0x79, data, {
+            referencedEntityIds: [targetId, sourceId]
+        });
     }
 
     static async handleAddBuff(client: Client, data: Buffer): Promise<void> {
