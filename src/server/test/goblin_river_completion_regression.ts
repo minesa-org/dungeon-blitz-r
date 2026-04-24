@@ -239,6 +239,54 @@ async function testBossKillWithoutObservedCutsceneStartWaitsForCutsceneEnd(): Pr
     );
 }
 
+async function testAnyDungeonBossKillAfterIntroCutsceneWaitsForPostDeathCutsceneEnd(): Promise<void> {
+    const client = createClient('GhostBossDungeon', MissionID.KillNephit, 'GenericCutsceneEndedBossTester');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const boss = {
+        id: 7352,
+        name: 'NephitLargeEye',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 6,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 1
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>());
+
+    MissionHandler.noteDungeonCutsceneStart(client as never, 1);
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 1);
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, boss);
+
+    assert.equal(
+        client.pendingDungeonCompletionWaitForCutsceneEnd,
+        true,
+        'all dungeon boss deaths should wait for the post-death cutscene even if an intro cutscene already ended'
+    );
+
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'all dungeon boss deaths should not show dungeon completion before the post-death cutscene end'
+    );
+
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 1);
+    await sleep(0);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        true,
+        'all dungeon boss deaths should show the dungeon completion screen when the post-death cutscene ends'
+    );
+}
+
 async function testGoblinRiverBossKillForcesDungeonCompleteScreen(): Promise<void> {
     const client = createClient('GoblinRiverDungeon', MissionID.GoblinRiver, 'GoblinBossTester');
     const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
@@ -577,6 +625,10 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
         await testBossKillWithoutObservedCutsceneStartWaitsForCutsceneEnd();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testAnyDungeonBossKillAfterIntroCutsceneWaitsForPostDeathCutsceneEnd();
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();

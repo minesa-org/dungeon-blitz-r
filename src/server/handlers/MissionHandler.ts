@@ -583,7 +583,7 @@ export class MissionHandler {
         const isBossEntity = MissionHandler.isDungeonBossEntity(destroyedEntity);
         const shouldWaitForPostBossCutscene =
             isBossEntity &&
-            (currentLevel === 'GoblinRiverDungeon' || currentLevel === 'GoblinRiverDungeonHard');
+            LevelConfig.isDungeonLevel(currentLevel);
         const waitForCutsceneEnd = isCutsceneActive ||
             shouldWaitForPostBossCutscene ||
             (isBossEntity && (cutsceneEndAt <= 0 || cutsceneEndAt < cutsceneStartAt));
