@@ -292,6 +292,10 @@ export class MissionHandler {
             !client.pendingDungeonCompletionFlushActive &&
             pendingScope === getClientLevelScope(client)
         ) {
+            if (client.pendingDungeonCompletionWaitForCutsceneEnd) {
+                client.pendingDungeonCompletionPayload = Buffer.from(data);
+                return;
+            }
             MissionHandler.clearPendingDungeonCompletion(client);
         }
 
@@ -311,6 +315,25 @@ export class MissionHandler {
             String(client.character.CurrentLevel?.name ?? '');
         const levelScope = getClientLevelScope(client);
         const forceSharedDungeonCompletion = Boolean(levelScope) && client.forcedDungeonCompletionScope === levelScope;
+        const activeCutsceneScope = String(client.activeDungeonCutsceneScope ?? '').trim();
+        if (
+            levelScope &&
+            activeCutsceneScope === levelScope &&
+            !client.pendingDungeonCompletionFlushActive
+        ) {
+            MissionHandler.scheduleDungeonCompletion(
+                client,
+                data,
+                {
+                    forcedDungeonCompletionScope: forceSharedDungeonCompletion ? levelScope : undefined,
+                    initialDelayMs: 0,
+                    settleDelayMs: 0,
+                    waitForCutsceneEnd: true
+                }
+            );
+            return;
+        }
+
         const trackerCompletionPercent = Math.max(0, Number(client.character.questTrackerState ?? 0));
         let effectiveCompletionPercent = isWolfsEndDungeonLevel(currentLevel)
             ? Math.max(completionPercent, trackerCompletionPercent)
@@ -445,6 +468,7 @@ export class MissionHandler {
                     missionUpdate.newlyCompleted &&
                     missionUpdate.state >= MissionHandler.MISSION_CLAIMED &&
                     completedMissionId !== MissionID.DefendTheShip &&
+                    completedMissionId !== MissionID.ClearYourHouse &&
                     completedMissionDef &&
                     !MissionHandler.missionRequiresTurnIn(completedMissionDef)
                 ) {
@@ -475,16 +499,18 @@ export class MissionHandler {
             await MissionHandler.saveCharacter(client);
         }
 
-        MissionHandler.sendDungeonComplete(client, {
-            stars: completionResult.stars,
-            resultBar: completionResult.resultBar,
-            rank: completionResult.rank,
-            kills: completionResult.killsScore,
-            accuracy: completionResult.accuracyScore,
-            deaths: completionResult.deathsScore,
-            treasure: completionResult.treasureScore,
-            timeBonus: completionResult.timeBonusScore
-        });
+        if (currentLevel !== 'CraftTownTutorial') {
+            MissionHandler.sendDungeonComplete(client, {
+                stars: completionResult.stars,
+                resultBar: completionResult.resultBar,
+                rank: completionResult.rank,
+                kills: completionResult.killsScore,
+                accuracy: completionResult.accuracyScore,
+                deaths: completionResult.deathsScore,
+                treasure: completionResult.treasureScore,
+                timeBonus: completionResult.timeBonusScore
+            });
+        }
         if (forceSharedDungeonCompletion && client.forcedDungeonCompletionScope === levelScope) {
             client.forcedDungeonCompletionScope = '';
         }
@@ -518,8 +544,9 @@ export class MissionHandler {
                 MissionHandler.buildSyntheticLevelCompletePacket(100),
                 {
                     forcedDungeonCompletionScope: levelScope,
-                    initialDelayMs: MissionHandler.CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS,
-                    settleDelayMs: 0
+                    initialDelayMs: 0,
+                    settleDelayMs: 0,
+                    waitForCutsceneEnd: true
                 }
             );
             return;
@@ -546,10 +573,29 @@ export class MissionHandler {
             return;
         }
 
+        const isCutsceneActive = String(client.activeDungeonCutsceneScope ?? '').trim() === levelScope;
+        const cutsceneStartAt = String(client.lastDungeonCutsceneStartScope ?? '').trim() === levelScope
+            ? Math.max(0, Number(client.lastDungeonCutsceneStartAt ?? 0))
+            : 0;
+        const cutsceneEndAt = String(client.lastDungeonCutsceneEndScope ?? '').trim() === levelScope
+            ? Math.max(0, Number(client.lastDungeonCutsceneEndAt ?? 0))
+            : 0;
+        const isBossEntity = MissionHandler.isDungeonBossEntity(destroyedEntity);
+        const shouldWaitForPostBossCutscene =
+            isBossEntity &&
+            (currentLevel === 'GoblinRiverDungeon' || currentLevel === 'GoblinRiverDungeonHard');
+        const waitForCutsceneEnd = isCutsceneActive ||
+            shouldWaitForPostBossCutscene ||
+            (isBossEntity && (cutsceneEndAt <= 0 || cutsceneEndAt < cutsceneStartAt));
         MissionHandler.scheduleDungeonCompletion(
             client,
             MissionHandler.buildSyntheticLevelCompletePacket(100),
-            { forcedDungeonCompletionScope: levelScope }
+            {
+                forcedDungeonCompletionScope: levelScope,
+                initialDelayMs: waitForCutsceneEnd ? 0 : undefined,
+                settleDelayMs: waitForCutsceneEnd ? 0 : undefined,
+                waitForCutsceneEnd
+            }
         );
     }
 
@@ -560,6 +606,7 @@ export class MissionHandler {
             forcedDungeonCompletionScope?: string;
             initialDelayMs?: number;
             settleDelayMs?: number;
+            waitForCutsceneEnd?: boolean;
         } = {}
     ): void {
         const levelScope = getClientLevelScope(client);
@@ -583,13 +630,23 @@ export class MissionHandler {
         client.pendingDungeonCompletionSettleMs = settleDelayMs;
         client.pendingDungeonCompletionPayload = Buffer.from(payload);
         client.pendingDungeonCompletionForceSharedScope = String(options.forcedDungeonCompletionScope ?? '').trim();
+        client.pendingDungeonCompletionWaitForCutsceneEnd = Boolean(options.waitForCutsceneEnd);
 
-        MissionHandler.armPendingDungeonCompletionTimer(client, initialDelayMs);
+        if (!client.pendingDungeonCompletionWaitForCutsceneEnd) {
+            MissionHandler.armPendingDungeonCompletionTimer(client, initialDelayMs);
+        } else if (client.pendingDungeonCompletionTimer) {
+            clearTimeout(client.pendingDungeonCompletionTimer);
+            client.pendingDungeonCompletionTimer = null;
+        }
     }
 
     static noteDungeonSkitActivity(client: Client): void {
         const pendingScope = String(client.pendingDungeonCompletionScope ?? '').trim();
         if (!pendingScope || getClientLevelScope(client) !== pendingScope) {
+            return;
+        }
+
+        if (client.pendingDungeonCompletionWaitForCutsceneEnd) {
             return;
         }
 
@@ -603,6 +660,54 @@ export class MissionHandler {
             client,
             Math.max(remainingNotBeforeMs, settleDelayMs)
         );
+    }
+
+    static noteDungeonCutsceneStart(client: Client, roomId: number): void {
+        const scope = getClientLevelScope(client);
+        if (!scope) {
+            return;
+        }
+
+        client.activeDungeonCutsceneScope = scope;
+        client.activeDungeonCutsceneRoomId = Math.max(0, Math.round(Number(roomId ?? 0)));
+        client.lastDungeonCutsceneStartScope = scope;
+        client.lastDungeonCutsceneStartAt = Date.now();
+    }
+
+    static noteDungeonCutsceneEnd(client: Client, roomId: number): void {
+        const scope = getClientLevelScope(client);
+        if (!scope) {
+            return;
+        }
+
+        const endedRoomId = Math.max(0, Math.round(Number(roomId ?? 0)));
+        const activeCutsceneScope = String(client.activeDungeonCutsceneScope ?? '').trim();
+        if (
+            activeCutsceneScope === scope &&
+            client.activeDungeonCutsceneRoomId > 0 &&
+            endedRoomId > 0 &&
+            client.activeDungeonCutsceneRoomId !== endedRoomId
+        ) {
+            return;
+        }
+
+        client.lastDungeonCutsceneEndScope = scope;
+        client.lastDungeonCutsceneEndAt = Date.now();
+        if (!client.lastDungeonCutsceneStartScope) {
+            client.lastDungeonCutsceneStartScope = scope;
+            client.lastDungeonCutsceneStartAt = client.lastDungeonCutsceneEndAt;
+        }
+
+        if (activeCutsceneScope === scope) {
+            client.activeDungeonCutsceneScope = '';
+            client.activeDungeonCutsceneRoomId = 0;
+        }
+
+        const pendingScope = String(client.pendingDungeonCompletionScope ?? '').trim();
+        if (pendingScope && pendingScope === scope) {
+            client.pendingDungeonCompletionWaitForCutsceneEnd = false;
+            void MissionHandler.flushPendingDungeonCompletion(client);
+        }
     }
 
     private static armPendingDungeonCompletionTimer(client: Client, delayMs: number): void {
@@ -631,6 +736,7 @@ export class MissionHandler {
         client.pendingDungeonCompletionPayload = null;
         client.pendingDungeonCompletionForceSharedScope = '';
         client.pendingDungeonCompletionFlushActive = false;
+        client.pendingDungeonCompletionWaitForCutsceneEnd = false;
     }
 
     private static async flushPendingDungeonCompletion(client: Client): Promise<void> {
@@ -643,6 +749,16 @@ export class MissionHandler {
         }
 
         const now = Date.now();
+        if (client.pendingDungeonCompletionWaitForCutsceneEnd) {
+            return;
+        }
+
+        const activeCutsceneScope = String(client.activeDungeonCutsceneScope ?? '').trim();
+        if (activeCutsceneScope && activeCutsceneScope === pendingScope) {
+            MissionHandler.armPendingDungeonCompletionTimer(client, MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS);
+            return;
+        }
+
         const requestedAt = Math.max(0, Number(client.pendingDungeonCompletionRequestedAt ?? 0));
         const lastSkitAt = Math.max(requestedAt, Number(client.pendingDungeonCompletionLastSkitAt ?? 0));
         const notBeforeAt = Math.max(requestedAt, Number(client.pendingDungeonCompletionNotBeforeAt ?? 0));

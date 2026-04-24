@@ -188,6 +188,13 @@ export class Client {
     public pendingDungeonCompletionForceSharedScope: string = "";
     public pendingDungeonCompletionTimer: NodeJS.Timeout | null = null;
     public pendingDungeonCompletionFlushActive: boolean = false;
+    public pendingDungeonCompletionWaitForCutsceneEnd: boolean = false;
+    public activeDungeonCutsceneScope: string = "";
+    public activeDungeonCutsceneRoomId: number = 0;
+    public lastDungeonCutsceneStartScope: string = "";
+    public lastDungeonCutsceneStartAt: number = 0;
+    public lastDungeonCutsceneEndScope: string = "";
+    public lastDungeonCutsceneEndAt: number = 0;
 
     constructor(socket: net.Socket, router: PacketRouter) {
         this.socket = socket;
@@ -364,6 +371,13 @@ export class Client {
             this.pendingDungeonCompletionTimer = null;
         }
         this.pendingDungeonCompletionFlushActive = false;
+        this.pendingDungeonCompletionWaitForCutsceneEnd = false;
+        this.activeDungeonCutsceneScope = "";
+        this.activeDungeonCutsceneRoomId = 0;
+        this.lastDungeonCutsceneStartScope = "";
+        this.lastDungeonCutsceneStartAt = 0;
+        this.lastDungeonCutsceneEndScope = "";
+        this.lastDungeonCutsceneEndAt = 0;
     }
 
     private clearIdentityState(): void {
