@@ -1009,6 +1009,7 @@ export class LevelHandler {
             if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
+            MissionHandler.noteDungeonCutsceneStart(other, roomId);
             other.send(0xA5, payload);
         }
     }
@@ -1024,6 +1025,7 @@ export class LevelHandler {
                 continue;
             }
             other.send(0xA6, payload);
+            MissionHandler.noteDungeonCutsceneEnd(other, roomId);
         }
     }
 
@@ -3068,6 +3070,9 @@ export class LevelHandler {
         LevelHandler.cacheRoomId(client, roomId);
 
         LevelHandler.relayToLevel(client, 0xA6, data);
+        for (const other of LevelHandler.forLevelRecipients(client, true)) {
+            MissionHandler.noteDungeonCutsceneEnd(other, roomId);
+        }
     }
 
     static handleRoomUnlock(client: Client, data: Buffer): void {
@@ -3086,6 +3091,9 @@ export class LevelHandler {
         br.readMethod26();
         br.readMethod9();
         br.readMethod26();
+        for (const other of LevelHandler.forLevelRecipients(client, true)) {
+            MissionHandler.noteDungeonCutsceneStart(other, roomId);
+        }
         noteDungeonRunBossCutscene(getClientLevelScope(client), roomId, bossId);
 
         LevelHandler.relayToLevel(client, 0xAC, data);
