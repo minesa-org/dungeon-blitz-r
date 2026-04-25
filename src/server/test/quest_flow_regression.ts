@@ -695,6 +695,157 @@ async function testMayorTurnInClaimsFindAnnasFatherThenOffersKeepQuestOnSecondTa
     );
 }
 
+async function testMayorTurnsInCompletedKeepQuest(): Promise<void> {
+    const client = createFakeClient(
+        'NewbieRoad',
+        {
+            [String(MissionID.DefendTheShip)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.MeetTheTown)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.RescueAnna)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.FindAnnasFather)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.ClearYourHouse)]: {
+                state: 2,
+                currCount: 1
+            }
+        },
+        100
+    );
+    client.entities.set(5825250, { id: 5825250, characterName: 'NR_Mayor01' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(5825250));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
+        3,
+        'Mayor should claim I Claim This Keep when it is ready to turn in'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x84),
+        true,
+        'Mayor turn-in should send the mission-complete reward UI for I Claim This Keep'
+    );
+
+    const skitPacket = client.sentPackets.find((packet) => packet.id === 0x7B);
+    assert.ok(skitPacket, 'Mayor should play the keep quest turn-in dialogue');
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 5825250,
+            dialogueId: 4,
+            missionId: MissionID.ClearYourHouse
+        },
+        'Mayor should use turn-in dialogue for completed I Claim This Keep'
+    );
+}
+
+async function testMayorRepairsCompletedKeepQuestStillMarkedActive(): Promise<void> {
+    const client = createFakeClient(
+        'NewbieRoad',
+        {
+            [String(MissionID.FindAnnasFather)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.ClearYourHouse)]: {
+                state: 1,
+                currCount: 0
+            }
+        },
+        100
+    );
+    client.entities.set(5825250, { id: 5825250, characterName: 'NR_Mayor01' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(5825250));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
+        3,
+        'Mayor should repair and claim a completed keep quest that was still marked active'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x84),
+        true,
+        'repaired keep turn-in should still send the reward UI'
+    );
+}
+
+async function testAnnaOffersLastOfTheGoblinsAfterKeepClaim(): Promise<void> {
+    const client = createFakeClient(
+        'NewbieRoad',
+        {
+            [String(MissionID.DefendTheShip)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.MeetTheTown)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.RescueAnna)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.FindAnnasFather)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.ClearYourHouse)]: {
+                state: 3,
+                claimed: 1,
+                complete: 1
+            }
+        },
+        100
+    );
+    client.entities.set(6218466, { id: 6218466, characterName: 'AnnaOutside' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(6218466));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GoblinRiver)]?.state ?? 0),
+        1,
+        'Anna should offer Last of the Goblins after I Claim This Keep is claimed'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x85),
+        true,
+        'accepting Last of the Goblins should send the mission-added packet'
+    );
+
+    const skitPacket = client.sentPackets.find((packet) => packet.id === 0x7B);
+    assert.ok(skitPacket, 'Anna should play the Last of the Goblins offer dialogue');
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 6218466,
+            dialogueId: 2,
+            missionId: MissionID.GoblinRiver
+        },
+        'Anna should use the Last of the Goblins offer dialogue after the keep reward is claimed'
+    );
+}
+
 async function testClaimedRescueAnnaLetsAnnaOutsideOfferFindAnnasFather(): Promise<void> {
     const client = createFakeClient(
         'NewbieRoad',
@@ -967,6 +1118,9 @@ async function main(): Promise<void> {
     await testMayorTurnInClaimsWashedAshoreThenOffersRescueAnnaOnSecondTalk();
     await testMayorUsesJsonFallbackDialogueWhenNoQuestMatches();
     await testMayorTurnInClaimsFindAnnasFatherThenOffersKeepQuestOnSecondTalk();
+    await testMayorTurnsInCompletedKeepQuest();
+    await testMayorRepairsCompletedKeepQuestStillMarkedActive();
+    await testAnnaOffersLastOfTheGoblinsAfterKeepClaim();
     await testClaimedRescueAnnaLetsAnnaOutsideOfferFindAnnasFather();
     await testTurkishMissionDialogueUsesLocalizedRawText();
     await testTurkishFallbackDialogueUsesLocalizedJsonLines();

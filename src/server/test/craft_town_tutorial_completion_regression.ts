@@ -198,8 +198,8 @@ async function testQueuedDungeonCompletionWaitsForCutsceneEnd(): Promise<void> {
     );
     assert.equal(
         Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
-        3,
-        'queued keep completion should still claim I Claim This Keep after the cutscene end packet'
+        2,
+        'queued keep completion should mark I Claim This Keep ready to turn in after the cutscene end packet'
     );
     assert.equal(Number(client.character.magicForge?.stats_by_building?.['12'] ?? 0), 5);
 }
@@ -244,8 +244,8 @@ async function testClientLevelCompleteWaitsForCutsceneEnd(): Promise<void> {
     );
     assert.equal(
         Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
-        3,
-        'client level-complete packets should still claim I Claim This Keep after cutscene end'
+        2,
+        'client level-complete packets should mark I Claim This Keep ready to turn in after cutscene end'
     );
 }
 
@@ -270,6 +270,7 @@ async function testCraftTownTutorialCompletionPreservesReturnCoordinatesUntilExi
         'I Claim This Keep should not use the dungeon/mission complete pop-up because the home tutorial owns this moment'
     );
     assert.equal(Number(client.character.magicForge?.stats_by_building?.['12'] ?? 0), 5);
+    assert.equal(Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0), 2);
     assert.deepEqual(client.character.buildingUpgrade, { buildingID: 0, rank: 0, ReadyTime: 0 });
     assert.deepEqual(client.character.CurrentLevel, { name: 'CraftTown', x: 918, y: 1440 });
     assert.deepEqual(client.character.PreviousLevel, { name: 'WolfsEnd', x: 1210, y: 880 });
@@ -349,8 +350,8 @@ async function testCraftTownTutorialBossKillSchedulesDelayedFallbackCompletion()
     );
     assert.equal(
         Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
-        3,
-        'the fallback keep completion should claim I Claim This Keep so the home tutorial follow-up can start'
+        2,
+        'the fallback keep completion should mark I Claim This Keep ready to turn in'
     );
 }
 

@@ -1093,6 +1093,10 @@ export class MissionHandler {
     }
 
     private static missionRequiresTurnIn(missionDef: MissionDef): boolean {
+        if (Number(missionDef.MissionID ?? 0) === MissionID.ClearYourHouse) {
+            return true;
+        }
+
         return Boolean(String(missionDef.ReturnName ?? '').trim());
     }
 
