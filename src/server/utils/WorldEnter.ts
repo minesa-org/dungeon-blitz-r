@@ -315,10 +315,13 @@ export class WorldEnter {
             bb.writeMethod45(newY);
         }
 
-        const isCraftTown =
-            newInternal.toLowerCase().includes('crafttown') ||
-            newLevelSwf.toLowerCase().includes('crafttown');
         const isCraftTownTutorial = WorldEnter.isCraftTownTutorialLevel(newInternal);
+        const isCraftTown =
+            !isCraftTownTutorial &&
+            (
+                newInternal.toLowerCase().includes('crafttown') ||
+                newLevelSwf.toLowerCase().includes('crafttown')
+            );
 
         bb.writeMethod11(isCraftTown ? 1 : 0, 1);
         if (isCraftTown && character) {

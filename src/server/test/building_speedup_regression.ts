@@ -215,7 +215,7 @@ function decodeBuildingDelta(packet: Buffer): {
     };
 }
 
-function testCraftTownRefreshClampsUnsupportedKeepRanks(): void {
+function testCraftTownRefreshUsesSupportedRepairedKeepArtRank(): void {
     const client = createClient();
     client.character.magicForge = {
         stats_by_building: {
@@ -235,7 +235,7 @@ function testCraftTownRefreshClampsUnsupportedKeepRanks(): void {
         .find((packet) => packet.targetBuildingId === 12);
 
     assert.ok(keepPacket, 'CraftTown refresh should still emit a keep delta');
-    assert.equal(keepPacket?.targetRank, 0, 'CraftTown refresh should clamp unsupported keep ranks');
+    assert.equal(keepPacket?.targetRank, 0, 'CraftTown refresh should use the supported repaired rank-zero art entry');
 }
 
 async function main(): Promise<void> {
@@ -243,7 +243,7 @@ async function main(): Promise<void> {
     await testDuplicateBuiltTomeUpgradeRequestIsIgnoredAndReassertsHomeState();
     await testDuplicateSpeedupRequestReplaysCompletionForBuiltTome();
     testCraftTownSpawnRefreshSendsImmediateBuildingReassert();
-    testCraftTownRefreshClampsUnsupportedKeepRanks();
+    testCraftTownRefreshUsesSupportedRepairedKeepArtRank();
     console.log('building_speedup_regression: ok');
 }
 

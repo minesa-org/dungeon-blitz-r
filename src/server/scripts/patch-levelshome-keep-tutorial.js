@@ -6,7 +6,8 @@ const { execFileSync } = require('child_process');
 
 const TARGETS = [
     {
-        swf: path.join('src', 'client', 'content', 'localhost', 'p', 'cbp', 'LevelsHome.swf')
+        swf: path.join('src', 'client', 'content', 'localhost', 'p', 'cbp', 'LevelsHome.swf'),
+        originalSwf: path.join('src', 'client', 'content', 'localhost', 'p', 'cbp', 'LevelsHome - Original.swf')
     }
 ];
 const RUINED_KEEP_CHARACTER_ID = 2159;
@@ -54,7 +55,7 @@ function printHelp() {
             '  - Ranik intro uses Run Loop instead of sliding',
             '  - the first reinforcement wave spawns 3 goblins at once',
             '  - later reinforcement respawns come back in 2-3 goblin waves instead of one-by-one',
-            '  - the keep visual stays on the ruined a_Upgrade_Keep_0 sprite inside tutorial'
+            '  - keep sprite definitions stay in their original order so the tutorial remains ruined and Home remains repaired'
         ].join('\n')
     );
 }
@@ -304,35 +305,89 @@ function replaceKeepCharacter(ffdecPath, inputSwfPath, outputSwfPath) {
     ]);
 }
 
-function verifyKeepCharacterReplacement(ffdecPath, swfPath) {
+function getDefineSpriteSignature(ffdecPath, swfPath, characterId) {
+    const dumpOutput = runFfdecCapture(ffdecPath, ['-dumpSWF', swfPath]);
+    const pattern = new RegExp(`DefineSprite \\(chid:\\s*${characterId}\\)\\s+(tagId=\\s*39 len=\\s*\\d+\\s+.*)`);
+    const match = dumpOutput.match(pattern);
+    if (!match) {
+        throw new Error(`${path.basename(swfPath)} is missing DefineSprite character ${characterId}`);
+    }
+
+    return match[1].trim().replace(/\s+/g, ' ');
+}
+
+function verifyNoDuplicateCharacterWarnings(ffdecPath, swfPath) {
     const dumpOutput = runFfdecCapture(ffdecPath, ['-dumpSWF', swfPath]);
     if (dumpOutput.includes('already contains characterId=')) {
-        throw new Error(`${path.basename(swfPath)} contains duplicate character id warnings after keep replacement`);
+        throw new Error(`${path.basename(swfPath)} contains duplicate character id warnings`);
     }
 }
 
-function patchSwf(repoRoot, ffdecPath, swfPath) {
+function getKeepCharacterSignatures(ffdecPath, swfPath) {
+    return {
+        ruined: getDefineSpriteSignature(ffdecPath, swfPath, RUINED_KEEP_CHARACTER_ID),
+        upgraded: getDefineSpriteSignature(ffdecPath, swfPath, UPGRADED_KEEP_CHARACTER_ID)
+    };
+}
+
+function ensureKeepCharacterOrder(ffdecPath, inputSwfPath, outputSwfPath, originalSwfPath) {
+    const originalSignatures = getKeepCharacterSignatures(ffdecPath, originalSwfPath);
+    const currentSignatures = getKeepCharacterSignatures(ffdecPath, inputSwfPath);
+
+    if (
+        currentSignatures.ruined === originalSignatures.ruined &&
+        currentSignatures.upgraded === originalSignatures.upgraded
+    ) {
+        fs.copyFileSync(inputSwfPath, outputSwfPath);
+        verifyNoDuplicateCharacterWarnings(ffdecPath, outputSwfPath);
+        return;
+    }
+
+    replaceKeepCharacter(ffdecPath, inputSwfPath, outputSwfPath);
+    const restoredSignatures = getKeepCharacterSignatures(ffdecPath, outputSwfPath);
+    if (
+        restoredSignatures.ruined !== originalSignatures.ruined ||
+        restoredSignatures.upgraded !== originalSignatures.upgraded
+    ) {
+        throw new Error(`${path.basename(outputSwfPath)} keep sprite definitions were not restored to original order`);
+    }
+    verifyNoDuplicateCharacterWarnings(ffdecPath, outputSwfPath);
+}
+
+function patchSwf(repoRoot, ffdecPath, target) {
+    const swfPath = target.swfPath;
+    const originalSwfPath = target.originalSwfPath;
     const workRoot = path.join(repoRoot, 'build', 'ffdec-levelshome-keep-tutorial', path.basename(swfPath, path.extname(swfPath)));
     const { roomPath } = exportScripts(ffdecPath, workRoot, swfPath);
     const scriptsRoot = path.dirname(roomPath);
     const patchedSwfPath = path.join(workRoot, `${path.basename(swfPath, path.extname(swfPath))}.patched.swf`);
-    const replacedSwfPath = path.join(workRoot, `${path.basename(swfPath, path.extname(swfPath))}.keep-replaced.swf`);
+    const orderedSwfPath = path.join(workRoot, `${path.basename(swfPath, path.extname(swfPath))}.keep-ordered.swf`);
 
     const patchedRoomSource = patchRoomSource(fs.readFileSync(roomPath, 'utf8'));
     verifyRoomSource(patchedRoomSource, swfPath);
     fs.writeFileSync(roomPath, patchedRoomSource, 'utf8');
 
     runFfdec(ffdecPath, ['-importScript', swfPath, patchedSwfPath, scriptsRoot]);
-    replaceKeepCharacter(ffdecPath, patchedSwfPath, replacedSwfPath);
-    fs.copyFileSync(replacedSwfPath, swfPath);
+    ensureKeepCharacterOrder(ffdecPath, patchedSwfPath, orderedSwfPath, originalSwfPath);
+    fs.copyFileSync(orderedSwfPath, swfPath);
     console.log(`Patched keep tutorial room logic in ${swfPath}`);
 }
 
-function verifySwf(repoRoot, ffdecPath, swfPath) {
+function verifySwf(repoRoot, ffdecPath, target) {
+    const swfPath = target.swfPath;
+    const originalSwfPath = target.originalSwfPath;
     const workRoot = path.join(repoRoot, 'build', 'ffdec-levelshome-keep-tutorial-verify', path.basename(swfPath, path.extname(swfPath)));
     const { roomPath } = exportScripts(ffdecPath, workRoot, swfPath);
     verifyRoomSource(fs.readFileSync(roomPath, 'utf8'), swfPath);
-    verifyKeepCharacterReplacement(ffdecPath, swfPath);
+    const originalSignatures = getKeepCharacterSignatures(ffdecPath, originalSwfPath);
+    const currentSignatures = getKeepCharacterSignatures(ffdecPath, swfPath);
+    if (
+        currentSignatures.ruined !== originalSignatures.ruined ||
+        currentSignatures.upgraded !== originalSignatures.upgraded
+    ) {
+        throw new Error(`${path.basename(swfPath)} keep sprite definitions are not in the original order`);
+    }
+    verifyNoDuplicateCharacterWarnings(ffdecPath, swfPath);
     console.log(`Verified keep tutorial room logic in ${swfPath}`);
 }
 
@@ -347,28 +402,34 @@ function main() {
 
     const requestedSwfs = new Set((args.swfs.length ? args.swfs : TARGETS.map((target) => target.swf)).map((entry) => resolvePath(repoRoot, entry)));
     const selectedTargets = TARGETS
-        .map((target) => resolvePath(repoRoot, target.swf))
-        .filter((swfPath) => requestedSwfs.has(swfPath));
+        .map((target) => ({
+            swfPath: resolvePath(repoRoot, target.swf),
+            originalSwfPath: resolvePath(repoRoot, target.originalSwf)
+        }))
+        .filter((target) => requestedSwfs.has(target.swfPath));
 
     if (!selectedTargets.length) {
         throw new Error('No matching SWFs selected for patching.');
     }
 
-    for (const swfPath of selectedTargets) {
-        if (!fs.existsSync(swfPath)) {
-            throw new Error(`SWF not found: ${swfPath}`);
+    for (const target of selectedTargets) {
+        if (!fs.existsSync(target.swfPath)) {
+            throw new Error(`SWF not found: ${target.swfPath}`);
+        }
+        if (!fs.existsSync(target.originalSwfPath)) {
+            throw new Error(`Original SWF not found: ${target.originalSwfPath}`);
         }
     }
 
     if (args.verify) {
-        for (const swfPath of selectedTargets) {
-            verifySwf(repoRoot, ffdecPath, swfPath);
+        for (const target of selectedTargets) {
+            verifySwf(repoRoot, ffdecPath, target);
         }
         return;
     }
 
-    for (const swfPath of selectedTargets) {
-        patchSwf(repoRoot, ffdecPath, swfPath);
+    for (const target of selectedTargets) {
+        patchSwf(repoRoot, ffdecPath, target);
     }
 }
 
