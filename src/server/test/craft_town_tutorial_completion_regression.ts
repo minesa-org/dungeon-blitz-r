@@ -33,6 +33,9 @@ type FakeClient = {
     pendingDungeonCompletionForceSharedScope?: string;
     pendingDungeonCompletionTimer?: NodeJS.Timeout | null;
     pendingDungeonCompletionFlushActive?: boolean;
+    pendingDungeonCompletionWaitForCutsceneEnd?: boolean;
+    activeDungeonCutsceneScope?: string;
+    activeDungeonCutsceneRoomId?: number;
     forcedDungeonCompletionScope?: string;
     keepTutorialState?: { bossDefeated: boolean };
     sentPackets: SentPacket[];
@@ -77,6 +80,9 @@ function createFakeClient(): FakeClient {
         pendingDungeonCompletionForceSharedScope: '',
         pendingDungeonCompletionTimer: null,
         pendingDungeonCompletionFlushActive: false,
+        pendingDungeonCompletionWaitForCutsceneEnd: false,
+        activeDungeonCutsceneScope: '',
+        activeDungeonCutsceneRoomId: 0,
         forcedDungeonCompletionScope: '',
         keepTutorialState: { bossDefeated: true },
         sentPackets,
@@ -125,6 +131,84 @@ function seedClearedKeepLevelState(): void {
     );
 }
 
+async function testQueuedDungeonCompletionWaitsForCutsceneEnd(): Promise<void> {
+    const client = createFakeClient();
+    seedClearedKeepLevelState();
+
+    MissionHandler.noteDungeonCutsceneStart(client as never, 7);
+    MissionHandler.scheduleDungeonCompletion(
+        client as never,
+        createLevelCompletePacket(),
+        {
+            forcedDungeonCompletionScope: 'CraftTownTutorial#keep-run',
+            initialDelayMs: 0,
+            settleDelayMs: 0
+        }
+    );
+
+    await sleep(50);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'queued dungeon completion stats should not open while the boss cutscene is active'
+    );
+
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 7);
+    await sleep(25);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'queued keep completion should not open dungeon stats even after the cutscene end packet'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
+        3,
+        'queued keep completion should still claim I Claim This Keep after the cutscene end packet'
+    );
+}
+
+async function testClientLevelCompleteWaitsForCutsceneEnd(): Promise<void> {
+    const client = createFakeClient();
+    seedClearedKeepLevelState();
+
+    MissionHandler.noteDungeonCutsceneStart(client as never, 7);
+    await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket());
+    await sleep(50);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'client level-complete packets should not open dungeon stats while the cutscene is active'
+    );
+    assert.equal(
+        client.pendingDungeonCompletionScope,
+        'CraftTownTutorial#keep-run',
+        'client level-complete packets should be queued against the active cutscene scope'
+    );
+    assert.equal(
+        client.pendingDungeonCompletionWaitForCutsceneEnd,
+        true,
+        'client level-complete packets should require the cutscene end signal before flushing'
+    );
+
+    MissionHandler.noteDungeonCutsceneStart(client as never, 7);
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 7);
+    await sleep(25);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'client level-complete packets should not open dungeon stats for I Claim This Keep'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
+        3,
+        'client level-complete packets should still claim I Claim This Keep after cutscene end'
+    );
+}
+
 async function testCraftTownTutorialCompletionPreservesReturnCoordinatesUntilExitTransfer(): Promise<void> {
     const client = createFakeClient();
 
@@ -132,7 +216,12 @@ async function testCraftTownTutorialCompletionPreservesReturnCoordinatesUntilExi
 
     await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket());
 
-    assert.equal(client.sentPackets.some((packet) => packet.id === 0x87), true);
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0x87), false);
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x84),
+        false,
+        'I Claim This Keep should not use the dungeon/mission complete pop-up because the home tutorial owns this moment'
+    );
     assert.deepEqual(client.character.CurrentLevel, { name: 'CraftTown', x: 918, y: 1440 });
     assert.deepEqual(client.character.PreviousLevel, { name: 'WolfsEnd', x: 1210, y: 880 });
 }
@@ -166,8 +255,8 @@ async function testCraftTownTutorialBossKillSchedulesDelayedFallbackCompletion()
     assert.equal(
         Number(client.pendingDungeonCompletionNotBeforeAt ?? 0) -
             Number(client.pendingDungeonCompletionRequestedAt ?? 0),
-        MissionHandler.CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS,
-        'keep fallback completion should wait for the full defeat cutscene before it can flush'
+        0,
+        'keep fallback completion should rely on the cutscene end signal instead of a fixed delay'
     );
     assert.equal(
         client.pendingDungeonCompletionForceSharedScope,
@@ -179,6 +268,11 @@ async function testCraftTownTutorialBossKillSchedulesDelayedFallbackCompletion()
         0,
         'keep fallback completion should not add extra settle delay after the defeat skit finishes'
     );
+    assert.equal(
+        client.pendingDungeonCompletionWaitForCutsceneEnd,
+        true,
+        'boss death should only arm completion for the cutscene end signal'
+    );
 
     await sleep(
         MissionHandler.CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS + 300
@@ -186,8 +280,18 @@ async function testCraftTownTutorialBossKillSchedulesDelayedFallbackCompletion()
 
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x87),
-        true,
-        'the queued keep completion should still flush once the cutscene delay has elapsed'
+        false,
+        'the queued keep completion should not flush just because the old boss-death delay elapsed'
+    );
+
+    MissionHandler.noteDungeonCutsceneStart(client as never, 7);
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 7);
+    await sleep(0);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'the queued keep completion should not show dungeon stats after the cutscene end signal'
     );
     assert.equal(
         Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
@@ -216,13 +320,22 @@ async function testCraftTownTutorialRealCompletionCancelsPendingFallback(): Prom
 
     assert.equal(
         client.sentPackets.filter((packet) => packet.id === 0x87).length,
-        1,
-        'a real keep completion packet should replace the fallback instead of producing a duplicate exit'
+        0,
+        'I Claim This Keep should suppress both real and fallback dungeon stat packets'
     );
     assert.equal(
         client.pendingDungeonCompletionScope,
+        'CraftTownTutorial#keep-run',
+        'real keep completion should stay queued while the cutscene gate is waiting'
+    );
+
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 7);
+    await sleep(0);
+
+    assert.equal(
+        client.pendingDungeonCompletionScope,
         '',
-        'processing the real keep completion should clear the queued fallback state'
+        'cutscene end should clear the queued keep completion state'
     );
 }
 
@@ -268,6 +381,12 @@ async function main(): Promise<void> {
     GlobalState.levelQuestProgress.clear();
 
     try {
+        await testQueuedDungeonCompletionWaitsForCutsceneEnd();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testClientLevelCompleteWaitsForCutsceneEnd();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
         await testCraftTownTutorialBossKillSchedulesDelayedFallbackCompletion();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
