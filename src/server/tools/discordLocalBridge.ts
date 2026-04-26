@@ -518,7 +518,16 @@ class LocalDiscordBridge {
         }
 
         try {
-            return new URL(text).toString();
+            const parsed = new URL(text);
+            const isHttp = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+            const isLoopbackHost = parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost';
+            const hasCredentials = Boolean(parsed.username || parsed.password);
+
+            if (!isHttp || !isLoopbackHost || hasCredentials) {
+                return '';
+            }
+
+            return parsed.toString();
         } catch (_error) {
             return '';
         }
