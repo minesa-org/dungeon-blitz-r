@@ -27,6 +27,13 @@ export class GameData {
         boss_drops: {},
         global_drops: []
     };
+    private static readonly BOSS_ENTITY_NAME_ALIASES = new Set<string>([
+        'AncientDragonDream',
+        'DragonDream',
+        'DreamDragon',
+        'YoungDragonDream',
+        'YoungDragonDreamHard'
+    ]);
     private static readonly CLASS_GEAR_IDS: Record<string, Set<number>> = {
         paladin: GameData.buildEnumValueSet(PaladinGear),
         rogue: GameData.buildEnumValueSet(RogueGear),
@@ -216,6 +223,26 @@ export class GameData {
 
     static getEntType(name: string): any {
         return GameData.ENTTYPES[name] || null;
+    }
+
+    static getEntityRank(entity: any): string {
+        const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
+        const entType = entityName ? GameData.getEntType(entityName) ?? {} : {};
+        return String(entity?.entRank ?? entity?.EntRank ?? entType?.EntRank ?? entType?.entRank ?? '').trim();
+    }
+
+    static isBossEntity(entity: any): boolean {
+        const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
+        const rank = GameData.getEntityRank(entity);
+        if (rank === 'Boss' || rank === 'MiniBoss') {
+            return true;
+        }
+
+        if (entityName && GameData.BOSS_ENTITY_NAME_ALIASES.has(entityName)) {
+            return true;
+        }
+
+        return Boolean(entityName && GameData.GEAR_DATA.boss_drops?.[entityName]);
     }
 
     static getMountId(name: string): number {

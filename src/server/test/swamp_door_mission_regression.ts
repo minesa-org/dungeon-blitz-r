@@ -53,12 +53,16 @@ function readMethod91(br: BitReader): number {
     return br.readMethod20((prefix + 1) * 2);
 }
 
-function decodeDoorStatePacket(payload: Buffer): { doorId: number; state: number; targetLevel: string } {
+function decodeDoorStatePacket(payload: Buffer): { doorId: number; state: number; targetLevel: string; stars: number } {
     const br = new BitReader(payload);
+    const doorId = br.readMethod4();
+    const state = readMethod91(br);
+    const targetLevel = br.readMethod13();
     return {
-        doorId: br.readMethod4(),
-        state: readMethod91(br),
-        targetLevel: br.readMethod13()
+        doorId,
+        state,
+        targetLevel,
+        stars: state === 3 ? br.readMethod6(4) : 0
     };
 }
 
@@ -107,10 +111,36 @@ function testSwampRoadNorthOnlyShowsAcceptedDungeonDoors(): void {
             .filter((entry) => entry.id === 0x42)
             .map((entry) => decodeDoorStatePacket(entry.payload)),
         [
-            { doorId: 101, state: 1, targetLevel: 'SRN_Mission1' },
-            { doorId: 102, state: 0, targetLevel: '' }
+            { doorId: 101, state: 1, targetLevel: 'SRN_Mission1', stars: 0 },
+            { doorId: 102, state: 0, targetLevel: '', stars: 0 }
         ],
         'Black Rose Mire should only mark dungeon doors usable after their quests are accepted'
+    );
+}
+
+function testCompletedDungeonDoorIncludesStoredStars(): void {
+    const client = createClient();
+    client.currentLevel = 'NewbieRoad';
+    client.character.CurrentLevel = { name: 'NewbieRoad', x: 1421, y: 826 };
+    client.character.missions[String(MissionID.DefendTheShip)] = {
+        state: 2,
+        currCount: 1,
+        Tier: 5,
+        highscore: 140000,
+        Time: 333333
+    };
+
+    LevelHandler.handleRequestDoorState(client as never, createDoorPacket(104));
+
+    assert.deepEqual(
+        decodeDoorStatePacket(client.sentPackets.find((entry) => entry.id === 0x42)!.payload),
+        {
+            doorId: 104,
+            state: 3,
+            targetLevel: 'TutorialBoat',
+            stars: 5
+        },
+        'completed dungeon doors should use mission-repeat state and include stored star count for the door plate'
     );
 }
 
@@ -129,6 +159,7 @@ function testLockedSwampDungeonDoorDoesNotTransferPlayer(): void {
 async function main(): Promise<void> {
     ensureDataLoaded();
     testSwampRoadNorthOnlyShowsAcceptedDungeonDoors();
+    testCompletedDungeonDoorIncludesStoredStars();
     testLockedSwampDungeonDoorDoesNotTransferPlayer();
     console.log('swamp_door_mission_regression: ok');
 }

@@ -97,7 +97,7 @@ export function classifyDungeonStatsEntity(entity: any): DungeonStatsEntityClass
     const name = String(entity?.name ?? '').trim();
     const entType = name ? GameData.getEntType(name) ?? {} : {};
     const behavior = String(entity?.behavior ?? entType?.Behavior ?? '').trim();
-    const rank = String(entity?.entRank ?? entType?.EntRank ?? '').trim();
+    const rank = GameData.getEntityRank(entity);
     const hitPoints = Number(entity?.maxHp ?? entity?.hp ?? entType?.HitPoints ?? 0);
     const team = Number(entity?.team ?? EntityTeam.UNKNOWN);
     const defeated = Boolean(entity?.dead) || Number(entity?.entState ?? 0) === EntityState.DEAD;
@@ -122,7 +122,7 @@ export function classifyDungeonStatsEntity(entity: any): DungeonStatsEntityClass
 
     return {
         hostile,
-        boss: hostile && (rank === 'Boss' || rank === 'MiniBoss'),
+        boss: hostile && GameData.isBossEntity(entity),
         chest,
         objective,
         treasureFallbackHostile

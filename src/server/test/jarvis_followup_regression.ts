@@ -107,6 +107,15 @@ function decodeStartSkitPacket(payload: Buffer): { npcId: number; dialogueId: nu
     };
 }
 
+function decodeMissionCompleteUiPacket(payload: Buffer): { missionId: number; stars: number; score: number } {
+    const br = new BitReader(payload);
+    return {
+        missionId: br.readMethod4(),
+        stars: br.readMethod15() ? br.readMethod6(4) : 0,
+        score: br.readMethod4()
+    };
+}
+
 async function testJarvisTurnInClaimsRecoverRingsThenOffersGoblinTakedownOnSecondTalk(): Promise<void> {
     const client = createFakeClient(
         'NewbieRoad',
@@ -194,7 +203,10 @@ async function testAnnaTurnInClaimsLastOfTheGoblinsThenOffersNephitsQuestOnSecon
             },
             [String(MissionID.GoblinRiver)]: {
                 state: 2,
-                currCount: 1
+                currCount: 1,
+                Tier: 8,
+                highscore: 98765,
+                Time: 222222
             }
         },
         100
@@ -217,6 +229,15 @@ async function testAnnaTurnInClaimsLastOfTheGoblinsThenOffersNephitsQuestOnSecon
         client.sentPackets.some((packet) => packet.id === 0x84),
         true,
         'claiming Last of the Goblins should still show the mission-complete reward UI'
+    );
+    assert.deepEqual(
+        decodeMissionCompleteUiPacket(client.sentPackets.find((packet) => packet.id === 0x84)!.payload),
+        {
+            missionId: MissionID.GoblinRiver,
+            stars: 8,
+            score: 98765
+        },
+        'claiming a completed dungeon should keep its stored stars and score in the client mission snapshot'
     );
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x85),

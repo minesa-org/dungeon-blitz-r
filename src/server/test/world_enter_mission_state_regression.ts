@@ -38,6 +38,9 @@ function testReadyToTurnInEncodesAsNotClaimed(): void {
         false,
         'ready-to-turn-in story mission must not be serialized as already claimed'
     );
+    assert.equal(br.readMethod6(4), 5, 'ready-to-turn-in dungeon mission should still serialize saved stars');
+    assert.equal(br.readMethod4(), 209, 'ready-to-turn-in dungeon mission should still serialize saved high score');
+    assert.equal(br.readMethod4(), 123456, 'ready-to-turn-in dungeon mission should still serialize completion time');
 }
 
 function testClaimedEncodesAsClaimed(): void {

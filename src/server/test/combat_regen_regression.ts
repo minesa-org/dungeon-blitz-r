@@ -150,11 +150,10 @@ function testPlayerRegenAfterIdleDoesNotHealLivingPlayerBoss(): void {
     const hostileId = 900001;
     const hostile = {
         id: hostileId,
-        name: 'GoblinBoss2',
+        name: 'YoungDragonDream',
         isPlayer: false,
         clientSpawned: true,
         team: 2,
-        entRank: 'Boss',
         roomId: player.currentRoomId,
         entState: EntityState.ACTIVE,
         dead: false,
@@ -395,11 +394,10 @@ function testDeadPlayerArmsBossRegenImmediately(): void {
     const bossId = 900008;
     const boss = {
         id: bossId,
-        name: 'GoblinBoss2',
+        name: 'YoungDragonDream',
         isPlayer: false,
         clientSpawned: true,
         team: 2,
-        entRank: 'Boss',
         roomId: player.currentRoomId,
         entState: EntityState.ACTIVE,
         dead: false,
@@ -439,11 +437,10 @@ async function testRespawnDoesNotFullHealBoss(): Promise<void> {
     const bossId = 900009;
     const boss = {
         id: bossId,
-        name: 'GoblinBoss2',
+        name: 'YoungDragonDream',
         isPlayer: false,
         clientSpawned: true,
         team: 2,
-        entRank: 'Boss',
         roomId: player.currentRoomId,
         entState: EntityState.ACTIVE,
         dead: false,
