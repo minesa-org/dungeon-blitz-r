@@ -17,8 +17,8 @@ const DEFAULT_TARGET = path.join(
 const BUILDING_TYPES_ROOT = 'BuildingTypes';
 const KEEP_BUILDING_ID = '12';
 const KEEP_RANK = '0';
-const DESTROYED_ART = 'a_Upgrade_Keep_5';
-const REPAIRED_ART = 'a_Upgrade_Keep_0';
+const DESTROYED_ART = 'a_Upgrade_Keep_0';
+const REPAIRED_ART = 'a_Upgrade_Keep_5';
 
 function parseArgs(argv) {
     const args = {
@@ -53,7 +53,7 @@ function printHelp() {
             '  node src/server/scripts/patch-game-swz-keep-art.js [--verify] [--swz <path>]',
             '',
             'Patches the client BuildingTypes resource inside Game.swz so',
-            'the keep BuildingID=12 Rank=0 art uses a_Upgrade_Keep_0.'
+            'the keep BuildingID=12 Rank=0 art uses a_Upgrade_Keep_5.'
         ].join('\n')
     );
 }

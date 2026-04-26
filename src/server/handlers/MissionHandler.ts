@@ -11,6 +11,7 @@ import { isWolfsEndDungeonLevel } from '../core/WolfsEndDungeonStatsPolicy';
 import { finalizeDungeonRun, getActiveDungeonRunStats, noteDungeonRunCompletionProgress } from '../core/DungeonRunStats';
 import { buildDungeonRunScoreSummary } from '../core/DungeonRunStats';
 import { EntityState, EntityTeam } from '../core/Entity';
+import { BuildingID } from '../core/Enums';
 import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
 import {
@@ -27,6 +28,7 @@ import { MissionDef, MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
+import { RewardHandler } from './RewardHandler';
 
 const db = new JsonAdapter();
 
@@ -62,6 +64,7 @@ export class MissionHandler {
     static readonly CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS = 43 * 250;
     private static readonly PRIMED_CONTACT_DIALOGUE_COUNT = -1;
     private static readonly ACHIEVEMENT_MAMMOTH_IDOL_REWARD = 10;
+    private static readonly CRAFT_TOWN_REPAIRED_KEEP_RANK = 5;
     private static readonly CRAFT_TOWN_TUTORIAL_BOSS_NAMES = new Set([
         'GoblinShamanHood',
         'IntroGoblinShamanHood'
@@ -194,6 +197,23 @@ export class MissionHandler {
         }
 
         if (MissionHandler.normalizeInstantReturnMissionStates(character)) {
+            didMutate = true;
+        }
+
+        if (
+            currentLevel === 'CraftTown' &&
+            questProgress >= 100 &&
+            MissionHandler.getMissionState(character, MissionID.ClearYourHouse) === MissionHandler.MISSION_IN_PROGRESS
+        ) {
+            const keepMissionDef = MissionLoader.getMissionDef(MissionID.ClearYourHouse);
+            MissionHandler.setMissionState(
+                character,
+                MissionID.ClearYourHouse,
+                MissionHandler.MISSION_READY_TO_TURN_IN,
+                keepMissionDef,
+                { currCount: Math.max(1, Number(keepMissionDef?.CompleteCount ?? 1)) }
+            );
+            MissionHandler.ensureCraftTownKeepRepaired(character);
             didMutate = true;
         }
 
@@ -496,6 +516,22 @@ export class MissionHandler {
                 if (primedMissionId > 0) {
                     didMutate = true;
                 }
+
+                if (
+                    currentLevel === 'CraftTownTutorial' &&
+                    completedMissionId === MissionID.ClearYourHouse &&
+                    MissionHandler.ensureCraftTownKeepRepaired(client.character)
+                ) {
+                    didMutate = true;
+                }
+
+                if (
+                    missionUpdate.newlyCompleted &&
+                    completedMissionId === MissionID.ClearYourHouse &&
+                    MissionHandler.claimKeepQuestCompletionReward(client, missionUpdate)
+                ) {
+                    didMutate = true;
+                }
             }
 
             if (
@@ -511,7 +547,12 @@ export class MissionHandler {
             await MissionHandler.saveCharacter(client);
         }
 
-        if (currentLevel !== 'CraftTownTutorial') {
+        if (
+            currentLevel === 'CraftTownTutorial' &&
+            completedMissionId === MissionID.ClearYourHouse
+        ) {
+            MissionHandler.sendCraftTownTutorialHomeDoorTarget(client);
+        } else {
             MissionHandler.sendDungeonComplete(client, {
                 stars: completionResult.stars,
                 resultBar: completionResult.resultBar,
@@ -1002,6 +1043,59 @@ export class MissionHandler {
         return 0;
     }
 
+    private static claimKeepQuestCompletionReward(
+        client: Client,
+        missionUpdate: DungeonMissionUpdateResult
+    ): boolean {
+        if (!client.character || missionUpdate.missionId !== MissionID.ClearYourHouse) {
+            return false;
+        }
+
+        const missionDef = MissionLoader.getMissionDef(MissionID.ClearYourHouse);
+        if (!missionDef) {
+            return false;
+        }
+
+        MissionHandler.setMissionState(
+            client.character,
+            MissionID.ClearYourHouse,
+            MissionHandler.MISSION_CLAIMED,
+            missionDef,
+            {
+                currCount: Math.max(1, Number(missionDef.CompleteCount ?? 1)),
+                Tier: missionUpdate.persistedStars,
+                highscore: missionUpdate.persistedScore
+            }
+        );
+        MissionHandler.sendMissionCompleteUi(
+            client,
+            MissionID.ClearYourHouse,
+            missionUpdate.persistedStars,
+            missionUpdate.persistedScore
+        );
+        MissionHandler.grantMissionRewards(client, missionDef);
+        return true;
+    }
+
+    private static grantMissionRewards(client: Client, missionDef: MissionDef): void {
+        if (!client.character) {
+            return;
+        }
+
+        const expReward = Math.max(0, Number(missionDef.ExpRewardValue ?? 0));
+        if (expReward > 0) {
+            client.character.xp = Number(client.character.xp ?? 0) + expReward;
+            client.character.level = GameData.getPlayerLevelFromXp(Number(client.character.xp ?? 0));
+            MissionHandler.sendXpReward(client, expReward);
+        }
+
+        const goldReward = Math.max(0, Number(missionDef.GoldRewardValue ?? 0));
+        if (goldReward > 0) {
+            client.character.gold = Number(client.character.gold ?? 0) + goldReward;
+            RewardHandler.sendGoldReward(client, goldReward, false);
+        }
+    }
+
     private static canStartMission(character: Character, missionDef: MissionDef): boolean {
         if (!MissionHandler.isMissionZoneUnlocked(character, missionDef)) {
             return false;
@@ -1078,6 +1172,10 @@ export class MissionHandler {
     }
 
     private static missionRequiresTurnIn(missionDef: MissionDef): boolean {
+        if (Number(missionDef.MissionID ?? 0) === MissionID.ClearYourHouse) {
+            return true;
+        }
+
         return Boolean(String(missionDef.ReturnName ?? '').trim());
     }
 
@@ -1155,6 +1253,12 @@ export class MissionHandler {
         bb.writeMethod6(Math.max(0, Math.min(stars, 15)), 4);
         bb.writeMethod4(Math.max(0, dungeonScore));
         client.sendBitBuffer(0x84, bb);
+    }
+
+    private static sendXpReward(client: Client, amount: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(amount);
+        client.sendBitBuffer(0x2B, bb);
     }
 
     private static sendAchievementCompleteUi(client: Client, missionId: number): void {
@@ -1264,6 +1368,43 @@ export class MissionHandler {
         bb.writeMethod4(Math.max(0, stats.treasure));
         bb.writeMethod4(Math.max(0, stats.timeBonus));
         client.sendBitBuffer(0x87, bb);
+    }
+
+    private static ensureCraftTownKeepRepaired(character: Character): boolean {
+        const magicForge = (character.magicForge ??= { stats_by_building: {} } as any);
+        if (!magicForge.stats_by_building) {
+            magicForge.stats_by_building = {};
+        }
+
+        const statsByBuilding = magicForge.stats_by_building as Record<string, unknown>;
+        const keepKey = String(BuildingID.Keep);
+        const currentRank = Number(statsByBuilding[keepKey] ?? 0);
+        if (
+            Number.isFinite(currentRank) &&
+            currentRank >= MissionHandler.CRAFT_TOWN_REPAIRED_KEEP_RANK
+        ) {
+            return false;
+        }
+
+        statsByBuilding[keepKey] = MissionHandler.CRAFT_TOWN_REPAIRED_KEEP_RANK;
+        if (character.buildingUpgrade?.buildingID === BuildingID.Keep) {
+            character.buildingUpgrade = { buildingID: 0, rank: 0, ReadyTime: 0 };
+        }
+        return true;
+    }
+
+    private static sendCraftTownTutorialHomeDoorTarget(client: Client): void {
+        const doorId = 2;
+        const targetLevel = 'CraftTown';
+
+        client.lastDoorId = doorId;
+        client.lastDoorTargetLevel = targetLevel;
+        client.armPendingTransferGrace?.();
+
+        const bb = new BitBuffer();
+        bb.writeMethod4(doorId);
+        bb.writeMethod13(targetLevel);
+        client.sendBitBuffer(0x2E, bb);
     }
 
     private static buildSyntheticLevelCompletePacket(completionPercent: number): Buffer {

@@ -7,6 +7,7 @@ import { MissionID } from '../data/runtime';
 import { MissionHandler } from '../handlers/MissionHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
+import { BitReader } from '../network/protocol/bitReader';
 
 type SentPacket = {
     id: number;
@@ -23,7 +24,15 @@ type FakeClient = {
         PreviousLevel: { name: string; x: number; y: number };
         missions: Record<string, { state: number; currCount?: number }>;
         questTrackerState: number;
+        level?: number;
+        xp?: number;
+        gold?: number;
+        magicForge?: { stats_by_building: Record<string, unknown> };
+        buildingUpgrade?: { buildingID: number; rank: number; ReadyTime: number };
     };
+    lastDoorId?: number;
+    lastDoorTargetLevel?: string;
+    armPendingTransferGrace?: () => void;
     pendingDungeonCompletionScope?: string;
     pendingDungeonCompletionRequestedAt?: number;
     pendingDungeonCompletionLastSkitAt?: number;
@@ -69,7 +78,25 @@ function createFakeClient(): FakeClient {
                     currCount: 0
                 }
             },
-            questTrackerState: 0
+            questTrackerState: 0,
+            level: 1,
+            xp: 0,
+            gold: 0,
+            magicForge: {
+                stats_by_building: {
+                    '12': 0
+                }
+            },
+            buildingUpgrade: {
+                buildingID: 12,
+                rank: 5,
+                ReadyTime: 999999999
+            }
+        },
+        lastDoorId: 0,
+        lastDoorTargetLevel: '',
+        armPendingTransferGrace() {
+            return undefined;
         },
         pendingDungeonCompletionScope: '',
         pendingDungeonCompletionRequestedAt: 0,
@@ -103,6 +130,14 @@ function createLevelCompletePacket(): Buffer {
     bb.writeMethod9(1);
     bb.writeMethod9(3);
     return bb.toBuffer();
+}
+
+function decodeDoorTarget(packet: Buffer): { doorId: number; targetLevel: string } {
+    const br = new BitReader(packet);
+    return {
+        doorId: br.readMethod4(),
+        targetLevel: br.readMethod13()
+    };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -163,10 +198,18 @@ async function testQueuedDungeonCompletionWaitsForCutsceneEnd(): Promise<void> {
         'queued keep completion should not open dungeon stats even after the cutscene end packet'
     );
     assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x2E),
+        true,
+        'queued keep completion should offer the Home transfer after the cutscene end packet'
+    );
+    assert.equal(
         Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
         3,
-        'queued keep completion should still claim I Claim This Keep after the cutscene end packet'
+        'queued keep completion should claim I Claim This Keep after the cutscene end packet'
     );
+    assert.equal(client.character.xp, 5, 'queued keep completion should pay the quest XP reward');
+    assert.equal(client.character.gold, 5, 'queued keep completion should pay the quest gold reward');
+    assert.equal(Number(client.character.magicForge?.stats_by_building?.['12'] ?? 0), 5);
 }
 
 async function testClientLevelCompleteWaitsForCutsceneEnd(): Promise<void> {
@@ -203,9 +246,24 @@ async function testClientLevelCompleteWaitsForCutsceneEnd(): Promise<void> {
         'client level-complete packets should not open dungeon stats for I Claim This Keep'
     );
     assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x2E),
+        true,
+        'client level-complete packets should send the player Home after the skit'
+    );
+    assert.equal(
         Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
         3,
-        'client level-complete packets should still claim I Claim This Keep after cutscene end'
+        'client level-complete packets should claim I Claim This Keep after cutscene end'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x2B),
+        true,
+        'client level-complete packets should send the I Claim This Keep XP reward'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x35),
+        true,
+        'client level-complete packets should send the I Claim This Keep gold reward'
     );
 }
 
@@ -217,11 +275,28 @@ async function testCraftTownTutorialCompletionPreservesReturnCoordinatesUntilExi
     await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket());
 
     assert.equal(client.sentPackets.some((packet) => packet.id === 0x87), false);
+    const doorTargetPacket = client.sentPackets.find((packet) => packet.id === 0x2E);
+    assert.ok(doorTargetPacket, 'I Claim This Keep completion should send a Home door target');
+    assert.deepEqual(
+        decodeDoorTarget(doorTargetPacket.payload),
+        { doorId: 2, targetLevel: 'CraftTown' },
+        'I Claim This Keep should transfer back to Home'
+    );
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x84),
-        false,
-        'I Claim This Keep should not use the dungeon/mission complete pop-up because the home tutorial owns this moment'
+        true,
+        'I Claim This Keep should send its mission complete reward UI when the quest is auto-claimed'
     );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x86),
+        true,
+        'I Claim This Keep completion should tell the client the mission completed'
+    );
+    assert.equal(Number(client.character.magicForge?.stats_by_building?.['12'] ?? 0), 5);
+    assert.equal(Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0), 3);
+    assert.equal(client.character.xp, 5);
+    assert.equal(client.character.gold, 5);
+    assert.deepEqual(client.character.buildingUpgrade, { buildingID: 0, rank: 0, ReadyTime: 0 });
     assert.deepEqual(client.character.CurrentLevel, { name: 'CraftTown', x: 918, y: 1440 });
     assert.deepEqual(client.character.PreviousLevel, { name: 'WolfsEnd', x: 1210, y: 880 });
 }
@@ -294,9 +369,14 @@ async function testCraftTownTutorialBossKillSchedulesDelayedFallbackCompletion()
         'the queued keep completion should not show dungeon stats after the cutscene end signal'
     );
     assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x2E),
+        true,
+        'the queued keep completion should send the player Home after the cutscene end signal'
+    );
+    assert.equal(
         Number(client.character.missions[String(MissionID.ClearYourHouse)]?.state ?? 0),
         3,
-        'the fallback keep completion should claim I Claim This Keep so the home tutorial follow-up can start'
+        'the fallback keep completion should claim I Claim This Keep'
     );
 }
 
