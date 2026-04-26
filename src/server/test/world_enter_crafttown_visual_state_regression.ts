@@ -57,14 +57,24 @@ function decodeCraftTownVisualData(packet: Buffer) {
     }
 
     const isCraftTown = br.readMethod20(1) === 1;
-    const transferToken = br.readMethod4();
-    const masterClassId = br.readMethod20(4);
-    const forgeRank = br.readMethod20(5);
-    const keepRank = br.readMethod20(5);
-    const towerRank = br.readMethod20(5);
-    const tomeRank = br.readMethod20(5);
-    const barnRank = br.readMethod20(5);
-    const scaffoldingLevel = br.readMethod20(5);
+    let transferToken = 0;
+    let masterClassId = 0;
+    let forgeRank = 0;
+    let keepRank = 0;
+    let towerRank = 0;
+    let tomeRank = 0;
+    let barnRank = 0;
+    let scaffoldingLevel = 0;
+    if (isCraftTown) {
+        transferToken = br.readMethod4();
+        masterClassId = br.readMethod20(4);
+        forgeRank = br.readMethod20(5);
+        keepRank = br.readMethod20(5);
+        towerRank = br.readMethod20(5);
+        tomeRank = br.readMethod20(5);
+        barnRank = br.readMethod20(5);
+        scaffoldingLevel = br.readMethod20(5);
+    }
 
     return {
         newInternal,
@@ -113,8 +123,8 @@ function testCraftTownTutorialSuppressesKeepUpgradeVisuals(): void {
     const decoded = decodeCraftTownVisualData(buildCraftTownPacket('CraftTownTutorial'));
 
     assert.equal(decoded.newInternal, 'CraftTownTutorial');
-    assert.equal(decoded.isCraftTown, true);
-    assert.equal(decoded.keepRank, 0, 'tutorial keep should always render in the ruined baseline state');
+    assert.equal(decoded.isCraftTown, false, 'tutorial should use its authored ruined room art instead of live Home building visuals');
+    assert.equal(decoded.keepRank, 0, 'tutorial keep should not send live keep ranks');
     assert.equal(decoded.scaffoldingLevel, 0, 'tutorial keep should not inherit live scaffolding state');
 }
 
@@ -127,7 +137,7 @@ function testCraftTownPreservesLiveKeepUpgradeVisuals(): void {
     assert.equal(decoded.newX, 10);
     assert.equal(decoded.newY, 20);
     assert.equal(decoded.isCraftTown, true);
-    assert.equal(decoded.keepRank, 0, 'town keep should clamp unsupported keep ranks so the client does not crash');
+    assert.equal(decoded.keepRank, 0, 'town keep should use the supported repaired rank-zero art entry');
     assert.equal(decoded.scaffoldingLevel, 12, 'town keep should continue to use the live scaffolding state');
 }
 
@@ -151,7 +161,7 @@ function testCraftTownPlayerDataPreservesLiveKeepUpgradeState(): void {
     const safeStats = WorldEnter.getTutorialSafeBuildingStatsForLevel(character, 'CraftTown');
     const safeUpgrade = WorldEnter.getTutorialSafeBuildingUpgradeForLevel(character, 'CraftTown');
 
-    assert.equal(Number(safeStats['12'] ?? safeStats[12]), 0, 'town player data should clamp unsupported keep ranks');
+    assert.equal(Number(safeStats['12'] ?? safeStats[12]), 0, 'town player data should use the supported repaired rank-zero art entry');
     assert.equal(Number(safeUpgrade.buildingID ?? 0), 12, 'town player data should keep the live scaffolding building id');
 }
 

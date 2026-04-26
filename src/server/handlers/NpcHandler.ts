@@ -85,6 +85,10 @@ export class NpcHandler {
                 }
             }
 
+            if (NpcHandler.repairCompletedKeepQuestTurnIn(client.character, missionNpcKey)) {
+                didMutate = true;
+            }
+
             const matched = NpcHandler.findBestMission(client.character, missionNpcKey);
             if (matched) {
                 dialogueId = matched.dialogueId;
@@ -222,7 +226,7 @@ export class NpcHandler {
             const entry = NpcHandler.getMissionEntry(character, missionId);
             const state = NpcHandler.getMissionState(character, missionId);
             const contactKey = NpcHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '');
-            const returnKey = NpcHandler.normalizeMissionNpcKey(missionDef.ReturnName ?? '');
+            const returnKey = NpcHandler.getMissionReturnNpcKey(missionDef);
             const primedContactOffer =
                 missionId === MissionID.FindAnnasFather &&
                 state === NpcHandler.MISSION_READY_TO_TURN_IN &&
@@ -322,7 +326,47 @@ export class NpcHandler {
     }
 
     private static missionRequiresTurnIn(missionDef: MissionDef): boolean {
+        if (Number(missionDef.MissionID ?? 0) === MissionID.ClearYourHouse) {
+            return true;
+        }
+
         return Boolean(String(missionDef.ReturnName ?? '').trim());
+    }
+
+    private static getMissionReturnNpcKey(missionDef: MissionDef): string {
+        const returnKey = NpcHandler.normalizeMissionNpcKey(missionDef.ReturnName ?? '');
+        if (returnKey) {
+            return returnKey;
+        }
+
+        if (Number(missionDef.MissionID ?? 0) === MissionID.ClearYourHouse) {
+            return NpcHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '');
+        }
+
+        return '';
+    }
+
+    private static repairCompletedKeepQuestTurnIn(character: Character, npcKey: string): boolean {
+        const keepMissionDef = MissionLoader.getMissionDef(MissionID.ClearYourHouse);
+        if (!keepMissionDef || npcKey !== NpcHandler.getMissionReturnNpcKey(keepMissionDef)) {
+            return false;
+        }
+
+        if (NpcHandler.getMissionState(character, MissionID.ClearYourHouse) !== NpcHandler.MISSION_IN_PROGRESS) {
+            return false;
+        }
+
+        if (Number(character.questTrackerState ?? 0) < 100) {
+            return false;
+        }
+
+        NpcHandler.setMissionState(
+            character,
+            MissionID.ClearYourHouse,
+            NpcHandler.MISSION_READY_TO_TURN_IN,
+            { currCount: Math.max(1, Number(keepMissionDef.CompleteCount ?? 1)) }
+        );
+        return true;
     }
 
     private static missionStartsReadyToTurnIn(missionDef: MissionDef | undefined): boolean {

@@ -81,7 +81,6 @@ type NpcHitResolution = {
 };
 
 export class CombatHandler {
-    private static readonly RESPAWN_ENEMY_HEAL = 1_000_000;
     private static readonly PLAYER_OUT_OF_COMBAT_REGEN_DELAY_MS = 5_000;
     private static readonly PLAYER_OUT_OF_COMBAT_REGEN_INTERVAL_MS = 1_000;
     private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS = 5_500;
@@ -369,6 +368,32 @@ export class CombatHandler {
         return Boolean(entity?.dead) || Number(entity?.entState ?? EntityState.ACTIVE) === EntityState.DEAD;
     }
 
+    private static isBossEntity(entity: any): boolean {
+        const entType = GameData.getEntType(String(entity?.name ?? '')) ?? {};
+        const rank = String(entity?.entRank ?? entity?.EntRank ?? entType?.EntRank ?? entType?.entRank ?? '').trim();
+        return rank === 'Boss' || rank === 'MiniBoss';
+    }
+
+    private static levelHasDeadPlayer(levelScope: string): boolean {
+        if (!levelScope) {
+            return false;
+        }
+
+        for (const session of GlobalState.sessionsByToken.values()) {
+            if (!session.playerSpawned || getClientLevelScope(session) !== levelScope) {
+                continue;
+            }
+
+            const entity = session.entities.get(session.clientEntID) ??
+                CombatHandler.resolveLevelEntity(levelScope, session.clientEntID);
+            if (CombatHandler.isEntityDead(entity)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static estimateHostileMaxHp(entity: any): number {
         const entType = GameData.getEntType(String(entity?.name ?? '')) ?? {};
         const rawLevel = Number(entity?.level ?? entType?.Level ?? entType?.baseLevel ?? entType?.ExpLevel ?? 1);
@@ -547,6 +572,9 @@ export class CombatHandler {
         if (!entity || entity.isPlayer || Number(entity.team ?? 0) !== EntityTeam.ENEMY) {
             return;
         }
+        if (!CombatHandler.isBossEntity(entity) || !CombatHandler.levelHasDeadPlayer(levelScope)) {
+            return;
+        }
 
         const healthState = CombatHandler.getNpcHealthState(entity);
         if (!healthState || CombatHandler.isEntityDead(entity) || healthState.currentHp <= 0 || healthState.currentHp >= healthState.maxHp) {
@@ -655,7 +683,46 @@ export class CombatHandler {
         return bb.toBuffer();
     }
 
-    private static resetLevelEnemiesForRespawn(client: Client): void {
+    private static armBossRegenForPlayerDeath(client: Client, nowMs: number = Date.now()): void {
+        if (client.enemyDeathRegenArmed || !client.currentLevel) {
+            return;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        const levelMap = GlobalState.levelEntities.get(levelScope);
+        if (!levelMap) {
+            return;
+        }
+
+        client.enemyDeathRegenArmed = true;
+        const firstTickActivityAt = nowMs -
+            CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS -
+            CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS;
+
+        for (const [entityId, entity] of levelMap.entries()) {
+            if (entityId <= 0 || entityId === client.clientEntID) {
+                continue;
+            }
+            if (
+                Boolean(entity?.isPlayer) ||
+                Number(entity?.team ?? 0) !== EntityTeam.ENEMY ||
+                !CombatHandler.isBossEntity(entity)
+            ) {
+                continue;
+            }
+
+            CombatHandler.setEntityCombatActivity(entity, firstTickActivityAt);
+            CombatHandler.setEntityLastRegenTickAt(entity, 0);
+        }
+
+        CombatHandler.processOutOfCombatRegen(levelScope, nowMs);
+    }
+
+    private static clearEnemyDeathRegenArm(client: Client): void {
+        client.enemyDeathRegenArmed = false;
+    }
+
+    private static clearLevelEnemyRewardTrackingForRespawn(client: Client): void {
         if (!client.currentLevel) {
             return;
         }
@@ -675,13 +742,6 @@ export class CombatHandler {
             }
 
             CombatHandler.clearEntityRewardTracking(levelScope, entityId);
-            const healthState = CombatHandler.getNpcHealthState(entity);
-            if (healthState) {
-                CombatHandler.applyNpcHealthState(entity, healthState.maxHp, healthState.maxHp, healthState.authoritativeKill);
-            }
-            CombatHandler.setEntityCombatActivity(entity, 0);
-            CombatHandler.setEntityLastRegenTickAt(entity, 0);
-            CombatHandler.sendCharRegen(client, entityId, CombatHandler.RESPAWN_ENEMY_HEAL);
         }
     }
 
@@ -1477,6 +1537,7 @@ export class CombatHandler {
             }
 
             if (resolution.killed) {
+                CombatHandler.armBossRegenForPlayerDeath(targetSession);
                 if (isHostileNpcSource) {
                     const entity = targetSession.entities.get(targetSession.clientEntID) ??
                         CombatHandler.resolveLevelEntity(getClientLevelScope(targetSession), targetSession.clientEntID);
@@ -1584,7 +1645,8 @@ export class CombatHandler {
         if (!usePotion) {
             noteDungeonRunDeath(client);
             client.processedRewardSources.clear();
-            CombatHandler.resetLevelEnemiesForRespawn(client);
+            CombatHandler.clearLevelEnemyRewardTrackingForRespawn(client);
+            CombatHandler.armBossRegenForPlayerDeath(client);
         }
 
         const healAmount = CombatHandler.getRespawnHealAmount(client);
@@ -1638,6 +1700,7 @@ export class CombatHandler {
             client.authoritativeMaxHp = Math.max(client.authoritativeMaxHp, healAmount);
             client.lastCombatActivityAt = 0;
             client.lastCombatRegenTickAt = 0;
+            CombatHandler.clearEnemyDeathRegenArm(client);
             const facingLeft = Boolean(ent?.facingLeft ?? false);
             const statePayload = CombatHandler.buildEntityStatePayload(client.clientEntID, EntityState.ACTIVE, facingLeft);
             CombatHandler.broadcastToSameLevel(getClientLevelScope(client), 0x07, statePayload, [client.clientEntID], client);
