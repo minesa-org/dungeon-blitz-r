@@ -270,7 +270,7 @@ async function testAnyDungeonBossKillAfterIntroCutsceneWaitsForPostDeathCutscene
     assert.equal(
         client.pendingDungeonCompletionWaitForCutsceneEnd,
         true,
-        'all dungeon boss deaths should wait for the post-death cutscene even if an intro cutscene already ended'
+        'bosses with post-death cutscenes should wait for the post-death cutscene even if an intro cutscene already ended'
     );
 
     await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
@@ -278,7 +278,7 @@ async function testAnyDungeonBossKillAfterIntroCutsceneWaitsForPostDeathCutscene
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x87),
         false,
-        'all dungeon boss deaths should not show dungeon completion before the post-death cutscene end'
+        'bosses with post-death cutscenes should not show dungeon completion before the post-death cutscene end'
     );
 
     MissionHandler.noteDungeonCutsceneEnd(client as never, 1);
@@ -287,11 +287,11 @@ async function testAnyDungeonBossKillAfterIntroCutsceneWaitsForPostDeathCutscene
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x87),
         true,
-        'all dungeon boss deaths should show the dungeon completion screen when the post-death cutscene ends'
+        'bosses with post-death cutscenes should show the dungeon completion screen when the post-death cutscene ends'
     );
 }
 
-async function testDreamDragonBossKillAfterCutsceneShowsDungeonComplete(): Promise<void> {
+async function testDreamDragonBossKillDoesNotWaitForCutscene(): Promise<void> {
     const client = createClient('DreamDragonDungeon', MissionID.SlayTheDragon, 'DreamDragonBossTester');
     const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
     const boss = {
@@ -313,26 +313,23 @@ async function testDreamDragonBossKillAfterCutsceneShowsDungeonComplete(): Promi
     ]));
 
     MissionHandler.noteDungeonCutsceneStart(client as never, 1);
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 1);
     await MissionHandler.handleForcedDungeonBossCompletion(client as never, boss);
 
     assert.equal(
         client.pendingDungeonCompletionWaitForCutsceneEnd,
-        true,
-        "The Dragon's Dream boss death should wait for the post-boss cutscene end"
-    );
-    assert.equal(
-        client.sentPackets.some((packet) => packet.id === 0x87),
         false,
-        "The Dragon's Dream should not show completion before the post-boss cutscene ends"
+        "The Dragon's Dream boss death should NOT wait for a post-boss cutscene"
     );
 
-    MissionHandler.noteDungeonCutsceneEnd(client as never, 1);
-    await sleep(0);
+    // Skip the setTimeout by advancing the timer or letting it settle.
+    // initialDelayMs is usually 3500, but we mock sleep
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
 
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x87),
         true,
-        "The Dragon's Dream should show the dungeon completion screen after the post-boss cutscene"
+        "The Dragon's Dream should show the dungeon completion screen without waiting for a cutscene end signal"
     );
 }
 
@@ -681,7 +678,7 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
-        await testDreamDragonBossKillAfterCutsceneShowsDungeonComplete();
+        await testDreamDragonBossKillDoesNotWaitForCutscene();
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();

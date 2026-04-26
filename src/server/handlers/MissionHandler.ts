@@ -347,7 +347,7 @@ export class MissionHandler {
             String(client.character.CurrentLevel?.name ?? '');
         const levelScope = getClientLevelScope(client);
         const forceSharedDungeonCompletion = Boolean(levelScope) && client.forcedDungeonCompletionScope === levelScope;
-        const defeatedDungeonBossForcesCompletion = MissionHandler.hasDefeatedDungeonBoss(levelScope);
+        const defeatedDungeonBossForcesCompletion = MissionHandler.hasDefeatedDungeonBoss(client, levelScope);
         const activeCutsceneScope = String(client.activeDungeonCutsceneScope ?? '').trim();
         if (
             levelScope &&
@@ -634,19 +634,24 @@ export class MissionHandler {
             ? Math.max(0, Number(client.lastDungeonCutsceneEndAt ?? 0))
             : 0;
         const isBossEntity = MissionHandler.isDungeonBossEntity(destroyedEntity);
+        const normalizedLevel = LevelConfig.normalizeLevelName(currentLevel) || String(currentLevel ?? '').trim();
         const shouldWaitForPostBossCutscene =
             isBossEntity &&
-            LevelConfig.isDungeonLevel(currentLevel);
+            (normalizedLevel === 'GoblinRiverDungeon' ||
+             normalizedLevel === 'GoblinRiverDungeonHard' ||
+             normalizedLevel === 'GhostBossDungeon' ||
+             normalizedLevel === 'GhostBossDungeonHard');
         const waitForCutsceneEnd = isCutsceneActive ||
             shouldWaitForPostBossCutscene ||
             (isBossEntity && (cutsceneEndAt <= 0 || cutsceneEndAt < cutsceneStartAt));
+        const instantCompletion = isBossEntity && !shouldWaitForPostBossCutscene;
         MissionHandler.scheduleDungeonCompletion(
             client,
             MissionHandler.buildSyntheticLevelCompletePacket(100),
             {
                 forcedDungeonCompletionScope: levelScope,
-                initialDelayMs: waitForCutsceneEnd ? 0 : undefined,
-                settleDelayMs: waitForCutsceneEnd ? 0 : undefined,
+                initialDelayMs: (waitForCutsceneEnd || instantCompletion) ? 0 : undefined,
+                settleDelayMs: (waitForCutsceneEnd || instantCompletion) ? 0 : undefined,
                 waitForCutsceneEnd
             }
         );
@@ -1469,10 +1474,15 @@ export class MissionHandler {
         return !MissionHandler.hasRemainingDungeonHostiles(levelScope);
     }
 
-    private static hasDefeatedDungeonBoss(levelScope: string | null | undefined): boolean {
+    private static hasDefeatedDungeonBoss(client: Client, levelScope: string | null | undefined): boolean {
         const scopeKey = String(levelScope ?? '').trim();
         if (!scopeKey) {
             return false;
+        }
+
+        const stats = getActiveDungeonRunStats(client);
+        if (stats && stats.levelScope === scopeKey && stats.bossKilled) {
+            return true;
         }
 
         const levelMap = GlobalState.levelEntities.get(scopeKey);
