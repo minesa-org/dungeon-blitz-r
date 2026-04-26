@@ -28,6 +28,7 @@ type FakeClient = {
     lastCombatStatsRefreshRequestAt: number;
     lastCombatActivityAt: number;
     lastCombatRegenTickAt: number;
+    enemyDeathRegenArmed: boolean;
     processedRewardSources: Set<string>;
     pendingLoot: Map<number, any>;
     knownEntityIds: Set<number>;
@@ -72,6 +73,7 @@ function createFakeClient(token: number, name: string, roomId: number): FakeClie
         lastCombatStatsRefreshRequestAt: 0,
         lastCombatActivityAt: 0,
         lastCombatRegenTickAt: 0,
+        enemyDeathRegenArmed: false,
         processedRewardSources: new Set<string>(),
         pendingLoot: new Map<number, any>(),
         knownEntityIds: new Set<number>(),
@@ -132,7 +134,7 @@ function buildCombatStatsPayload(meleeDamage: number, magicDamage: number, maxHp
     return bb.toBuffer();
 }
 
-function testPlayerAndHostileRegenAfterIdle(): void {
+function testPlayerRegenAfterIdleDoesNotHealLivingPlayerBoss(): void {
     resetState();
 
     const nowMs = 10_000;
@@ -148,10 +150,11 @@ function testPlayerAndHostileRegenAfterIdle(): void {
     const hostileId = 900001;
     const hostile = {
         id: hostileId,
-        name: 'GoblinDagger',
+        name: 'GoblinBoss2',
         isPlayer: false,
         clientSpawned: true,
         team: 2,
+        entRank: 'Boss',
         roomId: player.currentRoomId,
         entState: EntityState.ACTIVE,
         dead: false,
@@ -170,14 +173,13 @@ function testPlayerAndHostileRegenAfterIdle(): void {
 
     assert.equal(player.authoritativeCurrentHp, 700, 'player should recover 10% of max HP after the idle window');
     assert.equal(playerEntity.hp, 700, 'player entity snapshot should track regenerated HP');
-    assert.equal(hostile.hp, 410, 'hostile should recover 1% of max HP after the idle window');
+    assert.equal(hostile.hp, 400, 'bosses should not regenerate from idle time while the player is alive');
 
     const regenPackets = player.sentPackets.filter((packet) => packet.id === 0x3B);
-    assert.equal(regenPackets.length, 2, 'player should receive regen packets for self and the visible hostile');
+    assert.equal(regenPackets.length, 1, 'player should only receive self regen while alive');
 
-    const [selfPacket, hostilePacket] = regenPackets.map((packet) => parseRegenPacket(packet.payload));
+    const [selfPacket] = regenPackets.map((packet) => parseRegenPacket(packet.payload));
     assert.deepEqual(selfPacket, { entityId: player.clientEntID, amount: 100 });
-    assert.deepEqual(hostilePacket, { entityId: hostileId, amount: 10 });
 }
 
 function testPlayerRegenUsesEntityHealEncoding(): void {
@@ -380,15 +382,104 @@ function testIdleWindowBlocksRegen(): void {
     assert.equal(player.sentPackets.length, 0, 'no regen packet should be emitted before the idle timer matures');
 }
 
-function run(): void {
-    testPlayerAndHostileRegenAfterIdle();
+function testDeadPlayerArmsBossRegenImmediately(): void {
+    resetState();
+
+    const nowMs = 10_000;
+    const player = createFakeClient(8, 'Theta', 17);
+    attachPlayerEntity(player);
+    const playerEntity = player.entities.get(player.clientEntID)!;
+    playerEntity.dead = true;
+    playerEntity.entState = EntityState.DEAD;
+
+    const bossId = 900008;
+    const boss = {
+        id: bossId,
+        name: 'GoblinBoss2',
+        isPlayer: false,
+        clientSpawned: true,
+        team: 2,
+        entRank: 'Boss',
+        roomId: player.currentRoomId,
+        entState: EntityState.ACTIVE,
+        dead: false,
+        hp: 400,
+        maxHp: 1000,
+        lastCombatActivityAt: nowMs - 100,
+        lastCombatRegenTickAt: 0
+    };
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(bossId, boss);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    const request = new BitBuffer(false);
+    request.writeMethod15(false);
+    void CombatHandler.handleRequestRespawn(player as never, request.toBuffer());
+
+    assert.equal(boss.hp, 410, 'boss should receive the first regen tick as soon as player death is processed');
+    assert.equal(player.enemyDeathRegenArmed, true, 'death regen should be armed until the player respawns');
+
+    const bossRegenPackets = player.sentPackets
+        .filter((packet) => packet.id === 0x3B)
+        .map((packet) => parseRegenPacket(packet.payload))
+        .filter((packet) => packet.entityId === bossId);
+    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }]);
+}
+
+async function testRespawnDoesNotFullHealBoss(): Promise<void> {
+    resetState();
+
+    const player = createFakeClient(9, 'Iota', 19);
+    attachPlayerEntity(player);
+    const playerEntity = player.entities.get(player.clientEntID)!;
+    playerEntity.dead = true;
+    playerEntity.entState = EntityState.DEAD;
+
+    const bossId = 900009;
+    const boss = {
+        id: bossId,
+        name: 'GoblinBoss2',
+        isPlayer: false,
+        clientSpawned: true,
+        team: 2,
+        entRank: 'Boss',
+        roomId: player.currentRoomId,
+        entState: EntityState.ACTIVE,
+        dead: false,
+        hp: 400,
+        maxHp: 1000,
+        lastCombatActivityAt: 0,
+        lastCombatRegenTickAt: 0
+    };
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(bossId, boss);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    const request = new BitBuffer(false);
+    request.writeMethod15(false);
+    await CombatHandler.handleRequestRespawn(player as never, request.toBuffer());
+
+    assert.equal(boss.hp, 410, 'respawn should only apply the first slow boss regen tick');
+    const oversizedEnemyHeals = player.sentPackets
+        .filter((packet) => packet.id === 0x3B)
+        .map((packet) => parseRegenPacket(packet.payload))
+        .filter((packet) => packet.entityId === bossId && packet.amount > 1000);
+    assert.deepEqual(oversizedEnemyHeals, [], 'respawn should not send a full-bar enemy heal packet');
+}
+
+async function run(): Promise<void> {
+    testPlayerRegenAfterIdleDoesNotHealLivingPlayerBoss();
     testPlayerRegenUsesEntityHealEncoding();
     testAiHeartbeatContinuesPlayerRegenUntilFull();
     testDeadPlayerDoesNotRegen();
     testStaleHundredHpSnapshotDoesNotShrinkPlayerRegen();
     testDirtyCombatStatsBlockRegenUntilFreshSync();
     testIdleWindowBlocksRegen();
+    testDeadPlayerArmsBossRegenImmediately();
+    await testRespawnDoesNotFullHealBoss();
     console.log('combat_regen_regression: ok');
 }
 
-run();
+void run();

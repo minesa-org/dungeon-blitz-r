@@ -171,6 +171,7 @@ export class Client {
     public lastCombatStatsRefreshRequestAt: number = 0;
     public lastCombatActivityAt: number = 0;
     public lastCombatRegenTickAt: number = 0;
+    public enemyDeathRegenArmed: boolean = false;
     public activePotionDrainAtMs: number = 0;
     public clientSpawnConfirmed: boolean = false;
     public clientSpawnFallbackTimer: NodeJS.Timeout | null = null;
@@ -345,6 +346,7 @@ export class Client {
         this.lastCombatStatsRefreshRequestAt = 0;
         this.lastCombatActivityAt = 0;
         this.lastCombatRegenTickAt = 0;
+        this.enemyDeathRegenArmed = false;
         this.clientSpawnConfirmed = false;
         clearClientSpawnFallbackTimer(this);
         if (this.talentResearchTimer) {
