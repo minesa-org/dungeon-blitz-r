@@ -53,13 +53,17 @@ type FakeClient = {
 
 function ensureDataLoaded(): void {
     const dataDir = path.resolve(__dirname, '../data');
-    if (!LevelConfig.has('GoblinRiverDungeon') || !LevelConfig.has('GhostBossDungeon')) {
+    if (!LevelConfig.has('GoblinRiverDungeon') || !LevelConfig.has('GhostBossDungeon') || !LevelConfig.has('DreamDragonDungeon')) {
         LevelConfig.load(dataDir);
     }
-    if (!GameData.getEntType('GoblinBoss2') || !GameData.getEntType('NephitLargeEye')) {
+    if (!GameData.getEntType('GoblinBoss2') || !GameData.getEntType('NephitLargeEye') || !GameData.getEntType('YoungDragonDream')) {
         GameData.load(dataDir);
     }
-    if (!MissionLoader.getMissionDef(MissionID.GoblinRiver) || !MissionLoader.getMissionDef(MissionID.KillNephit)) {
+    if (
+        !MissionLoader.getMissionDef(MissionID.GoblinRiver) ||
+        !MissionLoader.getMissionDef(MissionID.KillNephit) ||
+        !MissionLoader.getMissionDef(MissionID.SlayTheDragon)
+    ) {
         MissionLoader.load(dataDir);
     }
     if (!NpcLoader.getNpcsForLevel('GoblinRiverDungeon').length) {
@@ -284,6 +288,51 @@ async function testAnyDungeonBossKillAfterIntroCutsceneWaitsForPostDeathCutscene
         client.sentPackets.some((packet) => packet.id === 0x87),
         true,
         'all dungeon boss deaths should show the dungeon completion screen when the post-death cutscene ends'
+    );
+}
+
+async function testDreamDragonBossKillAfterCutsceneShowsDungeonComplete(): Promise<void> {
+    const client = createClient('DreamDragonDungeon', MissionID.SlayTheDragon, 'DreamDragonBossTester');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const boss = {
+        id: 7452,
+        name: 'YoungDragonDream',
+        isPlayer: false,
+        team: 2,
+        entState: 6,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 1
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [boss.id, boss]
+    ]));
+
+    MissionHandler.noteDungeonCutsceneStart(client as never, 1);
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, boss);
+
+    assert.equal(
+        client.pendingDungeonCompletionWaitForCutsceneEnd,
+        true,
+        "The Dragon's Dream boss death should wait for the post-boss cutscene end"
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        "The Dragon's Dream should not show completion before the post-boss cutscene ends"
+    );
+
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 1);
+    await sleep(0);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        true,
+        "The Dragon's Dream should show the dungeon completion screen after the post-boss cutscene"
     );
 }
 
@@ -629,6 +678,10 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
         await testAnyDungeonBossKillAfterIntroCutsceneWaitsForPostDeathCutsceneEnd();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testDreamDragonBossKillAfterCutsceneShowsDungeonComplete();
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();

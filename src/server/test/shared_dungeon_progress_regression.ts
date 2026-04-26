@@ -840,7 +840,7 @@ async function testGoblinRiverAutoCompletesWhenSharedProgressReachesFullClear():
     assert.equal(Number(authority.character.missions['271']?.state ?? 0), 2, 'Goblin River should promote the active dungeon mission to ready-to-turn-in');
 }
 
-async function testDreamDragonSharedProgressBlocksBossOnlyCompletionUntilFullClear(): Promise<void> {
+async function testDreamDragonBossDeathForcesCompletionBeforeFullClear(): Promise<void> {
     const authority = createClient(870, 'Leader', 'DreamDragonDungeon');
     const levelScope = getClientLevelScope(authority as never);
     const preBossHostile = {
@@ -856,10 +856,9 @@ async function testDreamDragonSharedProgressBlocksBossOnlyCompletionUntilFullCle
     };
     const boss = {
         id: 5702,
-        name: 'DreamDragon',
+        name: 'YoungDragonDream',
         isPlayer: false,
         team: 2,
-        entRank: 'Boss',
         entState: 0,
         hp: 100,
         clientSpawned: true,
@@ -891,27 +890,8 @@ async function testDreamDragonSharedProgressBlocksBossOnlyCompletionUntilFullCle
     assert.equal(partialSharedState?.progress, 50, 'Dream Dragon shared progress should stay below 100 until all tracked hostiles are defeated');
 
     await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 2));
-    assert.equal(
-        authority.sentPackets.some((packet) => packet.id === 0x87),
-        false,
-        'Dream Dragon boss-only completion should not finalize while shared progress still shows skipped enemies'
-    );
-
-    const preBossHostileDead = { ...preBossHostile, hp: 0, dead: true, entState: 6 };
-    authority.entities.set(preBossHostile.id, preBossHostileDead);
-    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
-        [preBossHostile.id, preBossHostileDead],
-        [boss.id, bossDead]
-    ]));
-    noteDungeonRunKill(levelScope, [authority.character.name], preBossHostileDead.id, preBossHostileDead);
-
-    LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
-    const finalSharedState = getSharedDungeonProgressState(levelScope);
-    assert.equal(finalSharedState?.progress, 100, 'Dream Dragon shared progress should reach 100 after the dungeon is fully cleared');
-
-    await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 2));
     const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
-    assert.ok(resultPacket, 'Dream Dragon full clear should complete once the shared progress reaches 100');
+    assert.ok(resultPacket, 'Dream Dragon boss death should complete the dungeon even if shared progress still has skipped enemies');
     assertDungeonCompleteMatchesTracker(authority, resultPacket!.payload);
 }
 
@@ -1021,7 +1001,7 @@ async function main(): Promise<void> {
         GlobalState.levelQuestProgress.clear();
         GlobalState.partyByMember.clear();
         GlobalState.partyGroups.clear();
-        await testDreamDragonSharedProgressBlocksBossOnlyCompletionUntilFullClear();
+        await testDreamDragonBossDeathForcesCompletionBeforeFullClear();
     } finally {
         GlobalState.levelEntities = levelEntities;
         GlobalState.sessionsByToken = sessionsByToken;

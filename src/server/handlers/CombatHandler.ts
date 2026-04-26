@@ -369,9 +369,7 @@ export class CombatHandler {
     }
 
     private static isBossEntity(entity: any): boolean {
-        const entType = GameData.getEntType(String(entity?.name ?? '')) ?? {};
-        const rank = String(entity?.entRank ?? entity?.EntRank ?? entType?.EntRank ?? entType?.entRank ?? '').trim();
-        return rank === 'Boss' || rank === 'MiniBoss';
+        return GameData.isBossEntity(entity);
     }
 
     private static levelHasDeadPlayer(levelScope: string): boolean {
