@@ -123,14 +123,16 @@ export class NpcHandler {
                         delayedFirstMissionTurnIn = true;
                     } else {
                         // Сначала показываем UI завершения миссии
+                        const missionDef = MissionLoader.getMissionDef(missionId);
+                        const missionEntry = NpcHandler.getMissionEntry(client.character, missionId);
                         NpcHandler.sendMissionCompleteUi(
                             client,
                             missionId,
-                            NpcHandler.DEFAULT_TURN_IN_STARS
+                            NpcHandler.getMissionCompletionStars(missionDef, missionEntry),
+                            NpcHandler.getMissionCompletionScore(missionDef, missionEntry)
                         );
 
                         // Затем начисляем награды
-                        const missionDef = MissionLoader.getMissionDef(missionId);
                         if (missionDef) {
                             const expReward = missionDef.ExpRewardValue ?? 0;
                             const goldReward = missionDef.GoldRewardValue ?? 0;
@@ -424,12 +426,24 @@ export class NpcHandler {
         client.sendBitBuffer(0x86, bb);
     }
 
-    private static sendMissionCompleteUi(client: Client, missionId: number, stars: number): void {
+    private static getMissionCompletionStars(missionDef: MissionDef | undefined, missionEntry: MissionEntry): number {
+        return (missionDef?.Time ?? false)
+            ? Math.max(0, Number(missionEntry.Tier ?? NpcHandler.DEFAULT_TURN_IN_STARS))
+            : NpcHandler.DEFAULT_TURN_IN_STARS;
+    }
+
+    private static getMissionCompletionScore(missionDef: MissionDef | undefined, missionEntry: MissionEntry): number {
+        return (missionDef?.Time ?? false)
+            ? Math.max(0, Number(missionEntry.highscore ?? 0))
+            : 0;
+    }
+
+    private static sendMissionCompleteUi(client: Client, missionId: number, stars: number, dungeonScore: number = 0): void {
         const bb = new BitBuffer(false);
         bb.writeMethod4(missionId);
         bb.writeMethod11(1, 1);
         bb.writeMethod6(Math.max(0, Math.min(stars, 15)), 4);
-        bb.writeMethod4(0);
+        bb.writeMethod4(Math.max(0, dungeonScore));
         client.sendBitBuffer(0x84, bb);
     }
 
@@ -488,14 +502,16 @@ export class NpcHandler {
             }
 
             // Сначала показываем UI завершения миссии
+            const missionDef = MissionLoader.getMissionDef(NpcHandler.FIRST_MISSION_ID);
+            const missionEntry = NpcHandler.getMissionEntry(client.character, NpcHandler.FIRST_MISSION_ID);
             NpcHandler.sendMissionCompleteUi(
                 client,
                 NpcHandler.FIRST_MISSION_ID,
-                NpcHandler.DEFAULT_TURN_IN_STARS
+                NpcHandler.getMissionCompletionStars(missionDef, missionEntry),
+                NpcHandler.getMissionCompletionScore(missionDef, missionEntry)
             );
 
             // Затем начисляем награды
-            const missionDef = MissionLoader.getMissionDef(NpcHandler.FIRST_MISSION_ID);
             if (missionDef) {
                 const expReward = missionDef.ExpRewardValue ?? 0;
                 const goldReward = missionDef.GoldRewardValue ?? 0;

@@ -106,6 +106,15 @@ function decodeMissionAddedPacket(payload: Buffer): { missionId: number; active:
     };
 }
 
+function decodeMissionCompleteUiPacket(payload: Buffer): { missionId: number; stars: number; score: number } {
+    const br = new BitReader(payload);
+    return {
+        missionId: br.readMethod4(),
+        stars: br.readMethod15() ? br.readMethod6(4) : 0,
+        score: br.readMethod4()
+    };
+}
+
 async function testDungeonCompletionSyncsReadyMissionStateImmediately(): Promise<void> {
     const client = createFakeClient();
     client.character.questTrackerState = 64;
@@ -135,6 +144,20 @@ async function testDungeonCompletionSyncsReadyMissionStateImmediately(): Promise
         client.sentPackets.some((packet) => packet.id === 0x86),
         true,
         'dungeon completion should still emit the mission-complete packet'
+    );
+    const missionCompleteUi = client.sentPackets.find((packet) => packet.id === 0x84);
+    assert.ok(
+        missionCompleteUi,
+        'dungeon completion should immediately push the completed dungeon stars and score for map hover state'
+    );
+    assert.deepEqual(
+        decodeMissionCompleteUiPacket(missionCompleteUi!.payload),
+        {
+            missionId: MissionID.SlayTheDragon,
+            stars: 10,
+            score: Number(client.character.missions[String(MissionID.SlayTheDragon)]?.highscore ?? 0)
+        },
+        'mission-complete UI sync should carry the same stars and score stored on the completed dungeon mission'
     );
     assert.equal(
         client.character.questTrackerState,

@@ -478,11 +478,9 @@ export class MissionHandler {
 
                 if (
                     missionUpdate.newlyCompleted &&
-                    missionUpdate.state >= MissionHandler.MISSION_CLAIMED &&
                     completedMissionId !== MissionID.DefendTheShip &&
                     completedMissionId !== MissionID.ClearYourHouse &&
-                    completedMissionDef &&
-                    !MissionHandler.missionRequiresTurnIn(completedMissionDef)
+                    completedMissionDef
                 ) {
                     MissionHandler.sendMissionCompleteUi(
                         client,

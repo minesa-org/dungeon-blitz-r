@@ -75,6 +75,9 @@ type TransferSyncAnchorCandidate = {
 };
 
 export class LevelHandler {
+    private static readonly DOORSTATE_CLOSED = 0;
+    private static readonly DOORSTATE_STATIC = 1;
+    private static readonly DOORSTATE_MISSIONREPEAT = 3;
     private static readonly GOBLIN_RIVER_INITIAL_PROGRESS = 11;
     private static readonly TUTORIAL_DUNGEON_INITIAL_PROGRESS = 11;
     private static readonly KEEP_TUTORIAL_HELPER_RESPAWN_DELAY_MS = 1200;
@@ -2896,16 +2899,40 @@ export class LevelHandler {
         bb.writeMethod4(doorId);
         
         if (target && isUnlocked) {
-            // If target exists, door is open/usable (State 1 = Static/Open)
-            bb.writeMethod91(1); // DOORSTATE_STATIC
+            const completedStars = LevelHandler.getCompletedDungeonDoorStars(client, target);
+            const doorState = completedStars > 0
+                ? LevelHandler.DOORSTATE_MISSIONREPEAT
+                : LevelHandler.DOORSTATE_STATIC;
+            bb.writeMethod91(doorState);
             bb.writeMethod13(target);
+            if (doorState === LevelHandler.DOORSTATE_MISSIONREPEAT) {
+                bb.writeMethod6(completedStars, 4);
+            }
         } else {
-            // Locked or unknown (State 0 = Locked)
-            bb.writeMethod91(0); // DOORSTATE_LOCKED
+            bb.writeMethod91(LevelHandler.DOORSTATE_CLOSED);
             bb.writeMethod13("");
         }
 
         client.sendBitBuffer(0x42, bb);
+    }
+
+    private static getCompletedDungeonDoorStars(client: Client, targetLevelRaw: string | null | undefined): number {
+        const targetLevel = LevelConfig.normalizeLevelName(targetLevelRaw);
+        if (!targetLevel || !client.character) {
+            return 0;
+        }
+
+        const missionDef = MissionLoader.findPrimaryMissionByDungeon(targetLevel);
+        if (!missionDef) {
+            return 0;
+        }
+
+        const missionEntry = client.character.missions?.[String(missionDef.MissionID)];
+        if (!missionEntry || Number(missionEntry.state ?? 0) < 2) {
+            return 0;
+        }
+
+        return Math.max(0, Math.min(15, Math.round(Number(missionEntry.Tier ?? 0))));
     }
 
     static spawnLevelNpcs(client: Client, levelName: string): void {
