@@ -64,7 +64,8 @@ export class PresenceService {
         Castle: 'Castle Hocke',
         EmeraldGlades: 'Emerald Glades',
         ShazariDesert: 'Shazari Desert',
-        OldMineMountain: 'Stormshard Mountain'
+        OldMineMountain: 'Stormshard Mountain',
+        CemeteryHill: 'Cemetery Hill'
     };
     private static readonly LEVEL_IMAGE_KEYS: Record<string, string> = {
         CraftTown: 'home',
@@ -75,7 +76,9 @@ export class PresenceService {
         Castle: 'castlehocke',
         EmeraldGlades: 'emeraldglades',
         ShazariDesert: 'shazaridesert',
-        OldMineMountain: 'stormshardmountain'
+        OldMineMountain: 'stormshardmountain',
+        CemeteryHill: 'cemeteryhill',
+        CemeteryHillHard: 'cemeteryhill'
     };
     private static readonly DISCIPLINE_IMAGE_KEYS: Record<string, string> = {
         Executioner: 'viperblade',

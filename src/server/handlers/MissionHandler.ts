@@ -117,23 +117,11 @@ export class MissionHandler {
     private static readonly SWAMP_LIZARD_BANNER_HARD_KILL_NAMES = new Set([
         'LizardBannerHard'
     ]);
-    private static readonly SWAMP_GREAT_LIZARD_KILL_NAMES = new Set([
-        'GreatLizardWarrior',
-        'GreatLizardWarrior2',
-        'GreatLizardWarrior3',
-        'GreatLizardHeavy',
-        'GreatLizardHeavy2',
-        'GreatLizardMaster',
-        'GreatLizardLord'
+    private static readonly SWAMP_LIZARD_HELM_KILL_NAMES = new Set([
+        'LizardHeavy'
     ]);
-    private static readonly SWAMP_GREAT_LIZARD_HARD_KILL_NAMES = new Set([
-        'GreatLizardWarriorHard',
-        'GreatLizardWarrior2Hard',
-        'GreatLizardWarrior3Hard',
-        'GreatLizardHeavyHard',
-        'GreatLizardHeavy2Hard',
-        'GreatLizardMasterHard',
-        'GreatLizardLordHard'
+    private static readonly SWAMP_LIZARD_HELM_HARD_KILL_NAMES = new Set([
+        'LizardHeavyHard'
     ]);
     private static readonly KILL_PROGRESS_TARGETS: Readonly<Record<number, ReadonlySet<string>>> = {
         [MissionID.GetGoblinNoserings]: new Set(['GoblinBrute']),
@@ -146,8 +134,8 @@ export class MissionHandler {
         [MissionID.GetLizardBannersHard]: MissionHandler.SWAMP_LIZARD_BANNER_HARD_KILL_NAMES,
         [MissionID.GetSpiderFangs]: MissionHandler.SWAMP_SPIDER_KILL_NAMES,
         [MissionID.GetSpiderFangsHard]: MissionHandler.SWAMP_SPIDER_HARD_KILL_NAMES,
-        [MissionID.GetLizardGreatHelm]: MissionHandler.SWAMP_GREAT_LIZARD_KILL_NAMES,
-        [MissionID.GetLizardGreatHelmHard]: MissionHandler.SWAMP_GREAT_LIZARD_HARD_KILL_NAMES,
+        [MissionID.GetLizardGreatHelm]: MissionHandler.SWAMP_LIZARD_HELM_KILL_NAMES,
+        [MissionID.GetLizardGreatHelmHard]: MissionHandler.SWAMP_LIZARD_HELM_HARD_KILL_NAMES,
         [MissionID.GetHobgoblinNoserings]: new Set(['BlackGoblinBrute']),
         [MissionID.GetHobgoblinNoseringsHard]: new Set(['BlackGoblinBruteHard'])
     };
@@ -175,8 +163,8 @@ export class MissionHandler {
         {
             progressText: 'Great Helm',
             names: new Set([
-                ...MissionHandler.SWAMP_GREAT_LIZARD_KILL_NAMES,
-                ...MissionHandler.SWAMP_GREAT_LIZARD_HARD_KILL_NAMES
+                ...MissionHandler.SWAMP_LIZARD_HELM_KILL_NAMES,
+                ...MissionHandler.SWAMP_LIZARD_HELM_HARD_KILL_NAMES
             ])
         }
     ];

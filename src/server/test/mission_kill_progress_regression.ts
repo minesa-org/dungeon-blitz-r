@@ -546,7 +546,7 @@ async function testHardBannersOfTheTuataraProgressesOnLizardBannerKills(): Promi
     );
 }
 
-async function testTuataraGreatHelmsProgressesOnGreatLizardKills(): Promise<void> {
+async function testTuataraGreatHelmsProgressesOnLizardHeavyKills(): Promise<void> {
     resetGlobalState();
     const client = createClient({
         [String(MissionID.GetLizardGreatHelm)]: {
@@ -555,39 +555,34 @@ async function testTuataraGreatHelmsProgressesOnGreatLizardKills(): Promise<void
         }
     }, 'SwampRoadNorth');
 
-    await destroyEnemy(client, 8463, 'GreatLizardWarrior');
-    await destroyEnemy(client, 8464, 'GreatLizardHeavy2');
+    await destroyEnemy(client, 8463, 'GreatLizardHeavy2');
+    await destroyEnemy(client, 8464, 'LizardHeavy');
 
     assert.equal(
         Number(client.character.missions[String(MissionID.GetLizardGreatHelm)]?.currCount ?? 0),
-        10,
-        'Get Tuatara Great Helms should count GreatLizard kills toward the helm total'
+        9,
+        'Get Tuatara Great Helms should count LizardHeavy kills toward the helm total'
     );
     assert.equal(
         Number(client.character.missions[String(MissionID.GetLizardGreatHelm)]?.state ?? 0),
-        2,
-        'Get Tuatara Great Helms should become ready to turn in after enough helms are collected'
+        1,
+        'Get Tuatara Great Helms should remain active when only one LizardHeavy helm is collected'
     );
     assert.deepEqual(
         client.sentPackets
             .filter((packet) => packet.id === 0x83)
             .map((packet) => decodeMissionProgressPacket(packet.payload)),
-        [
-            { missionId: MissionID.GetLizardGreatHelm, progress: 1 },
-            { missionId: MissionID.GetLizardGreatHelm, progress: 1 }
-        ],
-        'Get Tuatara Great Helms should emit additive mission progress packets for GreatLizard kills'
+        [{ missionId: MissionID.GetLizardGreatHelm, progress: 1 }],
+        'Get Tuatara Great Helms should emit additive mission progress packets only for LizardHeavy kills'
     );
     assert.equal(
-        decodeMissionCompletePacket(
-            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
-        ),
-        MissionID.GetLizardGreatHelm,
-        'Get Tuatara Great Helms should notify the client once the helm objective is complete'
+        client.sentPackets.some((packet) => packet.id === 0x86),
+        false,
+        'Get Tuatara Great Helms should not complete from ignored GreatLizard kills'
     );
 }
 
-async function testHardTuataraGreatHelmsProgressesOnGreatLizardKills(): Promise<void> {
+async function testHardTuataraGreatHelmsProgressesOnLizardHeavyKills(): Promise<void> {
     resetGlobalState();
     const client = createClient({
         [String(MissionID.GetLizardGreatHelmHard)]: {
@@ -596,12 +591,12 @@ async function testHardTuataraGreatHelmsProgressesOnGreatLizardKills(): Promise<
         }
     }, 'SwampRoadNorthHard');
 
-    await destroyEnemy(client, 8465, 'GreatLizardMasterHard');
+    await destroyEnemy(client, 8465, 'LizardHeavyHard');
 
     assert.equal(
         Number(client.character.missions[String(MissionID.GetLizardGreatHelmHard)]?.currCount ?? 0),
         20,
-        'Hard Get Tuatara Great Helms should count GreatLizard hard-mode kills toward the helm total'
+        'Hard Get Tuatara Great Helms should count LizardHeavyHard kills toward the helm total'
     );
     assert.equal(
         Number(client.character.missions[String(MissionID.GetLizardGreatHelmHard)]?.state ?? 0),
@@ -613,7 +608,7 @@ async function testHardTuataraGreatHelmsProgressesOnGreatLizardKills(): Promise<
             .filter((packet) => packet.id === 0x83)
             .map((packet) => decodeMissionProgressPacket(packet.payload)),
         [{ missionId: MissionID.GetLizardGreatHelmHard, progress: 1 }],
-        'Hard Get Tuatara Great Helms should emit additive mission progress packets for GreatLizard kills'
+        'Hard Get Tuatara Great Helms should emit additive mission progress packets for LizardHeavyHard kills'
     );
     assert.equal(
         decodeMissionCompletePacket(
@@ -808,8 +803,8 @@ async function main(): Promise<void> {
     await testGetSpiderFangsProgressesOnSwampSpiderKills();
     await testBannersOfTheTuataraProgressesOnLizardBannerKills();
     await testHardBannersOfTheTuataraProgressesOnLizardBannerKills();
-    await testTuataraGreatHelmsProgressesOnGreatLizardKills();
-    await testHardTuataraGreatHelmsProgressesOnGreatLizardKills();
+    await testTuataraGreatHelmsProgressesOnLizardHeavyKills();
+    await testHardTuataraGreatHelmsProgressesOnLizardHeavyKills();
     await testDevourerTeethProgressesFromDevourerRealmKills();
     await testHardDevourerTeethProgressesFromDevourerRealmKills();
     await testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
