@@ -753,7 +753,9 @@ export class NpcHandler {
             nrquestanna03hard: 'nranna03hard',
             pecky: 'nrpecky',
             captainfink: 'nrcaptfink',
-            fink: 'nrcaptfink'
+            fink: 'nrcaptfink',
+            npcodem: 'odem',
+            npcodemhard: 'odemhard'
         };
 
         return aliases[normalized] ?? normalized;

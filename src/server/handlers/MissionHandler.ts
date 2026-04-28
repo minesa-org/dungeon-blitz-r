@@ -54,6 +54,14 @@ type DungeonMissionUpdateResult = {
     persistedScore: number;
 };
 
+type CollectibleKillProgressRule = {
+    progressText: string;
+    realm?: string;
+    ranks?: ReadonlySet<string>;
+    names?: ReadonlySet<string>;
+    namePrefixes?: readonly string[];
+};
+
 export class MissionHandler {
     private static readonly MISSION_NOT_STARTED = 0;
     private static readonly MISSION_IN_PROGRESS = 1;
@@ -109,6 +117,24 @@ export class MissionHandler {
     private static readonly SWAMP_LIZARD_BANNER_HARD_KILL_NAMES = new Set([
         'LizardBannerHard'
     ]);
+    private static readonly SWAMP_GREAT_LIZARD_KILL_NAMES = new Set([
+        'GreatLizardWarrior',
+        'GreatLizardWarrior2',
+        'GreatLizardWarrior3',
+        'GreatLizardHeavy',
+        'GreatLizardHeavy2',
+        'GreatLizardMaster',
+        'GreatLizardLord'
+    ]);
+    private static readonly SWAMP_GREAT_LIZARD_HARD_KILL_NAMES = new Set([
+        'GreatLizardWarriorHard',
+        'GreatLizardWarrior2Hard',
+        'GreatLizardWarrior3Hard',
+        'GreatLizardHeavyHard',
+        'GreatLizardHeavy2Hard',
+        'GreatLizardMasterHard',
+        'GreatLizardLordHard'
+    ]);
     private static readonly KILL_PROGRESS_TARGETS: Readonly<Record<number, ReadonlySet<string>>> = {
         [MissionID.GetGoblinNoserings]: new Set(['GoblinBrute']),
         [MissionID.GetGoblinWands]: new Set(['GoblinShamanHood', 'GoblinShamanSkullHat']),
@@ -120,9 +146,40 @@ export class MissionHandler {
         [MissionID.GetLizardBannersHard]: MissionHandler.SWAMP_LIZARD_BANNER_HARD_KILL_NAMES,
         [MissionID.GetSpiderFangs]: MissionHandler.SWAMP_SPIDER_KILL_NAMES,
         [MissionID.GetSpiderFangsHard]: MissionHandler.SWAMP_SPIDER_HARD_KILL_NAMES,
+        [MissionID.GetLizardGreatHelm]: MissionHandler.SWAMP_GREAT_LIZARD_KILL_NAMES,
+        [MissionID.GetLizardGreatHelmHard]: MissionHandler.SWAMP_GREAT_LIZARD_HARD_KILL_NAMES,
         [MissionID.GetHobgoblinNoserings]: new Set(['BlackGoblinBrute']),
         [MissionID.GetHobgoblinNoseringsHard]: new Set(['BlackGoblinBruteHard'])
     };
+    private static readonly COLLECTIBLE_KILL_PROGRESS_RULES: readonly CollectibleKillProgressRule[] = [
+        {
+            progressText: 'Devourer Tooth',
+            realm: 'Devourer',
+            ranks: new Set(['Lieutenant', 'MiniBoss', 'Boss'])
+        },
+        {
+            progressText: 'Spider Fang',
+            realm: 'Spider',
+            names: new Set([
+                ...MissionHandler.SWAMP_SPIDER_KILL_NAMES,
+                ...MissionHandler.SWAMP_SPIDER_HARD_KILL_NAMES
+            ])
+        },
+        {
+            progressText: 'Lizard Banner',
+            names: new Set([
+                ...MissionHandler.SWAMP_LIZARD_BANNER_KILL_NAMES,
+                ...MissionHandler.SWAMP_LIZARD_BANNER_HARD_KILL_NAMES
+            ])
+        },
+        {
+            progressText: 'Great Helm',
+            names: new Set([
+                ...MissionHandler.SWAMP_GREAT_LIZARD_KILL_NAMES,
+                ...MissionHandler.SWAMP_GREAT_LIZARD_HARD_KILL_NAMES
+            ])
+        }
+    ];
 
     static repairEarlyStoryOnLogin(
         character: Character,
@@ -285,7 +342,8 @@ export class MissionHandler {
                 targetNames && defeatedNames.some((name) => targetNames.has(name))
             );
             const matchesActiveTarget = activeTargetNames.some((name) => defeatedNames.includes(name));
-            if (!matchesKillTarget && !matchesActiveTarget) {
+            const matchesCollectibleTarget = MissionHandler.matchesCollectibleKillProgress(missionDef, defeatedNames);
+            if (!matchesKillTarget && !matchesActiveTarget && !matchesCollectibleTarget) {
                 continue;
             }
 
@@ -1449,6 +1507,52 @@ export class MissionHandler {
             .split(',')
             .map((entry) => entry.trim())
             .filter(Boolean);
+    }
+
+    private static matchesCollectibleKillProgress(missionDef: MissionDef, defeatedNames: string[]): boolean {
+        const progressText = MissionHandler.normalizeQuestProgressText(missionDef.ProgressText);
+        if (!progressText) {
+            return false;
+        }
+
+        const rule = MissionHandler.COLLECTIBLE_KILL_PROGRESS_RULES.find(
+            (entry) => MissionHandler.normalizeQuestProgressText(entry.progressText) === progressText
+        );
+        if (!rule) {
+            return false;
+        }
+
+        return defeatedNames.some((name) => MissionHandler.matchesCollectibleRule(rule, name));
+    }
+
+    private static matchesCollectibleRule(rule: CollectibleKillProgressRule, rawName: string): boolean {
+        const name = String(rawName ?? '').trim();
+        if (!name) {
+            return false;
+        }
+
+        if (rule.names?.has(name)) {
+            return true;
+        }
+
+        if (rule.realm) {
+            const entType = GameData.getEntType(name);
+            if (
+                String(entType?.Realm ?? '').trim() === rule.realm &&
+                (!rule.ranks || rule.ranks.has(String(entType?.EntRank ?? '').trim()))
+            ) {
+                return true;
+            }
+        }
+
+        return Boolean(rule.namePrefixes?.some((prefix) => name.startsWith(prefix)));
+    }
+
+    private static normalizeQuestProgressText(value: unknown): string {
+        return String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '');
     }
 
     private static getDefeatedEnemyNames(entity: any): string[] {
