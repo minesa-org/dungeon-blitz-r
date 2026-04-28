@@ -33,6 +33,7 @@ type FakeClient = {
         PreviousLevel: { name: string; x: number; y: number };
         missions: Record<string, Record<string, number>>;
         questTrackerState: number;
+        lastCompletedDungeonLevel?: string;
     };
     entities: Map<number, unknown>;
     pendingMissionTurnIns: Set<number>;
@@ -1156,6 +1157,7 @@ async function testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod(): Promise<v
         100
     );
     client.character.CurrentLevel = { name: 'SwampRoadNorth', x: 16000, y: 4800 };
+    client.character.lastCompletedDungeonLevel = 'SRN_Mission1';
     client.entities.set(15001, { id: 15001, characterName: 'SRN_Mayor01' });
 
     await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(15001));
@@ -1180,6 +1182,53 @@ async function testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod(): Promise<v
             missionId: MissionID.StopCastout
         },
         'Tower of the Tuatara should resolve to the return dialogue at Abbod'
+    );
+}
+
+async function testCompletedTowerDoesNotRepairAcceptedYornakAtDane(): Promise<void> {
+    const client = createFakeClient(
+        'SwampRoadNorth',
+        {
+            [String(MissionID.DeliverToSwamp)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.StopCastout)]: {
+                state: 2,
+                currCount: 1,
+                Tier: 10,
+                highscore: 209122,
+                Time: 123456
+            },
+            [String(MissionID.SlayYornak)]: {
+                state: 1,
+                currCount: 0
+            }
+        },
+        100
+    );
+    client.character.CurrentLevel = { name: 'SwampRoadNorth', x: 18000, y: 4900 };
+    client.character.lastCompletedDungeonLevel = 'SRN_Mission1';
+    client.entities.set(16001, { id: 16001, characterName: 'Dane' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(16001));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SlayYornak)]?.state ?? 0),
+        1,
+        'Mystery of the Yornak should stay in progress when the last completed dungeon was Tower of the Tuatara'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SlayYornak)]?.currCount ?? 0),
+        0,
+        'unrelated accepted dungeon missions should not inherit another dungeon clear'
+    );
+    assert.equal(
+        client.sentPackets.some((entry) => entry.id === 0x84),
+        false,
+        'talking to an unrelated dungeon NPC should not send the mission-complete reward UI'
     );
 }
 
@@ -1260,6 +1309,7 @@ async function main(): Promise<void> {
     await testOdemOffersMindlessQueenFromRawNpcEntityName();
     await testHardOdemOffersMindlessQueenFromRawNpcEntityName();
     await testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod();
+    await testCompletedTowerDoesNotRepairAcceptedYornakAtDane();
     await testJarvisDoesNotAutoTurnInRecoverRingsWhileInProgress();
     console.log('quest_flow_regression: ok');
 }

@@ -705,6 +705,7 @@ export class LevelHandler {
     private static readonly FIRST_KEEP_MISSION_ID = MissionID.ClearYourHouse;
     private static readonly MISSION_NOT_STARTED = 0;
     private static readonly MISSION_IN_PROGRESS = 1;
+    private static readonly MISSION_READY_TO_TURN_IN = 2;
     private static readonly MISSION_CLAIMED = 3;
     private static readonly KEEP_TUTORIAL_BOSS_TRIGGER_X = Number.MAX_SAFE_INTEGER;
     private static readonly KEEP_TUTORIAL_CUTSCENE_STEP_MS = 250;
@@ -2563,7 +2564,32 @@ export class LevelHandler {
             );
         }
 
+        const arachnaeConnectorTarget = LevelHandler.resolveArachnaeConnectorDoorTarget(client, currentLevel, doorId);
+        if (arachnaeConnectorTarget) {
+            return arachnaeConnectorTarget;
+        }
+
         return LevelConfig.getDoorTarget(currentLevel, doorId);
+    }
+
+    private static resolveArachnaeConnectorDoorTarget(client: Client, currentLevel: string, doorId: number): string | null {
+        if (doorId !== 1) {
+            return null;
+        }
+
+        if (currentLevel === 'BridgeTown' || currentLevel === 'SwampRoadNorth') {
+            return LevelHandler.getMissionState(client, MissionID.ClearTheBridge) >= LevelHandler.MISSION_READY_TO_TURN_IN
+                ? 'SwampRoadConnection'
+                : null;
+        }
+
+        if (currentLevel === 'BridgeTownHard' || currentLevel === 'SwampRoadNorthHard') {
+            return LevelHandler.getMissionState(client, MissionID.ClearTheBridgeHard) >= LevelHandler.MISSION_READY_TO_TURN_IN
+                ? 'SwampRoadConnectionHard'
+                : null;
+        }
+
+        return null;
     }
 
     private static hasRoomEventStarted(client: Client, roomId: number): boolean {

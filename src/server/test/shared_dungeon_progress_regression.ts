@@ -890,8 +890,17 @@ async function testDreamDragonBossDeathForcesCompletionBeforeFullClear(): Promis
     assert.equal(partialSharedState?.progress, 50, 'Dream Dragon shared progress should stay below 100 until all tracked hostiles are defeated');
 
     await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 2));
+    assert.equal(
+        authority.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'Dream Dragon boss death should wait for the boss cutscene before completing the dungeon'
+    );
+
+    MissionHandler.noteDungeonCutsceneEnd(authority as never, 2);
+    await sleep(25);
+
     const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
-    assert.ok(resultPacket, 'Dream Dragon boss death should complete the dungeon even if shared progress still has skipped enemies');
+    assert.ok(resultPacket, 'Dream Dragon boss death should complete the dungeon after the cutscene even if shared progress still has skipped enemies');
     assertDungeonCompleteMatchesTracker(authority, resultPacket!.payload);
 }
 

@@ -8,6 +8,7 @@ import { NpcDialogueLoader } from '../data/NpcDialogueLoader';
 import { MissionDef, MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
 import { NpcLoader } from '../data/NpcLoader';
+import { LevelConfig } from '../core/LevelConfig';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { getClientLevelScope } from '../core/LevelScope';
@@ -377,9 +378,15 @@ export class NpcHandler {
             return false;
         }
 
+        const completedDungeonLevel = LevelConfig.normalizeLevelName(character.lastCompletedDungeonLevel);
+        if (!completedDungeonLevel) {
+            return false;
+        }
+
         for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
             const missionDef = MissionLoader.getMissionDef(missionId);
-            if (!missionDef || !String(missionDef.Dungeon ?? '').trim()) {
+            const missionDungeon = LevelConfig.normalizeLevelName(missionDef?.Dungeon);
+            if (!missionDef || !missionDungeon || missionDungeon !== completedDungeonLevel) {
                 continue;
             }
             if (npcKey !== NpcHandler.getMissionReturnNpcKey(missionDef)) {
@@ -431,6 +438,7 @@ export class NpcHandler {
         }
 
         character.questTrackerState = 0;
+        character.lastCompletedDungeonLevel = '';
     }
 
     private static getMissionStateMap(character: Character): Record<string, MissionEntry> {

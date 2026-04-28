@@ -29,6 +29,7 @@ type FakeClient = {
         PreviousLevel: { name: string; x: number; y: number };
         missions: Record<string, Record<string, number>>;
         questTrackerState: number;
+        lastCompletedDungeonLevel?: string;
     };
     entities: Map<number, unknown>;
     sentPackets: SentPacket[];
@@ -163,6 +164,11 @@ async function testDungeonCompletionSyncsReadyMissionStateImmediately(): Promise
         client.character.questTrackerState,
         100,
         'dungeon completion should move the live quest tracker state to 100 immediately'
+    );
+    assert.equal(
+        client.character.lastCompletedDungeonLevel,
+        'DreamDragonDungeon',
+        'dungeon completion should remember which exact dungeon supplied the global 100% tracker state'
     );
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0xB7),
