@@ -1054,6 +1054,90 @@ async function testSwampRoadNorthStoryNpcDoesNotAssignBeforeSwampUnlock(): Promi
     );
 }
 
+async function testOdemOffersMindlessQueenFromRawNpcEntityName(): Promise<void> {
+    const client = createFakeClient(
+        'SwampRoadNorth',
+        {
+            [String(MissionID.DeliverToSwamp)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            }
+        },
+        0
+    );
+    client.character.CurrentLevel = { name: 'SwampRoadNorth', x: 24717, y: 314 };
+    client.entities.set(99024, { id: 99024, name: 'NPCOdem' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(99024));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SlayMindlessQueen)]?.state ?? 0),
+        1,
+        "Odem should offer Mindless Queen's Glade even when the NPC resolves by raw entity name"
+    );
+    assert.equal(
+        client.sentPackets.some((entry) => entry.id === 0x85),
+        true,
+        "Odem should send the mission-added packet for Mindless Queen's Glade"
+    );
+
+    const skitPacket = client.sentPackets.find((entry) => entry.id === 0x7B);
+    assert.ok(skitPacket, "Odem should open Mindless Queen's Glade offer dialogue");
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 99024,
+            dialogueId: 2,
+            missionId: MissionID.SlayMindlessQueen
+        },
+        "Odem should resolve to Mindless Queen's Glade offer dialogue"
+    );
+}
+
+async function testHardOdemOffersMindlessQueenFromRawNpcEntityName(): Promise<void> {
+    const client = createFakeClient(
+        'SwampRoadNorthHard',
+        {
+            [String(MissionID.DeliverToSwamp)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            }
+        },
+        0
+    );
+    client.character.CurrentLevel = { name: 'SwampRoadNorthHard', x: 24717, y: 314 };
+    client.entities.set(99134, { id: 99134, name: 'NPCOdemHard' });
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(99134));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SlayMindlessQueenHard)]?.state ?? 0),
+        1,
+        "Hard Odem should offer Mindless Queen's Glade even when the NPC resolves by raw entity name"
+    );
+    assert.equal(
+        client.sentPackets.some((entry) => entry.id === 0x85),
+        true,
+        "Hard Odem should send the mission-added packet for Mindless Queen's Glade"
+    );
+
+    const skitPacket = client.sentPackets.find((entry) => entry.id === 0x7B);
+    assert.ok(skitPacket, "Hard Odem should open Mindless Queen's Glade offer dialogue");
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 99134,
+            dialogueId: 2,
+            missionId: MissionID.SlayMindlessQueenHard
+        },
+        "Hard Odem should resolve to Mindless Queen's Glade offer dialogue"
+    );
+}
+
 async function testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod(): Promise<void> {
     const client = createFakeClient(
         'SwampRoadNorth',
@@ -1173,6 +1257,8 @@ async function main(): Promise<void> {
     await testSwampRoadNorthAffricUsesSrnMayorDialogueKey();
     await testNewbieRoadOdemDoesNotStartBlackRoseMireQuestEarly();
     await testSwampRoadNorthStoryNpcDoesNotAssignBeforeSwampUnlock();
+    await testOdemOffersMindlessQueenFromRawNpcEntityName();
+    await testHardOdemOffersMindlessQueenFromRawNpcEntityName();
     await testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod();
     await testJarvisDoesNotAutoTurnInRecoverRingsWhileInProgress();
     console.log('quest_flow_regression: ok');
