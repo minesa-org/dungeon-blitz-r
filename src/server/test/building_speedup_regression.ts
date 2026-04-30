@@ -27,6 +27,7 @@ function createCharacter(): Character {
         gender: 'male',
         level: 10,
         MasterClass: 4,
+        gold: 100000,
         mammothIdols: 12,
         magicForge: {
             stats_by_building: {
@@ -141,6 +142,79 @@ async function testDuplicateBuiltTomeUpgradeRequestIsIgnoredAndReassertsHomeStat
     );
 }
 
+async function testBuildingUpgradePersistsGoldPurchaseAndRealReadyTime(): Promise<void> {
+    const client = createClient();
+    const beforeStart = Math.floor(Date.now() / 1000);
+    client.character.gold = 10000;
+    client.character.magicForge = {
+        stats_by_building: {
+            '1': 1,
+            '2': 5,
+            '3': 2,
+            '12': 0,
+            '13': 4
+        }
+    };
+    client.character.buildingUpgrade = { buildingID: 0, rank: 0, ReadyTime: 0 };
+
+    await withMockedCharacterSave(async () => {
+        await BuildingHandler.handleBuildingUpgrade(client as never, createUpgradePacket(1, 2, false));
+    });
+
+    assert.equal(client.character.gold, 4128, 'building upgrade should persist the gold purchase');
+    assert.deepEqual(
+        {
+            buildingID: client.character.buildingUpgrade?.buildingID,
+            rank: client.character.buildingUpgrade?.rank
+        },
+        { buildingID: 1, rank: 2 }
+    );
+    assert.ok(
+        Number(client.character.buildingUpgrade?.ReadyTime ?? 0) >= beforeStart + 14400,
+        'building upgrade should persist the real BuildingTypes upgrade timer'
+    );
+}
+
+async function testBuildingUpgradePersistsIdolPurchase(): Promise<void> {
+    const client = createClient();
+    client.character.gold = 0;
+    client.character.mammothIdols = 12;
+    client.character.magicForge = {
+        stats_by_building: {
+            '1': 1,
+            '2': 5,
+            '3': 2,
+            '12': 0,
+            '13': 4
+        }
+    };
+    client.character.buildingUpgrade = { buildingID: 0, rank: 0, ReadyTime: 0 };
+
+    await withMockedCharacterSave(async () => {
+        await BuildingHandler.handleBuildingUpgrade(client as never, createUpgradePacket(1, 2, true));
+    });
+
+    assert.equal(client.character.mammothIdols, 9, 'building upgrade should persist the idol purchase');
+    assert.equal(client.character.buildingUpgrade?.buildingID, 1);
+    assert.equal(client.character.buildingUpgrade?.rank, 2);
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0xB5), true, 'idol upgrade should refresh premium UI');
+}
+
+async function testBuildingCancelClearsSavedProgressAndReassertsHomeState(): Promise<void> {
+    const client = createClient();
+
+    await withMockedCharacterSave(async () => {
+        await BuildingHandler.handleBuildingCancel(client as never, Buffer.alloc(0));
+    });
+
+    assert.deepEqual(client.character.buildingUpgrade, { buildingID: 0, rank: 0, ReadyTime: 0 });
+    assert.equal(
+        client.sentPackets.filter((packet) => packet.id === 0xDA).length,
+        5,
+        'cancel should immediately reassert CraftTown building state'
+    );
+}
+
 async function testDuplicateSpeedupRequestReplaysCompletionForBuiltTome(): Promise<void> {
     const client = createClient();
     client.character.magicForge = {
@@ -241,6 +315,9 @@ function testCraftTownRefreshUsesSupportedRepairedKeepArtRank(): void {
 async function main(): Promise<void> {
     await testBuildingSpeedupCompletesUpgradeAndReassertsCraftTownState();
     await testDuplicateBuiltTomeUpgradeRequestIsIgnoredAndReassertsHomeState();
+    await testBuildingUpgradePersistsGoldPurchaseAndRealReadyTime();
+    await testBuildingUpgradePersistsIdolPurchase();
+    await testBuildingCancelClearsSavedProgressAndReassertsHomeState();
     await testDuplicateSpeedupRequestReplaysCompletionForBuiltTome();
     testCraftTownSpawnRefreshSendsImmediateBuildingReassert();
     testCraftTownRefreshUsesSupportedRepairedKeepArtRank();

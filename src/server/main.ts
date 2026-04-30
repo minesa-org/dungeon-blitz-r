@@ -171,6 +171,7 @@ router.register(0x0C, CombatHandler.handleRemoveBuff);
 // Buildings
 router.register(0xD7, BuildingHandler.handleBuildingUpgrade);
 router.register(0xD9, BuildingHandler.handleBuildingClaim);
+router.register(0xDB, BuildingHandler.handleBuildingCancel);
 router.register(0xDC, BuildingHandler.handleBuildingSpeedUpRequest);
 
 // System
