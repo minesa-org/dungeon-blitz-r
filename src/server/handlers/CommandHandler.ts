@@ -6,6 +6,7 @@ import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
 import { CharacterSync } from '../utils/CharacterSync';
+import { markAlertState } from '../utils/AlertState';
 import {
     ensureActiveDungeonPotionReserved,
     getActivePotionCharges,
@@ -145,6 +146,18 @@ export class CommandHandler {
             levelEntity.magicDamage = magicDamage;
         }
         client.combatStatsDirty = false;
+    }
+
+    static async handleUpdateAlertState(client: Client, data: Buffer): Promise<void> {
+        if (!client.character) {
+            return;
+        }
+
+        const br = new BitReader(data);
+        const alertMask = br.readMethod20(4);
+        if (markAlertState(client.character, alertMask)) {
+            await CommandHandler.saveCharacter(client);
+        }
     }
 
     private static isValidPotionSelection(client: Client, consumableId: number): boolean {

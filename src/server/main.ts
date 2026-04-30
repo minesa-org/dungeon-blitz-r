@@ -68,12 +68,14 @@ router.register(0x8, EntityHandler.handleEntityFullUpdate); // Entity Full Updat
 router.register(0xA2, CommandHandler.handleLinkUpdater); // Link Updater
 router.register(0x10D, CommandHandler.handleActivatePotion); // Active Potion Sync
 router.register(0x10E, CommandHandler.handleQueuePotion); // Queue Potion
+router.register(0x113, CommandHandler.handleUpdateAlertState); // Alert State Seen
 router.register(0xBB, CommandHandler.handleHpIncreaseNotice); // Max HP Delta
 router.register(0xFC, CommandHandler.handleSendCombatStats); // Combat Stat Sync
 router.register(0x2A, RewardHandler.handleGrantReward); // Grant Reward
 router.register(0x38, RewardHandler.handlePickupLootdrop); // Pickup Lootdrop
 router.register(0x30, EquipmentHandler.handleUpdateEquipment); // Update Equipment
 router.register(0x31, EquipmentHandler.handleUpdateSingleGear); // Update Single Gear
+router.register(0xB0, EquipmentHandler.handleSocketCharm); // Socket / Unsocket Charm
 router.register(0x105, LockboxHandler.handleBuyLockboxKeys); // Buy Dragon Keys
 router.register(0x107, LockboxHandler.handleLockboxReward); // Open Lockbox / Treasure Trove
 router.register(0x114, LockboxHandler.handleBuyTreasureTrove); // Buy Treasure Trove

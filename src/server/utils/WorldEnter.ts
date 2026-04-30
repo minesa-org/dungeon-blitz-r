@@ -9,6 +9,7 @@ import { GlobalState } from '../core/GlobalState';
 import { normalizeFriendEntries } from '../core/SocialState';
 import { normalizeGender } from './normalizeGender';
 import { getVisibleConsumableCount } from './ConsumableState';
+import { ensureSigilStoreAlertState } from './AlertState';
 
 export class WorldEnter {
     private static readonly MASTERCLASS_TO_BUILDING: Record<number, number> = {
@@ -472,6 +473,7 @@ export class WorldEnter {
         const now = Math.floor(Date.now() / 1000);
         const normalizedLevel = GameData.getPlayerLevelFromXp(Math.max(0, Number(character.xp ?? 0)));
         WorldEnter.ensureSelectedDisciplineTower(character);
+        ensureSigilStoreAlertState(character);
         if (Number(character.level ?? 1) !== normalizedLevel) {
             character.level = normalizedLevel;
         }

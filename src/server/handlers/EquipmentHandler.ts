@@ -6,6 +6,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { CharacterSync } from '../utils/CharacterSync';
 import { EntityHandler } from './EntityHandler';
 import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
+import { CharmID } from '../data/runtime/Charms';
 
 const db = new JsonAdapter();
 
@@ -66,6 +67,65 @@ export class EquipmentHandler {
         await EquipmentHandler.persistAndBroadcast(client, entityId, new Set([slot]));
     }
 
+    static async handleSocketCharm(client: Client, data: Buffer): Promise<void> {
+        if (!client.character) {
+            return;
+        }
+
+        const br = new BitReader(data);
+        const entityId = br.readMethod9();
+        if (!EquipmentHandler.isOwnEntity(client, entityId)) {
+            return;
+        }
+
+        const gearId = br.readMethod20(11);
+        const gearTier = br.readMethod20(2);
+        const charmId = br.readMethod20(16);
+        const socketIndex = br.readMethod20(2);
+        if (gearId <= 0 || charmId <= 0 || socketIndex < 1 || socketIndex > 3) {
+            return;
+        }
+
+        const equippedGears = EquipmentHandler.ensureEquippedGears(client);
+        const gearIndex = EquipmentHandler.findEquippedGearIndex(equippedGears, gearId, gearTier);
+        if (gearIndex < 0) {
+            return;
+        }
+
+        const gear = EquipmentHandler.normalizeGearEntry(equippedGears[gearIndex]);
+        const runes = Array.isArray(gear.runes) ? gear.runes.slice(0, 3) : [0, 0, 0];
+        while (runes.length < 3) {
+            runes.push(0);
+        }
+
+        const runeIndex = socketIndex - 1;
+        const existingCharmId = Number(runes[runeIndex] ?? 0);
+        const isCharmRemover = EquipmentHandler.getCharmPrimaryId(charmId) === CharmID.CharmRemover;
+        if (isCharmRemover && existingCharmId <= 0) {
+            return;
+        }
+
+        if (!EquipmentHandler.decrementOwnedCharm(client.character, charmId)) {
+            return;
+        }
+
+        if (isCharmRemover) {
+            runes[runeIndex] = 0;
+            EquipmentHandler.incrementOwnedCharm(client.character, existingCharmId);
+        } else {
+            runes[runeIndex] = charmId;
+        }
+
+        gear.runes = runes;
+        equippedGears[gearIndex] = gear;
+        EquipmentHandler.upsertInventoryMirror(client.character, gear);
+        EquipmentHandler.updateLiveEntity(client);
+
+        const changedSlot = gearIndex + 1;
+        await EquipmentHandler.persistAndBroadcast(client, entityId, new Set([changedSlot]));
+        EquipmentHandler.sendGearToSelf(client);
+    }
+
     private static isOwnEntity(client: Client, entityId: number): boolean {
         return entityId > 0 && (!client.clientEntID || entityId === client.clientEntID);
     }
@@ -94,6 +154,91 @@ export class EquipmentHandler {
             runes: Array.isArray(raw.runes) ? raw.runes.map((entry) => Number(entry ?? 0)).slice(0, 3) : [0, 0, 0],
             colors: Array.isArray(raw.colors) ? raw.colors.map((entry) => Number(entry ?? 0)).slice(0, 2) : [0, 0]
         };
+    }
+
+    private static findEquippedGearIndex(equippedGears: GearEntry[], gearId: number, gearTier: number): number {
+        const exactIndex = equippedGears.findIndex((entry) =>
+            Number(entry?.gearID ?? 0) === gearId &&
+            Number(entry?.tier ?? 0) === gearTier
+        );
+        if (exactIndex >= 0) {
+            return exactIndex;
+        }
+
+        return equippedGears.findIndex((entry) => Number(entry?.gearID ?? 0) === gearId);
+    }
+
+    private static getCharmPrimaryId(charmId: number): number {
+        return Math.max(0, Math.floor(Number(charmId ?? 0))) & 0x1ff;
+    }
+
+    private static getCharmInventory(character: any): Array<Record<string, number>> {
+        const charms = Array.isArray(character?.charms) ? character.charms : [];
+        character.charms = charms;
+        return charms as Array<Record<string, number>>;
+    }
+
+    private static incrementOwnedCharm(character: any, charmId: number): void {
+        if (charmId <= 0) {
+            return;
+        }
+
+        const charms = EquipmentHandler.getCharmInventory(character);
+        const entry = charms.find((charm) => Number(charm?.charmID ?? 0) === charmId);
+        if (entry) {
+            entry.count = Math.max(0, Number(entry.count ?? 0)) + 1;
+            return;
+        }
+
+        charms.push({ charmID: charmId, count: 1 });
+    }
+
+    private static decrementOwnedCharm(character: any, charmId: number): boolean {
+        if (charmId <= 0) {
+            return false;
+        }
+
+        const charms = EquipmentHandler.getCharmInventory(character);
+        const index = charms.findIndex((charm) => Number(charm?.charmID ?? 0) === charmId);
+        if (index < 0) {
+            return false;
+        }
+
+        const entry = charms[index];
+        const nextCount = Math.max(0, Number(entry.count ?? 0) - 1);
+        if (nextCount > 0) {
+            entry.count = nextCount;
+        } else {
+            charms.splice(index, 1);
+        }
+
+        return true;
+    }
+
+    private static upsertInventoryMirror(character: any, gear: GearEntry): void {
+        const inventory = Array.isArray(character?.inventoryGears) ? character.inventoryGears : [];
+        character.inventoryGears = inventory;
+
+        const normalizedGear = EquipmentHandler.normalizeGearEntry(gear);
+        const index = inventory.findIndex((entry: any) =>
+            Number(entry?.gearID ?? 0) === Number(normalizedGear.gearID ?? 0) &&
+            Number(entry?.tier ?? 0) === Number(normalizedGear.tier ?? 0)
+        );
+
+        const mirrored: GearEntry = {
+            ...normalizedGear,
+            runes: Array.isArray(normalizedGear.runes) ? [...normalizedGear.runes] : [0, 0, 0],
+            colors: Array.isArray(normalizedGear.colors) ? [...normalizedGear.colors] : [0, 0]
+        };
+
+        if (index >= 0) {
+            inventory[index] = {
+                ...(inventory[index] && typeof inventory[index] === 'object' ? inventory[index] : {}),
+                ...mirrored
+            };
+        } else if (Number(mirrored.gearID ?? 0) > 0) {
+            inventory.push(mirrored);
+        }
     }
 
     static buildEntityGearUpdatePacket(entityId: number, equippedGears: unknown[]): Buffer {

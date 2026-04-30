@@ -26,6 +26,7 @@ import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/Socia
 import { getPartyIdForClient, areClientsInSameParty } from '../core/PartySync';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
 import { normalizeGender } from '../utils/normalizeGender';
+import { ensureSigilStoreAlertState } from '../utils/AlertState';
 import {
     createDungeonInstanceId,
     getClientLevelScope,
@@ -224,6 +225,9 @@ export class CharacterHandler {
             WorldEnter.ensureSelectedDisciplineTower(client.character);
             PetHandler.normalizePetCollection(client.character);
             client.characters = loadedCharacters;
+            if (ensureSigilStoreAlertState(client.character)) {
+                client.characters = await db.saveCharacterSnapshot(client.userId, client.character);
+            }
             DebugLogger.logProgress('CharacterReload:loaded', client, loadedCharacter, {
                 source: 'disk'
             });
