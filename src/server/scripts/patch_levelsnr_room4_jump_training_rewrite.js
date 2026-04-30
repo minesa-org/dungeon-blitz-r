@@ -111,6 +111,17 @@ function patchSource(source) {
   }
   source = source.replace(droppingYPattern, `${droppingYReplacement}${eol}${eol}      public function GetDroppingPlayerGrounded`);
 
+  const doorTutShowPattern = /param1\.PlayScript\(this\.Script_FindDoor\);\r?\n\s*param1\.SetPhase\(this\.WaitingOnDoor\);/m;
+  if (!source.includes("param1.Animate(\"am_DoorTut\",\"Show\",true);")) {
+    if (!doorTutShowPattern.test(source)) {
+      throw new Error(`Could not find door tutorial show insertion point in ${CLASS_NAME}.as`);
+    }
+    source = source.replace(
+      doorTutShowPattern,
+      `param1.Animate("am_DoorTut","Show",true);${eol}         param1.PlayScript(this.Script_FindDoor);${eol}         param1.SetPhase(this.WaitingOnDoor);`,
+    );
+  }
+
   if (source.includes("public function OnDroppingEnterFrame")) {
     return source;
   }
@@ -648,6 +659,9 @@ function verifyPatchedSource(source) {
   }
   if (!source.includes("if(!isNaN(this.dropGroundY))")) {
     throw new Error("Patched source is missing the grounded drop Y fallback.");
+  }
+  if (!source.includes("param1.Animate(\"am_DoorTut\",\"Show\",true);")) {
+    throw new Error("Patched source is missing the door tutorial balloon show call.");
   }
   if (/\._y\b/.test(source)) {
     throw new Error("Patched source still reads Entity._y.");

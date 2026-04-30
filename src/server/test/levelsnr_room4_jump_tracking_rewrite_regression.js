@@ -26,6 +26,7 @@ function main() {
   assert.match(source, /DROPPING COMPLETED/, "patch script should emit a drop-complete trace");
   assert.match(source, /_root\.startDoorTutorial\(\)/, "patch script should call the primary door tutorial handoff");
   assert.match(source, /_root\.doorTutorial\.startTutorial\(\)/, "patch script should call the fallback door tutorial handoff");
+  assert.match(source, /am_DoorTut\\",\\"Show\\",true/, "patch script should show the door tutorial balloon");
   assert.match(source, /WaitingForJump still depends on am_Trigger_2/, "patch script should verify the old trigger gate is gone");
   assert.match(source, /WaitingForDrop still depends on trigger-based completion/, "patch script should verify the old drop trigger gates are gone");
   assert.match(source, /WaitingForDrop still contains the old drop bootstrap/, "patch script should verify the old drop bootstrap is gone");
