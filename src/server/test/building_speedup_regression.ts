@@ -13,6 +13,7 @@ type SentPacket = {
 type FakeClient = {
     userId: number;
     character: Character;
+    craftTownHostCharacter: Character | null;
     characters: Character[];
     currentLevel: string;
     playerSpawned: boolean;
@@ -55,6 +56,7 @@ function createClient(): FakeClient {
     return {
         userId: 6,
         character,
+        craftTownHostCharacter: null,
         characters: [character],
         currentLevel: 'CraftTown',
         playerSpawned: true,
@@ -312,6 +314,69 @@ function testCraftTownRefreshUsesSupportedRepairedKeepArtRank(): void {
     assert.equal(keepPacket?.targetRank, 0, 'CraftTown refresh should use the supported repaired rank-zero art entry');
 }
 
+function testCraftTownRefreshUsesResolvedDisciplineTower(): void {
+    const client = createClient();
+    client.character.MasterClass = 5;
+    client.character.magicForge = {
+        stats_by_building: {
+            '1': 1,
+            '2': 5,
+            '3': 2,
+            '4': 0,
+            '12': 0,
+            '13': 4
+        }
+    };
+
+    BuildingHandler.refreshCraftTownBuildingsOnSpawn(client as never);
+
+    const towerPacket = client.sentPackets
+        .filter((packet) => packet.id === 0xDA)
+        .map((packet) => decodeBuildingDelta(packet.payload))
+        .find((packet) => packet.targetBuildingId === 3);
+
+    assert.ok(towerPacket, 'CraftTown refresh should emit the Justicar discipline tower for master class 5');
+    assert.equal(towerPacket?.targetRank, 2);
+}
+
+function testCraftTownRefreshUsesVisitedHomeOwnerBuildingState(): void {
+    const client = createClient();
+    client.character.MasterClass = 5;
+    client.character.magicForge = {
+        stats_by_building: {
+            '1': 1,
+            '2': 1,
+            '3': 1,
+            '12': 1,
+            '13': 1
+        }
+    };
+    client.craftTownHostCharacter = {
+        ...createCharacter(),
+        name: 'HouseOwner',
+        MasterClass: 5,
+        magicForge: {
+            stats_by_building: {
+                '1': 1,
+                '2': 5,
+                '3': 4,
+                '12': 0,
+                '13': 4
+            }
+        }
+    };
+
+    BuildingHandler.refreshCraftTownBuildingsOnSpawn(client as never);
+
+    const towerPacket = client.sentPackets
+        .filter((packet) => packet.id === 0xDA)
+        .map((packet) => decodeBuildingDelta(packet.payload))
+        .find((packet) => packet.targetBuildingId === 3);
+
+    assert.ok(towerPacket, 'visited CraftTown refresh should emit the home owner discipline tower');
+    assert.equal(towerPacket?.targetRank, 4);
+}
+
 async function main(): Promise<void> {
     await testBuildingSpeedupCompletesUpgradeAndReassertsCraftTownState();
     await testDuplicateBuiltTomeUpgradeRequestIsIgnoredAndReassertsHomeState();
@@ -321,6 +386,8 @@ async function main(): Promise<void> {
     await testDuplicateSpeedupRequestReplaysCompletionForBuiltTome();
     testCraftTownSpawnRefreshSendsImmediateBuildingReassert();
     testCraftTownRefreshUsesSupportedRepairedKeepArtRank();
+    testCraftTownRefreshUsesResolvedDisciplineTower();
+    testCraftTownRefreshUsesVisitedHomeOwnerBuildingState();
     console.log('building_speedup_regression: ok');
 }
 

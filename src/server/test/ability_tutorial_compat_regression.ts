@@ -63,6 +63,18 @@ function createStartPacket(): Buffer {
     return Buffer.from('1420', 'hex');
 }
 
+function createNecromancerRankTwoStartPacket(): Buffer {
+    return Buffer.from('d040', 'hex');
+}
+
+function createAbilityStartPacket(abilityId: number, rank: number, payWithIdols = false): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod20(7, abilityId);
+    bb.writeMethod20(4, rank);
+    bb.writeMethod15(payWithIdols);
+    return bb.toBuffer();
+}
+
 async function withMockedCharacterSave<T>(fn: () => Promise<T>): Promise<T> {
     const originalSaveCharacterSnapshot = JsonAdapter.prototype.saveCharacterSnapshot;
     JsonAdapter.prototype.saveCharacterSnapshot = async function(userId: number, character: Character): Promise<Character[]> {
@@ -100,8 +112,89 @@ async function testDuplicateTutorialAbilityRequestCompletesWithoutGrantingExtraR
     assert.deepEqual(client.character.SkillResearch, {});
 }
 
+async function testDefaultMasterAbilityCanStartRankTwoResearch(): Promise<void> {
+    const client = createClient();
+    client.character.level = 50;
+    client.character.gold = 100000;
+    client.character.MasterClass = 9;
+    client.character.magicForge = {
+        stats_by_building: {
+            '1': 10,
+            '2': 10,
+            '8': 2,
+            '12': 5,
+            '13': 10
+        }
+    };
+    client.character.learnedAbilities = [
+        { abilityID: 10, rank: 1 },
+        { abilityID: 14, rank: 1 },
+        { abilityID: 17, rank: 1 },
+        { abilityID: 18, rank: 1 },
+        { abilityID: 98, rank: 10 },
+        { abilityID: 100, rank: 10 },
+        { abilityID: 103, rank: 10 }
+    ];
+    client.character.activeAbilities = [98, 100, 103];
+    client.character.SkillResearch = {};
+
+    await withMockedCharacterSave(async () => {
+        await AbilityHandler.handleStartAbilityResearch(client as never, createNecromancerRankTwoStartPacket());
+    });
+
+    assert.deepEqual(
+        client.character.learnedAbilities.find((ability: any) => ability.abilityID === 104),
+        { abilityID: 104, rank: 1 },
+        'server should persist the client-default Necromancer hotbar-4 ability before accepting rank two'
+    );
+    assert.equal((client.character.SkillResearch as Record<string, unknown>).abilityID, 104);
+    assert.equal((client.character.SkillResearch as Record<string, unknown>).rank, 2);
+}
+
+async function testAnyActiveDisciplineSkillCanInferMissingSavedRank(): Promise<void> {
+    const client = createClient();
+    client.character.level = 50;
+    client.character.gold = 100000;
+    client.character.MasterClass = 9;
+    client.character.magicForge = {
+        stats_by_building: {
+            '1': 10,
+            '2': 10,
+            '8': 2,
+            '12': 5,
+            '13': 10
+        }
+    };
+    client.character.learnedAbilities = [
+        { abilityID: 10, rank: 1 },
+        { abilityID: 14, rank: 1 },
+        { abilityID: 17, rank: 1 },
+        { abilityID: 18, rank: 1 },
+        { abilityID: 98, rank: 10 },
+        { abilityID: 100, rank: 10 },
+        { abilityID: 103, rank: 10 },
+        { abilityID: 104, rank: 10 }
+    ];
+    client.character.activeAbilities = [98, 100, 103];
+    client.character.SkillResearch = {};
+
+    await withMockedCharacterSave(async () => {
+        await AbilityHandler.handleStartAbilityResearch(client as never, createAbilityStartPacket(105, 2));
+    });
+
+    assert.deepEqual(
+        client.character.learnedAbilities.find((ability: any) => ability.abilityID === 105),
+        { abilityID: 105, rank: 1 },
+        'server should infer the previous saved rank for any ability in the selected discipline'
+    );
+    assert.equal((client.character.SkillResearch as Record<string, unknown>).abilityID, 105);
+    assert.equal((client.character.SkillResearch as Record<string, unknown>).rank, 2);
+}
+
 async function main(): Promise<void> {
     await testDuplicateTutorialAbilityRequestCompletesWithoutGrantingExtraRank();
+    await testDefaultMasterAbilityCanStartRankTwoResearch();
+    await testAnyActiveDisciplineSkillCanInferMissingSavedRank();
     console.log('ability_tutorial_compat_regression: ok');
 }
 

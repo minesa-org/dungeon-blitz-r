@@ -5,6 +5,7 @@ import { BuildingID } from '../core/Enums';
 import { BitReader } from '../network/protocol/bitReader';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { JsonAdapter } from '../database/JsonAdapter';
+import { WorldEnter } from '../utils/WorldEnter';
 import buildingTypes from '../data/BuildingTypes.json';
 
 const db = new JsonAdapter();
@@ -309,37 +310,34 @@ export class BuildingHandler {
     // Ported from WorldEnter.py: send_building_update
     // Packet 0xDA
     static sendBuildingUpdate(client: Client, overrideRank: number = -1): void {
-         // This needs character data
-         if (!client.character || !client.character.magicForge) return;
+         if (!client.character) return;
+
+         const homeCharacter = client.currentLevel === 'CraftTown' && client.craftTownHostCharacter
+            ? client.craftTownHostCharacter
+            : client.character;
+         WorldEnter.ensureSelectedDisciplineTower(homeCharacter);
+         if (!homeCharacter.magicForge) return;
 
          const mfStats = BuildingHandler.sanitizeBuildingStatsForClient(
-            client.character.magicForge.stats_by_building || {}
+            homeCharacter.magicForge.stats_by_building || {}
          );
          const getStat = (id: number): number => Number(mfStats[id.toString()] ?? 0);
 
-         // Resolve MasterClass (can use helper if available, or just use current)
-         const masterClassId = client.character.MasterClass || 0;
-         
-         // Helper: Map MasterClass to BuildingID for tower
-         // We can use WorldEnter's map if we export it, or dup logic.
-         // Let's assume a simplified map or rely on what WorldEnter sets.
-         // Actually, WorldEnter.ts has this logic private.
-         // Let's duplicate mapping for now or make it shared. Defaulting to 3 (Justicar) if unknown.
-         
          const MASTERCLASS_TO_BUILDING: Record<number, number> = {
-            1: 9, 2: 10, 3: 11, // Rogue
-            4: 3, 5: 4, 6: 5,   // Paladin (Justicar=4->3, etc. Checking Python)
-            // Python: {1: 9, 2: 10, 3: 11, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8}
-            // TS Original: {4: 4, 5: 3, 6: 5} -> Mismatch.
-            // Python has: 4: 3, 5: 4, 6: 5. 
-            // 4=Justicar(3), 5=Avenger(4), 6=Crusader(5)? 
-            // Python: "MASTERCLASS_TO_BUILDING = {1:9, ... 4:3, 5:4, 6:5 ...}" 
-            // Let's use Python's values.
-            7: 6, 8: 7, 9: 8    // Mage
+            1: BuildingID.ExecutionerTower,
+            2: BuildingID.ShadowwalkerTower,
+            3: BuildingID.SoulthiefTower,
+            4: BuildingID.SentinelTower,
+            5: BuildingID.JusticarTower,
+            6: BuildingID.TemplarTower,
+            7: BuildingID.FrostwardenTower,
+            8: BuildingID.FlameseerTower,
+            9: BuildingID.NecromancerTower
          };
          
+         const masterClassId = WorldEnter.resolveMasterClass(homeCharacter);
          const towerBuildingId = MASTERCLASS_TO_BUILDING[masterClassId] || 3;
-         const scaffoldingId = client.character.buildingUpgrade?.buildingID || 0;
+         const scaffoldingId = homeCharacter.buildingUpgrade?.buildingID || 0;
 
          const sendDelta = (bid: number, targetRank: number) => {
              const prevRank = targetRank > 0 ? targetRank - 1 : 0;

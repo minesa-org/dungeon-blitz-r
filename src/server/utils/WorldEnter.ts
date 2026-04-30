@@ -255,6 +255,44 @@ export class WorldEnter {
         };
     }
 
+    static ensureSelectedDisciplineTower(character: Character | Record<string, any> | null | undefined): void {
+        if (!character || typeof character !== 'object') {
+            return;
+        }
+
+        const buildingId = WorldEnter.getBuildingIdForMasterClass(Number(character.MasterClass ?? 0));
+        if (!buildingId) {
+            return;
+        }
+
+        if (!character.magicForge || typeof character.magicForge !== 'object' || Array.isArray(character.magicForge)) {
+            character.magicForge = { stats_by_building: {} };
+        }
+        const magicForge = character.magicForge as Record<string, any>;
+        if (!magicForge.stats_by_building || typeof magicForge.stats_by_building !== 'object' || Array.isArray(magicForge.stats_by_building)) {
+            magicForge.stats_by_building = {};
+        }
+
+        const statsByBuilding = magicForge.stats_by_building as Record<string, unknown>;
+        const key = buildingId.toString();
+        const existingRank = Number(statsByBuilding[key] ?? statsByBuilding[buildingId] ?? 0);
+        if (!Number.isFinite(existingRank) || existingRank < 1) {
+            statsByBuilding[key] = 1;
+        }
+    }
+
+    static getSerializableTalentResearch(character: Character | Record<string, any>, now: number): { classIndex: number; readyTime: number } | null {
+        const talentResearch = WorldEnter.asRecord(character.talentResearch);
+        const classIndex = Number(talentResearch.classIndex ?? 0);
+        if (!Number.isFinite(classIndex) || classIndex <= 0) {
+            return null;
+        }
+
+        const rawReadyTime = Number(talentResearch.ReadyTime ?? 0);
+        const readyTime = Number.isFinite(rawReadyTime) && rawReadyTime > now ? rawReadyTime : 0;
+        return { classIndex, readyTime };
+    }
+
     private static sanitizeBuildingStatsForClient(statsByBuilding: Record<string, unknown>): Record<string, unknown> {
         const keepRank = Number(statsByBuilding[String(BuildingID.Keep)] ?? statsByBuilding[BuildingID.Keep] ?? 0);
         if (!Number.isFinite(keepRank) || keepRank <= 0) {
@@ -325,6 +363,7 @@ export class WorldEnter {
 
         bb.writeMethod11(isCraftTown ? 1 : 0, 1);
         if (isCraftTown && character) {
+            WorldEnter.ensureSelectedDisciplineTower(character);
             bb.writeMethod4(transferToken);
 
             const masterClassId = WorldEnter.resolveMasterClass(character);
@@ -388,6 +427,10 @@ export class WorldEnter {
         return WorldEnter.CLASS_DEFAULT_MASTERCLASS[className] || 0;
     }
 
+    static getBuildingIdForMasterClass(masterClassId: number): number {
+        return WorldEnter.MASTERCLASS_TO_BUILDING[Number(masterClassId ?? 0)] ?? 0;
+    }
+
     static resolveMagicForgeState(magicForge: any, now: number): { has_session: boolean; in_progress: boolean; completed: boolean; ready_time?: number } {
         if (!magicForge || !magicForge.primary) {
             return {
@@ -428,6 +471,7 @@ export class WorldEnter {
         const bb = new BitBuffer();
         const now = Math.floor(Date.now() / 1000);
         const normalizedLevel = GameData.getPlayerLevelFromXp(Math.max(0, Number(character.xp ?? 0)));
+        WorldEnter.ensureSelectedDisciplineTower(character);
         if (Number(character.level ?? 1) !== normalizedLevel) {
             character.level = normalizedLevel;
         }
@@ -560,7 +604,7 @@ export class WorldEnter {
                 bb.writeMethod4(Number(mountId ?? 0));
             }
 
-            const pets = WorldEnter.asArray(character.pets);
+            const pets = PetHandler.normalizePetCollection(character);
             bb.writeMethod4(pets.length);
             for (const rawPet of pets) {
                 const pet = WorldEnter.asRecord(rawPet);
@@ -764,13 +808,12 @@ export class WorldEnter {
                 bb.writeMethod4(buildingReadyTime);
             }
 
-            const talentResearch = WorldEnter.asRecord(character.talentResearch);
-            const talentReadyTime = Number(talentResearch.ReadyTime ?? 0);
-            const hasTalentResearch = talentReadyTime > 0 && talentReadyTime > now;
+            const talentResearch = WorldEnter.getSerializableTalentResearch(character, now);
+            const hasTalentResearch = talentResearch !== null;
             bb.writeMethod11(hasTalentResearch ? 1 : 0, 1);
-            if (hasTalentResearch) {
-                bb.writeMethod6(Number(talentResearch.classIndex ?? 0), 2);
-                bb.writeMethod4(talentReadyTime);
+            if (talentResearch) {
+                bb.writeMethod6(talentResearch.classIndex, 2);
+                bb.writeMethod4(talentResearch.readyTime);
             }
 
             const eggHatchery = WorldEnter.asRecord(character.EggHachery);

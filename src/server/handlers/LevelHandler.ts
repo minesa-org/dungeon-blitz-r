@@ -23,6 +23,7 @@ import { MissionLoader } from '../data/MissionLoader';
 import { NpcLoader, NpcDef } from '../data/NpcLoader';
 import { MissionID } from '../data/runtime';
 import { Entity, EntityTeam } from '../core/Entity';
+import { Character } from '../database/Database';
 import { EntityHandler } from './EntityHandler';
 import { MissionHandler } from './MissionHandler';
 import { PetHandler } from './PetHandler';
@@ -161,6 +162,7 @@ export class LevelHandler {
 
     private static cloneTransferGameplayState(target: Client, source: Client): void {
         target.character = source.character;
+        target.craftTownHostCharacter = source.craftTownHostCharacter;
         target.userId = source.userId;
         target.characters = Array.isArray(source.characters) ? [...source.characters] : [];
         target.currentLevel = source.currentLevel;
@@ -2609,7 +2611,8 @@ export class LevelHandler {
         newY: number,
         newHasCoord: boolean,
         sendExtended: boolean,
-        syncState: LevelSyncState | null = null
+        syncState: LevelSyncState | null = null,
+        craftTownHostCharacter?: Character
     ): void {
         const shouldSyncDungeonProgress = LevelConfig.isDungeonLevel(targetLevel);
         const levelInstanceId = shouldSyncDungeonProgress
@@ -2628,6 +2631,7 @@ export class LevelHandler {
         if (userId) {
             GlobalState.pendingWorld.set(token, {
                 character,
+                craftTownHostCharacter,
                 userId,
                 targetLevel,
                 levelInstanceId: levelInstanceId || undefined,
@@ -2652,6 +2656,10 @@ export class LevelHandler {
         }
 
         GlobalState.pendingExtended.set(token, sendExtended);
+    }
+
+    private static shouldSendExtendedOnTransfer(targetLevel: string): boolean {
+        return false;
     }
 
     private static allocateTransferToken(targetLevel: string): number {
@@ -3323,7 +3331,7 @@ export class LevelHandler {
             : LevelConfig.isDungeonLevel(targetLevel)
                 ? LevelConfig.normalizeLevelName(syncState?.syncEntryLevel) || oldLevel
                 : oldLevel;
-        const sendExtendedOnTransfer = false;
+        const sendExtendedOnTransfer = LevelHandler.shouldSendExtendedOnTransfer(targetLevel);
         LevelHandler.storePendingTransferToken(
             newToken,
             activeCharacter,
@@ -3334,7 +3342,8 @@ export class LevelHandler {
             newY,
             newHasCoord,
             sendExtendedOnTransfer,
-            syncState
+            syncState,
+            hostChar !== activeCharacter ? hostChar : undefined
         );
         LevelHandler.rememberTransferTokenAlias(packetToken, newToken);
         LevelHandler.rememberTransferTokenAlias(transferToken, newToken);

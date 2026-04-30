@@ -4,6 +4,7 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { TalentConfig } from '../core/TalentConfig';
 import { EntityHandler } from './EntityHandler';
+import { WorldEnter } from '../utils/WorldEnter';
 
 type TalentResearchRecord = {
     classIndex?: number | null;
@@ -283,6 +284,7 @@ export class TalentHandler {
         const masterClassId = br.readMethod6(4);
 
         client.character.MasterClass = masterClassId;
+        WorldEnter.ensureSelectedDisciplineTower(client.character);
         await TalentHandler.saveCharacter(client);
 
         const response = new BitBuffer();

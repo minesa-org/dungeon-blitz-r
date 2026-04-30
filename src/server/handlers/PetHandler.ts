@@ -58,6 +58,7 @@ export class PetHandler {
             return null;
         }
 
+        PetHandler.normalizePetCollection(character);
         const activePet = character.activePet ?? {};
         const petTypeId = Number(activePet.typeID ?? activePet.petID ?? 0);
         const petSpecialId = Number(activePet.special_id ?? 0);
@@ -74,6 +75,79 @@ export class PetHandler {
             }
             return petSpecialId <= 0 || specialId === petSpecialId;
         }) ?? null;
+    }
+
+    static normalizePetCollection(character: any): any[] {
+        if (!character) {
+            return [];
+        }
+
+        const pets = Array.isArray(character.pets) ? character.pets : [];
+        const normalized: any[] = [];
+        const seen = new Set<string>();
+
+        for (const rawPet of pets) {
+            if (!rawPet || typeof rawPet !== 'object') {
+                continue;
+            }
+
+            const typeID = Number(rawPet.typeID ?? rawPet.petID ?? 0);
+            const specialId = Number(rawPet.special_id ?? 0);
+            if (!Number.isFinite(typeID) || typeID <= 0) {
+                continue;
+            }
+
+            const key = `${typeID}:${Number.isFinite(specialId) ? specialId : 0}`;
+            if (seen.has(key)) {
+                continue;
+            }
+
+            seen.add(key);
+            rawPet.typeID = typeID;
+            rawPet.special_id = Number.isFinite(specialId) ? specialId : 0;
+            rawPet.level = Math.max(1, Number(rawPet.level ?? 1));
+            rawPet.xp = Math.max(0, Number(rawPet.xp ?? 0));
+            normalized.push(rawPet);
+        }
+
+        character.pets = normalized;
+
+        const ownsPet = (candidate: any): boolean => {
+            const typeID = Number(candidate?.typeID ?? candidate?.petID ?? 0);
+            const specialId = Number(candidate?.special_id ?? 0);
+            if (typeID <= 0) {
+                return false;
+            }
+            return normalized.some((pet) =>
+                Number(pet.typeID ?? 0) === typeID &&
+                (specialId <= 0 || Number(pet.special_id ?? 0) === specialId)
+            );
+        };
+
+        if (character.activePet && !ownsPet(character.activePet)) {
+            character.activePet = {};
+        }
+
+        if (Array.isArray(character.restingPets)) {
+            const selected = new Set<string>();
+            if (ownsPet(character.activePet)) {
+                selected.add(`${Number(character.activePet.typeID ?? character.activePet.petID ?? 0)}:${Number(character.activePet.special_id ?? 0)}`);
+            }
+
+            character.restingPets = character.restingPets.filter((pet: any) => {
+                if (!ownsPet(pet)) {
+                    return false;
+                }
+                const key = `${Number(pet.typeID ?? pet.petID ?? 0)}:${Number(pet.special_id ?? 0)}`;
+                if (selected.has(key)) {
+                    return false;
+                }
+                selected.add(key);
+                return true;
+            });
+        }
+
+        return normalized;
     }
 
     static getActivePetBonusRates(character: any): { goldFind: number; itemFind: number; craftFind: number; expBonus: number } {

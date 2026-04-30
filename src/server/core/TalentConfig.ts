@@ -126,17 +126,14 @@ export class TalentConfig {
             return slots;
         }
 
-        for (const node of TalentConfig.normalizeTalentNodes(classTree.nodes)) {
+        const normalizedNodes = TalentConfig.normalizeTalentNodes(classTree.nodes);
+        for (let slotIndex = 0; slotIndex < normalizedNodes.length; slotIndex += 1) {
+            const node = normalizedNodes[slotIndex];
             if (!node.filled) {
                 continue;
             }
 
             if (node.nodeID <= 0 || node.points <= 0) {
-                continue;
-            }
-
-            const slotIndex = node.nodeID - 1;
-            if (slotIndex < 0 || slotIndex >= TalentConfig.NUM_TALENT_SLOTS) {
                 continue;
             }
 

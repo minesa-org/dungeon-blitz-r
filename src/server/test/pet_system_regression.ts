@@ -241,6 +241,34 @@ function setContributors(levelScope: string, sourceId: number, contributors: str
     GlobalState.combatContributions.set(key, contributionMap);
 }
 
+function testPetCollectionNormalizationRemovesTransferDuplicates(): void {
+    const character: any = {
+        pets: [
+            { typeID: 15, special_id: 7, level: 10, xp: 0 },
+            { typeID: 15, special_id: 7, level: 10, xp: 0 },
+            { typeID: 16, special_id: 8, level: 2, xp: 5 }
+        ],
+        activePet: { typeID: 15, special_id: 7 },
+        restingPets: [
+            { typeID: 15, special_id: 7 },
+            { typeID: 16, special_id: 8 },
+            { typeID: 99, special_id: 99 }
+        ]
+    };
+
+    const normalized = PetHandler.normalizePetCollection(character);
+    assert.equal(normalized.length, 2, 'room-change pet duplication should be collapsed by owned pet identity');
+    assert.deepEqual(
+        normalized.map((pet) => `${pet.typeID}:${pet.special_id}`),
+        ['15:7', '16:8']
+    );
+    assert.deepEqual(
+        character.restingPets.map((pet: any) => `${pet.typeID}:${pet.special_id}`),
+        ['16:8'],
+        'resting pets should not duplicate the active pet or reference unowned pets'
+    );
+}
+
 async function withMockedCharacterSave<T>(fn: () => Promise<T>): Promise<T> {
     const originalSaveCharacters = JsonAdapter.prototype.saveCharacters;
     JsonAdapter.prototype.saveCharacters = async function(): Promise<void> {
@@ -332,6 +360,7 @@ async function main(): Promise<void> {
     try {
         await testRewardHandlerAppliesActivePetBonuses();
         await testRewardHandlerAppliesEquippedCharmFindBonuses();
+        testPetCollectionNormalizationRemovesTransferDuplicates();
         await testPetFoodUsageLevelsAndUpdatesActivePet();
         console.log('pet_system_regression: ok');
     } finally {

@@ -87,6 +87,13 @@ function createTrainPacket(classIndex: number, isInstant: boolean): Buffer {
     return bb.toBuffer();
 }
 
+function createActiveTalentPacket(entityId: number, masterClassId: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(entityId);
+    bb.writeMethod6(masterClassId, 4);
+    return bb.toBuffer();
+}
+
 function decodeCraftTownVisualData(packet: Buffer) {
     const br = new BitReader(packet);
 
@@ -245,6 +252,24 @@ function testEntityBuildsTalentsFromTalentTree(): void {
     assert.deepEqual(entity.talents?.[1], { nodeID: 2, points: 1 });
 }
 
+function testEntityTalentSlotsKeepClientSlotPositions(): void {
+    const character = createCharacter();
+    character.TalentTree = {
+        '5': {
+            nodes: [
+                { nodeID: 20, points: 2, filled: true },
+                { nodeID: 0, points: 0, filled: false },
+                { nodeID: 7, points: 1, filled: true }
+            ]
+        }
+    };
+
+    const entity = Entity.fromCharacter(41, character, {});
+    assert.deepEqual(entity.talents?.[0], { nodeID: 20, points: 2 });
+    assert.equal(entity.talents?.[1], null);
+    assert.deepEqual(entity.talents?.[2], { nodeID: 7, points: 1 });
+}
+
 function testWorldEnterResolvesMasterClassFromTowerState(): void {
     const character = createCharacter();
     character.MasterClass = 0;
@@ -290,12 +315,80 @@ function testWorldEnterResolvesMasterClassFromTowerState(): void {
     assert.equal(character.MasterClass, 5, 'player data serialization should also resolve the active master class');
 }
 
+async function testSelectedDisciplinePersistsHomeTowerAfterRestart(): Promise<void> {
+    const client = createClient();
+    client.character.MasterClass = 0;
+    client.character.magicForge = {
+        stats_by_building: {
+            '1': 1,
+            '2': 1,
+            '12': 1,
+            '13': 1
+        }
+    };
+
+    await withMockedCharacterSave(async () => {
+        await TalentHandler.handleActiveTalentChangeRequest(client as never, createActiveTalentPacket(41, 5));
+    });
+
+    assert.equal(client.character.MasterClass, 5);
+    assert.equal(
+        client.character.magicForge?.stats_by_building?.['3'],
+        1,
+        'selecting Justicar should persist its rank-one home tower instead of leaving it client-only'
+    );
+
+    const packet = WorldEnter.buildEnterWorldPacket(
+        77,
+        0,
+        '',
+        false,
+        0,
+        0,
+        'localhost',
+        8080,
+        'LevelsHome.swf',
+        1,
+        1,
+        'CraftTown',
+        '',
+        '',
+        true,
+        true,
+        10,
+        20,
+        client.character
+    ).toBuffer();
+
+    const decoded = decodeCraftTownVisualData(packet);
+    assert.equal(decoded.masterClassId, 5);
+    assert.equal(decoded.towerRank, 1, 'restart CraftTown packet should include the selected discipline tower');
+}
+
+function testCompletedDisciplineResearchSerializesAfterRestart(): void {
+    const character = createCharacter();
+    character.talentResearch = {
+        classIndex: 2,
+        ReadyTime: 0
+    };
+
+    const research = WorldEnter.getSerializableTalentResearch(character, Math.floor(Date.now() / 1000));
+    assert.deepEqual(
+        research,
+        { classIndex: 2, readyTime: 0 },
+        'completed discipline-point research should stay claimable after room change or restart'
+    );
+}
+
 async function main(): Promise<void> {
     await testRespecUsesPythonNodeMapping();
     await testInstantResearchRequiresClaimLikePython();
     await testTimedResearchSchedulesCompletionNotify();
     testEntityBuildsTalentsFromTalentTree();
+    testEntityTalentSlotsKeepClientSlotPositions();
     testWorldEnterResolvesMasterClassFromTowerState();
+    await testSelectedDisciplinePersistsHomeTowerAfterRestart();
+    testCompletedDisciplineResearchSerializesAfterRestart();
     console.log('talent_disciplines_regression: ok');
 }
 

@@ -142,6 +142,7 @@ export class Client {
     public clientEntID: number = 0;
     public entities: Map<number, any> = new Map();
     public currentLevel: string = "";
+    public craftTownHostCharacter: Character | null = null;
     public levelInstanceId: string = "";
     public entryLevel: string = "";
     public entryX: number = 0;

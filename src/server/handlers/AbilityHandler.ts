@@ -2,6 +2,8 @@ import abilityTypes from '../data/AbilityTypes.json';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { Client } from '../core/Client';
 import { DebugLogger } from '../core/Debug';
+import { MasterClassID } from '../core/Enums';
+import { TalentConfig } from '../core/TalentConfig';
 import { BitReader } from '../network/protocol/bitReader';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 
@@ -32,6 +34,18 @@ export class AbilityHandler {
         paladin: [20, 24]
     };
 
+    private static readonly MASTERCLASS_NAMES: Record<number, string> = {
+        [MasterClassID.Executioner]: 'Executioner',
+        [MasterClassID.Shadowwalker]: 'Shadowwalker',
+        [MasterClassID.Soulthief]: 'Soulthief',
+        [MasterClassID.Sentinel]: 'Sentinel',
+        [MasterClassID.Justicar]: 'Justicar',
+        [MasterClassID.Templar]: 'Templar',
+        [MasterClassID.Frostwarden]: 'Frostwarden',
+        [MasterClassID.Flameseer]: 'Flameseer',
+        [MasterClassID.Necromancer]: 'Necromancer'
+    };
+
     static async handleActiveAbilitiesUpdate(client: Client, data: Buffer): Promise<void> {
         if (!client.character) return;
 
@@ -59,6 +73,7 @@ export class AbilityHandler {
         const abilityId = br.readMethod20(7);
         const rank = br.readMethod20(4);
         const payWithIdols = br.readMethod15();
+        AbilityHandler.repairCharacterAbilityState(client.character);
         DebugLogger.logProgress('AbilityResearch:startRequest', client, client.character, {
             abilityId,
             rank,
@@ -94,7 +109,21 @@ export class AbilityHandler {
             return;
         }
 
-        const currentRank = AbilityHandler.getLearnedAbilityRank(client.character, abilityId);
+        let currentRank = AbilityHandler.getLearnedAbilityRank(client.character, abilityId);
+        if (
+            currentRank === 0 &&
+            rank > 1 &&
+            AbilityHandler.isActiveMasterClassAbility(client.character, abilityId)
+        ) {
+            currentRank = rank - 1;
+            AbilityHandler.setLearnedAbilityRank(client.character, abilityId, currentRank);
+            DebugLogger.logProgress('AbilityResearch:inferredDisciplineRank', client, client.character, {
+                abilityId,
+                inferredRank: currentRank,
+                requestedRank: rank,
+                raw: DebugLogger.previewBuffer(data)
+            });
+        }
         if (rank !== currentRank + 1) {
             if (AbilityHandler.shouldTreatAsTutorialEcho(client, abilityId, rank, currentRank)) {
                 client.character.SkillResearch = {
@@ -331,6 +360,12 @@ export class AbilityHandler {
             }
         }
 
+        for (const defaultMasterAbilityId of AbilityHandler.getDefaultMasterAbilityIds(character)) {
+            if (!learnedRanks.has(defaultMasterAbilityId)) {
+                learnedRanks.set(defaultMasterAbilityId, 1);
+            }
+        }
+
         for (const rawAbilityId of originalActive) {
             const abilityId = Number(rawAbilityId ?? 0);
             if (abilityId <= 0 || !knownAbilityIds.has(abilityId) || learnedRanks.has(abilityId)) {
@@ -405,6 +440,45 @@ export class AbilityHandler {
         return abilityDefsByKey.get(`${abilityId}:${rank}`);
     }
 
+    private static getDefaultMasterAbilityIds(character: CharacterRecord): number[] {
+        const masterClassId = Number(character.MasterClass ?? 0);
+        const masterClassName = AbilityHandler.MASTERCLASS_NAMES[masterClassId];
+        if (!masterClassName) {
+            return [];
+        }
+
+        const unlockedHotbarLocations = new Set<number>([4]);
+        const nodes = AbilityHandler.getMasterClassTalentNodes(character, masterClassId);
+        const totalTalentPoints = nodes.reduce((total, node) => total + (node.filled ? Number(node.points ?? 0) : 0), 0);
+        if (totalTalentPoints >= 20 && nodes[8]?.filled) {
+            unlockedHotbarLocations.add(5);
+        }
+        if (totalTalentPoints >= 40 && nodes[18]?.filled) {
+            unlockedHotbarLocations.add(6);
+        }
+
+        return abilityDefs
+            .filter((def) =>
+                Number(def.Rank ?? 0) === 1 &&
+                String((def as Record<string, unknown>).Class ?? '') === masterClassName &&
+                unlockedHotbarLocations.has(Number((def as Record<string, unknown>).HotbarLocation ?? -1))
+            )
+            .map((def) => Number(def.AbilityID ?? 0))
+            .filter((abilityId) => abilityId > 0);
+    }
+
+    private static getMasterClassTalentNodes(character: CharacterRecord, masterClassId: number) {
+        const rawTalentTree = character.TalentTree;
+        const talentTree = rawTalentTree && typeof rawTalentTree === 'object' && !Array.isArray(rawTalentTree)
+            ? rawTalentTree as Record<string, unknown>
+            : {};
+        const rawClassTree = talentTree[String(masterClassId)];
+        const classTree = rawClassTree && typeof rawClassTree === 'object' && !Array.isArray(rawClassTree)
+            ? rawClassTree as Record<string, unknown>
+            : {};
+        return TalentConfig.normalizeTalentNodes(classTree.nodes);
+    }
+
     private static getLearnedAbilities(character: CharacterRecord): Array<Record<string, number>> {
         const learnedAbilities = Array.isArray(character.learnedAbilities)
             ? character.learnedAbilities as Array<Record<string, number>>
@@ -418,6 +492,29 @@ export class AbilityHandler {
         const learnedAbilities = AbilityHandler.getLearnedAbilities(character);
         const learned = learnedAbilities.find((ability) => Number(ability.abilityID ?? 0) === abilityId);
         return Number(learned?.rank ?? 0);
+    }
+
+    private static setLearnedAbilityRank(character: CharacterRecord, abilityId: number, rank: number): void {
+        const learnedAbilities = AbilityHandler.getLearnedAbilities(character);
+        const existing = learnedAbilities.find((ability) => Number(ability.abilityID ?? 0) === abilityId);
+        if (existing) {
+            existing.rank = Math.max(Number(existing.rank ?? 0), rank);
+            return;
+        }
+
+        learnedAbilities.push({ abilityID: abilityId, rank });
+    }
+
+    private static isActiveMasterClassAbility(character: CharacterRecord, abilityId: number): boolean {
+        const masterClassName = AbilityHandler.MASTERCLASS_NAMES[Number(character.MasterClass ?? 0)];
+        if (!masterClassName) {
+            return false;
+        }
+
+        return abilityDefs.some((def) =>
+            Number(def.AbilityID ?? 0) === abilityId &&
+            String((def as Record<string, unknown>).Class ?? '') === masterClassName
+        );
     }
 
     private static getActiveAbilities(character: CharacterRecord): number[] {

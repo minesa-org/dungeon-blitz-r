@@ -221,6 +221,8 @@ export class CharacterHandler {
 
         if (loadedCharacter) {
             client.character = loadedCharacter;
+            WorldEnter.ensureSelectedDisciplineTower(client.character);
+            PetHandler.normalizePetCollection(client.character);
             client.characters = loadedCharacters;
             DebugLogger.logProgress('CharacterReload:loaded', client, loadedCharacter, {
                 source: 'disk'
@@ -946,6 +948,9 @@ export class CharacterHandler {
         const sendExtended = firstLogin || Boolean(GlobalState.pendingExtended.get(token));
 
         client.character = entry.character;
+        client.craftTownHostCharacter = entry.targetLevel === 'CraftTown'
+            ? entry.craftTownHostCharacter ?? null
+            : null;
         PetHandler.normalizeMountState(client.character);
         client.userId = entry.userId;
         client.token = token;

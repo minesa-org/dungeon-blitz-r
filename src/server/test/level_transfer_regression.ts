@@ -282,6 +282,19 @@ function testStorePendingTransferTokenSkipsExtendedStateForTransfers(): void {
     );
 }
 
+function testCraftTownTransfersKeepCompactPlayerPayload(): void {
+    assert.equal(
+        (LevelHandler as any).shouldSendExtendedOnTransfer('CraftTown'),
+        false,
+        'CraftTown transfers should keep the compact payload because repeated extended payloads duplicate client-side pet and inventory lists'
+    );
+    assert.equal(
+        (LevelHandler as any).shouldSendExtendedOnTransfer('NewbieRoad'),
+        false,
+        'ordinary overworld transfers should keep the compact payload'
+    );
+}
+
 function testBuildTransferSyncStatePrefersPartyAnchorInDungeon(): void {
     const follower = createClient();
     follower.character = createCharacter('Follower');
@@ -1290,6 +1303,8 @@ async function main(): Promise<void> {
         GlobalState.tokenChar.clear();
 
         testStorePendingTransferTokenSkipsExtendedStateForTransfers();
+
+        testCraftTownTransfersKeepCompactPlayerPayload();
 
         GlobalState.pendingWorld.clear();
         GlobalState.pendingExtended.clear();

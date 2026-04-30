@@ -4,6 +4,7 @@ import { PartyGroup, PendingTeleport } from './SocialState';
 
 export interface PendingTransfer {
     character: Character;
+    craftTownHostCharacter?: Character;
     targetLevel: string;
     levelInstanceId?: string;
     previousLevel: string;
