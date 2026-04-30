@@ -7,3 +7,4 @@ src/server/data/saves/
 temp
 .DS_Store
 build/
+logs/
