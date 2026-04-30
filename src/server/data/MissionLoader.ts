@@ -8,6 +8,8 @@ export interface MissionDef {
     OfferText?: string;
     ActiveText?: string;
     ActiveTarget?: string;
+    ProgressIcon?: string;
+    ProgressText?: string;
     Tier?: boolean;
     Time?: boolean;
     highscore?: number;
@@ -102,6 +104,8 @@ export class MissionLoader {
                         OfferText: item.OfferText || "",
                         ActiveText: item.ActiveText || "",
                         ActiveTarget: item.ActiveTarget || "",
+                        ProgressIcon: item.ProgressIcon || "",
+                        ProgressText: item.ProgressText || "",
                         Tier: this.isTruthy(item.Achievement),
                         Time: this.isTruthy(item.Timed) || Boolean(item.Dungeon),
                         highscore: completeCount,

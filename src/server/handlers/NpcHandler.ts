@@ -8,6 +8,7 @@ import { NpcDialogueLoader } from '../data/NpcDialogueLoader';
 import { MissionDef, MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
 import { NpcLoader } from '../data/NpcLoader';
+import { LevelConfig } from '../core/LevelConfig';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { getClientLevelScope } from '../core/LevelScope';
@@ -86,6 +87,9 @@ export class NpcHandler {
             }
 
             if (NpcHandler.repairCompletedKeepQuestTurnIn(client.character, missionNpcKey)) {
+                didMutate = true;
+            }
+            if (NpcHandler.repairCompletedDungeonQuestTurnIn(client.character, missionNpcKey)) {
                 didMutate = true;
             }
 
@@ -369,6 +373,41 @@ export class NpcHandler {
         return true;
     }
 
+    private static repairCompletedDungeonQuestTurnIn(character: Character, npcKey: string): boolean {
+        if (!npcKey || Number(character.questTrackerState ?? 0) < 100) {
+            return false;
+        }
+
+        const completedDungeonLevel = LevelConfig.normalizeLevelName(character.lastCompletedDungeonLevel);
+        if (!completedDungeonLevel) {
+            return false;
+        }
+
+        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            const missionDungeon = LevelConfig.normalizeLevelName(missionDef?.Dungeon);
+            if (!missionDef || !missionDungeon || missionDungeon !== completedDungeonLevel) {
+                continue;
+            }
+            if (npcKey !== NpcHandler.getMissionReturnNpcKey(missionDef)) {
+                continue;
+            }
+            if (NpcHandler.getMissionState(character, missionId) !== NpcHandler.MISSION_IN_PROGRESS) {
+                continue;
+            }
+
+            NpcHandler.setMissionState(
+                character,
+                missionId,
+                NpcHandler.MISSION_READY_TO_TURN_IN,
+                { currCount: Math.max(1, Number(missionDef.CompleteCount ?? 1)) }
+            );
+            return true;
+        }
+
+        return false;
+    }
+
     private static missionStartsReadyToTurnIn(missionDef: MissionDef | undefined): boolean {
         if (!missionDef) {
             return false;
@@ -399,6 +438,7 @@ export class NpcHandler {
         }
 
         character.questTrackerState = 0;
+        character.lastCompletedDungeonLevel = '';
     }
 
     private static getMissionStateMap(character: Character): Record<string, MissionEntry> {
@@ -721,7 +761,9 @@ export class NpcHandler {
             nrquestanna03hard: 'nranna03hard',
             pecky: 'nrpecky',
             captainfink: 'nrcaptfink',
-            fink: 'nrcaptfink'
+            fink: 'nrcaptfink',
+            npcodem: 'odem',
+            npcodemhard: 'odemhard'
         };
 
         return aliases[normalized] ?? normalized;

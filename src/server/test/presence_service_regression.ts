@@ -34,7 +34,7 @@ function createFakeClient(
     };
 }
 
-function testTutorialDungeonUsesMissionDisplayNameAndPlayerLine(): void {
+function testTutorialDungeonUsesMissionDisplayNameAndStatus(): void {
     const snapshot = (PresenceService as any).toSnapshot(
         createFakeClient('TutorialDungeon', {
             MasterClass: MasterClassID.Frostwarden,
@@ -45,10 +45,10 @@ function testTutorialDungeonUsesMissionDisplayNameAndPlayerLine(): void {
     assert.ok(snapshot, 'presence snapshot should resolve for spawned tutorial dungeon clients');
     assert.equal(snapshot.levelName, 'Goblin Kidnappers');
     assert.equal(snapshot.details, 'Goblin Kidnappers');
-    assert.equal(snapshot.state, 'Azyraven - Frostwarden - Lv. 12');
+    assert.equal(snapshot.state, 'In dungeon');
 }
 
-function testHomePresenceUsesHomeLabelAndBaseClassFallback(): void {
+function testHomePresenceUsesHomeLabelAndStatus(): void {
     const snapshot = (PresenceService as any).toSnapshot(
         createFakeClient('CraftTownTutorial')
     );
@@ -56,13 +56,35 @@ function testHomePresenceUsesHomeLabelAndBaseClassFallback(): void {
     assert.ok(snapshot, 'presence snapshot should resolve for home tutorial clients');
     assert.equal(snapshot.levelName, 'Home');
     assert.equal(snapshot.details, 'Home');
-    assert.equal(snapshot.state, 'Azyraven - Mage - Lv. 7');
+    assert.equal(snapshot.state, 'In game');
+}
+
+function testCemeteryHillPresenceUsesCemeteryImage(): void {
+    const snapshot = (PresenceService as any).toSnapshot(
+        createFakeClient('CemeteryHill')
+    );
+
+    assert.ok(snapshot, 'presence snapshot should resolve for Cemetery Hill clients');
+    assert.equal(snapshot.levelName, 'Cemetery Hill');
+    assert.equal(snapshot.areaKey, 'cemeteryhill');
+}
+
+function testCemeteryHillHardPresenceUsesCemeteryImage(): void {
+    const snapshot = (PresenceService as any).toSnapshot(
+        createFakeClient('CemeteryHillHard')
+    );
+
+    assert.ok(snapshot, 'presence snapshot should resolve for hard Cemetery Hill clients');
+    assert.equal(snapshot.levelName, 'Cemetery Hill (Hard)');
+    assert.equal(snapshot.areaKey, 'cemeteryhill');
 }
 
 function main(): void {
     ensureDataLoaded();
-    testTutorialDungeonUsesMissionDisplayNameAndPlayerLine();
-    testHomePresenceUsesHomeLabelAndBaseClassFallback();
+    testTutorialDungeonUsesMissionDisplayNameAndStatus();
+    testHomePresenceUsesHomeLabelAndStatus();
+    testCemeteryHillPresenceUsesCemeteryImage();
+    testCemeteryHillHardPresenceUsesCemeteryImage();
     console.log('presence_service_regression: ok');
 }
 

@@ -66,6 +66,14 @@ function decodeDoorStatePacket(payload: Buffer): { doorId: number; state: number
     };
 }
 
+function decodeDoorTargetPacket(payload: Buffer): { doorId: number; targetLevel: string } {
+    const br = new BitReader(payload);
+    return {
+        doorId: br.readMethod4(),
+        targetLevel: br.readMethod13()
+    };
+}
+
 function createClient(): FakeClient {
     const sentPackets: SentPacket[] = [];
 
@@ -156,11 +164,72 @@ function testLockedSwampDungeonDoorDoesNotTransferPlayer(): void {
     );
 }
 
+function testClearedArachnaeOpensFelbridgeRoadToBlackRoseMireConnector(): void {
+    const client = createClient();
+    client.currentLevel = 'BridgeTown';
+    client.character.CurrentLevel = { name: 'BridgeTown', x: 3944, y: 838 };
+    client.character.PreviousLevel = { name: 'SwampRoadConnectionMission', x: 0, y: 0 };
+    client.character.missions[String(MissionID.ClearTheBridge)] = {
+        state: 2,
+        currCount: 1,
+        Tier: 8,
+        highscore: 160000,
+        Time: 444444
+    };
+
+    LevelHandler.handleRequestDoorState(client as never, createDoorPacket(1));
+    LevelHandler.handleOpenDoor(client as never, createDoorPacket(1));
+
+    assert.deepEqual(
+        decodeDoorStatePacket(client.sentPackets.find((entry) => entry.id === 0x42)!.payload),
+        {
+            doorId: 1,
+            state: 1,
+            targetLevel: 'SwampRoadConnection',
+            stars: 0
+        },
+        'after Arachnae is cleared, the Felbridge road should open to the Black Rose Mire connector instead of the dungeon'
+    );
+    assert.deepEqual(
+        decodeDoorTargetPacket(client.sentPackets.find((entry) => entry.id === 0x2E)!.payload),
+        {
+            doorId: 1,
+            targetLevel: 'SwampRoadConnection'
+        },
+        'walking through the Felbridge road after Arachnae should transfer to the connector map'
+    );
+}
+
+function testUnclearedArachnaeStillUsesFelbridgeDungeonEntrance(): void {
+    const client = createClient();
+    client.currentLevel = 'BridgeTown';
+    client.character.CurrentLevel = { name: 'BridgeTown', x: 3944, y: 838 };
+    client.character.missions[String(MissionID.ClearTheBridge)] = {
+        state: 1,
+        currCount: 0
+    };
+
+    LevelHandler.handleRequestDoorState(client as never, createDoorPacket(1));
+
+    assert.deepEqual(
+        decodeDoorStatePacket(client.sentPackets.find((entry) => entry.id === 0x42)!.payload),
+        {
+            doorId: 1,
+            state: 1,
+            targetLevel: 'SwampRoadConnectionMission',
+            stars: 0
+        },
+        'before Arachnae is cleared, the Felbridge road should still enter the Arachnae dungeon'
+    );
+}
+
 async function main(): Promise<void> {
     ensureDataLoaded();
     testSwampRoadNorthOnlyShowsAcceptedDungeonDoors();
     testCompletedDungeonDoorIncludesStoredStars();
     testLockedSwampDungeonDoorDoesNotTransferPlayer();
+    testClearedArachnaeOpensFelbridgeRoadToBlackRoseMireConnector();
+    testUnclearedArachnaeStillUsesFelbridgeDungeonEntrance();
     console.log('swamp_door_mission_regression: ok');
 }
 

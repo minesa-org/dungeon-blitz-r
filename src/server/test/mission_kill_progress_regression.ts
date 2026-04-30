@@ -1,6 +1,7 @@
 import { strict as assert } from 'assert';
 import path from 'path';
 import { Character } from '../database/Database';
+import { GameData } from '../core/GameData';
 import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
@@ -43,6 +44,9 @@ function ensureDataLoaded(): void {
     }
     if (!MissionLoader.getMissionDef(MissionID.GetGoblinNoserings)) {
         MissionLoader.load(dataDir);
+    }
+    if (!GameData.getEntType('Devourer')) {
+        GameData.load(dataDir);
     }
 }
 
@@ -468,6 +472,232 @@ async function testGetSpiderFangsProgressesOnSwampSpiderKills(): Promise<void> {
     );
 }
 
+async function testBannersOfTheTuataraProgressesOnLizardBannerKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.GetLizardBanners)]: {
+            state: 1,
+            currCount: 4
+        }
+    }, 'SwampRoadNorth');
+
+    await destroyEnemy(client, 8461, 'LizardBanner');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetLizardBanners)]?.currCount ?? 0),
+        5,
+        'Banners of the Tuatara should count LizardBanner kills toward the banner total'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetLizardBanners)]?.state ?? 0),
+        2,
+        'Banners of the Tuatara should become ready to turn in after enough banners are collected'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [{ missionId: MissionID.GetLizardBanners, progress: 1 }],
+        'Banners of the Tuatara should emit additive mission progress packets for banner kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.GetLizardBanners,
+        'Banners of the Tuatara should notify the client once the banner objective is complete'
+    );
+}
+
+async function testHardBannersOfTheTuataraProgressesOnLizardBannerKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.GetLizardBannersHard)]: {
+            state: 1,
+            currCount: 9
+        }
+    }, 'SwampRoadNorthHard');
+
+    await destroyEnemy(client, 8462, 'LizardBannerHard');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetLizardBannersHard)]?.currCount ?? 0),
+        10,
+        'Hard Banners of the Tuatara should count LizardBannerHard kills toward the banner total'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetLizardBannersHard)]?.state ?? 0),
+        2,
+        'Hard Banners of the Tuatara should become ready to turn in after enough banners are collected'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [{ missionId: MissionID.GetLizardBannersHard, progress: 1 }],
+        'Hard Banners of the Tuatara should emit additive mission progress packets for banner kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.GetLizardBannersHard,
+        'Hard Banners of the Tuatara should notify the client once the banner objective is complete'
+    );
+}
+
+async function testTuataraGreatHelmsProgressesOnLizardHeavyKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.GetLizardGreatHelm)]: {
+            state: 1,
+            currCount: 8
+        }
+    }, 'SwampRoadNorth');
+
+    await destroyEnemy(client, 8463, 'GreatLizardHeavy2');
+    await destroyEnemy(client, 8464, 'LizardHeavy');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetLizardGreatHelm)]?.currCount ?? 0),
+        9,
+        'Get Tuatara Great Helms should count LizardHeavy kills toward the helm total'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetLizardGreatHelm)]?.state ?? 0),
+        1,
+        'Get Tuatara Great Helms should remain active when only one LizardHeavy helm is collected'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [{ missionId: MissionID.GetLizardGreatHelm, progress: 1 }],
+        'Get Tuatara Great Helms should emit additive mission progress packets only for LizardHeavy kills'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x86),
+        false,
+        'Get Tuatara Great Helms should not complete from ignored GreatLizard kills'
+    );
+}
+
+async function testHardTuataraGreatHelmsProgressesOnLizardHeavyKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.GetLizardGreatHelmHard)]: {
+            state: 1,
+            currCount: 19
+        }
+    }, 'SwampRoadNorthHard');
+
+    await destroyEnemy(client, 8465, 'LizardHeavyHard');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetLizardGreatHelmHard)]?.currCount ?? 0),
+        20,
+        'Hard Get Tuatara Great Helms should count LizardHeavyHard kills toward the helm total'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetLizardGreatHelmHard)]?.state ?? 0),
+        2,
+        'Hard Get Tuatara Great Helms should become ready to turn in after enough helms are collected'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [{ missionId: MissionID.GetLizardGreatHelmHard, progress: 1 }],
+        'Hard Get Tuatara Great Helms should emit additive mission progress packets for LizardHeavyHard kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.GetLizardGreatHelmHard,
+        'Hard Get Tuatara Great Helms should notify the client once the helm objective is complete'
+    );
+}
+
+async function testDevourerTeethProgressesFromDevourerRealmKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.GetDevourerTeeth)]: {
+            state: 1,
+            currCount: 8
+        }
+    }, 'SwampRoadNorth');
+
+    await destroyEnemy(client, 8465, 'Devourer');
+    await destroyEnemy(client, 8466, 'DevourerHeavy');
+    await destroyEnemy(client, 8467, 'DevourerMiniBoss');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetDevourerTeeth)]?.currCount ?? 0),
+        10,
+        'Get Devourer Teeth should count only larger Devourer-realm kills toward the tooth total'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetDevourerTeeth)]?.state ?? 0),
+        2,
+        'Get Devourer Teeth should become ready to turn in after enough teeth are collected'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [
+            { missionId: MissionID.GetDevourerTeeth, progress: 1 },
+            { missionId: MissionID.GetDevourerTeeth, progress: 1 }
+        ],
+        'Get Devourer Teeth should emit additive mission progress packets for larger Devourer kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.GetDevourerTeeth,
+        'Get Devourer Teeth should notify the client once the tooth objective is complete'
+    );
+}
+
+async function testHardDevourerTeethProgressesFromDevourerRealmKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.GetDevourerTeethHard)]: {
+            state: 1,
+            currCount: 19
+        }
+    }, 'SwampRoadNorthHard');
+
+    await destroyEnemy(client, 8467, 'DevourerShootingHard');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetDevourerTeethHard)]?.currCount ?? 0),
+        20,
+        'Hard Get Devourer Teeth should count Devourer-realm kills toward the tooth total'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetDevourerTeethHard)]?.state ?? 0),
+        2,
+        'Hard Get Devourer Teeth should become ready to turn in after enough teeth are collected'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [{ missionId: MissionID.GetDevourerTeethHard, progress: 1 }],
+        'Hard Get Devourer Teeth should emit additive mission progress packets for Devourer kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.GetDevourerTeethHard,
+        'Hard Get Devourer Teeth should notify the client once the tooth objective is complete'
+    );
+}
+
 async function testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce(): Promise<void> {
     resetGlobalState();
     const client = createClient({
@@ -571,6 +801,12 @@ async function main(): Promise<void> {
     await testLootersHardCompletesOnGoblinThiefHardKill();
     await testRecoverWandsProgressesOnGoblinShamanKills();
     await testGetSpiderFangsProgressesOnSwampSpiderKills();
+    await testBannersOfTheTuataraProgressesOnLizardBannerKills();
+    await testHardBannersOfTheTuataraProgressesOnLizardBannerKills();
+    await testTuataraGreatHelmsProgressesOnLizardHeavyKills();
+    await testHardTuataraGreatHelmsProgressesOnLizardHeavyKills();
+    await testDevourerTeethProgressesFromDevourerRealmKills();
+    await testHardDevourerTeethProgressesFromDevourerRealmKills();
     await testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
     await testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
     console.log('mission_kill_progress_regression: ok');
