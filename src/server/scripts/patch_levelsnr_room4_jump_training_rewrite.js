@@ -74,11 +74,44 @@ function replaceExact(source, needle, replacement, label) {
   return source.replace(needle, replacement);
 }
 
+function replaceAny(source, needles, replacement, label) {
+  for (const needle of needles) {
+    if (source.includes(needle)) {
+      return source.replace(needle, replacement);
+    }
+  }
+  throw new Error(`Could not find ${label} in ${CLASS_NAME}.as`);
+}
+
 function patchSource(source) {
   const eol = source.includes("\r\n") ? "\r\n" : "\n";
   const join = (lines) => lines.join(eol);
+  const droppingYReplacement = join([
+    "      public function GetDroppingPlayerY(param1:Object) : Number",
+    "      {",
+    "         if(param1 != null && param1[\"physPosY\"] != undefined)",
+    "         {",
+    "            return Number(param1[\"physPosY\"]);",
+    "         }",
+    "         if(!isNaN(this.dropLastY))",
+    "         {",
+    "            return this.dropLastY;",
+    "         }",
+    "         if(!isNaN(this.dropGroundY))",
+    "         {",
+    "            return this.dropGroundY;",
+    "         }",
+    "         return NaN;",
+    "      }",
+  ]);
 
-  if (source.includes("public function OnJumpTrainingEnterFrame")) {
+  const droppingYPattern = /public function GetDroppingPlayerY\(param1:Object\) : Number[\s\S]*?public function GetDroppingPlayerGrounded/m;
+  if (!droppingYPattern.test(source)) {
+    throw new Error(`Could not find GetDroppingPlayerY in ${CLASS_NAME}.as`);
+  }
+  source = source.replace(droppingYPattern, `${droppingYReplacement}${eol}${eol}      public function GetDroppingPlayerGrounded`);
+
+  if (source.includes("public function OnDroppingEnterFrame")) {
     return source;
   }
 
@@ -103,18 +136,49 @@ function patchSource(source) {
       "      public var jumpGroundY:Number;",
       "",
       "      public var jumpGroundedEpsilon:Number = 1;",
+      "",
+      "      public var dropPhaseState:String;",
+      "",
+      "      public var dropStarted:Boolean;",
+      "",
+      "      public var dropCompleted:Boolean;",
+      "",
+      "      public var dropGroundY:Number;",
+      "",
+      "      public var dropGroundedEpsilon:Number = 1;",
+      "",
+      "      public var dropLastY:Number;",
     ]),
     "state field block",
   );
 
-  source = replaceExact(
+  source = replaceAny(
     source,
-    join([
-      "      public function InitRoom(param1:a_GameHook) : void",
-      "      {",
-      "         param1.initialPhase = this.FirstTick;",
-      "      }",
-    ]),
+    [
+      join([
+        "      public function InitRoom(param1:a_GameHook) : void",
+        "      {",
+        "         param1.initialPhase = this.FirstTick;",
+        "      }",
+      ]),
+      join([
+        "      public function InitRoom(param1:a_GameHook) : void",
+        "      {",
+        "         this.roomHook = param1;",
+        "         this.trackedPlayer = null;",
+        "         this.jumpPhaseState = \"IDLE\";",
+        "         this.wasOnGround = false;",
+        "         this.jumpStarted = false;",
+        "         this.jumpCompleted = false;",
+        "         this.jumpGroundY = NaN;",
+        "         if(!this.hasEventListener(Event.ENTER_FRAME))",
+        "         {",
+        "            this.addEventListener(Event.ENTER_FRAME,this.OnJumpTrainingEnterFrame);",
+        "         }",
+        "         param1.initialPhase = this.FirstTick;",
+        "      }",
+      ]),
+    ],
     join([
       "      public function InitRoom(param1:a_GameHook) : void",
       "      {",
@@ -125,6 +189,11 @@ function patchSource(source) {
       "         this.jumpStarted = false;",
       "         this.jumpCompleted = false;",
       "         this.jumpGroundY = NaN;",
+      "         this.dropPhaseState = \"IDLE\";",
+      "         this.dropStarted = false;",
+      "         this.dropCompleted = false;",
+      "         this.dropGroundY = NaN;",
+      "         this.dropLastY = NaN;",
       "         if(!this.hasEventListener(Event.ENTER_FRAME))",
       "         {",
       "            this.addEventListener(Event.ENTER_FRAME,this.OnJumpTrainingEnterFrame);",
@@ -135,37 +204,60 @@ function patchSource(source) {
     "InitRoom",
   );
 
-  source = replaceExact(
+  source = replaceAny(
     source,
-    join([
-      "      public function WaitingForJump(param1:a_GameHook) : void",
-      "      {",
-      "         if(param1.OnScriptFinish(this.Script_OpeningScene))",
-      "         {",
-      "            param1.Animate(\"am_JumpTut\",\"Show\",true);",
-      "         }",
-      "         if(param1.OnTrigger(\"am_Trigger_Fall2\"))",
-      "         {",
-      "            param1.PlayScript(this.Script_Fall);",
-      "         }",
-      "         if(param1.OnTrigger(\"am_Trigger_2\"))",
-      "         {",
-      "            param1.Animate(\"am_JumpTut\",\"Remove\",true);",
-      "            param1.Animate(\"am_DropTut\",\"Show\",true);",
-      "            param1.CancelScript(this.Script_OpeningScene);",
-      "            param1.CancelScript(this.Script_Fall);",
-      "            if(param1.GetTime() < 3000)",
-      "            {",
-      "               param1.PlayScript(this.Script_JumpFast);",
-      "            }",
-      "            else",
-      "            {",
-      "               param1.PlayScript(this.Script_JumpSlow);",
-      "            }",
-      "            param1.SetPhase(this.WaitingForDrop);",
-      "         }",
-      "      }",
-    ]),
+    [
+      join([
+        "      public function WaitingForJump(param1:a_GameHook) : void",
+        "      {",
+        "         if(param1.OnScriptFinish(this.Script_OpeningScene))",
+        "         {",
+        "            param1.Animate(\"am_JumpTut\",\"Show\",true);",
+        "         }",
+        "         if(param1.OnTrigger(\"am_Trigger_Fall2\"))",
+        "         {",
+        "            param1.PlayScript(this.Script_Fall);",
+        "         }",
+        "         if(param1.OnTrigger(\"am_Trigger_2\"))",
+        "         {",
+        "            param1.Animate(\"am_JumpTut\",\"Remove\",true);",
+        "            param1.Animate(\"am_DropTut\",\"Show\",true);",
+        "            param1.CancelScript(this.Script_OpeningScene);",
+        "            param1.CancelScript(this.Script_Fall);",
+        "            if(param1.GetTime() < 3000)",
+        "            {",
+        "               param1.PlayScript(this.Script_JumpFast);",
+        "            }",
+        "            else",
+        "            {",
+        "               param1.PlayScript(this.Script_JumpSlow);",
+        "            }",
+        "            param1.SetPhase(this.WaitingForDrop);",
+        "         }",
+        "      }",
+      ]),
+      join([
+        "      public function WaitingForJump(param1:a_GameHook) : void",
+        "      {",
+        "         if(param1.OnScriptFinish(this.Script_OpeningScene))",
+        "         {",
+        "            param1.Animate(\"am_JumpTut\",\"Show\",true);",
+        "            if(this.jumpPhaseState == \"IDLE\")",
+        "            {",
+        "               this.BeginJumpTracking();",
+        "            }",
+        "         }",
+        "         if(param1.OnTrigger(\"am_Trigger_Fall2\"))",
+        "         {",
+        "            param1.PlayScript(this.Script_Fall);",
+        "         }",
+        "         if(this.jumpPhaseState == \"JUMP\" && this.jumpCompleted)",
+        "         {",
+        "            this.CompleteJumpTutorial(param1);",
+        "         }",
+        "      }",
+      ]),
+    ],
     join([
       "      public function WaitingForJump(param1:a_GameHook) : void",
       "      {",
@@ -193,15 +285,68 @@ function patchSource(source) {
   source = replaceExact(
     source,
     join([
-      "      public function WaitingOnDoor(param1:a_GameHook) : void",
+      "      public function WaitingForDrop(param1:a_GameHook) : void",
       "      {",
-      "         if(param1.AtTime(15000))",
+      "         if(param1.OnTrigger(\"am_Trigger_3\"))",
       "         {",
-      "            param1.Animate(\"am_DoorTut\",\"Remove\",true);",
-      "            param1.SetPhase(null);",
+      "            param1.PlayScript(this.Script_Fall);",
+      "         }",
+      "         if(param1.OnTrigger(\"am_Trigger_Fall3\"))",
+      "         {",
+      "            param1.Animate(\"am_DropTut\",\"Remove\",true);",
+      "            param1.CancelScript(this.Script_JumpFast);",
+      "            param1.CancelScript(this.Script_JumpSlow);",
+      "            param1.CancelScript(this.Script_Fall);",
+      "         }",
+      "         if(param1.OnTrigger(\"am_Trigger_Fall3\"))",
+      "         {",
+      "            param1.PlayScript(this.Script_FindDoor);",
+      "         }",
+      "         if(param1.OnScriptFinish(this.Script_FindDoor))",
+      "         {",
+      "            param1.Animate(\"am_DoorTut\",\"Show\",true);",
+      "            param1.SetPhase(this.WaitingOnDoor);",
       "         }",
       "      }",
     ]),
+    join([
+      "      public function WaitingForDrop(param1:a_GameHook) : void",
+      "      {",
+      "         if(this.dropPhaseState == \"COMPLETE_DROPPING\" && !this.dropCompleted)",
+      "         {",
+      "            this.dropCompleted = true;",
+      "            this.CompleteDroppingTutorial(param1);",
+      "         }",
+      "      }",
+    ]),
+    "WaitingForDrop",
+  );
+
+  source = replaceAny(
+    source,
+    [
+      join([
+        "      public function WaitingOnDoor(param1:a_GameHook) : void",
+        "      {",
+        "         if(param1.AtTime(15000))",
+        "         {",
+        "            param1.Animate(\"am_DoorTut\",\"Remove\",true);",
+        "            param1.SetPhase(null);",
+        "         }",
+        "      }",
+      ]),
+      join([
+        "      public function WaitingOnDoor(param1:a_GameHook) : void",
+        "      {",
+        "         if(param1.AtTime(15000))",
+        "         {",
+        "            this.jumpPhaseState = \"DONE\";",
+        "            param1.Animate(\"am_DoorTut\",\"Remove\",true);",
+        "            param1.SetPhase(null);",
+        "         }",
+        "      }",
+      ]),
+    ],
     join([
       "      public function WaitingOnDoor(param1:a_GameHook) : void",
       "      {",
@@ -216,14 +361,11 @@ function patchSource(source) {
     "WaitingOnDoor",
   );
 
-  source = replaceExact(
-    source,
-    "      internal function __setProp___id426__a_Room_Tutorial_04_cues_0() : *",
-    join([
+  const helperReplacement = join([
       "      public function ResolveTrackedPlayer() : Object",
       "      {",
       "         var _loc1_:Object = null;",
-      "         _loc1_ = this.roomHook != null ? this.roomHook.linkToRoom as Room : null;",
+      "         _loc1_ = this.roomHook != null ? this.roomHook.linkToRoom : null;",
       "         if(_loc1_ && _loc1_.var_1 && _loc1_.var_1.clientEnt && _loc1_.var_1.clientEnt.currRoom == _loc1_)",
       "         {",
       "            return _loc1_.var_1.clientEnt;",
@@ -269,6 +411,11 @@ function patchSource(source) {
       "      public function CompleteJumpTutorial(param1:a_GameHook) : void",
       "      {",
       "         this.jumpPhaseState = \"DROPPING\";",
+      "         this.dropPhaseState = \"IDLE\";",
+      "         this.dropStarted = false;",
+      "         this.dropCompleted = false;",
+      "         this.dropGroundY = NaN;",
+      "         this.dropLastY = NaN;",
       "         param1.Animate(\"am_JumpTut\",\"Remove\",true);",
       "         param1.Animate(\"am_DropTut\",\"Show\",true);",
       "         param1.CancelScript(this.Script_OpeningScene);",
@@ -281,7 +428,34 @@ function patchSource(source) {
       "         {",
       "            param1.PlayScript(this.Script_JumpSlow);",
       "         }",
+      "         this.StartDroppingTutorial(param1);",
       "         param1.SetPhase(this.WaitingForDrop);",
+      "      }",
+      "",
+      "      public function StartDoorTutorial(param1:a_GameHook) : void",
+      "      {",
+      "         if(this.jumpPhaseState == \"DOOR\" || this.jumpPhaseState == \"DONE\")",
+      "         {",
+      "            return;",
+      "         }",
+      "         this.jumpPhaseState = \"DOOR\";",
+      "         param1.CancelScript(this.Script_JumpFast);",
+      "         param1.CancelScript(this.Script_JumpSlow);",
+      "         param1.CancelScript(this.Script_Fall);",
+      "         param1.CancelScript(this.Script_FindDoor);",
+      "         if(_root.startDoorTutorial != undefined)",
+      "         {",
+      "            _root.startDoorTutorial();",
+      "            return;",
+      "         }",
+      "         if(_root.doorTutorial != undefined && _root.doorTutorial.startTutorial != undefined)",
+      "         {",
+      "            _root.doorTutorial.startTutorial();",
+      "            return;",
+      "         }",
+      "         param1.PlayScript(this.Script_FindDoor);",
+      "         param1.Animate(\"am_DoorTut\",\"Show\",true);",
+      "         param1.SetPhase(this.WaitingOnDoor);",
       "      }",
       "",
       "      public function OnJumpTrainingEnterFrame(param1:Event) : void",
@@ -308,10 +482,135 @@ function patchSource(source) {
       "         this.wasOnGround = _loc2_;",
       "      }",
       "",
+      "      public function ResolveDroppingPlayer() : Object",
+      "      {",
+      "         if(_root != null && _root.player != undefined)",
+      "         {",
+      "            return _root.player;",
+      "         }",
+      "         return this.ResolveTrackedPlayer();",
+      "      }",
+      "",
+      "      public function StartDroppingTutorial(param1:a_GameHook) : void",
+      "      {",
+      "         this.dropPhaseState = \"DROPPING\";",
+      "         this.dropStarted = false;",
+      "         this.dropCompleted = false;",
+      "         this.trackedPlayer = this.ResolveDroppingPlayer();",
+      "         if(this.trackedPlayer == null)",
+      "         {",
+      "            this.dropPhaseState = \"IDLE\";",
+      "            return;",
+      "         }",
+      "         this.dropGroundY = this.GetDroppingPlayerY(this.trackedPlayer);",
+      "         this.dropLastY = this.dropGroundY;",
+      "         trace(\"DROPPING WATCHER STARTED\");",
+      "         this.onEnterFrame = Delegate.create(this,this.OnDroppingEnterFrame);",
+      "      }",
+      "",
+      "      public function GetDroppingPlayerY(param1:Object) : Number",
+      "      {",
+      "         if(param1 != null && param1[\"physPosY\"] != undefined)",
+      "         {",
+      "            return Number(param1[\"physPosY\"]);",
+      "         }",
+      "         if(!isNaN(this.dropLastY))",
+      "         {",
+         "            return this.dropLastY;",
+      "         }",
+      "         if(!isNaN(this.dropGroundY))",
+      "         {",
+      "            return this.dropGroundY;",
+      "         }",
+      "         return NaN;",
+      "      }",
+      "",
+      "      public function GetDroppingPlayerGrounded(param1:Object) : Boolean",
+      "      {",
+      "         var _loc2_:Number = this.GetDroppingPlayerY(param1);",
+      "         var _loc3_:Object = null;",
+      "         if(isNaN(_loc2_))",
+      "         {",
+      "            return false;",
+      "         }",
+      "         _loc3_ = this.ResolveTrackedPlayer();",
+      "         if(_loc3_ != null && _loc3_.cue != undefined && _loc3_.cue.bDidGroundSnap)",
+      "         {",
+      "            this.dropGroundY = _loc2_;",
+      "            return true;",
+      "         }",
+      "         if(_loc3_ != null && this.GetTrackedPlayerGrounded(_loc3_))",
+      "         {",
+      "            this.dropGroundY = _loc2_;",
+      "            return true;",
+      "         }",
+      "         return false;",
+      "      }",
+      "",
+      "      public function OnDroppingEnterFrame() : void",
+      "      {",
+      "         var _loc1_:Object = this.ResolveDroppingPlayer();",
+      "         var _loc2_:Number = NaN;",
+      "         var _loc3_:Boolean = false;",
+      "         var _loc4_:Boolean = false;",
+      "         if(this.dropPhaseState != \"DROPPING\")",
+      "         {",
+      "            return;",
+      "         }",
+      "         if(_loc1_ == null)",
+      "         {",
+      "            this.trackedPlayer = null;",
+      "            return;",
+      "         }",
+      "         this.trackedPlayer = _loc1_;",
+      "         _loc2_ = this.GetDroppingPlayerY(_loc1_);",
+      "         if(isNaN(_loc2_))",
+      "         {",
+      "            return;",
+      "         }",
+      "         _loc4_ = !isNaN(this.dropLastY) && _loc2_ > this.dropLastY;",
+      "         _loc3_ = this.GetDroppingPlayerGrounded(_loc1_);",
+      "         if(!this.dropStarted && _loc4_)",
+      "         {",
+      "            this.dropStarted = true;",
+      "            trace(\"DROPPING STARTED\");",
+      "         }",
+      "         if(this.dropStarted && _loc3_ && !this.dropCompleted)",
+      "         {",
+      "            this.dropCompleted = true;",
+      "            this.dropPhaseState = \"COMPLETE_DROPPING\";",
+      "            trace(\"DROPPING COMPLETED\");",
+      "            delete this.onEnterFrame;",
+      "            return;",
+      "         }",
+      "         this.dropLastY = _loc2_;",
+      "      }",
+      "",
+      "      public function CompleteDroppingTutorial(param1:a_GameHook) : void",
+      "      {",
+      "         this.dropPhaseState = \"START_DOOR_TUTORIAL\";",
+      "         this.dropCompleted = true;",
+      "         param1.Animate(\"am_DropTut\",\"Remove\",true);",
+      "         param1.CancelScript(this.Script_JumpFast);",
+      "         param1.CancelScript(this.Script_JumpSlow);",
+      "         param1.CancelScript(this.Script_Fall);",
+      "         delete this.onEnterFrame;",
+      "         this.StartDoorTutorial(param1);",
+      "      }",
+      "",
       "      internal function __setProp___id426__a_Room_Tutorial_04_cues_0() : *",
-    ]),
-    "helper insertion point",
-  );
+    ]);
+  const helperBlockPattern = /      public function ResolveTrackedPlayer\(\) : Object[\s\S]*?      internal function __setProp___id426__a_Room_Tutorial_04_cues_0\(\) : \*/m;
+  if (helperBlockPattern.test(source)) {
+    source = source.replace(helperBlockPattern, helperReplacement);
+  } else {
+    source = replaceExact(
+      source,
+      "      internal function __setProp___id426__a_Room_Tutorial_04_cues_0() : *",
+      helperReplacement,
+      "helper insertion point",
+    );
+  }
 
   return source;
 }
@@ -320,11 +619,50 @@ function verifyPatchedSource(source) {
   if (!source.includes("public function OnJumpTrainingEnterFrame")) {
     throw new Error("Patched source is missing the ENTER_FRAME tracker.");
   }
-  if (!source.includes("this.roomHook != null ? this.roomHook.linkToRoom : null")) {
+  if (!source.includes("public function OnDroppingEnterFrame")) {
+    throw new Error("Patched source is missing the dropping ENTER_FRAME tracker.");
+  }
+  if (!source.includes("public function StartDroppingTutorial(param1:a_GameHook)") && !source.includes("public function BeginDroppingTracking(param1:a_GameHook)")) {
+    throw new Error("Patched source is missing the drop watcher bootstrap helper.");
+  }
+  if (!source.includes("public function StartDoorTutorial(param1:a_GameHook)") && !source.includes("public function CompleteDroppingTutorial(param1:a_GameHook)")) {
+    throw new Error("Patched source is missing the door tutorial handoff helper.");
+  }
+  if (!source.includes("this.roomHook != null ? this.roomHook.linkToRoom")) {
     throw new Error("Patched source is missing Room-based player resolution.");
+  }
+  if (!source.includes("if(_root != null && _root.player != undefined)") && !source.includes("if(_loc1_ != null && _loc1_[\"player\"] != undefined)")) {
+    throw new Error("Patched source is missing the root player drop resolution.");
+  }
+  if (!source.includes("this.onEnterFrame = Delegate.create(this,this.OnDroppingEnterFrame);") && !source.includes("this.addEventListener(Event.ENTER_FRAME,this.OnDroppingEnterFrame);")) {
+    throw new Error("Patched source is missing the dropping watcher bind.");
   }
   if (!source.includes("bDidGroundSnap")) {
     throw new Error("Patched source is missing grounded flag detection.");
+  }
+  if (!source.includes("param1[\"physPosY\"] != undefined") && !source.includes("param1.physPosY != undefined")) {
+    throw new Error("Patched source is missing physPosY drop tracking.");
+  }
+  if (!source.includes("if(!isNaN(this.dropLastY))")) {
+    throw new Error("Patched source is missing the last-known drop Y fallback.");
+  }
+  if (!source.includes("if(!isNaN(this.dropGroundY))")) {
+    throw new Error("Patched source is missing the grounded drop Y fallback.");
+  }
+  if (/\._y\b/.test(source)) {
+    throw new Error("Patched source still reads Entity._y.");
+  }
+  if (!source.includes("!this.dropStarted && _loc4_") && !source.includes("!this.dropStarted && !_loc3_ && !isNaN(this.dropLastY) && _loc2_ > this.dropLastY")) {
+    throw new Error("Patched source is missing movement-based drop start detection.");
+  }
+  if (!source.includes("if(this.dropStarted && _loc3_ && !this.dropCompleted)") && !source.includes("if(this.dropStarted && _loc3_)")) {
+    throw new Error("Patched source is missing landing-based drop completion.");
+  }
+  if (!source.includes("_root.startDoorTutorial()") && !source.includes("_loc2_[\"startDoorTutorial\"]()")) {
+    throw new Error("Patched source is missing the primary door tutorial handoff.");
+  }
+  if (!source.includes("_root.doorTutorial.startTutorial()") && !source.includes("_loc2_[\"doorTutorial\"][\"startTutorial\"]()")) {
+    throw new Error("Patched source is missing the fallback door tutorial handoff.");
   }
   if (source.includes("Key.isDown(")) {
     throw new Error("Patched source unexpectedly uses Key.isDown.");
@@ -337,6 +675,26 @@ function verifyPatchedSource(source) {
   const waitingForJump = source.slice(jumpStart, dropStart);
   if (waitingForJump.includes("OnTrigger(\"am_Trigger_2\")")) {
     throw new Error("WaitingForJump still depends on am_Trigger_2.");
+  }
+  const completeJumpStart = source.indexOf("public function CompleteJumpTutorial");
+  const jumpFrameStart = source.indexOf("public function OnJumpTrainingEnterFrame");
+  if (completeJumpStart === -1 || jumpFrameStart === -1) {
+    throw new Error("Could not isolate CompleteJumpTutorial source.");
+  }
+  const completeJump = source.slice(completeJumpStart, jumpFrameStart);
+  if (!completeJump.includes("param1.Animate(\"am_DropTut\",\"Show\",true);") || (!completeJump.includes("this.StartDroppingTutorial(param1);") && !completeJump.includes("this.BeginDroppingTracking(param1);"))) {
+    throw new Error("Drop watcher is not armed from the same flow that shows am_DropTut.");
+  }
+  const doorStart = source.indexOf("public function WaitingOnDoor");
+  if (dropStart === -1 || doorStart === -1) {
+    throw new Error("Could not isolate WaitingForDrop source.");
+  }
+  const waitingForDrop = source.slice(dropStart, doorStart);
+  if (waitingForDrop.includes("OnTrigger(\"am_Trigger_3\")") || waitingForDrop.includes("OnTrigger(\"am_Trigger_Fall3\")")) {
+    throw new Error("WaitingForDrop still depends on trigger-based completion.");
+  }
+  if (waitingForDrop.includes("BeginDroppingTracking") || waitingForDrop.includes("StartDroppingTutorial")) {
+    throw new Error("WaitingForDrop still contains the old drop bootstrap.");
   }
 }
 

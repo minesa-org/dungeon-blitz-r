@@ -15,6 +15,7 @@ import {
   writeU30,
 } from "./swfPatchUtils";
 
+// Obsolete for the source-level room4 tutorial rewrite path in patch_levelsnr_room4_jump_training_rewrite.js.
 const CLASS_NAME = "a_Room_Tutorial_04";
 const METHOD_NAME = "WaitingForDrop";
 const TARGET_TRIGGER = "am_Trigger_Fall3";
