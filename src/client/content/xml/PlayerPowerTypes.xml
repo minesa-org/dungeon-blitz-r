@@ -7664,9 +7664,8 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -7707,10 +7706,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
 		<BasePowerName>Sanctum</BasePowerName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<UpgradeDescription>190% Heal</UpgradeDescription>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
@@ -7752,10 +7750,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
 		<BasePowerName>Sanctum</BasePowerName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<UpgradeDescription>210% Heal</UpgradeDescription>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
@@ -7797,10 +7794,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
 		<BasePowerName>Sanctum</BasePowerName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<UpgradeDescription>-1 second Cooldown</UpgradeDescription>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
@@ -7842,10 +7838,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
 		<BasePowerName>Sanctum</BasePowerName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<UpgradeDescription>240% Heal</UpgradeDescription>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
@@ -7887,10 +7882,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
 		<BasePowerName>Sanctum</BasePowerName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<UpgradeDescription>-2 second Cooldown</UpgradeDescription>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
@@ -7932,10 +7926,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
 		<BasePowerName>Sanctum</BasePowerName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<UpgradeDescription>290% Heal</UpgradeDescription>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
@@ -7977,10 +7970,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
 		<BasePowerName>Sanctum</BasePowerName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<UpgradeDescription>-1 second Cooldown</UpgradeDescription>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
@@ -8022,10 +8014,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
 		<BasePowerName>Sanctum</BasePowerName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<UpgradeDescription>320% Heal</UpgradeDescription>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
@@ -8067,10 +8058,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
 		<BasePowerName>Sanctum</BasePowerName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<UpgradeDescription>-1 second Cooldown</UpgradeDescription>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
@@ -8112,10 +8102,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Holy</DamageType>
 		<PowerGroup>Sanctum</PowerGroup>
-		<ComboName>SanctumCombo</ComboName>
 		<DisplayName>Sanctum</DisplayName>
 		<BasePowerName>Sanctum</BasePowerName>
-		<Description>Heals allies in an area and Blinds foes</Description>
+		<Description>Heals allies in an area</Description>
 		<UpgradeDescription>380% Heal</UpgradeDescription>
 		<IconName>a_PowerIcon_Sanctum</IconName>
 		<CastSound>CHR_Templar_Sanctum_A[415]CHR_Templar_Sanctum_B</CastSound>
