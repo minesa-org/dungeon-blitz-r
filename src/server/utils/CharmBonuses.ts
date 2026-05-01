@@ -6,6 +6,7 @@ export interface CharmBonuses {
     craftFind: number;
     hitPointBoost: number;
     powerBonus: number;
+    procChanceUp: number;
     meleeBonus: number;
     magicBonus: number;
     armorBonus: number;
@@ -43,6 +44,7 @@ function addCharmStats(bonuses: CharmBonuses, charm: any, multiplier: number = 1
     bonuses.craftFind += (Number(charm?.CraftDrop ?? 0) || 0) * multiplier;
     bonuses.hitPointBoost += (Number(charm?.HitPointBoost ?? 0) || 0) * multiplier;
     bonuses.powerBonus += (Number(charm?.PowerBonus ?? 0) || 0) * multiplier;
+    bonuses.procChanceUp += (Number(charm?.ProcChanceUp ?? 0) || 0) * multiplier;
     bonuses.meleeBonus += (Number(charm?.MeleeBonus ?? 0) || 0) * multiplier;
     bonuses.magicBonus += (Number(charm?.MagicBonus ?? 0) || 0) * multiplier;
     bonuses.armorBonus += (Number(charm?.ArmorBonus ?? 0) || 0) * multiplier;
@@ -70,6 +72,7 @@ export function getEquippedCharmBonuses(character: any): CharmBonuses {
         craftFind: 0,
         hitPointBoost: 0,
         powerBonus: 0,
+        procChanceUp: 0,
         meleeBonus: 0,
         magicBonus: 0,
         armorBonus: 0

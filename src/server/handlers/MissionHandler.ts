@@ -57,6 +57,7 @@ type DungeonMissionUpdateResult = {
 type CollectibleKillProgressRule = {
     progressText: string;
     realm?: string;
+    realms?: ReadonlySet<string>;
     ranks?: ReadonlySet<string>;
     names?: ReadonlySet<string>;
     namePrefixes?: readonly string[];
@@ -174,6 +175,62 @@ export class MissionHandler {
                 ...MissionHandler.SWAMP_LIZARD_HELM_KILL_NAMES,
                 ...MissionHandler.SWAMP_LIZARD_HELM_HARD_KILL_NAMES
             ])
+        },
+        {
+            progressText: 'Heirloom',
+            realms: new Set(['Wolf'])
+        },
+        {
+            progressText: 'Alurite',
+            realms: new Set(['RockHulk'])
+        },
+        {
+            progressText: 'Stolen Jewelry',
+            realms: new Set(['Lion'])
+        },
+        {
+            progressText: 'Dark Totem',
+            realms: new Set(['Dryad'])
+        },
+        {
+            progressText: 'Mask of Meylour',
+            namePrefixes: ['FirePriest', 'Meylour']
+        },
+        {
+            progressText: 'Dread Mask',
+            realms: new Set(['Dread'])
+        },
+        {
+            progressText: 'Scorpion Stinger',
+            namePrefixes: ['Scarab', 'AbyssalStinger', 'GreaterAbyssalStinger']
+        },
+        {
+            progressText: 'Goblin Memory Charm',
+            namePrefixes: ['Outlander']
+        },
+        {
+            progressText: 'Seelie Bracer',
+            realms: new Set(['Giant'])
+        },
+        {
+            progressText: 'Sandworm Mucus Gland',
+            namePrefixes: ['SandWorm']
+        },
+        {
+            progressText: 'Imperial Insignia',
+            realms: new Set(['Imperial'])
+        },
+        {
+            progressText: 'Mokie Shrooms',
+            realms: new Set(['Ratling'])
+        },
+        {
+            progressText: 'Brigand Necklace',
+            namePrefixes: ['Brigand']
+        },
+        {
+            progressText: 'Demon Tear',
+            realms: new Set(['Demon', 'Shade'])
         }
     ];
 
@@ -1559,10 +1616,11 @@ export class MissionHandler {
             return true;
         }
 
-        if (rule.realm) {
+        if (rule.realm || rule.realms?.size) {
             const entType = GameData.getEntType(name);
+            const realm = String(entType?.Realm ?? '').trim();
             if (
-                String(entType?.Realm ?? '').trim() === rule.realm &&
+                (realm === rule.realm || Boolean(rule.realms?.has(realm))) &&
                 (!rule.ranks || rule.ranks.has(String(entType?.EntRank ?? '').trim()))
             ) {
                 return true;

@@ -9,6 +9,7 @@ import { LevelHandler } from '../handlers/LevelHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { NpcLoader } from '../data/NpcLoader';
+import { getClientLevelScope } from '../core/LevelScope';
 
 type SentPacket = {
     id: number;
@@ -1841,6 +1842,35 @@ function testGoblinRiverDungeonJoinerSkipsStartedRoomReplayFromPartyAnchor(): vo
     }
 }
 
+function testDungeonClientSpawnHostilesUsePlayerRuntimeLevel(): void {
+    const client = createFakeClient('Scaler');
+    client.currentLevel = 'GoblinRiverDungeon';
+    client.levelInstanceId = 'scaled-run';
+    client.character = {
+        ...client.character,
+        level: 37,
+        xp: 0
+    } as any;
+    client.clientEntID = 9001;
+
+    const payload = (EntityHandler as any).buildEntityFullUpdatePayload({
+        id: 9002,
+        name: 'GoblinDagger',
+        isPlayer: false,
+        x: 200,
+        y: 300,
+        v: 0,
+        team: 2,
+        entState: 0
+    });
+
+    EntityHandler.handleEntityFullUpdate(client as never, payload);
+
+    const levelScope = getClientLevelScope(client as never);
+    const hostile = GlobalState.levelEntities.get(levelScope)?.get(9002);
+    assert.equal(hostile?.level, 37, 'dungeon client-spawn hostiles should use the player runtime level');
+}
+
 async function main(): Promise<void> {
     ensureLevelConfigLoaded();
 
@@ -2052,6 +2082,11 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testGoblinRiverDungeonJoinerSkipsStartedRoomReplayFromPartyAnchor();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testDungeonClientSpawnHostilesUsePlayerRuntimeLevel();
     } finally {
         GlobalState.levelEntities = levelEntities;
         GlobalState.sessionsByToken = sessionsByToken;

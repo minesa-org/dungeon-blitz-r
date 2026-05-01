@@ -151,6 +151,14 @@ function testCompositeCharmBonusesDecodePrimaryAndSecondaryEffects(): void {
 
     assert.equal(bonuses.goldFind, 0.03, 'primary Undead03 gold find should apply');
     assert.equal(bonuses.itemFind, 0.03, 'legendary secondary Trog03 gear find should apply');
+
+    const compositeTrog03WithLegendaryInfernal03 = 13 | (2 << 9) | (2 << 14);
+    const criticalBonuses = getEquippedCharmBonuses({
+        equippedGears: [{ gearID: 1177, tier: 2, runes: [compositeTrog03WithLegendaryInfernal03, 0, 0], colors: [0, 0] }]
+    });
+
+    assert.equal(criticalBonuses.procChanceUp, 0.015, 'legendary secondary Infernal03 critical chance should apply');
+    assert.equal(criticalBonuses.itemFind, 0.03, 'primary Trog03 gear find should still apply with critical secondary');
 }
 
 async function testAlertStatePersistsAndExistingSigilsSuppressRepeatedUnlock(): Promise<void> {

@@ -698,6 +698,77 @@ async function testHardDevourerTeethProgressesFromDevourerRealmKills(): Promise<
     );
 }
 
+async function testLaterSideQuestCollectiblesProgressFromEnemyRealms(): Promise<void> {
+    const cases: Array<{
+        missionId: MissionID;
+        currentLevel: string;
+        enemyName: string;
+        startingCount: number;
+        expectedLabel: string;
+    }> = [
+        {
+            missionId: MissionID.RetrieveHeirlooms,
+            currentLevel: 'CemeteryHill',
+            enemyName: 'JackalAlpha',
+            startingCount: 9,
+            expectedLabel: 'Heirloom'
+        },
+        {
+            missionId: MissionID.CollectRockShards,
+            currentLevel: 'OldMineMountain',
+            enemyName: 'RockHulk',
+            startingCount: 9,
+            expectedLabel: 'Alurite'
+        },
+        {
+            missionId: MissionID.GatherDarkTotems,
+            currentLevel: 'EmeraldGlades',
+            enemyName: 'AshenDryad',
+            startingCount: 9,
+            expectedLabel: 'Dark Totem'
+        },
+        {
+            missionId: MissionID.CollectImperialInsignias,
+            currentLevel: 'JadeCity',
+            enemyName: 'ImperialGuard',
+            startingCount: 19,
+            expectedLabel: 'Imperial Insignia'
+        },
+        {
+            missionId: MissionID.CollectDemonTears,
+            currentLevel: 'JadeCity',
+            enemyName: 'ShadeWarrior',
+            startingCount: 19,
+            expectedLabel: 'Demon Tear'
+        }
+    ];
+
+    for (const item of cases) {
+        resetGlobalState();
+        const client = createClient({
+            [String(item.missionId)]: {
+                state: 1,
+                currCount: item.startingCount
+            }
+        }, item.currentLevel);
+
+        await destroyEnemy(client, 8700 + item.missionId, item.enemyName);
+
+        assert.equal(
+            Number(client.character.missions[String(item.missionId)]?.currCount ?? 0),
+            item.startingCount + 1,
+            `${item.expectedLabel} should be granted immediately from ${item.enemyName}`
+        );
+        assert.deepEqual(
+            client.sentPackets
+                .filter((packet) => packet.id === 0x83)
+                .map((packet) => decodeMissionProgressPacket(packet.payload)),
+            [{ missionId: item.missionId, progress: 1 }],
+            `${item.expectedLabel} should emit an additive mission progress packet on kill`
+        );
+    }
+}
+
 async function testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce(): Promise<void> {
     resetGlobalState();
     const client = createClient({
@@ -807,6 +878,7 @@ async function main(): Promise<void> {
     await testHardTuataraGreatHelmsProgressesOnLizardHeavyKills();
     await testDevourerTeethProgressesFromDevourerRealmKills();
     await testHardDevourerTeethProgressesFromDevourerRealmKills();
+    await testLaterSideQuestCollectiblesProgressFromEnemyRealms();
     await testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
     await testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
     console.log('mission_kill_progress_regression: ok');

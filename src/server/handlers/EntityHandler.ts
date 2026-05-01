@@ -5,6 +5,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { DebugConfig } from '../core/Debug';
 import { GlobalState } from '../core/GlobalState';
 import { Entity, EntityProps, EntityState } from '../core/Entity';
+import { GameData } from '../core/GameData';
 import { LevelConfig } from '../core/LevelConfig';
 import { PetHandler } from './PetHandler';
 import { BuildingHandler } from './BuildingHandler';
@@ -89,6 +90,25 @@ export class EntityHandler {
 
     private static shouldSkipDungeonRoomProgressSync(levelName: string | null | undefined): boolean {
         return Boolean(levelName) && EntityHandler.GOBLIN_RIVER_ROOM_SYNC_SKIP_LEVELS.has(String(levelName));
+    }
+
+    private static resolveRuntimeDungeonEntityLevel(levelName: string | null | undefined, character: any, fallbackLevel: number = 1): number {
+        if (!LevelConfig.isDungeonLevel(levelName)) {
+            return Math.max(1, Math.min(50, Math.round(Number(fallbackLevel) || 1)));
+        }
+
+        const xpLevel = GameData.getPlayerLevelFromXp(Math.max(0, Number(character?.xp ?? 0)));
+        const characterLevel = Math.max(1, Number(character?.level ?? 0));
+        const resolvedLevel = xpLevel > 1 ? xpLevel : characterLevel;
+        return Math.max(1, Math.min(50, Math.round(resolvedLevel || fallbackLevel || 1)));
+    }
+
+    private static applyRuntimeDungeonEntityLevel(levelName: string | null | undefined, character: any, entity: any): void {
+        if (!entity || entity.isPlayer || !LevelConfig.isDungeonLevel(levelName)) {
+            return;
+        }
+
+        entity.level = EntityHandler.resolveRuntimeDungeonEntityLevel(levelName, character, entity.level);
     }
 
     private static isPrivateClientSpawnOutdoorEntity(levelName: string | null | undefined, entity: any): boolean {
@@ -1300,6 +1320,8 @@ export class EntityHandler {
                 // bRunning etc are flags
             };
 
+        EntityHandler.applyRuntimeDungeonEntityLevel(levelName, client.character, props);
+
         if (!isPlayer) {
             client.clientSpawnConfirmed = true;
             clearClientSpawnFallbackTimer(client);
@@ -1371,6 +1393,7 @@ export class EntityHandler {
                         ...Entity.fromNpc(npc),
                         clientSpawned: false
                     };
+                    EntityHandler.applyRuntimeDungeonEntityLevel(levelName, client.character, entityProps);
                     levelMap.set(npc.id, entityProps);
                 }
             }
