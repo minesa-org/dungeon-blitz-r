@@ -10,6 +10,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { LevelConfig } from '../core/LevelConfig';
 import { GlobalState, PendingTransfer } from '../core/GlobalState';
 import { DebugLogger } from '../core/Debug';
+import { GameData } from '../core/GameData';
 import {
     cloneDungeonRunStats,
     finalizeDungeonRun,
@@ -88,6 +89,17 @@ export class LevelHandler {
         'That was the last of our Monster Fleet!'
     ]);
     private static readonly GOBLIN_RIVER_BOSS_INTRO_DEFAULT_MS = 5000;
+
+    private static resolveDungeonPacketLevel(levelName: string, configuredLevel: number, character: Character): number {
+        if (!LevelConfig.isDungeonLevel(levelName)) {
+            return configuredLevel;
+        }
+
+        const xpLevel = GameData.getPlayerLevelFromXp(Math.max(0, Number(character.xp ?? 0)));
+        const characterLevel = Math.max(1, Number(character.level ?? 0));
+        const resolvedLevel = xpLevel > 1 ? xpLevel : characterLevel;
+        return Math.max(1, Math.min(50, Math.round(resolvedLevel || configuredLevel || 1)));
+    }
 
     private static getCraftTownTutorialAuthoredHelperIds(): number[] {
         if (LevelHandler.craftTownTutorialHelperIdsCache) {
@@ -3352,6 +3364,8 @@ export class LevelHandler {
         const levelSpec = LevelConfig.get(targetLevel);
         const isHard = targetLevel.endsWith("Hard");
         const oldLevelSpec = LevelConfig.get(oldLevel);
+        const runtimeMapLevel = LevelHandler.resolveDungeonPacketLevel(targetLevel, levelSpec.mapId, hostChar);
+        const runtimeBaseLevel = LevelHandler.resolveDungeonPacketLevel(targetLevel, levelSpec.baseId, hostChar);
         
         const pkt = WorldEnter.buildEnterWorldPacket(
             newToken,
@@ -3363,8 +3377,8 @@ export class LevelHandler {
             Config.HOST,
             Config.PORTS[0],
             levelSpec.swf,
-            levelSpec.mapId,
-            levelSpec.baseId,
+            runtimeMapLevel,
+            runtimeBaseLevel,
             targetLevel,
             isHard ? "Hard" : "",
             isHard ? "Hard" : "",

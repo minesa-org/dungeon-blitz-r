@@ -13,7 +13,7 @@ import { buildDungeonRunScoreSummary } from '../core/DungeonRunStats';
 import { EntityState, EntityTeam } from '../core/Entity';
 import { BuildingID } from '../core/Enums';
 import { LevelConfig } from '../core/LevelConfig';
-import { getClientLevelScope } from '../core/LevelScope';
+import { getClientLevelScope, getScopeLevelName } from '../core/LevelScope';
 import {
     getSharedDungeonProgressTotals,
     getOrCreateSharedDungeonProgressState,
@@ -76,6 +76,14 @@ export class MissionHandler {
     private static readonly CRAFT_TOWN_TUTORIAL_BOSS_NAMES = new Set([
         'GoblinShamanHood',
         'IntroGoblinShamanHood'
+    ]);
+    private static readonly DUNGEONS_REQUIRING_BOSS_DEFEAT = new Set([
+        'SRN_Mission4',
+        'SRN_Mission4Hard'
+    ]);
+    private static readonly OOYAK_BOSS_NAMES = new Set([
+        'WyrmGreat',
+        'WyrmGreatHard'
     ]);
     private static readonly NEWBIE_ROAD_GOBLIN_KILL_NAMES = new Set([
         'GoblinArmorSword',
@@ -459,6 +467,7 @@ export class MissionHandler {
         let clearedDungeon =
             effectiveCompletionPercent >= 100 ||
             (requiredKills > 0 && remainingKills <= 0);
+        const dungeonRequiresBossDefeat = MissionHandler.requiresBossDefeatForDungeon(currentLevel);
         const allowCraftTownTutorialClientCompletion =
             currentLevel === 'CraftTownTutorial' &&
             Boolean(client.keepTutorialState?.bossDefeated) &&
@@ -509,6 +518,15 @@ export class MissionHandler {
             }
         }
         noteDungeonRunCompletionProgress(client, effectiveCompletionPercent);
+
+        if (
+            clearedDungeon &&
+            dungeonRequiresBossDefeat &&
+            !forceSharedDungeonCompletion &&
+            !defeatedDungeonBossForcesCompletion
+        ) {
+            clearedDungeon = false;
+        }
 
         let didMutate = false;
         if (currentLevel === 'TutorialBoat' || currentLevel === 'TutorialDungeon') {
@@ -1580,13 +1598,34 @@ export class MissionHandler {
         return GameData.isBossEntity(entity);
     }
 
+    private static requiresBossDefeatForDungeon(levelName: string | null | undefined): boolean {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        return Boolean(normalizedLevel && MissionHandler.DUNGEONS_REQUIRING_BOSS_DEFEAT.has(normalizedLevel));
+    }
+
+    private static isRequiredDungeonBossEntity(levelName: string | null | undefined, entity: any): boolean {
+        if (!MissionHandler.requiresBossDefeatForDungeon(levelName)) {
+            return true;
+        }
+
+        return MissionHandler.OOYAK_BOSS_NAMES.has(String(entity?.name ?? '').trim());
+    }
+
     private static isCraftTownTutorialBossEntity(entity: any): boolean {
         return MissionHandler.CRAFT_TOWN_TUTORIAL_BOSS_NAMES.has(String(entity?.name ?? '').trim());
     }
 
     private static shouldForceCompleteDungeonOnEnemyDefeat(levelScope: string, entity: any): boolean {
+        const levelName = getScopeLevelName(levelScope);
         if (MissionHandler.isDungeonBossEntity(entity)) {
+            if (!MissionHandler.isRequiredDungeonBossEntity(levelName, entity)) {
+                return false;
+            }
             return true;
+        }
+
+        if (MissionHandler.requiresBossDefeatForDungeon(levelName)) {
+            return false;
         }
 
         return !MissionHandler.hasRemainingDungeonHostiles(levelScope);
@@ -1614,6 +1653,7 @@ export class MissionHandler {
                 !entity.isPlayer &&
                 Number(entity.team ?? 0) === EntityTeam.ENEMY &&
                 MissionHandler.isDungeonBossEntity(entity) &&
+                MissionHandler.isRequiredDungeonBossEntity(getScopeLevelName(scopeKey), entity) &&
                 (
                     Boolean(entity.dead) ||
                     Number(entity.entState ?? EntityState.ACTIVE) === EntityState.DEAD ||
