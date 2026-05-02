@@ -208,6 +208,11 @@ function decodeNewlyRelevantPlayerAppearance(payload: Buffer): {
     skinColor: number;
     shirtColor: number;
     pantColor: number;
+    activePetId: number;
+    activePetSpecialId: number;
+    equippedMount: number;
+    activeConsumableId: number;
+    hasExtraPetSlots: boolean;
 } {
     const br = new BitReader(payload);
     const id = br.readMethod4();
@@ -239,7 +244,39 @@ function decodeNewlyRelevantPlayerAppearance(payload: Buffer): {
         br.readMethod6(8); // color 2
     }
 
-    return { id, name, className, gender, headSet, hairSet, mouthSet, faceSet, hairColor, skinColor, shirtColor, pantColor };
+    br.readMethod45(); // x
+    br.readMethod45(); // y
+    br.readMethod45(); // velocity
+    br.readMethod6(2); // team
+    const isPlayer = br.readMethod15();
+    assert.equal(isPlayer, true, 'player spawn payload should enter the player field branch');
+    br.readMethod15(); // idle reset
+    br.readMethod15(); // spawn fx
+    const activePetId = br.readMethod6(7);
+    const activePetSpecialId = br.readMethod6(6);
+    const equippedMount = br.readMethod6(7);
+    const activeConsumableId = br.readMethod6(5);
+    const hasExtraPetSlots = br.readMethod15();
+
+    return {
+        id,
+        name,
+        className,
+        gender,
+        headSet,
+        hairSet,
+        mouthSet,
+        faceSet,
+        hairColor,
+        skinColor,
+        shirtColor,
+        pantColor,
+        activePetId,
+        activePetSpecialId,
+        equippedMount,
+        activeConsumableId,
+        hasExtraPetSlots
+    };
 }
 
 function createGoblinRiverHostile(
@@ -1981,6 +2018,37 @@ function testIncompleteRemotePlayerSaveSerializesSafeAppearance(): void {
     assert.equal(decoded.skinColor, 10060614);
     assert.equal(decoded.shirtColor, 3273228);
     assert.equal(decoded.pantColor, 208786);
+    assert.equal(decoded.hasExtraPetSlots, false);
+}
+
+function testRemotePlayerSpawnDoesNotSerializeAbilitiesAsPets(): void {
+    const payload = Entity.serialize(Entity.fromCharacter(8201, {
+        name: 'Caster',
+        class: 'Mage',
+        gender: 'Male',
+        level: 10,
+        equippedMount: 1,
+        activePet: { typeID: 65, special_id: 21 },
+        activeConsumableID: 0,
+        learnedAbilities: [
+            { abilityID: 98, rank: 10 },
+            { abilityID: 100, rank: 10 },
+            { abilityID: 103, rank: 10 }
+        ],
+        equippedGears: []
+    } as any, {
+        x: 100,
+        y: 200,
+        team: 1,
+        entState: 0
+    }));
+
+    const decoded = decodeNewlyRelevantPlayerAppearance(payload);
+    assert.equal(decoded.activePetId, 65);
+    assert.equal(decoded.activePetSpecialId, 21);
+    assert.equal(decoded.equippedMount, 1);
+    assert.equal(decoded.activeConsumableId, 0);
+    assert.equal(decoded.hasExtraPetSlots, false, 'learned abilities must not be encoded into the extra pet slot block');
 }
 
 function testGoblinRiverDungeonLeaderHostilesSeedToPartyJoinersOnly(): void {
@@ -2558,6 +2626,11 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testIncompleteRemotePlayerSaveSerializesSafeAppearance();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testRemotePlayerSpawnDoesNotSerializeAbilitiesAsPets();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

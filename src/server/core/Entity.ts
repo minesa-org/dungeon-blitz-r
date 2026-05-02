@@ -233,8 +233,6 @@ export class Entity {
             petSpecialId: 6,
             mountId: 7,
             consumableId: 5,
-            abilityId: 7,
-            abilityRank: 6,
             masterClass: 4,
             talentNodeId: 6
         } as const;
@@ -302,18 +300,9 @@ export class Entity {
             bb.writeMethod6(Number(activePet.special_id ?? 0), PLAYER_FIELD_BITS.petSpecialId);
             bb.writeMethod6(Number(entity.equippedMount || 0), PLAYER_FIELD_BITS.mountId);
             bb.writeMethod6(Number(entity.activeConsumableId || 0), PLAYER_FIELD_BITS.consumableId);
-             
-             const abilities = entity.abilities || [];
-             const hasAbilities = abilities.length > 0;
-             bb.writeMethod6(hasAbilities ? 1 : 0, 1);
-             
-             if (hasAbilities) {
-                 for (let i = 0; i < 3; i++) {
-                     const a = (i < abilities.length) ? abilities[i] : { abilityID: 0, rank: 0 };
-                     bb.writeMethod6(Number(a.abilityID || 0), PLAYER_FIELD_BITS.abilityId);
-                     bb.writeMethod6(Number(a.rank || 0), PLAYER_FIELD_BITS.abilityRank);
-                 }
-             }
+
+            // The client reads this flag as optional extra pet slots, not learned abilities.
+            bb.writeMethod6(0, 1);
         } else {
             bb.writeMethod6(0, 1);
             bb.writeMethod6(entity.untargetable ? 1 : 0, 1);
