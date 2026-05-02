@@ -35,13 +35,10 @@ export class CommandHandler {
         // client_desync  = br.read_method_15()
         // server_echo    = br.read_method_24()
         
-        let clientElapsed: number;
-        let clientDesync: boolean;
-        let serverEcho: number;
         try {
-            clientElapsed = br.readMethod24();
-            clientDesync = br.readMethod15();
-            serverEcho = br.readMethod24();
+            br.readMethod24();
+            br.readMethod15();
+            br.readMethod24();
         } catch {
             return;
         }
