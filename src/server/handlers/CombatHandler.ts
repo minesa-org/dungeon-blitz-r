@@ -1621,7 +1621,14 @@ export class CombatHandler {
             CombatHandler.noteEntityDestroyed(levelScope, entityId);
             EntityHandler.forgetKnownEntity(levelName, entityId, client.levelInstanceId);
             if (usesSharedDungeonProgress(getScopeLevelName(levelScope)) && destroyedEntity) {
+                noteSharedDungeonHostileDestroyed(levelScope, entityId, {
+                    ...destroyedEntity,
+                    dead: true,
+                    hp: 0,
+                    entState: EntityState.DEAD
+                });
                 LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
+                await LevelHandler.persistDungeonEnemyDestroyed(levelScope, destroyedEntity);
             }
         }
 

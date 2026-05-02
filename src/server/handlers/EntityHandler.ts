@@ -10,6 +10,8 @@ import { LevelConfig } from '../core/LevelConfig';
 import { PetHandler } from './PetHandler';
 import { BuildingHandler } from './BuildingHandler';
 import { noteDungeonRunBossCutscene, noteDungeonRunEntitySeen } from '../core/DungeonRunStats';
+import { getCharacterDungeonDeadSpawnKeys, getDungeonSnapshotSpawnKey } from '../core/PersistentDungeonSnapshot';
+import { noteSharedDungeonHostileState, usesSharedDungeonProgress } from '../core/SharedDungeonProgress';
 import { areClientsInSameParty, getPartyIdForClient, isClientPartyLeader, sharesRoomIds } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope, getLevelScopeKey } from '../core/LevelScope';
 
@@ -1384,18 +1386,47 @@ export class EntityHandler {
 
             if (EntityHandler.usesClientSpawn(levelName)) {
                 console.log(`[EntityHandler] Skipping server NPC init for client-spawn level ${levelName}`);
-            } else {
-                const npcs = NpcLoader.getNpcsForLevel(levelName);
-                console.log(`[EntityHandler] Initializing ${npcs.length} NPCs for ${levelName}`);
+            }
+        }
 
-                for (const npc of npcs) {
-                    const entityProps = {
-                        ...Entity.fromNpc(npc),
-                        clientSpawned: false
-                    };
-                    EntityHandler.applyRuntimeDungeonEntityLevel(levelName, client.character, entityProps);
-                    levelMap.set(npc.id, entityProps);
+        if (!EntityHandler.usesClientSpawn(levelName)) {
+            const npcs = NpcLoader.getNpcsForLevel(levelName);
+            const deadSpawnKeys = getCharacterDungeonDeadSpawnKeys(client.character, levelName);
+            const levelScope = getLevelScopeKey(levelName, client.levelInstanceId);
+            const trackSharedProgress = usesSharedDungeonProgress(levelName);
+            let initializedCount = 0;
+
+            for (const npc of npcs) {
+                const entityProps = {
+                    ...Entity.fromNpc(npc),
+                    clientSpawned: false
+                };
+                EntityHandler.applyRuntimeDungeonEntityLevel(levelName, client.character, entityProps);
+
+                if (deadSpawnKeys.has(getDungeonSnapshotSpawnKey(entityProps))) {
+                    levelMap.delete(entityProps.id);
+                    if (trackSharedProgress) {
+                        noteSharedDungeonHostileState(levelScope, entityProps.id, {
+                            ...entityProps,
+                            dead: true,
+                            hp: 0,
+                            entState: EntityState.DEAD
+                        });
+                    }
+                    continue;
                 }
+
+                if (!levelMap.has(entityProps.id)) {
+                    levelMap.set(entityProps.id, entityProps);
+                    initializedCount++;
+                }
+                if (trackSharedProgress) {
+                    noteSharedDungeonHostileState(levelScope, entityProps.id, levelMap.get(entityProps.id));
+                }
+            }
+
+            if (initializedCount > 0) {
+                console.log(`[EntityHandler] Initialized ${initializedCount}/${npcs.length} missing server NPCs for ${levelName}`);
             }
         }
 
@@ -1409,6 +1440,7 @@ export class EntityHandler {
             return;
         }
 
+        let sentCount = 0;
         for (const [id, entityProps] of levelMap.entries()) {
             if (id === client.clientEntID) continue;
             if (entityProps?.isPlayer) continue;
@@ -1416,6 +1448,11 @@ export class EntityHandler {
             client.entities.set(id, { ...entityProps });
             noteDungeonRunEntitySeen(client, id, entityProps);
             EntityHandler.sendEntity(client, entityProps);
+            sentCount++;
+        }
+
+        if (levelName === 'BT_Mission4' || levelName === 'BT_Mission4Hard') {
+            console.log(`[EntityHandler] Sent ${sentCount} server NPC spawn packets for ${levelName} to ${client.character?.name}`);
         }
     }
 

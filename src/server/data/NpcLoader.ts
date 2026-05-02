@@ -27,7 +27,9 @@ export class NpcLoader {
     private static levelsRaw: Map<string, NpcDef[]> = new Map();
     private static readonly SERVER_HOSTILE_LEVELS = new Set<string>([
         'GoblinRiverDungeon',
-        'GoblinRiverDungeonHard'
+        'GoblinRiverDungeonHard',
+        'BT_Mission4',
+        'BT_Mission4Hard'
     ]);
 
     private static normalizeLevelName(levelName: string): string {

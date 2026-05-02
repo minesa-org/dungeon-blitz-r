@@ -9,6 +9,7 @@ import {
     isDungeonStatsDefeated,
     isDungeonStatsHostile
 } from './WolfsEndDungeonStatsPolicy';
+import { isPersistentDungeonSnapshotLevel } from './PersistentDungeonSnapshot';
 
 const GOBLIN_RIVER_INITIAL_PROGRESS = 11;
 const SHARED_DUNGEON_PROGRESS_EXCLUDED_LEVELS = new Set<string>([
@@ -35,7 +36,7 @@ export function usesSharedDungeonProgress(levelName: string | null | undefined):
     const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
     return Boolean(normalizedLevel) &&
         !SHARED_DUNGEON_PROGRESS_EXCLUDED_LEVELS.has(normalizedLevel) &&
-        isWolfsEndDungeonLevel(normalizedLevel);
+        (isWolfsEndDungeonLevel(normalizedLevel) || isPersistentDungeonSnapshotLevel(normalizedLevel));
 }
 
 export function getSharedDungeonInitialProgress(levelName: string | null | undefined): number {
@@ -134,7 +135,8 @@ function refreshSharedDungeonLiveStats(
 }
 
 function isSharedDungeonTrackedHostile(entity: any): boolean {
-    return Boolean(entity?.clientSpawned) && isDungeonStatsHostile(entity);
+    return Number(entity?.team ?? 0) === 2 &&
+        (Boolean(entity?.clientSpawned) || Boolean(entity?.spawnKey) || isDungeonStatsHostile(entity));
 }
 
 function isEntityDefeated(entity: any): boolean {

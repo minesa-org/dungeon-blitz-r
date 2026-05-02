@@ -7,12 +7,16 @@ import { JsonAdapter } from '../database/JsonAdapter';
 import { noteDungeonRunChestOpened, noteDungeonRunTreasure } from '../core/DungeonRunStats';
 import { CombatHandler } from './CombatHandler';
 import { getClientCharacterKey, getPartyIdForClient } from '../core/PartySync';
-import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
+import { areClientsInSameLevelScope, getClientLevelScope, getScopeLevelName } from '../core/LevelScope';
 import { upsertInventoryGear } from '../utils/GearInventory';
 import { getEquippedCharmBonuses } from '../utils/CharmBonuses';
 import { getEquippedGearGoldFind } from '../utils/GearGoldBonuses';
 import { getActivePotionBonuses } from '../utils/ConsumableState';
 import { PetHandler } from './PetHandler';
+import { EntityState, EntityTeam } from '../core/Entity';
+import { EntityHandler } from './EntityHandler';
+import { isPersistentDungeonSnapshotLevel, markCharacterDungeonEnemyDead } from '../core/PersistentDungeonSnapshot';
+import { noteSharedDungeonHostileDestroyed, recomputeSharedDungeonProgress } from '../core/SharedDungeonProgress';
 
 const db = new JsonAdapter();
 
@@ -194,6 +198,106 @@ export class RewardHandler {
         }
         const levelMap = client.currentLevel ? GlobalState.levelEntities.get(getClientLevelScope(client)) : null;
         return levelMap?.get(sourceId) ?? null;
+    }
+
+    private static resolvePersistentDungeonRewardSource(
+        client: Client,
+        reward: RewardRequest,
+        sourceEntity: any
+    ): { entityId: number; entity: any } | null {
+        const levelScope = getClientLevelScope(client);
+        const levelName = getScopeLevelName(levelScope);
+        if (!isPersistentDungeonSnapshotLevel(levelName)) {
+            return null;
+        }
+
+        if (sourceEntity && Number(sourceEntity?.team ?? 0) === EntityTeam.ENEMY) {
+            return {
+                entityId: Math.round(Number(sourceEntity.id ?? reward.sourceId) || reward.sourceId),
+                entity: sourceEntity
+            };
+        }
+
+        const levelMap = GlobalState.levelEntities.get(levelScope);
+        if (!levelMap?.size) {
+            return null;
+        }
+
+        const rewardX = Number(reward.worldX);
+        const rewardY = Number(reward.worldY);
+        if (!Number.isFinite(rewardX) || !Number.isFinite(rewardY)) {
+            return null;
+        }
+
+        let best: { entityId: number; entity: any; distance: number } | null = null;
+        for (const [entityId, entity] of levelMap.entries()) {
+            if (Number(entity?.team ?? 0) !== EntityTeam.ENEMY || !entity?.spawnKey) {
+                continue;
+            }
+            if (Boolean(entity?.dead) || Number(entity?.hp ?? 1) <= 0 || Number(entity?.entState ?? 0) === EntityState.DEAD) {
+                continue;
+            }
+
+            const entityX = Number(entity?.x ?? entity?.pos_x ?? 0);
+            const entityY = Number(entity?.y ?? entity?.pos_y ?? 0);
+            const dx = entityX - rewardX;
+            const dy = entityY - rewardY;
+            const distance = (dx * dx) + (dy * dy);
+            if (!best || distance < best.distance) {
+                best = { entityId, entity, distance };
+            }
+        }
+
+        return best && best.distance <= 4_000_000
+            ? { entityId: best.entityId, entity: best.entity }
+            : null;
+    }
+
+    private static async persistPersistentDungeonRewardDefeat(
+        client: Client,
+        reward: RewardRequest,
+        sourceEntity: any
+    ): Promise<any> {
+        const resolved = RewardHandler.resolvePersistentDungeonRewardSource(client, reward, sourceEntity);
+        if (!resolved) {
+            return sourceEntity;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        const levelName = getScopeLevelName(levelScope);
+        const deadEntity = {
+            ...resolved.entity,
+            id: resolved.entityId,
+            dead: true,
+            hp: 0,
+            entState: EntityState.DEAD
+        };
+
+        noteSharedDungeonHostileDestroyed(levelScope, resolved.entityId, deadEntity);
+        const progress = Number(recomputeSharedDungeonProgress(levelScope)?.progress ?? 0);
+
+        const levelMap = GlobalState.levelEntities.get(levelScope);
+        levelMap?.delete(resolved.entityId);
+        if (levelMap && levelMap.size === 0) {
+            GlobalState.levelEntities.delete(levelScope);
+        }
+        EntityHandler.forgetKnownEntity(levelName, resolved.entityId, client.levelInstanceId);
+        EntityHandler.broadcastDestroyEntity(levelName, resolved.entityId, client, client.levelInstanceId, deadEntity);
+
+        const saves: Promise<unknown>[] = [];
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== levelScope || !other.userId || !other.character) {
+                continue;
+            }
+
+            markCharacterDungeonEnemyDead(other.character, levelName, deadEntity, progress);
+            saves.push(db.saveCharacterSnapshot(other.userId, other.character).catch((error) => {
+                console.error(`[DerelictionSnapshot] Failed to save reward defeat for ${other.character?.name ?? 'unknown'}:`, error);
+            }));
+        }
+
+        await Promise.all(saves);
+        return deadEntity;
     }
 
     private static resolveDropPosition(_client: Client, sourceEntity: any, fallbackX: number, fallbackY: number): { x: number; y: number } {
@@ -872,9 +976,13 @@ export class RewardHandler {
             return;
         }
 
-        const sourceEntity = RewardHandler.resolveSourceEntity(client, reward.sourceId);
+        let sourceEntity = RewardHandler.resolveSourceEntity(client, reward.sourceId);
         const dropPosition = RewardHandler.resolveDropPosition(client, sourceEntity, reward.worldX, reward.worldY);
         const { rewardNonce, recipients } = RewardHandler.resolveEligibleRecipients(client, reward.sourceId);
+        const rewardKey = `${getClientLevelScope(client)}:${reward.sourceId}:${rewardNonce}`;
+        if (!client.processedRewardSources.has(rewardKey)) {
+            sourceEntity = await RewardHandler.persistPersistentDungeonRewardDefeat(client, reward, sourceEntity);
+        }
 
         for (const recipient of recipients) {
             if (!recipient.playerSpawned || !areClientsInSameLevelScope(client, recipient)) {

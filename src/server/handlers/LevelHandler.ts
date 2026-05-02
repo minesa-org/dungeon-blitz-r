@@ -47,9 +47,15 @@ import {
     areClientsInSameLevelScope,
     createDungeonInstanceId,
     getClientLevelScope,
+    getScopeLevelName,
     getLevelScopeKey,
     normalizeLevelInstanceId
 } from '../core/LevelScope';
+import {
+    isPersistentDungeonSnapshotLevel,
+    markCharacterDungeonEnemyDead,
+    updateCharacterDungeonSnapshotProgress
+} from '../core/PersistentDungeonSnapshot';
 
 const db = new JsonAdapter();
 
@@ -819,10 +825,52 @@ export class LevelHandler {
         }
 
         LevelHandler.broadcastSharedDungeonQuestProgress(scopeKey, progress);
+        LevelHandler.persistSharedDungeonProgressForScope(scopeKey, progress);
         if (progress >= 100 && previousProgress < 100) {
             LevelHandler.maybeAutoCompleteSharedDungeon(scopeKey, sharedState);
         }
         return progress;
+    }
+
+    private static persistSharedDungeonProgressForScope(levelScope: string, progress: number): void {
+        const levelName = getScopeLevelName(levelScope);
+        if (!isPersistentDungeonSnapshotLevel(levelName)) {
+            return;
+        }
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== levelScope || !other.userId || !other.character) {
+                continue;
+            }
+
+            updateCharacterDungeonSnapshotProgress(other.character, levelName, progress);
+            void db.saveCharacterSnapshot(other.userId, other.character).catch((error) => {
+                console.error(`[DerelictionSnapshot] Failed to save progress for ${other.character?.name ?? 'unknown'}:`, error);
+            });
+        }
+    }
+
+    static async persistDungeonEnemyDestroyed(levelScope: string | null | undefined, entity: any): Promise<void> {
+        const scopeKey = String(levelScope ?? '').trim();
+        const levelName = getScopeLevelName(scopeKey);
+        if (!scopeKey || !isPersistentDungeonSnapshotLevel(levelName) || !entity) {
+            return;
+        }
+
+        const progress = Number(getSharedDungeonProgressState(scopeKey)?.progress ?? 0);
+        const saves: Promise<unknown>[] = [];
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey || !other.userId || !other.character) {
+                continue;
+            }
+
+            markCharacterDungeonEnemyDead(other.character, levelName, entity, progress);
+            saves.push(db.saveCharacterSnapshot(other.userId, other.character).catch((error) => {
+                console.error(`[DerelictionSnapshot] Failed to save defeated enemy for ${other.character?.name ?? 'unknown'}:`, error);
+            }));
+        }
+
+        await Promise.all(saves);
     }
 
     private static buildSharedDungeonAutoCompletePayload(requiredKills: number): Buffer {
@@ -2960,6 +3008,24 @@ export class LevelHandler {
 
     static spawnLevelNpcs(client: Client, levelName: string): void {
         EntityHandler.sendInitialLevelEntities(client, levelName);
+    }
+
+    static scheduleServerSpawnRetries(client: Client, levelName: string): void {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        if (!isPersistentDungeonSnapshotLevel(normalizedLevel)) {
+            return;
+        }
+
+        for (const delayMs of [750, 2000, 5000]) {
+            setTimeout(() => {
+                if (!client.playerSpawned || LevelConfig.normalizeLevelName(client.currentLevel) !== normalizedLevel) {
+                    return;
+                }
+
+                console.log(`[Level] Resending server NPC spawns for ${normalizedLevel} after ${delayMs}ms`);
+                EntityHandler.sendInitialLevelEntities(client, normalizedLevel);
+            }, delayMs);
+        }
     }
 
     // 0x2D: Open Door

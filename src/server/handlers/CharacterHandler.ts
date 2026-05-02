@@ -1140,6 +1140,7 @@ export class CharacterHandler {
         
         // Spawn NPCs
         LevelHandler.spawnLevelNpcs(client, entry.targetLevel);
+        LevelHandler.scheduleServerSpawnRetries(client, entry.targetLevel);
         const restoredRoomProgress = LevelHandler.restoreTransferredRoomProgress(client, entry);
         if (!restoredRoomProgress) {
             LevelHandler.primeTutorialRoomEvents(client);

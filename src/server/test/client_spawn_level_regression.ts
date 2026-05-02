@@ -6,10 +6,13 @@ import { LevelConfig } from '../core/LevelConfig';
 import { CombatHandler } from '../handlers/CombatHandler';
 import { EntityHandler } from '../handlers/EntityHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
+import { RewardHandler } from '../handlers/RewardHandler';
+import { Entity } from '../core/Entity';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { NpcLoader } from '../data/NpcLoader';
 import { getClientLevelScope } from '../core/LevelScope';
+import { JsonAdapter } from '../database/JsonAdapter';
 
 type SentPacket = {
     id: number;
@@ -29,6 +32,8 @@ type FakeClient = {
     syncAnchorStartedAt: number;
     startedRoomEvents: Set<string>;
     knownEntityIds: Set<number>;
+    processedRewardSources: Set<string>;
+    pendingLoot: Map<number, any>;
     entities: Map<number, any>;
     keepTutorialState?: ReturnType<typeof createKeepTutorialState> | null;
     clientSpawnConfirmed?: boolean;
@@ -75,6 +80,8 @@ function createFakeClient(name: string): FakeClient {
         syncAnchorStartedAt: 0,
         startedRoomEvents: new Set<string>(),
         knownEntityIds: new Set<number>(),
+        processedRewardSources: new Set<string>(),
+        pendingLoot: new Map<number, any>(),
         entities: new Map<number, any>(),
         keepTutorialState: null,
         clientSpawnConfirmed: false,
@@ -101,6 +108,26 @@ function buildDestroyEntityPayload(entityId: number): Buffer {
     return bb.toBuffer();
 }
 
+function buildRewardRequestPayload(receiverId: number, sourceId: number, x: number, y: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod9(receiverId);
+    bb.writeMethod9(sourceId);
+    bb.writeMethod15(false);
+    bb.writeMethod309(1);
+    bb.writeMethod15(false);
+    bb.writeMethod309(1);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod9(0);
+    bb.writeMethod9(0);
+    bb.writeMethod9(0);
+    bb.writeMethod9(0);
+    bb.writeMethod24(x);
+    bb.writeMethod24(y);
+    bb.writeMethod15(false);
+    return bb.toBuffer();
+}
+
 function parseRoomEventStart(payload: Buffer): { roomId: number; flag: boolean } {
     const br = new BitReader(payload);
     return {
@@ -115,6 +142,57 @@ function decodeNpcBubblePacket(payload: Buffer): { npcId: number; text: string }
         npcId: br.readMethod4(),
         text: br.readMethod13()
     };
+}
+
+function decodeNewlyRelevantNpcPayload(payload: Buffer): {
+    id: number;
+    name: string;
+    x: number;
+    y: number;
+    v: number;
+    team: number;
+    isPlayer: boolean;
+    entState: number;
+    facingLeft: boolean;
+    healthDelta: number;
+    buffCount: number;
+} {
+    const br = new BitReader(payload);
+    const id = br.readMethod4();
+    const name = br.readMethod13();
+    const hasPlayerOptions = br.readMethod15();
+    assert.equal(hasPlayerOptions, false, 'NPC spawn payload should not include player appearance options');
+    const x = br.readMethod45();
+    const y = br.readMethod45();
+    const v = br.readMethod45();
+    const team = br.readMethod6(2);
+    const isPlayer = br.readMethod15();
+    assert.equal(isPlayer, false, 'NPC spawn payload should not enter the player field branch');
+    br.readMethod15(); // untargetable
+    br.readMethod739(); // render depth offset
+    if (br.readMethod15()) {
+        br.readMethod4(); // behavior speed
+    }
+    if (br.readMethod15()) {
+        br.readMethod13(); // character name
+    }
+    if (br.readMethod15()) {
+        br.readMethod13(); // drama anim
+    }
+    if (br.readMethod15()) {
+        br.readMethod13(); // sleep anim
+    }
+    if (br.readMethod15()) {
+        br.readMethod4(); // summoner
+    }
+    if (br.readMethod15()) {
+        br.readMethod4(); // power
+    }
+    const entState = br.readMethod6(2);
+    const facingLeft = br.readMethod15();
+    const healthDelta = br.readMethod45();
+    const buffCount = br.readMethod4();
+    return { id, name, x, y, v, team, isPlayer, entState, facingLeft, healthDelta, buffCount };
 }
 
 function createGoblinRiverHostile(
@@ -227,6 +305,197 @@ function testGoblinRiverClientSpawnLevelsStartEmptyWithoutServerNpcInit(): void 
         assert.equal(levelMap?.size, 0, `${levelName} should start empty until the leader client spawns hostiles`);
         assert.equal(client.sentPackets.length, 0, `${levelName} should not send server NPCs on join`);
     }
+}
+
+function testDerelictionUsesServerSpawnedHostiles(): void {
+    for (const levelName of ['BT_Mission4', 'BT_Mission4Hard'] as const) {
+        const client = createFakeClient('Watcher');
+        client.currentLevel = levelName;
+        client.levelInstanceId = `${levelName}-instance`;
+        client.character = { name: 'Watcher', level: 15 } as any;
+
+        assert.equal(EntityHandler.isClientSpawnLevel(levelName), false, `${levelName} should not use client-spawn NPC sync`);
+
+        const npcs = NpcLoader.getNpcsForLevel(levelName);
+        assert.equal(npcs.length, 140, `${levelName} should load Dereliction hostile reference spawns`);
+        assert.equal(npcs.every((npc) => Number(npc.team) === 2), true, `${levelName} should keep server hostile NPCs`);
+
+        EntityHandler.sendInitialLevelEntities(client as never, levelName);
+
+        const scopeKey = `${levelName}#${client.levelInstanceId}`;
+        const levelMap = GlobalState.levelEntities.get(scopeKey);
+        assert.ok(levelMap, `${levelName} should create a scoped server entity map`);
+        assert.equal(levelMap?.size, 140, `${levelName} should seed canonical server NPCs`);
+        assert.equal(client.sentPackets.filter((packet) => packet.id === 0x0F).length, 140, `${levelName} should send server spawn packets`);
+        assert.equal(client.sentPackets.length, 140, `${levelName} initial join should only send spawn packets`);
+
+        const firstSpawn = client.sentPackets.find((packet) => packet.id === 0x0F);
+        assert.ok(firstSpawn, `${levelName} should send at least one spawn packet`);
+        const decoded = decodeNewlyRelevantNpcPayload(firstSpawn.payload);
+        assert.equal(decoded.id, npcs[0].id, `${levelName} spawn packet should preserve server entity id`);
+        assert.equal(decoded.name, npcs[0].name, `${levelName} spawn packet should preserve enemy type`);
+        assert.equal(decoded.team, 2, `${levelName} spawn packet should decode as enemy team`);
+        assert.equal(decoded.healthDelta, 0, `${levelName} spawn packet should align health delta with client decode order`);
+        assert.equal(decoded.buffCount, 0, `${levelName} spawn packet should align buff count with client decode order`);
+    }
+}
+
+function testNpcSpawnPayloadMatchesClientDecodeOrderAfterFacing(): void {
+    const payload = Entity.serialize({
+        id: 123456,
+        name: 'MeylourMage',
+        isPlayer: false,
+        x: 100,
+        y: 200,
+        v: 0,
+        team: 2,
+        entState: 0,
+        facingLeft: true,
+        healthDelta: 7,
+        buffs: []
+    });
+
+    const decoded = decodeNewlyRelevantNpcPayload(payload);
+    assert.equal(decoded.id, 123456);
+    assert.equal(decoded.name, 'MeylourMage');
+    assert.equal(decoded.facingLeft, true);
+    assert.equal(decoded.healthDelta, 7, 'NPC healthDelta should immediately follow facingLeft in the client 0x0F decode');
+    assert.equal(decoded.buffCount, 0);
+}
+
+function testDerelictionCharacterSnapshotSkipsDefeatedServerSpawn(): void {
+    const firstNpc = NpcLoader.getNpcsForLevel('BT_Mission4')[0];
+    assert.ok(firstNpc?.spawnKey, 'Dereliction NPC data should include stable spawn keys');
+
+    const client = createFakeClient('Watcher');
+    client.currentLevel = 'BT_Mission4';
+    client.levelInstanceId = 'snapshot-instance';
+    client.character = {
+        name: 'Watcher',
+        level: 15,
+        dungeonSnapshots: {
+            BT_Mission4: {
+                levelName: 'BT_Mission4',
+                progress: 1,
+                deadSpawnKeys: [firstNpc.spawnKey],
+                updatedAt: Date.now()
+            }
+        }
+    } as any;
+
+    EntityHandler.sendInitialLevelEntities(client as never, 'BT_Mission4');
+
+    const levelMap = GlobalState.levelEntities.get('BT_Mission4#snapshot-instance');
+    assert.ok(levelMap, 'Dereliction should create a scoped server entity map from snapshot state');
+    assert.equal(levelMap?.has(firstNpc.id), false, 'defeated snapshot enemy should not be re-seeded');
+    assert.equal(levelMap?.size, 139, 'only living Dereliction enemies should be spawned');
+    assert.equal(client.sentPackets.filter((packet) => packet.id === 0x0F).length, 139);
+}
+
+function testDerelictionExistingEmptyScopeStillSeedsServerHostiles(): void {
+    const client = createFakeClient('Watcher');
+    client.currentLevel = 'BT_Mission4';
+    client.levelInstanceId = 'previously-empty';
+    client.character = { name: 'Watcher', level: 15 } as any;
+    GlobalState.levelEntities.set('BT_Mission4#previously-empty', new Map());
+
+    EntityHandler.sendInitialLevelEntities(client as never, 'BT_Mission4');
+
+    const levelMap = GlobalState.levelEntities.get('BT_Mission4#previously-empty');
+    assert.equal(levelMap?.size, 140, 'existing empty Dereliction scope should still be seeded by the server');
+    assert.equal(client.sentPackets.filter((packet) => packet.id === 0x0F).length, 140);
+}
+
+async function testDerelictionDestroyedServerEnemyPersistsCharacterSnapshot(): Promise<void> {
+    const firstNpc = NpcLoader.getNpcsForLevel('BT_Mission4')[0];
+    assert.ok(firstNpc?.spawnKey, 'Dereliction NPC data should include stable spawn keys');
+
+    const client = createFakeClient('Watcher');
+    client.currentLevel = 'BT_Mission4';
+    client.levelInstanceId = 'persist-instance';
+    client.userId = 42;
+    client.character = { name: 'Watcher', level: 15 } as any;
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelQuestProgress.set('BT_Mission4#persist-instance', {
+        progress: 12,
+        authorityToken: 0,
+        trackedHostileIds: new Set([firstNpc.id]),
+        defeatedHostileIds: new Set([firstNpc.id]),
+        liveStatsByCharacter: new Map()
+    });
+
+    let savedUserId = 0;
+    let savedCharacter: any = null;
+    const originalSaveCharacterSnapshot = JsonAdapter.prototype.saveCharacterSnapshot;
+    JsonAdapter.prototype.saveCharacterSnapshot = async function(userId: number, character: any): Promise<any[]> {
+        savedUserId = userId;
+        savedCharacter = character;
+        return [character];
+    };
+
+    try {
+        await LevelHandler.persistDungeonEnemyDestroyed('BT_Mission4#persist-instance', {
+            ...Entity.fromNpc(firstNpc),
+            clientSpawned: false
+        });
+    } finally {
+        JsonAdapter.prototype.saveCharacterSnapshot = originalSaveCharacterSnapshot;
+    }
+
+    assert.equal(savedUserId, 42);
+    assert.equal(savedCharacter?.dungeonSnapshots?.BT_Mission4?.progress, 12);
+    assert.deepEqual(savedCharacter?.dungeonSnapshots?.BT_Mission4?.deadSpawnKeys, [firstNpc.spawnKey]);
+}
+
+async function testDerelictionRewardPacketPersistsDefeatedServerEnemySnapshot(): Promise<void> {
+    const firstNpc = NpcLoader.getNpcsForLevel('BT_Mission4')[0];
+    assert.ok(firstNpc?.spawnKey, 'Dereliction NPC data should include stable spawn keys');
+
+    const client = createFakeClient('Watcher');
+    client.currentLevel = 'BT_Mission4';
+    client.levelInstanceId = 'reward-persist-instance';
+    client.userId = 42;
+    client.clientEntID = 18074;
+    client.character = { name: 'Watcher', class: 'Mage', level: 15 } as any;
+
+    const scopeKey = 'BT_Mission4#reward-persist-instance';
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(scopeKey, new Map([
+        [firstNpc.id, {
+            ...Entity.fromNpc(firstNpc),
+            id: firstNpc.id,
+            spawnKey: firstNpc.spawnKey
+        }]
+    ]));
+    GlobalState.levelQuestProgress.set(scopeKey, {
+        progress: 0,
+        authorityToken: 0,
+        trackedHostileIds: new Set([firstNpc.id]),
+        defeatedHostileIds: new Set(),
+        liveStatsByCharacter: new Map()
+    });
+
+    let savedUserId = 0;
+    let savedCharacter: any = null;
+    const originalSaveCharacterSnapshot = JsonAdapter.prototype.saveCharacterSnapshot;
+    JsonAdapter.prototype.saveCharacterSnapshot = async function(userId: number, character: any): Promise<any[]> {
+        savedUserId = userId;
+        savedCharacter = character;
+        return [character];
+    };
+
+    try {
+        await RewardHandler.handleGrantReward(
+            client as never,
+            buildRewardRequestPayload(client.clientEntID, firstNpc.id, firstNpc.x, firstNpc.y)
+        );
+    } finally {
+        JsonAdapter.prototype.saveCharacterSnapshot = originalSaveCharacterSnapshot;
+    }
+
+    assert.equal(savedUserId, 42);
+    assert.deepEqual(savedCharacter?.dungeonSnapshots?.BT_Mission4?.deadSpawnKeys, [firstNpc.spawnKey]);
+    assert.notEqual(GlobalState.levelEntities.get(scopeKey)?.has(firstNpc.id), true, 'reward-proven defeated Dereliction enemy should be removed from canonical scope');
 }
 
 function testOutdoorHostileClientSpawnIsNotSeededToPeers(): void {
@@ -1957,10 +2226,12 @@ async function main(): Promise<void> {
     ensureLevelConfigLoaded();
 
     const levelEntities = new Map(GlobalState.levelEntities);
+    const levelQuestProgress = new Map(GlobalState.levelQuestProgress);
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
     const partyByMember = new Map(GlobalState.partyByMember);
     const partyGroups = new Map(GlobalState.partyGroups);
     GlobalState.levelEntities.clear();
+    GlobalState.levelQuestProgress.clear();
     GlobalState.sessionsByToken.clear();
     GlobalState.partyByMember.clear();
     GlobalState.partyGroups.clear();
@@ -1987,6 +2258,40 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testGoblinRiverClientSpawnLevelsStartEmptyWithoutServerNpcInit();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testDerelictionUsesServerSpawnedHostiles();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testNpcSpawnPayloadMatchesClientDecodeOrderAfterFacing();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testDerelictionCharacterSnapshotSkipsDefeatedServerSpawn();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testDerelictionExistingEmptyScopeStillSeedsServerHostiles();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        await testDerelictionDestroyedServerEnemyPersistsCharacterSnapshot();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        await testDerelictionRewardPacketPersistsDefeatedServerEnemySnapshot();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
@@ -2176,6 +2481,7 @@ async function main(): Promise<void> {
         testDungeonClientSpawnHostilesUsePlayerRuntimeLevel();
     } finally {
         GlobalState.levelEntities = levelEntities;
+        GlobalState.levelQuestProgress = levelQuestProgress;
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.partyByMember = partyByMember;
         GlobalState.partyGroups = partyGroups;
