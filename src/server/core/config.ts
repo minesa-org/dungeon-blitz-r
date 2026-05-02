@@ -2,7 +2,15 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-function resolveServerDataDir(): string {
+export function hasRequiredServerDataDir(candidate: string): boolean {
+    const dataDir = path.join(candidate, 'data');
+    return fs.existsSync(path.join(dataDir, 'level_config.json')) &&
+        fs.existsSync(path.join(dataDir, 'EntTypes.json')) &&
+        fs.existsSync(path.join(dataDir, 'MissionTypes.json')) &&
+        fs.existsSync(path.join(dataDir, 'npcs'));
+}
+
+export function resolveServerDataDir(): string {
     const candidates = [
         path.resolve(__dirname, '..'),
         path.resolve(__dirname, '../..'),
@@ -11,7 +19,7 @@ function resolveServerDataDir(): string {
     ];
 
     for (const candidate of candidates) {
-        if (fs.existsSync(path.join(candidate, 'data', 'level_config.json'))) {
+        if (hasRequiredServerDataDir(candidate)) {
             return candidate;
         }
     }

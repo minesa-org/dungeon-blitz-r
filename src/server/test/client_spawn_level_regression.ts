@@ -13,6 +13,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { NpcLoader } from '../data/NpcLoader';
 import { getClientLevelScope } from '../core/LevelScope';
 import { JsonAdapter } from '../database/JsonAdapter';
+import { Config } from '../core/config';
 
 type SentPacket = {
     id: number;
@@ -56,11 +57,12 @@ global.setTimeout = ((fn: any, delay: number) => {
 }) as any;
 
 function ensureLevelConfigLoaded(): void {
+    const dataDir = path.join(Config.DATA_DIR, 'data');
     if (!LevelConfig.has('TutorialDungeon')) {
-        LevelConfig.load(path.resolve(__dirname, '../data'));
+        LevelConfig.load(dataDir);
     }
     if (NpcLoader.getRawNpcsForLevel('TutorialDungeon').length === 0) {
-        NpcLoader.load(path.resolve(__dirname, '../data'));
+        NpcLoader.load(dataDir);
     }
 }
 
