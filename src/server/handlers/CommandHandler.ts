@@ -30,11 +30,6 @@ export class CommandHandler {
 
         const br = new BitReader(data);
         
-        // Python:
-        // client_elapsed = br.read_method_24()
-        // client_desync  = br.read_method_15()
-        // server_echo    = br.read_method_24()
-        
         try {
             br.readMethod24();
             br.readMethod15();
@@ -42,11 +37,7 @@ export class CommandHandler {
         } catch {
             return;
         }
-
-        // Used for heartbeat / sync
-        // Python implementation effectively does nothing but parse and maybe log desync.
-        // We'll just log deeply verbose if needed, otherwise ignore to avoid spam.
-        // console.log(`[LinkUpdater] Sync: elapsed=${clientElapsed}, desync=${clientDesync}, echo=${serverEcho}`);
+        
         await CommandHandler.syncDungeonPotionCharge(client);
     }
 
