@@ -69,6 +69,7 @@ router.register(0xA2, CommandHandler.handleLinkUpdater); // Link Updater
 router.register(0x10D, CommandHandler.handleActivatePotion); // Active Potion Sync
 router.register(0x10E, CommandHandler.handleQueuePotion); // Queue Potion
 router.register(0x113, CommandHandler.handleUpdateAlertState); // Alert State Seen
+router.register(0xBC, CommandHandler.handleKeyBindingSave); // Key Bindings Save
 router.register(0xBB, CommandHandler.handleHpIncreaseNotice); // Max HP Delta
 router.register(0xFC, CommandHandler.handleSendCombatStats); // Combat Stat Sync
 router.register(0x2A, RewardHandler.handleGrantReward); // Grant Reward

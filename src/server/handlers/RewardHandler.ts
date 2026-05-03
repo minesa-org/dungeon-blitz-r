@@ -47,6 +47,17 @@ interface LootReward {
     dye?: number;
 }
 
+type XpRewardDebug = {
+    attempted: boolean;
+    packetExp: number;
+    baseExp: number;
+    petBonus: number;
+    potionBonus: number;
+    totalBonusRate: number;
+    multiplier: number;
+    finalExp: number;
+};
+
 export class RewardHandler {
     private static nextLootId = 900000;
     private static readonly MATERIAL_DROP_CHANCE_BY_RANK: Record<string, number> = {
@@ -543,14 +554,30 @@ export class RewardHandler {
         client.send(0x32, RewardHandler.buildLootdrop(lootId, x + offsetX, y + offsetY, reward));
     }
 
+    private static resolveXpRewardDebug(client: Client, amount: number, packetExp: number = amount): XpRewardDebug {
+        const petBonuses = PetHandler.getEquippedPetBonusRates(client.character);
+        const potionBonuses = getActivePotionBonuses(client.character, client.currentLevel);
+        const baseExp = Math.max(0, Math.round(Number(amount ?? 0)));
+        const totalBonusRate = petBonuses.expBonus + potionBonuses.expBonus;
+        return {
+            attempted: baseExp > 0,
+            packetExp: Math.max(0, Math.round(Number(packetExp ?? 0))),
+            baseExp,
+            petBonus: petBonuses.expBonus,
+            potionBonus: potionBonuses.expBonus,
+            totalBonusRate,
+            multiplier: 1 + totalBonusRate,
+            finalExp: Math.max(0, Math.round(baseExp * (1 + totalBonusRate)))
+        };
+    }
+
     private static applyXpReward(client: Client, amount: number): boolean {
         if (!client.character || amount <= 0) {
             return false;
         }
 
-        const petBonuses = PetHandler.getActivePetBonusRates(client.character);
-        const potionBonuses = getActivePotionBonuses(client.character, client.currentLevel);
-        const totalAmount = Math.max(0, Math.round(amount * (1 + petBonuses.expBonus + potionBonuses.expBonus)));
+        const xpDebug = RewardHandler.resolveXpRewardDebug(client, amount);
+        const totalAmount = xpDebug.finalExp;
 
         client.character.xp = Number(client.character.xp ?? 0) + totalAmount;
         client.character.level = GameData.getPlayerLevelFromXp(Number(client.character.xp ?? 0));
@@ -603,7 +630,7 @@ export class RewardHandler {
         let gearId = 0;
         let gearTier = 0;
         let dyeId = 0;
-        const petBonuses = PetHandler.getActivePetBonusRates(client.character);
+        const petBonuses = PetHandler.getEquippedPetBonusRates(client.character);
         const potionBonuses = getActivePotionBonuses(client.character, client.currentLevel);
         const charmBonuses = getEquippedCharmBonuses(client.character);
         const gearGoldFind = getEquippedGearGoldFind(client.character);
@@ -625,16 +652,17 @@ export class RewardHandler {
         const entRank = String(entType?.EntRank ?? 'Minion');
         const baseMaterialChance = RewardHandler.MATERIAL_DROP_CHANCE_BY_RANK[entRank] ?? RewardHandler.MATERIAL_DROP_CHANCE_BY_RANK.Minion;
         const packetMaterialMultiplier = RewardHandler.sanitizeDropMultiplier(reward.gearMultiplier);
+        const packetItemMultiplier = RewardHandler.sanitizeDropMultiplier(reward.itemMultiplier);
         const materialFindRate = petBonuses.craftFind + charmBonuses.craftFind + potionBonuses.craftFind;
         const itemFindRate = petBonuses.itemFind + charmBonuses.itemFind + potionBonuses.itemFind;
         const goldFindRate = petBonuses.goldFind + charmBonuses.goldFind + gearGoldFind + potionBonuses.goldFind;
         const shouldRollMaterial = Boolean(realm) && itemLootAllowedByClass && (reward.dropMaterial || isDungeonEnemyReward);
         const shouldRollGear = itemLootAllowedByClass && (reward.dropGear || isDungeonEnemyReward);
         const materialChance = shouldRollMaterial
-            ? Math.max(0, Math.min(1, RewardHandler.resolveMaterialDropChance(entType, reward) * (1 + materialFindRate)))
+            ? RewardHandler.resolveMaterialDropChance(entType, reward)
             : 0;
         const gearChance = shouldRollGear
-            ? Math.max(0, Math.min(1, RewardHandler.resolveGearDropChance(entType, reward) * (1 + itemFindRate)))
+            ? RewardHandler.resolveGearDropChance(entType, reward)
             : 0;
         const dyeDebug = RewardHandler.resolveDyeDropRarityDebug(client, entType);
 
@@ -683,7 +711,8 @@ export class RewardHandler {
             gold = goldAfterFind;
         }
 
-        const shouldLogRewardRoll = shouldRollMaterial || shouldRollGear || dyeDebug.eligible || packetGold > 0 || goldFindRate > 0;
+        const xpDebug = RewardHandler.resolveXpRewardDebug(client, exp, reward.exp);
+        const shouldLogRewardRoll = shouldRollMaterial || shouldRollGear || dyeDebug.eligible || packetGold > 0 || goldFindRate > 0 || xpDebug.attempted;
         if (shouldLogRewardRoll) {
             console.log('[RewardRollDebug]', {
                 character: client.character?.name ?? '',
@@ -705,6 +734,7 @@ export class RewardHandler {
                         charmFind: charmBonuses.craftFind,
                         potionFind: potionBonuses.craftFind,
                         totalFindRate: materialFindRate,
+                        finalMultiplier: packetMaterialMultiplier,
                         finalChance: materialChance,
                         dropRoll: materialRoll,
                         dropped: materialId > 0,
@@ -717,13 +747,14 @@ export class RewardHandler {
                     gear: {
                         attempted: shouldRollGear,
                         baseChance: Number(entType?.ItemDropChance ?? 0),
-                        packetMultiplier: RewardHandler.sanitizeDropMultiplier(reward.itemMultiplier),
+                        packetMultiplier: packetItemMultiplier,
                         packetRawMultiplier: reward.itemMultiplier,
                         packetDropItem: reward.dropItem,
                         petFind: petBonuses.itemFind,
                         charmFind: charmBonuses.itemFind,
                         potionFind: potionBonuses.itemFind,
                         totalFindRate: itemFindRate,
+                        finalMultiplier: packetItemMultiplier,
                         finalChance: gearChance,
                         dropRoll: gearRoll,
                         dropped: gearId > 0,
@@ -761,6 +792,16 @@ export class RewardHandler {
                         multiplier: 1 + goldFindRate,
                         findApplied: goldFindApplied,
                         finalGold: goldAfterFind
+                    },
+                    exp: {
+                        attempted: xpDebug.attempted,
+                        packetExp: xpDebug.packetExp,
+                        baseExp: xpDebug.baseExp,
+                        petBonus: xpDebug.petBonus,
+                        potionBonus: xpDebug.potionBonus,
+                        totalBonusRate: xpDebug.totalBonusRate,
+                        multiplier: xpDebug.multiplier,
+                        finalExp: xpDebug.finalExp
                     }
                 }
             });

@@ -14,6 +14,7 @@ export class PetHandler {
     private static readonly MOUNT_REASSERT_DELAYS_MS = [0, 300, 1200, 2500, 4000];
     private static readonly PET_ACTIVE_BONUS_BASE_RATE = 0.09;
     private static readonly PET_BONUS_RATE_PER_LEVEL = 0.01;
+    private static readonly MAX_PASSIVE_PET_SLOTS = 3;
 
     private static sendMammothIdolUpdate(client: Client): void {
         if (!client.character) {
@@ -76,6 +77,53 @@ export class PetHandler {
             }
             return petSpecialId <= 0 || specialId === petSpecialId;
         }) ?? null;
+    }
+
+    static getEquippedPetRecords(character: any): any[] {
+        if (!character) {
+            return [];
+        }
+
+        PetHandler.normalizePetCollection(character);
+        const pets = Array.isArray(character.pets) ? character.pets : [];
+        const equippedSlots = [
+            character.activePet,
+            ...(Array.isArray(character.restingPets)
+                ? character.restingPets.slice(0, PetHandler.MAX_PASSIVE_PET_SLOTS)
+                : [])
+        ];
+        const equipped: any[] = [];
+        const seen = new Set<string>();
+
+        for (const slot of equippedSlots) {
+            const petTypeId = Number(slot?.typeID ?? slot?.petID ?? 0);
+            const petSpecialId = Number(slot?.special_id ?? 0);
+            if (petTypeId <= 0) {
+                continue;
+            }
+
+            const pet = pets.find((candidate: any) => {
+                const typeId = Number(candidate?.typeID ?? 0);
+                const specialId = Number(candidate?.special_id ?? 0);
+                if (typeId !== petTypeId) {
+                    return false;
+                }
+                return petSpecialId <= 0 || specialId === petSpecialId;
+            });
+            if (!pet) {
+                continue;
+            }
+
+            const key = `${Number(pet.typeID ?? 0)}:${Number(pet.special_id ?? 0)}`;
+            if (seen.has(key)) {
+                continue;
+            }
+
+            seen.add(key);
+            equipped.push(pet);
+        }
+
+        return equipped;
     }
 
     static normalizePetCollection(character: any): any[] {
@@ -151,34 +199,36 @@ export class PetHandler {
         return normalized;
     }
 
-    static getActivePetBonusRates(character: any): { goldFind: number; itemFind: number; craftFind: number; expBonus: number } {
+    static getEquippedPetBonusRates(character: any): { goldFind: number; itemFind: number; craftFind: number; expBonus: number } {
         const bonuses = {
             goldFind: 0,
             itemFind: 0,
             craftFind: 0,
             expBonus: 0
         };
-        const pet = PetHandler.getActivePetRecord(character);
-        if (!pet) {
-            return bonuses;
+
+        for (const pet of PetHandler.getEquippedPetRecords(character)) {
+            const petDef = PetConfig.getPetDef(Number(pet.typeID ?? 0));
+            if (!petDef) {
+                continue;
+            }
+
+            const petLevel = Math.max(0, Number(pet.level ?? 1));
+            const bonus = petLevel > 0
+                ? PetHandler.PET_ACTIVE_BONUS_BASE_RATE + petLevel * PetHandler.PET_BONUS_RATE_PER_LEVEL
+                : 0;
+
+            if (petDef.GoldFind) bonuses.goldFind += bonus;
+            if (petDef.ItemFind) bonuses.itemFind += bonus;
+            if (petDef.CraftFind) bonuses.craftFind += bonus;
+            if (petDef.ExpBonus) bonuses.expBonus += bonus;
         }
-
-        const petDef = PetConfig.getPetDef(Number(pet.typeID ?? 0));
-        if (!petDef) {
-            return bonuses;
-        }
-
-        const petLevel = Math.max(0, Number(pet.level ?? 1));
-        const bonus = petLevel > 0
-            ? PetHandler.PET_ACTIVE_BONUS_BASE_RATE + petLevel * PetHandler.PET_BONUS_RATE_PER_LEVEL
-            : 0;
-
-        if (petDef.GoldFind) bonuses.goldFind += bonus;
-        if (petDef.ItemFind) bonuses.itemFind += bonus;
-        if (petDef.CraftFind) bonuses.craftFind += bonus;
-        if (petDef.ExpBonus) bonuses.expBonus += bonus;
 
         return bonuses;
+    }
+
+    static getActivePetBonusRates(character: any): { goldFind: number; itemFind: number; craftFind: number; expBonus: number } {
+        return PetHandler.getEquippedPetBonusRates(character);
     }
 
     static applyActivePetExperience(client: Client, xpAmount: number, bonusLevelUps: number = 0): boolean {

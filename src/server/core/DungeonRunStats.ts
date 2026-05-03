@@ -1,4 +1,5 @@
 import { Client } from './Client';
+import { GameData } from './GameData';
 import { GlobalState } from './GlobalState';
 import { LevelConfig } from './LevelConfig';
 import { getClientLevelScope, getScopeLevelName } from './LevelScope';
@@ -1142,7 +1143,7 @@ export function noteDungeonRunKill(
                 if (kind.enemy) {
                     accumulator.killedEnemyIds.add(entityId);
                 }
-                if (kind.boss) {
+                if (kind.boss && GameData.getEntityRank(entity) !== 'MiniBoss') {
                     stats.bossKilled = true;
                     stats.bossDefeatTime = Date.now();
                     ensureBossFightStarted(stats, stats.bossDefeatTime);

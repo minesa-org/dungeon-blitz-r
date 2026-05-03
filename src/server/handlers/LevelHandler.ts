@@ -923,6 +923,10 @@ export class LevelHandler {
             return;
         }
 
+        if (!MissionHandler.canAutoCompleteSharedDungeon(authorityClient, levelScope)) {
+            return;
+        }
+
         sharedState.completionRequested = true;
         const requiredKills = Math.max(1, getSharedDungeonProgressTotals(levelScope).total);
         MissionHandler.scheduleDungeonCompletion(

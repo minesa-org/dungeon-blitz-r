@@ -7,6 +7,7 @@ import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
 import { CharacterSync } from '../utils/CharacterSync';
 import { markAlertState } from '../utils/AlertState';
+import { readSavedKeyBindingsPacket, savedKeyBindingsHaveOverrides } from '../utils/KeyBindings';
 import {
     ensureActiveDungeonPotionReserved,
     getActivePotionCharges,
@@ -23,22 +24,45 @@ const POTION_DRAIN_STEP_MS = POTION_CHARGE_UNIT_MS * POTION_DRAIN_STEP_UNITS;
 
 export class CommandHandler {
     static async handleLinkUpdater(client: Client, data: Buffer): Promise<void> {
+        if (await CommandHandler.tryHandleKeyBindingSave(client, data)) {
+            return;
+        }
+
         const br = new BitReader(data);
         
-        // Python:
-        // client_elapsed = br.read_method_24()
-        // client_desync  = br.read_method_15()
-        // server_echo    = br.read_method_24()
+        try {
+            br.readMethod24();
+            br.readMethod15();
+            br.readMethod24();
+        } catch {
+            return;
+        }
         
-        const clientElapsed = br.readMethod24();
-        const clientDesync = br.readMethod15();
-        const serverEcho = br.readMethod24();
-
-        // Used for heartbeat / sync
-        // Python implementation effectively does nothing but parse and maybe log desync.
-        // We'll just log deeply verbose if needed, otherwise ignore to avoid spam.
-        // console.log(`[LinkUpdater] Sync: elapsed=${clientElapsed}, desync=${clientDesync}, echo=${serverEcho}`);
         await CommandHandler.syncDungeonPotionCharge(client);
+    }
+
+    static async handleKeyBindingSave(client: Client, data: Buffer): Promise<void> {
+        await CommandHandler.tryHandleKeyBindingSave(client, data);
+    }
+
+    private static async tryHandleKeyBindingSave(client: Client, data: Buffer): Promise<boolean> {
+        if (!client.character) {
+            return false;
+        }
+
+        const keyBindings = readSavedKeyBindingsPacket(data);
+        if (!keyBindings) {
+            return false;
+        }
+
+        if (savedKeyBindingsHaveOverrides(keyBindings)) {
+            client.character.keyBindings = keyBindings;
+        } else {
+            delete client.character.keyBindings;
+        }
+
+        await CommandHandler.saveCharacter(client);
+        return true;
     }
 
     static async handleQueuePotion(client: Client, data: Buffer): Promise<void> {
