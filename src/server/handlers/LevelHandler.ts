@@ -3566,6 +3566,9 @@ export class LevelHandler {
             if (!EntityHandler.ensureEntityKnown(other, client.currentLevel, entityId)) {
                 continue;
             }
+            if (other.entities.has(entityId)) {
+                continue;
+            }
             other.send(0x07, data);
         }
     }
