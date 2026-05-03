@@ -7,13 +7,14 @@ import { CombatHandler } from '../handlers/CombatHandler';
 import { EntityHandler } from '../handlers/EntityHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
 import { RewardHandler } from '../handlers/RewardHandler';
-import { Entity } from '../core/Entity';
+import { Entity, EntityState } from '../core/Entity';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { NpcLoader } from '../data/NpcLoader';
 import { getClientLevelScope } from '../core/LevelScope';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { Config } from '../core/config';
+import { recomputeSharedDungeonProgress } from '../core/SharedDungeonProgress';
 
 type SentPacket = {
     id: number;
@@ -126,6 +127,18 @@ function buildRewardRequestPayload(receiverId: number, sourceId: number, x: numb
     bb.writeMethod9(0);
     bb.writeMethod24(x);
     bb.writeMethod24(y);
+    bb.writeMethod15(false);
+    return bb.toBuffer();
+}
+
+function buildPowerHitPayload(targetId: number, sourceId: number, damage: number, powerId: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod9(targetId);
+    bb.writeMethod9(sourceId);
+    bb.writeMethod24(damage);
+    bb.writeMethod9(powerId);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
     bb.writeMethod15(false);
     return bb.toBuffer();
 }
@@ -512,6 +525,55 @@ function testDerelictionNewInstanceResetsStaleCharacterSnapshot(): void {
     assert.deepEqual(snapshot.deadSpawnKeys, []);
 }
 
+function testDerelictionFreshRunReplacesStaleDeadServerScope(): void {
+    const firstNpc = NpcLoader.getNpcsForLevel('BT_Mission4')[0];
+    assert.ok(firstNpc?.spawnKey, 'Dereliction NPC data should include stable spawn keys');
+
+    const client = createFakeClient('Watcher');
+    client.currentLevel = 'BT_Mission4';
+    client.levelInstanceId = 'stale-dead-scope';
+    client.character = {
+        name: 'Watcher',
+        level: 15,
+        dungeonSnapshots: {
+            BT_Mission4: {
+                levelName: 'BT_Mission4',
+                levelInstanceId: 'stale-dead-scope',
+                progress: 0,
+                deadSpawnKeys: [],
+                updatedAt: Date.now()
+            }
+        }
+    } as any;
+
+    const scopeKey = 'BT_Mission4#stale-dead-scope';
+    GlobalState.levelEntities.set(scopeKey, new Map([
+        [firstNpc.id, {
+            ...Entity.fromNpc(firstNpc),
+            dead: true,
+            hp: 0,
+            entState: EntityState.DEAD
+        }]
+    ]));
+    GlobalState.levelQuestProgress.set(scopeKey, {
+        progress: 100,
+        authorityToken: 0,
+        trackedHostileIds: new Set([firstNpc.id]),
+        defeatedHostileIds: new Set([firstNpc.id]),
+        liveStatsByCharacter: new Map()
+    });
+
+    EntityHandler.sendInitialLevelEntities(client as never, 'BT_Mission4');
+
+    const levelMap = GlobalState.levelEntities.get(scopeKey);
+    const revivedEnemy = levelMap?.get(firstNpc.id);
+    assert.ok(levelMap, 'fresh Dereliction run should keep a scoped server entity map');
+    assert.equal(levelMap?.size, 140, 'fresh Dereliction run should seed all live server hostiles');
+    assert.notEqual(Boolean(revivedEnemy?.dead), true, 'stale dead server entity should be replaced with a live spawn');
+    assert.notEqual(Number(revivedEnemy?.entState ?? EntityState.ACTIVE), EntityState.DEAD);
+    assert.equal(recomputeSharedDungeonProgress(scopeKey)?.progress, 0);
+}
+
 function testDerelictionExistingEmptyScopeStillSeedsServerHostiles(): void {
     const client = createFakeClient('Watcher');
     client.currentLevel = 'BT_Mission4';
@@ -616,6 +678,60 @@ async function testDerelictionRewardPacketPersistsDefeatedServerEnemySnapshot():
     assert.equal(savedUserId, 42);
     assert.deepEqual(savedCharacter?.dungeonSnapshots?.BT_Mission4?.deadSpawnKeys, [firstNpc.spawnKey]);
     assert.notEqual(GlobalState.levelEntities.get(scopeKey)?.has(firstNpc.id), true, 'reward-proven defeated Dereliction enemy should be removed from canonical scope');
+}
+
+async function testDerelictionPowerHitKillPersistsBeforeSpawnRetry(): Promise<void> {
+    const firstNpc = NpcLoader.getNpcsForLevel('BT_Mission4')[0];
+    assert.ok(firstNpc?.spawnKey, 'Dereliction NPC data should include stable spawn keys');
+
+    const client = createFakeClient('Watcher');
+    client.currentLevel = 'BT_Mission4';
+    client.levelInstanceId = 'hit-persist-instance';
+    client.userId = 42;
+    client.clientEntID = 18074;
+    client.character = { name: 'Watcher', class: 'Mage', level: 15 } as any;
+
+    const scopeKey = 'BT_Mission4#hit-persist-instance';
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    EntityHandler.sendInitialLevelEntities(client as never, 'BT_Mission4');
+    const liveEnemy = GlobalState.levelEntities.get(scopeKey)?.get(firstNpc.id);
+    assert.ok(liveEnemy, 'Dereliction server enemy should exist before combat damage');
+    liveEnemy.maxHp = 10;
+    liveEnemy.hp = 10;
+
+    let savedUserId = 0;
+    let savedCharacter: any = null;
+    const originalSaveCharacterSnapshot = JsonAdapter.prototype.saveCharacterSnapshot;
+    JsonAdapter.prototype.saveCharacterSnapshot = async function(userId: number, character: any): Promise<any[]> {
+        savedUserId = userId;
+        savedCharacter = character;
+        return [character];
+    };
+
+    try {
+        await CombatHandler.handlePowerHit(
+            client as never,
+            buildPowerHitPayload(firstNpc.id, client.clientEntID, 999999, 77)
+        );
+    } finally {
+        JsonAdapter.prototype.saveCharacterSnapshot = originalSaveCharacterSnapshot;
+    }
+
+    assert.equal(savedUserId, 42);
+    assert.deepEqual(savedCharacter?.dungeonSnapshots?.BT_Mission4?.deadSpawnKeys, [firstNpc.spawnKey]);
+
+    client.sentPackets = [];
+    EntityHandler.sendInitialLevelEntities(client as never, 'BT_Mission4');
+
+    const levelMap = GlobalState.levelEntities.get(scopeKey);
+    assert.equal(levelMap?.has(firstNpc.id), false, 'server spawn retry should not re-seed an enemy killed by combat damage');
+    assert.equal(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x0F)
+            .some((packet) => decodeNewlyRelevantNpcPayload(packet.payload).id === firstNpc.id),
+        false,
+        'server spawn retry should not resend the killed Dereliction enemy'
+    );
 }
 
 function testOutdoorHostileClientSpawnIsNotSeededToPeers(): void {
@@ -2518,6 +2634,12 @@ async function main(): Promise<void> {
         GlobalState.levelQuestProgress.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
+        testDerelictionFreshRunReplacesStaleDeadServerScope();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
         testDerelictionExistingEmptyScopeStillSeedsServerHostiles();
 
         GlobalState.levelEntities.clear();
@@ -2531,6 +2653,12 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         await testDerelictionRewardPacketPersistsDefeatedServerEnemySnapshot();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        await testDerelictionPowerHitKillPersistsBeforeSpawnRetry();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

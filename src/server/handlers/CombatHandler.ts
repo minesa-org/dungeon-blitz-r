@@ -1361,6 +1361,24 @@ export class CombatHandler {
         await MissionHandler.handleForcedDungeonBossCompletion(completionClient, entity);
     }
 
+    private static async persistSharedDungeonEnemyDefeat(levelScope: string, entityId: number, entity: any): Promise<void> {
+        if (!levelScope || entityId <= 0 || !entity || !usesSharedDungeonProgress(getScopeLevelName(levelScope))) {
+            return;
+        }
+
+        const deadEntity = {
+            ...entity,
+            id: entityId,
+            dead: true,
+            hp: 0,
+            entState: EntityState.DEAD
+        };
+
+        noteSharedDungeonHostileDestroyed(levelScope, entityId, deadEntity);
+        LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
+        await LevelHandler.persistDungeonEnemyDestroyed(levelScope, deadEntity);
+    }
+
     private static parseReferencedEntityIds(packetId: number, data: Buffer): number[] {
         const refs: number[] = [];
         const br = new BitReader(data);
@@ -1551,6 +1569,7 @@ export class CombatHandler {
         } else {
             const resolution = CombatHandler.updateNpcTargetAfterHit(levelScope, targetId, damage);
             if (resolution.killed && resolution.entity) {
+                await CombatHandler.persistSharedDungeonEnemyDefeat(levelScope, targetId, resolution.entity);
                 await CombatHandler.handleEnemyDefeatState(sourceSession ?? client, levelScope, targetId, resolution.entity);
             }
         }
@@ -1621,14 +1640,7 @@ export class CombatHandler {
             CombatHandler.noteEntityDestroyed(levelScope, entityId);
             EntityHandler.forgetKnownEntity(levelName, entityId, client.levelInstanceId);
             if (usesSharedDungeonProgress(getScopeLevelName(levelScope)) && destroyedEntity) {
-                noteSharedDungeonHostileDestroyed(levelScope, entityId, {
-                    ...destroyedEntity,
-                    dead: true,
-                    hp: 0,
-                    entState: EntityState.DEAD
-                });
-                LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
-                await LevelHandler.persistDungeonEnemyDestroyed(levelScope, destroyedEntity);
+                await CombatHandler.persistSharedDungeonEnemyDefeat(levelScope, entityId, destroyedEntity);
             }
         }
 
@@ -1755,6 +1767,7 @@ export class CombatHandler {
 
         const resolution = CombatHandler.updateNpcTargetAfterHit(levelScope, targetId, damage);
         if (resolution.killed && resolution.entity) {
+            await CombatHandler.persistSharedDungeonEnemyDefeat(levelScope, targetId, resolution.entity);
             await CombatHandler.handleEnemyDefeatState(sourceSession ?? client, levelScope, targetId, resolution.entity);
         }
 

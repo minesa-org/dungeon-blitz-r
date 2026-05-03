@@ -1403,8 +1403,9 @@ export class EntityHandler {
                     clientSpawned: false
                 };
                 EntityHandler.applyRuntimeDungeonEntityLevel(levelName, client.character, entityProps);
+                const spawnKey = getDungeonSnapshotSpawnKey(entityProps);
 
-                if (deadSpawnKeys.has(getDungeonSnapshotSpawnKey(entityProps))) {
+                if (deadSpawnKeys.has(spawnKey)) {
                     levelMap.delete(entityProps.id);
                     if (trackSharedProgress) {
                         noteSharedDungeonHostileState(levelScope, entityProps.id, {
@@ -1417,7 +1418,11 @@ export class EntityHandler {
                     continue;
                 }
 
-                if (!levelMap.has(entityProps.id)) {
+                const existingEntity = levelMap.get(entityProps.id);
+                const existingEntityDead = Boolean(existingEntity?.dead) ||
+                    Number(existingEntity?.hp ?? 1) <= 0 ||
+                    Number(existingEntity?.entState ?? EntityState.ACTIVE) === EntityState.DEAD;
+                if (!existingEntity || existingEntityDead) {
                     levelMap.set(entityProps.id, entityProps);
                     initializedCount++;
                 }
@@ -1446,6 +1451,13 @@ export class EntityHandler {
             if (id === client.clientEntID) continue;
             if (entityProps?.isPlayer) continue;
             if (entityProps?.clientSpawned) continue;
+            if (
+                Boolean(entityProps?.dead) ||
+                Number(entityProps?.hp ?? 1) <= 0 ||
+                Number(entityProps?.entState ?? EntityState.ACTIVE) === EntityState.DEAD
+            ) {
+                continue;
+            }
             client.entities.set(id, { ...entityProps });
             noteDungeonRunEntitySeen(client, id, entityProps);
             EntityHandler.sendEntity(client, entityProps);
