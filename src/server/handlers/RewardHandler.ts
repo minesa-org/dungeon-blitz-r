@@ -521,16 +521,17 @@ export class RewardHandler {
         const entRank = String(entType?.EntRank ?? 'Minion');
         const baseMaterialChance = RewardHandler.MATERIAL_DROP_CHANCE_BY_RANK[entRank] ?? RewardHandler.MATERIAL_DROP_CHANCE_BY_RANK.Minion;
         const packetMaterialMultiplier = RewardHandler.sanitizeDropMultiplier(reward.gearMultiplier);
+        const packetItemMultiplier = RewardHandler.sanitizeDropMultiplier(reward.itemMultiplier);
         const materialFindRate = petBonuses.craftFind + charmBonuses.craftFind + potionBonuses.craftFind;
         const itemFindRate = petBonuses.itemFind + charmBonuses.itemFind + potionBonuses.itemFind;
         const goldFindRate = petBonuses.goldFind + charmBonuses.goldFind + gearGoldFind + potionBonuses.goldFind;
         const shouldRollMaterial = Boolean(realm) && itemLootAllowedByClass && (reward.dropMaterial || isDungeonEnemyReward);
         const shouldRollGear = itemLootAllowedByClass && (reward.dropGear || isDungeonEnemyReward);
         const materialChance = shouldRollMaterial
-            ? Math.max(0, Math.min(1, RewardHandler.resolveMaterialDropChance(entType, reward) * (1 + materialFindRate)))
+            ? RewardHandler.resolveMaterialDropChance(entType, reward)
             : 0;
         const gearChance = shouldRollGear
-            ? Math.max(0, Math.min(1, RewardHandler.resolveGearDropChance(entType, reward) * (1 + itemFindRate)))
+            ? RewardHandler.resolveGearDropChance(entType, reward)
             : 0;
         const dyeDebug = RewardHandler.resolveDyeDropRarityDebug(client, entType);
 
@@ -601,6 +602,7 @@ export class RewardHandler {
                         charmFind: charmBonuses.craftFind,
                         potionFind: potionBonuses.craftFind,
                         totalFindRate: materialFindRate,
+                        finalMultiplier: packetMaterialMultiplier,
                         finalChance: materialChance,
                         dropRoll: materialRoll,
                         dropped: materialId > 0,
@@ -613,13 +615,14 @@ export class RewardHandler {
                     gear: {
                         attempted: shouldRollGear,
                         baseChance: Number(entType?.ItemDropChance ?? 0),
-                        packetMultiplier: RewardHandler.sanitizeDropMultiplier(reward.itemMultiplier),
+                        packetMultiplier: packetItemMultiplier,
                         packetRawMultiplier: reward.itemMultiplier,
                         packetDropItem: reward.dropItem,
                         petFind: petBonuses.itemFind,
                         charmFind: charmBonuses.itemFind,
                         potionFind: potionBonuses.itemFind,
                         totalFindRate: itemFindRate,
+                        finalMultiplier: packetItemMultiplier,
                         finalChance: gearChance,
                         dropRoll: gearRoll,
                         dropped: gearId > 0,

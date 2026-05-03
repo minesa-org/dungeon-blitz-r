@@ -1,4 +1,5 @@
 import { strict as assert } from 'assert';
+import * as fs from 'fs';
 import * as path from 'path';
 import { GlobalState } from '../core/GlobalState';
 import { GameData } from '../core/GameData';
@@ -27,7 +28,12 @@ type FakeClient = {
 };
 
 function ensureGameDataLoaded(): void {
-    const dataDir = path.resolve(__dirname, '../data');
+    const dataDirCandidates = [
+        path.resolve(__dirname, '../data'),
+        path.resolve(__dirname, '../../data')
+    ];
+    const dataDir = dataDirCandidates.find((candidate) => fs.existsSync(path.join(candidate, 'EntTypes.json')))
+        ?? dataDirCandidates[0];
     if (!GameData.getEntType('GoblinBrute')) {
         GameData.load(dataDir);
     }
@@ -196,6 +202,36 @@ async function testRandomItemLieutenantUsesItemDropChanceForGear(): Promise<void
     assert.ok(findLoot(alpha, 'gear'), 'Lieutenant gear should still drop when the 3% roll succeeds and the packet omitted the gear flag');
 }
 
+async function testPacketMultiplierAlreadyIncludesGearFind(): Promise<void> {
+    const alpha = createFakeClient(7, 'Eta');
+    alpha.character.equippedGears = [{ gearID: 1177, tier: 0, runes: [1, 0, 0], colors: [0, 0] }];
+    GlobalState.sessionsByToken.set(alpha.token, alpha as never);
+
+    const sourceId = 9007;
+    addLevelEntity(alpha, {
+        id: sourceId,
+        name: 'GoblinBrute',
+        isPlayer: false,
+        team: 2,
+        x: 120,
+        y: 220
+    });
+    setContributors(getClientLevelScope(alpha as never), sourceId, ['eta']);
+
+    await withMockedRandom([0.5, 0.99, 0.0424], async () => {
+        await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId, {
+            itemMultiplier: 1.41,
+            dropGear: true
+        }));
+    });
+
+    assert.equal(
+        findLoot(alpha, 'gear'),
+        null,
+        'gear chance should use the packet multiplier without adding server-side find again'
+    );
+}
+
 async function testEnemyMaterialDropsWithoutExplicitDropFlag(): Promise<void> {
     const alpha = createFakeClient(3, 'Gamma');
     GlobalState.sessionsByToken.set(alpha.token, alpha as never);
@@ -277,7 +313,7 @@ async function testGearRarityTracksValueTier(): Promise<void> {
     alpha.pendingLoot.clear();
     alpha.processedRewardSources.clear();
 
-    await withMockedRandom([0.0, 0.99, 0.0, 0.0, 0.95], async () => {
+    await withMockedRandom([0.0, 0.99, 0.0, 0.0, 0.96], async () => {
         await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId, {
             dropGear: true
         }));
@@ -385,6 +421,11 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         GlobalState.combatContributions.clear();
         await testRandomItemLieutenantUsesItemDropChanceForGear();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.combatContributions.clear();
+        await testPacketMultiplierAlreadyIncludesGearFind();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
