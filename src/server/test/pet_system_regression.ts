@@ -1,4 +1,5 @@
 import { strict as assert } from 'assert';
+import * as fs from 'fs';
 import * as path from 'path';
 import { Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
@@ -38,7 +39,12 @@ type FakeClient = {
 };
 
 function ensureDataLoaded(): void {
-    const dataDir = path.resolve(__dirname, '..', 'data');
+    const dataDirCandidates = [
+        path.resolve(__dirname, '..', 'data'),
+        path.resolve(__dirname, '..', '..', 'data')
+    ];
+    const dataDir = dataDirCandidates.find((candidate) => fs.existsSync(path.join(candidate, 'pet_types.json')))
+        ?? dataDirCandidates[0];
     if (PetConfig.PET_TYPES.length === 0 || PetConfig.EGG_TYPES.length === 0) {
         PetConfig.load(dataDir);
     }
@@ -61,12 +67,19 @@ function createRewardClient(): FakeClient {
         equippedGears: [],
         OwnedDyes: [],
         pets: [
-            { typeID: 15, special_id: 7, level: 1, xp: 0 }
+            { typeID: 15, special_id: 7, level: 1, xp: 0 },
+            { typeID: 29, special_id: 8, level: 1, xp: 0 },
+            { typeID: 43, special_id: 9, level: 1, xp: 0 }
         ],
         activePet: {
-            typeID: 15,
-            special_id: 7
-        }
+            typeID: 0,
+            special_id: 0
+        },
+        restingPets: [
+            { typeID: 15, special_id: 7 },
+            { typeID: 29, special_id: 8 },
+            { typeID: 43, special_id: 9 }
+        ]
     };
 
     return {
@@ -241,6 +254,29 @@ function setContributors(levelScope: string, sourceId: number, contributors: str
     GlobalState.combatContributions.set(key, contributionMap);
 }
 
+function assertNear(actual: number, expected: number, message: string): void {
+    assert.ok(Math.abs(actual - expected) < 0.000001, message);
+}
+
+async function captureRewardRollDebug(fn: () => Promise<void>): Promise<any[]> {
+    const originalLog = console.log;
+    const debugLogs: any[] = [];
+    console.log = (...args: any[]) => {
+        if (args[0] === '[RewardRollDebug]') {
+            debugLogs.push(args[1]);
+        }
+        originalLog(...args);
+    };
+
+    try {
+        await fn();
+    } finally {
+        console.log = originalLog;
+    }
+
+    return debugLogs;
+}
+
 function testPetCollectionNormalizationRemovesTransferDuplicates(): void {
     const character: any = {
         pets: [
@@ -282,9 +318,33 @@ async function withMockedCharacterSave<T>(fn: () => Promise<T>): Promise<T> {
     }
 }
 
-async function testRewardHandlerAppliesActivePetBonuses(): Promise<void> {
+async function testRewardHandlerAppliesEquippedPetBonuses(): Promise<void> {
     const client = createRewardClient();
     GlobalState.sessionsByToken.set(client.token, client as never);
+
+    const petBonuses = PetHandler.getEquippedPetBonusRates(client.character);
+    assertNear(petBonuses.goldFind, 0.1, 'passive gold pet should contribute gold find');
+    assertNear(petBonuses.itemFind, 0, 'no gear-find pet is equipped in this passive layout');
+    assertNear(petBonuses.craftFind, 0.1, 'passive material pet should contribute material find');
+    assertNear(petBonuses.expBonus, 0.1, 'passive XP pet should contribute XP bonus');
+
+    const passiveGearCharacter = {
+        pets: [
+            { typeID: 1, special_id: 10, level: 1, xp: 0 }
+        ],
+        activePet: {
+            typeID: 0,
+            special_id: 0
+        },
+        restingPets: [
+            { typeID: 1, special_id: 10 }
+        ]
+    };
+    assertNear(
+        PetHandler.getEquippedPetBonusRates(passiveGearCharacter).itemFind,
+        0.1,
+        'passive gear-find pet should contribute gear find'
+    );
 
     const sourceId = 9100;
     addLevelEntity(client, {
@@ -297,11 +357,20 @@ async function testRewardHandlerAppliesActivePetBonuses(): Promise<void> {
     });
     setContributors(getClientLevelScope(client as never), sourceId, ['alpha']);
 
-    await RewardHandler.handleGrantReward(client as never, buildGrantRewardPayload(sourceId, 25, 20));
+    const debugLogs = await captureRewardRollDebug(async () => {
+        await RewardHandler.handleGrantReward(client as never, buildGrantRewardPayload(sourceId, 25, 20));
+    });
 
     const loot = Array.from(client.pendingLoot.values())[0];
-    assert.equal(loot?.gold, 28, 'gold-find pet should increase gold rewards by pet level percent');
-    assert.equal(client.character.xp, 20, 'gold-find pet should not alter XP rewards');
+    assert.equal(loot?.gold, 28, 'passive gold-find pet should increase gold rewards by pet level percent');
+    assert.equal(client.character.xp, 22, 'passive XP pet should increase XP rewards by pet level percent');
+
+    const rewardDebug = debugLogs.find((entry) => Number(entry?.sourceId ?? 0) === sourceId);
+    assert.ok(rewardDebug?.rolls?.exp, 'reward debug should include XP roll details');
+    assert.equal(rewardDebug.rolls.exp.packetExp, 20);
+    assert.equal(rewardDebug.rolls.exp.baseExp, 20);
+    assertNear(rewardDebug.rolls.exp.petBonus, 0.1, 'XP debug should include passive pet XP bonus');
+    assert.equal(rewardDebug.rolls.exp.finalExp, 22);
 }
 
 async function testRewardHandlerAppliesEquippedCharmFindBonuses(): Promise<void> {
@@ -358,7 +427,7 @@ async function main(): Promise<void> {
     const combatContributions = new Map(GlobalState.combatContributions);
 
     try {
-        await testRewardHandlerAppliesActivePetBonuses();
+        await testRewardHandlerAppliesEquippedPetBonuses();
         await testRewardHandlerAppliesEquippedCharmFindBonuses();
         testPetCollectionNormalizationRemovesTransferDuplicates();
         await testPetFoodUsageLevelsAndUpdatesActivePet();
