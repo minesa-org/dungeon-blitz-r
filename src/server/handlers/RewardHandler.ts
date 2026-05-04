@@ -13,6 +13,7 @@ import { upsertInventoryGear } from '../utils/GearInventory';
 import { getEquippedCharmBonuses } from '../utils/CharmBonuses';
 import { getEquippedGearGoldFind } from '../utils/GearGoldBonuses';
 import { getActivePotionBonuses } from '../utils/ConsumableState';
+import { normalizeCharacterMaterials } from '../utils/MaterialInventory';
 import { PetHandler } from './PetHandler';
 
 const db = new JsonAdapter();
@@ -964,7 +965,7 @@ export class RewardHandler {
         }
 
         if (reward.material && reward.material > 0) {
-            const materials = Array.isArray(client.character.materials) ? client.character.materials : [];
+            const materials = normalizeCharacterMaterials(client.character);
             const existing = materials.find((entry: any) => Number(entry.materialID ?? 0) === reward.material);
             if (existing) {
                 existing.count = Number(existing.count ?? 0) + 1;

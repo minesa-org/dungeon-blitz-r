@@ -9,6 +9,7 @@ import { CharmID } from '../data/runtime/Charms';
 import { ConsumableID, ConsumableType } from '../data/runtime/Consumables';
 import { PetHandler } from './PetHandler';
 import { sendConsumableUpdate } from '../utils/ConsumableState';
+import { normalizeCharacterMaterials } from '../utils/MaterialInventory';
 
 const db = new JsonAdapter();
 
@@ -401,20 +402,18 @@ export class ForgeHandler {
 
         const consumableFlags = Array.from({ length: 4 }, () => br.readMethod15());
 
-        const materials = Array.isArray(client.character.materials) ? client.character.materials : [];
-        client.character.materials = materials;
+        const materials = normalizeCharacterMaterials(client.character);
         for (const [materialId, count] of materialsUsed.entries()) {
-            const entry = materials.find((material: any) => Number(material?.materialID ?? 0) === materialId);
-            if (entry) {
-                entry.count = Math.max(0, Number(entry.count ?? 0) - count);
+            if (materialId <= 0 || count <= 0) {
                 continue;
             }
 
-            materials.push({
-                materialID: materialId,
-                count: 0
-            });
+            const entry = materials.find((material: any) => Number(material?.materialID ?? 0) === materialId);
+            if (entry) {
+                entry.count = Math.max(0, Number(entry.count ?? 0) - count);
+            }
         }
+        normalizeCharacterMaterials(client.character);
 
         const consumableIds = [
             ConsumableID.MinorRareCatalyst,
