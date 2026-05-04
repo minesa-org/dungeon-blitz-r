@@ -149,6 +149,24 @@ export class MissionHandler {
     private static readonly SWAMP_LIZARD_HELM_HARD_KILL_NAMES = new Set([
         'LizardHeavyHard'
     ]);
+    private static readonly CASTLE_LIZARD_PROBLEM_KILL_NAMES = new Set([
+        'CastleLizard1',
+        'CastleLizard2',
+        'CastleLizard3',
+        'CastleLizardBanner1',
+        'CastleLizardCarnisaur1',
+        'CastleLizardHeavy1',
+        'CastleLizardHeavy2'
+    ]);
+    private static readonly CASTLE_LIZARD_PROBLEM_HARD_KILL_NAMES = new Set([
+        'CastleLizard1Hard',
+        'CastleLizard2Hard',
+        'CastleLizard3Hard',
+        'CastleLizardBanner1Hard',
+        'CastleLizardCarnisaur1Hard',
+        'CastleLizardHeavy1Hard',
+        'CastleLizardHeavy2Hard'
+    ]);
     private static readonly KILL_PROGRESS_TARGETS: Readonly<Record<number, ReadonlySet<string>>> = {
         [MissionID.GetGoblinNoserings]: new Set(['GoblinBrute']),
         [MissionID.GetGoblinWands]: new Set(['GoblinShamanHood', 'GoblinShamanSkullHat']),
@@ -162,6 +180,8 @@ export class MissionHandler {
         [MissionID.GetSpiderFangsHard]: MissionHandler.SWAMP_SPIDER_HARD_KILL_NAMES,
         [MissionID.GetLizardGreatHelm]: MissionHandler.SWAMP_LIZARD_HELM_KILL_NAMES,
         [MissionID.GetLizardGreatHelmHard]: MissionHandler.SWAMP_LIZARD_HELM_HARD_KILL_NAMES,
+        [MissionID.SpiritProblem]: MissionHandler.CASTLE_LIZARD_PROBLEM_KILL_NAMES,
+        [MissionID.SpiritProblemHard]: MissionHandler.CASTLE_LIZARD_PROBLEM_HARD_KILL_NAMES,
         [MissionID.GetHobgoblinNoserings]: new Set(['BlackGoblinBrute']),
         [MissionID.GetHobgoblinNoseringsHard]: new Set(['BlackGoblinBruteHard'])
     };
@@ -369,6 +389,67 @@ export class MissionHandler {
         }
 
         MissionHandler.sendQuestProgress(client, Math.max(0, Number(client.character.questTrackerState ?? 0)));
+    }
+
+    static shouldWaitForEnemyKillStateMissionProgress(client: Client, destroyedEntity: any): boolean {
+        if (!client.character) {
+            return false;
+        }
+
+        const defeatedNames = MissionHandler.getDefeatedEnemyNames(destroyedEntity);
+        if (!defeatedNames.length) {
+            return false;
+        }
+
+        const currentLevel =
+            LevelConfig.normalizeLevelName(client.currentLevel || String(client.character.CurrentLevel?.name ?? '')) ||
+            client.currentLevel ||
+            String(client.character.CurrentLevel?.name ?? '');
+        if (!currentLevel) {
+            return false;
+        }
+
+        const shouldDelayInLevel =
+            LevelConfig.isDungeonLevel(currentLevel) ||
+            currentLevel === 'Castle' ||
+            currentLevel === 'CastleHard';
+        if (!shouldDelayInLevel) {
+            return false;
+        }
+
+        const missions = MissionHandler.getMissionStateMap(client.character);
+        for (const [missionIdText, rawEntry] of Object.entries(missions)) {
+            const missionId = Number(missionIdText);
+            if (!Number.isFinite(missionId)) {
+                continue;
+            }
+
+            const entry = MissionHandler.asMissionEntry(rawEntry);
+            if (Number(entry.state ?? MissionHandler.MISSION_NOT_STARTED) !== MissionHandler.MISSION_IN_PROGRESS) {
+                continue;
+            }
+
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            const allowDungeonEnemyProgress =
+                LevelConfig.isDungeonLevel(currentLevel) &&
+                !String(missionDef?.Dungeon ?? '').trim();
+            if (!missionDef || (!allowDungeonEnemyProgress && !MissionHandler.isMissionAvailableInCurrentLevel(missionDef, currentLevel))) {
+                continue;
+            }
+
+            const targetNames = MissionHandler.KILL_PROGRESS_TARGETS[missionId];
+            const activeTargetNames = MissionHandler.getMissionActiveTargetNames(missionDef);
+            const matchesKillTarget = Boolean(
+                targetNames && defeatedNames.some((name) => targetNames.has(name))
+            );
+            const matchesActiveTarget = activeTargetNames.some((name) => defeatedNames.includes(name));
+            const matchesCollectibleTarget = MissionHandler.matchesCollectibleKillProgress(missionDef, defeatedNames);
+            if (matchesKillTarget || matchesActiveTarget || matchesCollectibleTarget) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     static async handleEnemyDefeatMissionProgress(client: Client, destroyedEntity: any): Promise<void> {

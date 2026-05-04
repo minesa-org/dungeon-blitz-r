@@ -5,9 +5,11 @@ import { GameData } from '../core/GameData';
 import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
+import { EntityState } from '../core/Entity';
 import { MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
 import { CombatHandler } from '../handlers/CombatHandler';
+import { LevelHandler } from '../handlers/LevelHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 
@@ -141,6 +143,22 @@ function buildBuffTickDotPayload(targetId: number, sourceId: number, damage: num
     return bb.toBuffer();
 }
 
+function buildIncrementalStatePayload(entityId: number, entState: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(entityId);
+    bb.writeMethod45(0);
+    bb.writeMethod45(0);
+    bb.writeMethod45(0);
+    bb.writeMethod6(entState, 2);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    return bb.toBuffer();
+}
+
 function decodeMissionProgressPacket(payload: Buffer): { missionId: number; progress: number } {
     const br = new BitReader(payload);
     return {
@@ -168,6 +186,28 @@ async function destroyEnemy(
         ...extra
     });
     await CombatHandler.handleEntityDestroy(client as never, createDestroyEntityPacket(entityId));
+}
+
+async function killEnemyByState(
+    client: FakeClient,
+    entityId: number,
+    entityName: string,
+    extra: Record<string, unknown> = {}
+): Promise<void> {
+    const entity = {
+        id: entityId,
+        name: entityName,
+        isPlayer: false,
+        team: 2,
+        hp: 1,
+        entState: EntityState.ACTIVE,
+        ...extra
+    };
+    client.entities.set(entityId, entity);
+    await LevelHandler.handleEntityIncrementalUpdate(
+        client as never,
+        buildIncrementalStatePayload(entityId, EntityState.DEAD)
+    );
 }
 
 async function testRecoverRingsProgressesOnGoblinBruteKills(): Promise<void> {
@@ -802,8 +842,19 @@ async function testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce(
 
     assert.equal(
         Number(client.character.missions[String(MissionID.GetGoblinNoserings)]?.currCount ?? 0),
+        0,
+        'side-quest enemy kills inside dungeons should wait for the kill state instead of the lethal hit'
+    );
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        client as never,
+        buildIncrementalStatePayload(hostile.id, EntityState.DEAD)
+    );
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetGoblinNoserings)]?.currCount ?? 0),
         1,
-        'side-quest enemy kills should progress inside dungeons as soon as the enemy enters the dead state'
+        'side-quest enemy kills inside dungeons should progress when the enemy enters the kill state'
     );
 
     await CombatHandler.handleEntityDestroy(client as never, createDestroyEntityPacket(hostile.id));
@@ -811,7 +862,7 @@ async function testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce(
     assert.equal(
         Number(client.character.missions[String(MissionID.GetGoblinNoserings)]?.currCount ?? 0),
         1,
-        'dead-state side-quest progress should not count a second time when the corpse later disappears'
+        'side-quest enemy kills inside dungeons should not count again on destroy'
     );
 }
 
@@ -848,8 +899,19 @@ async function testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce():
 
     assert.equal(
         Number(client.character.missions[String(MissionID.GetGoblinNoserings)]?.currCount ?? 0),
+        0,
+        'side-quest DoT kills inside dungeons should wait for the kill state instead of the lethal tick'
+    );
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        client as never,
+        buildIncrementalStatePayload(hostile.id, EntityState.DEAD)
+    );
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GetGoblinNoserings)]?.currCount ?? 0),
         1,
-        'side-quest DoT kills should progress inside dungeons as soon as the enemy enters the dead state'
+        'side-quest DoT kills inside dungeons should progress when the enemy enters the kill state'
     );
 
     await CombatHandler.handleEntityDestroy(client as never, createDestroyEntityPacket(hostile.id));
@@ -857,7 +919,220 @@ async function testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce():
     assert.equal(
         Number(client.character.missions[String(MissionID.GetGoblinNoserings)]?.currCount ?? 0),
         1,
-        'DoT dead-state side-quest progress should not count a second time when the corpse later disappears'
+        'side-quest DoT kills inside dungeons should not count again on destroy'
+    );
+}
+
+async function testCastleLizardProblemProgressesOnCastleLizardKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.SpiritProblem)]: {
+            state: 1,
+            currCount: 28
+        }
+    }, 'Castle');
+
+    await killEnemyByState(client, 8601, 'SpiritImperialFootman1');
+    await killEnemyByState(client, 8602, 'CastleLizard1');
+    await killEnemyByState(client, 8603, 'CastleLizardHeavy2');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SpiritProblem)]?.currCount ?? 0),
+        30,
+        'A Lizard Problem should count CastleLizard enemies but ignore other Castle hostiles'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SpiritProblem)]?.state ?? 0),
+        2,
+        'A Lizard Problem should become ready to turn in after enough Castle lizards are defeated'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [
+            { missionId: MissionID.SpiritProblem, progress: 1 },
+            { missionId: MissionID.SpiritProblem, progress: 1 }
+        ],
+        'A Lizard Problem should emit additive progress packets for Castle lizard kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.SpiritProblem,
+        'A Lizard Problem should notify the client when the objective is complete'
+    );
+}
+
+async function testCastleLizardProblemWaitsForKillStateAfterLethalHit(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.SpiritProblem)]: {
+            state: 1,
+            currCount: 0
+        }
+    }, 'Castle');
+    client.levelInstanceId = 'castle-lizard-delay';
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    const levelScope = getClientLevelScope(client as never);
+    const hostile = {
+        id: 8606,
+        name: 'CastleLizard1',
+        isPlayer: false,
+        team: 2,
+        hp: 1,
+        maxHp: 1,
+        entState: 0,
+        ownerToken: client.token
+    };
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [hostile.id, hostile]
+    ]));
+
+    await CombatHandler.handlePowerHit(
+        client as never,
+        buildPowerHitPayload(hostile.id, client.clientEntID, 5, 77)
+    );
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SpiritProblem)]?.currCount ?? 0),
+        0,
+        'A Lizard Problem should not progress from the lethal hit before the lizard kill state arrives'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x83 || packet.id === 0x86),
+        false,
+        'A Lizard Problem should stay silent until the visible Castle lizard kill state'
+    );
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        client as never,
+        buildIncrementalStatePayload(hostile.id, EntityState.DEAD)
+    );
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SpiritProblem)]?.currCount ?? 0),
+        1,
+        'A Lizard Problem should progress when the Castle lizard enters the kill state'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [{ missionId: MissionID.SpiritProblem, progress: 1 }],
+        'A Lizard Problem should emit one additive progress packet on kill state'
+    );
+
+    await CombatHandler.handleEntityDestroy(client as never, createDestroyEntityPacket(hostile.id));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SpiritProblem)]?.currCount ?? 0),
+        1,
+        'A Lizard Problem should not count the same Castle lizard again on destroy'
+    );
+}
+
+async function testCastleLizardProblemWaitsForKillStateInsideDungeons(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.SpiritProblem)]: {
+            state: 1,
+            currCount: 0
+        }
+    }, 'AC_Mission1');
+    client.levelInstanceId = 'castle-lizard-dungeon-delay';
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    const levelScope = getClientLevelScope(client as never);
+    const hostile = {
+        id: 8607,
+        name: 'CastleLizardHeavy1',
+        isPlayer: false,
+        team: 2,
+        hp: 1,
+        maxHp: 1,
+        entState: 0,
+        ownerToken: client.token
+    };
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [hostile.id, hostile]
+    ]));
+
+    await CombatHandler.handlePowerHit(
+        client as never,
+        buildPowerHitPayload(hostile.id, client.clientEntID, 5, 77)
+    );
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SpiritProblem)]?.currCount ?? 0),
+        0,
+        'A Lizard Problem should not progress inside dungeons from the lethal hit before kill state'
+    );
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        client as never,
+        buildIncrementalStatePayload(hostile.id, EntityState.DEAD)
+    );
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SpiritProblem)]?.currCount ?? 0),
+        1,
+        'A Lizard Problem should progress inside dungeons when the Castle lizard enters the kill state'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [{ missionId: MissionID.SpiritProblem, progress: 1 }],
+        'A Lizard Problem should emit one additive dungeon progress packet on kill state'
+    );
+
+    await CombatHandler.handleEntityDestroy(client as never, createDestroyEntityPacket(hostile.id));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SpiritProblem)]?.currCount ?? 0),
+        1,
+        'A Lizard Problem should not count the same dungeon Castle lizard again on destroy'
+    );
+}
+
+async function testHardCastleLizardProblemProgressesOnHardCastleLizardKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.SpiritProblemHard)]: {
+            state: 1,
+            currCount: 59
+        }
+    }, 'CastleHard');
+
+    await killEnemyByState(client, 8604, 'SpiritImperialFootman1Hard');
+    await killEnemyByState(client, 8605, 'CastleLizardCarnisaur1Hard');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SpiritProblemHard)]?.currCount ?? 0),
+        60,
+        'Hard A Lizard Problem should count hard CastleLizard enemies but ignore other CastleHard hostiles'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SpiritProblemHard)]?.state ?? 0),
+        2,
+        'Hard A Lizard Problem should become ready to turn in after enough hard Castle lizards are defeated'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [{ missionId: MissionID.SpiritProblemHard, progress: 1 }],
+        'Hard A Lizard Problem should emit additive progress packets for hard Castle lizard kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.SpiritProblemHard,
+        'Hard A Lizard Problem should notify the client when the objective is complete'
     );
 }
 
@@ -881,6 +1156,10 @@ async function main(): Promise<void> {
     await testLaterSideQuestCollectiblesProgressFromEnemyRealms();
     await testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
     await testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
+    await testCastleLizardProblemProgressesOnCastleLizardKills();
+    await testCastleLizardProblemWaitsForKillStateAfterLethalHit();
+    await testCastleLizardProblemWaitsForKillStateInsideDungeons();
+    await testHardCastleLizardProblemProgressesOnHardCastleLizardKills();
     console.log('mission_kill_progress_regression: ok');
 }
 
