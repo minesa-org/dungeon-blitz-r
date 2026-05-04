@@ -15,7 +15,7 @@ import { getActivePotionBonuses } from '../utils/ConsumableState';
 import { PetHandler } from './PetHandler';
 import { EntityState, EntityTeam } from '../core/Entity';
 import { EntityHandler } from './EntityHandler';
-import { isPersistentDungeonSnapshotLevel, markCharacterDungeonEnemyDead } from '../core/PersistentDungeonSnapshot';
+import { getDungeonSnapshotSpawnKey, isPersistentDungeonSnapshotLevel, markCharacterDungeonEnemyDead } from '../core/PersistentDungeonSnapshot';
 import { noteSharedDungeonHostileDestroyed, recomputeSharedDungeonProgress } from '../core/SharedDungeonProgress';
 
 const db = new JsonAdapter();
@@ -242,7 +242,7 @@ export class RewardHandler {
 
         let best: { entityId: number; entity: any; distance: number } | null = null;
         for (const [entityId, entity] of levelMap.entries()) {
-            if (Number(entity?.team ?? 0) !== EntityTeam.ENEMY || !entity?.spawnKey) {
+            if (Number(entity?.team ?? 0) !== EntityTeam.ENEMY || !getDungeonSnapshotSpawnKey(entity)) {
                 continue;
             }
             if (Boolean(entity?.dead) || Number(entity?.hp ?? 1) <= 0 || Number(entity?.entState ?? 0) === EntityState.DEAD) {

@@ -415,6 +415,56 @@ export class EntityHandler {
         return true;
     }
 
+    private static suppressDefeatedPersistentDungeonHostile(
+        client: Client,
+        levelName: string | null | undefined,
+        levelMap: Map<number, any> | null,
+        entity: any
+    ): boolean {
+        if (
+            !levelName ||
+            !levelMap ||
+            !isPersistentDungeonSnapshotLevel(levelName) ||
+            !entity?.clientSpawned ||
+            entity?.isPlayer ||
+            Number(entity?.team ?? 0) !== 2
+        ) {
+            return false;
+        }
+
+        const spawnKey = getDungeonSnapshotSpawnKey(entity);
+        if (!spawnKey) {
+            return false;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        const characterDeadSpawnKeys = getCharacterDungeonDeadSpawnKeys(client.character, levelName, client.levelInstanceId);
+        const sharedDeadSpawnKeys = getSharedDungeonDefeatedSpawnKeys(levelScope);
+        if (!characterDeadSpawnKeys.has(spawnKey) && !sharedDeadSpawnKeys.has(spawnKey)) {
+            return false;
+        }
+
+        const entityId = Number(entity?.id ?? 0);
+        if (entityId > 0) {
+            levelMap.delete(entityId);
+            client.entities.delete(entityId);
+            client.knownEntityIds.delete(entityId);
+            EntityHandler.sendDestroyEntity(client, entityId);
+            noteSharedDungeonHostileState(levelScope, entityId, {
+                ...entity,
+                dead: true,
+                hp: 0,
+                entState: EntityState.DEAD
+            });
+        }
+
+        console.log(
+            `[DungeonSnapshot] Suppressed defeated dungeon hostile id=${entityId || 'unknown'} ` +
+            `spawnKey=${spawnKey} scope=${levelScope}`
+        );
+        return true;
+    }
+
     static shouldRelayEntityToOtherClients(levelName: string | null | undefined, entity: any): boolean {
         if (EntityHandler.isPrivateClientSpawnOutdoorEntity(levelName, entity)) {
             return false;
@@ -1376,6 +1426,10 @@ export class EntityHandler {
         }
 
         if (EntityHandler.suppressFollowerLeaderAuthoritativeDungeonSpawn(client, levelName, levelMap, props)) {
+            return;
+        }
+
+        if (EntityHandler.suppressDefeatedPersistentDungeonHostile(client, levelName, levelMap, props)) {
             return;
         }
 

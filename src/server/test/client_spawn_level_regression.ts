@@ -15,7 +15,7 @@ import { getClientLevelScope } from '../core/LevelScope';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { Config } from '../core/config';
 import { getSharedDungeonDefeatedSpawnKeys, getSharedDungeonProgressTotals, recomputeSharedDungeonProgress } from '../core/SharedDungeonProgress';
-import { getDungeonSnapshotSpawnKey, getReusableIncompleteDungeonSnapshotInstanceId } from '../core/PersistentDungeonSnapshot';
+import { getDungeonSnapshotSpawnKey, getReusableIncompleteDungeonSnapshotInstanceId, isPersistentDungeonSnapshotLevel } from '../core/PersistentDungeonSnapshot';
 
 type SentPacket = {
     id: number;
@@ -776,6 +776,73 @@ function testDerelictionClientHostileFullUpdateIsSuppressedInServerDungeon(): vo
     assert.equal(levelMap?.has(duplicateId), false, 'client-spawn duplicate should not enter a server-authoritative Dereliction scope');
     assert.equal(parseDestroyEntityId(client.sentPackets[0]!.payload), duplicateId, 'client-spawn duplicate should be destroyed locally');
     assert.equal(client.knownEntityIds.has(firstNpc.id), true, 'client should keep the canonical server-spawn Dereliction enemy');
+}
+
+function testAllMissionDungeonsUsePersistentSnapshots(): void {
+    assert.equal(isPersistentDungeonSnapshotLevel('SRN_Mission4'), true, 'ordinary mission dungeons should use persistent dungeon snapshots');
+    assert.equal(isPersistentDungeonSnapshotLevel('BT_Mission2Hard'), true, 'hard mission dungeons should use persistent dungeon snapshots');
+    assert.equal(isPersistentDungeonSnapshotLevel('TutorialDungeon'), false, 'tutorial levels should stay out of persistent dungeon snapshots');
+}
+
+function testPersistentDungeonSuppressesDefeatedClientSpawnHostile(): void {
+    const client = createFakeClient('Watcher');
+    client.currentLevel = 'SRN_Mission4';
+    client.levelInstanceId = 'all-dungeon-client-spawn';
+    client.character = {
+        name: 'Watcher',
+        level: 15,
+        dungeonSnapshots: {
+            SRN_Mission4: {
+                levelName: 'SRN_Mission4',
+                levelInstanceId: 'all-dungeon-client-spawn',
+                progress: 17,
+                deadSpawnKeys: ['3:WyrmGreat:1200:900:771001'],
+                updatedAt: Date.now()
+            }
+        }
+    } as any;
+
+    const levelMap = new Map<number, any>();
+    GlobalState.levelEntities.set('SRN_Mission4#all-dungeon-client-spawn', levelMap);
+    client.sentPackets.length = 0;
+
+    const suppressed = (EntityHandler as any).suppressDefeatedPersistentDungeonHostile(
+        client as never,
+        'SRN_Mission4',
+        levelMap,
+        {
+            id: 771001,
+            name: 'WyrmGreat',
+            isPlayer: false,
+            roomId: 3,
+            x: 1200,
+            y: 900,
+            v: 0,
+            team: 2,
+            entState: 0,
+            clientSpawned: true
+        }
+    );
+
+    assert.equal(suppressed, true, 'persistent snapshots should suppress already-defeated client-spawn dungeon hostiles');
+    assert.equal(levelMap.has(771001), false, 'suppressed defeated client hostile should not enter the shared dungeon map');
+    assert.equal(parseDestroyEntityId(client.sentPackets[0]!.payload), 771001, 'suppressed defeated client hostile should be destroyed locally');
+}
+
+function testBridgeTownMission2SeedsServerHostiles(): void {
+    const npcs = NpcLoader.getNpcsForLevel('BT_Mission2');
+    assert.equal(npcs.length, 81, 'BT_Mission2 should load authored hostile reference spawns');
+
+    const client = createFakeClient('Watcher');
+    client.currentLevel = 'BT_Mission2';
+    client.levelInstanceId = 'bt-mission2-server-spawn';
+    client.character = { name: 'Watcher', level: 15 } as any;
+
+    EntityHandler.sendInitialLevelEntities(client as never, 'BT_Mission2');
+
+    const levelMap = GlobalState.levelEntities.get('BT_Mission2#bt-mission2-server-spawn');
+    assert.equal(levelMap?.size, 81, 'BT_Mission2 should seed server hostile entities');
+    assert.equal(client.sentPackets.filter((packet) => packet.id === 0x0F).length, 81);
 }
 
 function testDerelictionNewInstanceResetsStaleCharacterSnapshot(): void {
@@ -2978,6 +3045,24 @@ async function main(): Promise<void> {
         GlobalState.partyByMember.clear();
         GlobalState.partyGroups.clear();
         testDerelictionClientHostileFullUpdateIsSuppressedInServerDungeon();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testAllMissionDungeonsUsePersistentSnapshots();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testPersistentDungeonSuppressesDefeatedClientSpawnHostile();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testBridgeTownMission2SeedsServerHostiles();
 
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { LevelConfig } from '../core/LevelConfig';
 
 export interface NpcDef {
     id: number;
@@ -25,11 +26,10 @@ export interface NpcDef {
 export class NpcLoader {
     private static levelsFiltered: Map<string, NpcDef[]> = new Map();
     private static levelsRaw: Map<string, NpcDef[]> = new Map();
-    private static readonly SERVER_HOSTILE_LEVELS = new Set<string>([
-        'GoblinRiverDungeon',
-        'GoblinRiverDungeonHard',
-        'BT_Mission4',
-        'BT_Mission4Hard'
+    private static readonly SERVER_HOSTILE_EXCLUDED_LEVELS = new Set<string>([
+        'TutorialBoat',
+        'TutorialDungeon',
+        'TutorialDungeonHard'
     ]);
 
     private static normalizeLevelName(levelName: string): string {
@@ -69,7 +69,12 @@ export class NpcLoader {
     }
 
     private static filterLevelNpcs(levelName: string, npcs: any[]): any[] {
-        if (this.SERVER_HOSTILE_LEVELS.has(this.normalizeLevelName(levelName))) {
+        const normalizedLevel = this.normalizeLevelName(levelName);
+        if (
+            LevelConfig.isDungeonLevel(normalizedLevel) &&
+            !this.SERVER_HOSTILE_EXCLUDED_LEVELS.has(normalizedLevel) &&
+            npcs.some((npc) => Number(npc?.team ?? 0) === 2)
+        ) {
             return npcs;
         }
 

@@ -9,16 +9,17 @@ export type PersistentDungeonSnapshot = {
     updatedAt: number;
 };
 
-const PERSISTENT_DUNGEON_SNAPSHOT_LEVELS = new Set<string>([
-    'BT_Mission4',
-    'BT_Mission4Hard',
-    'GoblinRiverDungeon',
-    'GoblinRiverDungeonHard'
+const PERSISTENT_DUNGEON_SNAPSHOT_EXCLUDED_LEVELS = new Set<string>([
+    'TutorialBoat',
+    'TutorialDungeon',
+    'TutorialDungeonHard'
 ]);
 
 export function isPersistentDungeonSnapshotLevel(levelName: string | null | undefined): boolean {
     const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
-    return Boolean(normalizedLevel) && PERSISTENT_DUNGEON_SNAPSHOT_LEVELS.has(normalizedLevel);
+    return Boolean(normalizedLevel) &&
+        LevelConfig.isDungeonLevel(normalizedLevel) &&
+        !PERSISTENT_DUNGEON_SNAPSHOT_EXCLUDED_LEVELS.has(normalizedLevel);
 }
 
 export function getDungeonSnapshotKey(levelName: string | null | undefined): string {
