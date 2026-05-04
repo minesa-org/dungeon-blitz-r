@@ -8,10 +8,12 @@ import { noteDungeonRunChestOpened, noteDungeonRunTreasure } from '../core/Dunge
 import { CombatHandler } from './CombatHandler';
 import { getClientCharacterKey, getPartyIdForClient } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope } from '../core/LevelScope';
+import { LevelConfig } from '../core/LevelConfig';
 import { upsertInventoryGear } from '../utils/GearInventory';
 import { getEquippedCharmBonuses } from '../utils/CharmBonuses';
 import { getEquippedGearGoldFind } from '../utils/GearGoldBonuses';
 import { getActivePotionBonuses } from '../utils/ConsumableState';
+import { normalizeCharacterMaterials } from '../utils/MaterialInventory';
 import { PetHandler } from './PetHandler';
 
 const db = new JsonAdapter();
@@ -444,6 +446,11 @@ export class RewardHandler {
         return /Hard$/i.test(String(levelName ?? '').trim());
     }
 
+    private static isDungeonLevel(levelName: string | null | undefined): boolean {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        return LevelConfig.isDungeonLevel(normalizedLevel) || Boolean(RewardHandler.DUNGEON_REALM_MAP[normalizedLevel]);
+    }
+
     private static spawnLoot(client: Client, x: number, y: number, reward: LootReward, offsetX: number = 0, offsetY: number = 0): void {
         const lootId = ++RewardHandler.nextLootId;
         client.pendingLoot.set(lootId, reward);
@@ -544,7 +551,8 @@ export class RewardHandler {
         const ownedGearIds = RewardHandler.collectOwnedGearIds(client);
         const realm = String(entType?.Realm ?? RewardHandler.DUNGEON_REALM_MAP[client.currentLevel] ?? '');
         const itemLootAllowedByClass = RewardHandler.rewardClassAllowsItemLoot(entType);
-        const isDungeonEnemyReward = Boolean(entName) && Boolean(entType) && sourceEntity && !sourceEntity.isPlayer;
+        const isDungeonLevel = RewardHandler.isDungeonLevel(client.currentLevel);
+        const isDungeonEnemyReward = isDungeonLevel && Boolean(entName) && Boolean(entType) && sourceEntity && !sourceEntity.isPlayer;
         const entRank = String(entType?.EntRank ?? 'Minion');
         const baseMaterialChance = RewardHandler.MATERIAL_DROP_CHANCE_BY_RANK[entRank] ?? RewardHandler.MATERIAL_DROP_CHANCE_BY_RANK.Minion;
         const packetMaterialMultiplier = RewardHandler.sanitizeDropMultiplier(reward.gearMultiplier);
@@ -552,15 +560,26 @@ export class RewardHandler {
         const materialFindRate = petBonuses.craftFind + charmBonuses.craftFind + potionBonuses.craftFind;
         const itemFindRate = petBonuses.itemFind + charmBonuses.itemFind + potionBonuses.itemFind;
         const goldFindRate = petBonuses.goldFind + charmBonuses.goldFind + gearGoldFind + potionBonuses.goldFind;
-        const shouldRollMaterial = Boolean(realm) && itemLootAllowedByClass && (reward.dropMaterial || isDungeonEnemyReward);
-        const shouldRollGear = itemLootAllowedByClass && (reward.dropGear || isDungeonEnemyReward);
+        const shouldRollMaterial = isDungeonLevel && Boolean(realm) && itemLootAllowedByClass && (reward.dropMaterial || isDungeonEnemyReward);
+        const shouldRollGear = isDungeonLevel && itemLootAllowedByClass && (reward.dropGear || isDungeonEnemyReward);
         const materialChance = shouldRollMaterial
             ? RewardHandler.resolveMaterialDropChance(entType, reward)
             : 0;
         const gearChance = shouldRollGear
             ? RewardHandler.resolveGearDropChance(entType, reward)
             : 0;
-        const dyeDebug = RewardHandler.resolveDyeDropRarityDebug(client, entType);
+        const dyeDebug = isDungeonLevel
+            ? RewardHandler.resolveDyeDropRarityDebug(client, entType)
+            : {
+                eligible: false,
+                baseChance: 0,
+                finalChance: 0,
+                dropRoll: null,
+                dropped: false,
+                rarity: null,
+                rarityRoll: null,
+                rarityWeights: RewardHandler.getDyeRarityWeights(client)
+            };
 
         // Küçük Intro düşmanlar (Minion rank) ve Chains entitylerinden eşya düşmez
         const isIntroEnemy = entName.startsWith('Intro');
@@ -946,7 +965,7 @@ export class RewardHandler {
         }
 
         if (reward.material && reward.material > 0) {
-            const materials = Array.isArray(client.character.materials) ? client.character.materials : [];
+            const materials = normalizeCharacterMaterials(client.character);
             const existing = materials.find((entry: any) => Number(entry.materialID ?? 0) === reward.material);
             if (existing) {
                 existing.count = Number(existing.count ?? 0) + 1;

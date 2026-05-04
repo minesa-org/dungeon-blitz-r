@@ -1338,8 +1338,21 @@ export class CombatHandler {
         }
     }
 
-    private static async handleEnemyDefeatState(client: Client, levelScope: string, entityId: number, entity: any): Promise<void> {
+    private static async handleEnemyDefeatState(
+        client: Client,
+        levelScope: string,
+        entityId: number,
+        entity: any,
+        options: { fromDestroy?: boolean; fromKillState?: boolean } = {}
+    ): Promise<void> {
         if (!entity || entity.isPlayer || Number(entity.team ?? 0) !== EntityTeam.ENEMY) {
+            return;
+        }
+
+        if (
+            !options.fromKillState &&
+            MissionHandler.shouldWaitForEnemyKillStateMissionProgress(client, entity)
+        ) {
             return;
         }
 
@@ -1626,7 +1639,16 @@ export class CombatHandler {
         }
 
         if (destroyedEntity && !destroyedEntity.isPlayer && Number(destroyedEntity.team ?? 0) === EntityTeam.ENEMY) {
-            await CombatHandler.handleEnemyDefeatState(client, levelScope, entityId, destroyedEntity);
+            await CombatHandler.handleEnemyDefeatState(client, levelScope, entityId, destroyedEntity, { fromDestroy: true });
+        }
+
+        if (destroyedEntity && !destroyedEntity.isPlayer) {
+            const authorityToken = resolveSharedDungeonProgressAuthorityToken(levelScope);
+            const authorityClient = authorityToken > 0 ? GlobalState.sessionsByToken.get(authorityToken) : null;
+            const completionClient = authorityClient && areClientsInSameLevelScope(client, authorityClient)
+                ? authorityClient
+                : client;
+            await MissionHandler.handleForcedDungeonObjectiveCompletion(completionClient, destroyedEntity);
         }
 
         if (shouldRelayDestroy) {

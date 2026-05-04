@@ -220,6 +220,32 @@ async function testStartForgeConsumesInputsAndQueuesState(): Promise<void> {
     assert.equal(client.sentPackets.some((packetData) => packetData.id === 0x10C), true, 'starting a forge should refresh catalyst counts');
 }
 
+async function testStartForgePrunesZeroCountMaterials(): Promise<void> {
+    const client = createClient();
+    client.character.materials = [
+        { materialID: MaterialID.TrogGoblinM, count: 2 },
+        { materialID: MaterialID.InfernalAbominationR, count: 0 },
+        { materialID: MaterialID.TrogGoblinM, count: 1 }
+    ];
+
+    const packet = createStartForgePacket(
+        CharmID.Trog01,
+        [
+            { materialId: MaterialID.TrogGoblinM, count: 3 },
+            { materialId: MaterialID.InfernalAbominationR, count: 1 }
+        ],
+        [false, false, false, false]
+    );
+
+    await withMockedCharacterSave(async () =>
+        withPatchedRandom([1], async () => {
+            await ForgeHandler.handleStartForge(client as never, packet);
+        })
+    );
+
+    assert.deepEqual(client.character.materials, [], 'spent or already-empty material stacks should not remain in inventory');
+}
+
 async function testForgeSpeedupCompletesImmediatelyAndSendsResultPacket(): Promise<void> {
     const client = createClient();
     client.character.magicForge = {
@@ -379,6 +405,7 @@ async function testSyncCompletionStateFinalizesExpiredForgeRolls(): Promise<void
 
 async function main(): Promise<void> {
     await testStartForgeConsumesInputsAndQueuesState();
+    await testStartForgePrunesZeroCountMaterials();
     await testForgeSpeedupCompletesImmediatelyAndSendsResultPacket();
     await testCollectForgeCharmAwardsCharmAndCraftXp();
     await testForgeRerollPreservesTierAndUpdatesUsedlist();

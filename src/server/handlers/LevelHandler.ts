@@ -23,7 +23,7 @@ import { Config } from '../core/config';
 import { MissionLoader } from '../data/MissionLoader';
 import { NpcLoader, NpcDef } from '../data/NpcLoader';
 import { MissionID } from '../data/runtime';
-import { Entity, EntityTeam } from '../core/Entity';
+import { Entity, EntityState, EntityTeam } from '../core/Entity';
 import { Character } from '../database/Database';
 import { EntityHandler } from './EntityHandler';
 import { MissionHandler } from './MissionHandler';
@@ -3384,8 +3384,34 @@ export class LevelHandler {
         client.sendBitBuffer(0x21, pkt);
     }
 
+    private static markEnemyDefeatProcessed(client: Client, entityId: number, entity: any): void {
+        if (entity && typeof entity === 'object') {
+            entity.questDefeatProcessed = true;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        const scopedEntity = levelScope ? GlobalState.levelEntities.get(levelScope)?.get(entityId) : null;
+        if (scopedEntity && typeof scopedEntity === 'object') {
+            scopedEntity.questDefeatProcessed = true;
+        }
+
+        if (!levelScope) {
+            return;
+        }
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (getClientLevelScope(other) !== levelScope) {
+                continue;
+            }
+            const localEntity = other.entities.get(entityId);
+            if (localEntity && typeof localEntity === 'object') {
+                localEntity.questDefeatProcessed = true;
+            }
+        }
+    }
+
     // 0x07: Incremental Update (Movement)
-    static handleEntityIncrementalUpdate(client: Client, data: Buffer): void {
+    static async handleEntityIncrementalUpdate(client: Client, data: Buffer): Promise<void> {
         // data passed from Client is already the payload (header stripped)
         const br = new BitReader(data);
         const entityId = br.readMethod4();
@@ -3414,13 +3440,19 @@ export class LevelHandler {
 
         // Update Entity
         if (!client.entities) return;
-        const ent = client.entities.get(entityId);
+        const levelEntity = LevelHandler.getCurrentLevelMap(client)?.get(entityId);
+        const ent = client.entities.get(entityId) ?? levelEntity;
         if (!ent) return;
+        const isEnemyEntity =
+            !isSelf &&
+            !ent.isPlayer &&
+            Number(ent.team ?? 0) === EntityTeam.ENEMY;
 
         ent.x += deltaX;
         ent.y += deltaY;
         ent.v = Number(ent.v ?? 0) + deltaVX;
         ent.entState = entState;
+        ent.dead = entState === EntityState.DEAD ? true : Boolean(ent.dead);
         ent.facingLeft = flags.bLeft;
         ent.bRunning = flags.bRunning;
         ent.bJumping = flags.bJumping;
@@ -3430,12 +3462,12 @@ export class LevelHandler {
         ent.airborne = isAirborne;
 
         const currentLevel = client.currentLevel || "NewbieRoad";
-        const levelEntity = LevelHandler.getCurrentLevelMap(client)?.get(entityId);
         if (levelEntity && levelEntity !== ent) {
             levelEntity.x = ent.x;
             levelEntity.y = ent.y;
             levelEntity.v = ent.v;
             levelEntity.entState = entState;
+            levelEntity.dead = entState === EntityState.DEAD ? true : Boolean(levelEntity.dead);
             levelEntity.facingLeft = flags.bLeft;
             levelEntity.bRunning = flags.bRunning;
             levelEntity.bJumping = flags.bJumping;
@@ -3474,6 +3506,27 @@ export class LevelHandler {
                     }
                 );
             }
+        }
+
+        if (
+            isEnemyEntity &&
+            entState === EntityState.DEAD &&
+            MissionHandler.shouldWaitForEnemyKillStateMissionProgress(client, ent) &&
+            !Boolean(ent.questDefeatProcessed)
+        ) {
+            LevelHandler.markEnemyDefeatProcessed(client, entityId, ent);
+            await MissionHandler.handleEnemyDefeatMissionProgress(client, ent);
+
+            const levelScope = getClientLevelScope(client);
+            const ownerToken = Math.round(Number(ent.ownerToken ?? 0));
+            const authorityToken = ownerToken > 0
+                ? ownerToken
+                : (levelScope ? resolveSharedDungeonProgressAuthorityToken(levelScope) : 0);
+            const authorityClient = authorityToken > 0 ? GlobalState.sessionsByToken.get(authorityToken) : null;
+            const completionClient = authorityClient && areClientsInSameLevelScope(client, authorityClient)
+                ? authorityClient
+                : client;
+            await MissionHandler.handleForcedDungeonBossCompletion(completionClient, ent);
         }
 
         if (!client.playerSpawned || !client.currentLevel) {

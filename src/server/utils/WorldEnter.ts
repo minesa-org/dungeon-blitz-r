@@ -11,6 +11,7 @@ import { normalizeGender } from './normalizeGender';
 import { getVisibleConsumableCount } from './ConsumableState';
 import { ensureSigilStoreAlertState } from './AlertState';
 import { writeSavedKeyBindings } from './KeyBindings';
+import { normalizeCharacterMaterials } from './MaterialInventory';
 
 export class WorldEnter {
     private static readonly MASTERCLASS_TO_BUILDING: Record<number, number> = {
@@ -634,7 +635,7 @@ export class WorldEnter {
             }
             bb.writeMethod11(0, 1);
 
-            const materials = WorldEnter.asArray(character.materials);
+            const materials = normalizeCharacterMaterials(character);
             for (const rawMaterial of materials) {
                 const material = WorldEnter.asRecord(rawMaterial);
                 const count = Number(material.count ?? 1);
