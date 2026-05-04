@@ -131,8 +131,16 @@ async function withMockedRandom(values: number[], fn: () => Promise<void>): Prom
     }
 }
 
-function findLoot(client: FakeClient, key: 'gear' | 'material'): any {
+function findLoot(client: FakeClient, key: 'gear' | 'material' | 'dye'): any {
     return Array.from(client.pendingLoot.values()).find((reward) => Number(reward?.[key] ?? 0) > 0) ?? null;
+}
+
+function hasItemLoot(client: FakeClient): boolean {
+    return Array.from(client.pendingLoot.values()).some((reward) =>
+        Number(reward?.gear ?? 0) > 0 ||
+        Number(reward?.material ?? 0) > 0 ||
+        Number(reward?.dye ?? 0) > 0
+    );
 }
 
 function getMaterialRarity(materialId: number): string {
@@ -230,6 +238,35 @@ async function testPacketMultiplierAlreadyIncludesGearFind(): Promise<void> {
         null,
         'gear chance should use the packet multiplier without adding server-side find again'
     );
+}
+
+async function testMapEnemiesDoNotDropItemLoot(): Promise<void> {
+    const alpha = createFakeClient(8, 'Theta');
+    alpha.currentLevel = 'NewbieRoad';
+    GlobalState.sessionsByToken.set(alpha.token, alpha as never);
+
+    const sourceId = 9008;
+    addLevelEntity(alpha, {
+        id: sourceId,
+        name: 'GoblinBoss1',
+        isPlayer: false,
+        team: 2,
+        x: 120,
+        y: 220
+    });
+    setContributors(getClientLevelScope(alpha as never), sourceId, ['theta']);
+
+    await withMockedRandom([0.0, 0.0, 0.0, 0.0, 0.0, 0.0], async () => {
+        await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId, {
+            dropItem: true,
+            itemMultiplier: 10,
+            dropGear: true,
+            gearMultiplier: 10,
+            dropMaterial: true
+        }));
+    });
+
+    assert.equal(hasItemLoot(alpha), false, 'map enemies should not queue gear, material, or dye lootdrops');
 }
 
 async function testEnemyMaterialDropsWithoutExplicitDropFlag(): Promise<void> {
@@ -426,6 +463,11 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         GlobalState.combatContributions.clear();
         await testPacketMultiplierAlreadyIncludesGearFind();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.combatContributions.clear();
+        await testMapEnemiesDoNotDropItemLoot();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
