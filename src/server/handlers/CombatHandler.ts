@@ -1629,6 +1629,15 @@ export class CombatHandler {
             await CombatHandler.handleEnemyDefeatState(client, levelScope, entityId, destroyedEntity);
         }
 
+        if (destroyedEntity && !destroyedEntity.isPlayer) {
+            const authorityToken = resolveSharedDungeonProgressAuthorityToken(levelScope);
+            const authorityClient = authorityToken > 0 ? GlobalState.sessionsByToken.get(authorityToken) : null;
+            const completionClient = authorityClient && areClientsInSameLevelScope(client, authorityClient)
+                ? authorityClient
+                : client;
+            await MissionHandler.handleForcedDungeonObjectiveCompletion(completionClient, destroyedEntity);
+        }
+
         if (shouldRelayDestroy) {
             CombatHandler.broadcastToSameLevel(levelScope, 0x0D, data, [], client);
         } else if (shouldMirrorClientSpawnEntity) {
