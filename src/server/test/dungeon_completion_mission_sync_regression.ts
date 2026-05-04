@@ -86,6 +86,34 @@ function createFakeClient(): FakeClient {
     };
 }
 
+function createForgottenForgeClient(): FakeClient {
+    const client = createFakeClient();
+    client.currentLevel = 'OMM_Mission6';
+    client.levelInstanceId = 'forgotten-forge-flow';
+    client.forcedDungeonCompletionScope = 'OMM_Mission6#forgotten-forge-flow';
+    client.character.name = 'ForgottenForgeTester';
+    client.character.level = 17;
+    client.character.CurrentLevel = { name: 'OMM_Mission6', x: 0, y: 0 };
+    client.character.PreviousLevel = { name: 'OldMineMountain', x: 189, y: 1335 };
+    client.character.missions = {
+        [String(MissionID.DeliverToSwamp)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        [String(MissionID.AbandonedArmory)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        }
+    };
+    client.character.questTrackerState = 100;
+    client.sentPackets.length = 0;
+    return client;
+}
+
 function createLevelCompletePacket(progress: number = 100, remainingKills: number = 0, requiredKills: number = 1): Buffer {
     const bb = new BitBuffer(false);
     bb.writeMethod9(progress);
@@ -177,9 +205,49 @@ async function testDungeonCompletionSyncsReadyMissionStateImmediately(): Promise
     );
 }
 
+async function testNoContactDungeonCompletionCreatesAndCompletesMission(): Promise<void> {
+    const client = createForgottenForgeClient();
+
+    await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket(100, 0, 1));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.ForgottenForge)]?.state ?? 0),
+        3,
+        'Forgotten Forge should be marked completed even though it has no contact NPC to pre-start the mission'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.ForgottenForge)]?.currCount ?? 0),
+        1,
+        'Forgotten Forge completion should persist completed objective count'
+    );
+    assert.equal(
+        client.character.lastCompletedDungeonLevel,
+        'OMM_Mission6',
+        'Forgotten Forge should store the completed dungeon level'
+    );
+
+    const missionAdded = client.sentPackets.find((packet) => packet.id === 0x85);
+    assert.ok(missionAdded, 'auto-completed no-contact dungeons should sync the mission snapshot immediately');
+    assert.deepEqual(decodeMissionAddedPacket(missionAdded!.payload), {
+        missionId: MissionID.ForgottenForge,
+        active: 0
+    });
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x86),
+        true,
+        'Forgotten Forge should emit mission completion notification'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x84),
+        true,
+        'Forgotten Forge should emit dungeon stars and score for the map/client'
+    );
+}
+
 async function main(): Promise<void> {
     ensureDataLoaded();
     await testDungeonCompletionSyncsReadyMissionStateImmediately();
+    await testNoContactDungeonCompletionCreatesAndCompletesMission();
     console.log('dungeon_completion_mission_sync_regression: ok');
 }
 
