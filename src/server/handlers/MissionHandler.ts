@@ -1260,6 +1260,41 @@ export class MissionHandler {
             };
         }
 
+        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
+            if (MissionHandler.getMissionState(character, missionId) !== MissionHandler.MISSION_NOT_STARTED) {
+                continue;
+            }
+
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            const missionDungeon = LevelConfig.normalizeLevelName(missionDef?.Dungeon) || String(missionDef?.Dungeon ?? '').trim();
+            if (!missionDef || !missionDungeon || missionDungeon !== normalizedCurrentLevel) {
+                continue;
+            }
+
+            if (!MissionHandler.canStartMission(character, missionDef)) {
+                continue;
+            }
+
+            const nextState = MissionHandler.missionRequiresTurnIn(missionDef)
+                ? MissionHandler.MISSION_READY_TO_TURN_IN
+                : MissionHandler.MISSION_CLAIMED;
+
+            MissionHandler.setMissionState(character, missionId, nextState, missionDef, {
+                currCount: Math.max(1, Number(missionDef.CompleteCount ?? 1)),
+                Tier: completion.stars,
+                highscore: completion.score,
+                Time: completion.completedAt
+            });
+            character.lastCompletedDungeonLevel = normalizedCurrentLevel;
+            return {
+                missionId,
+                state: nextState,
+                newlyCompleted: true,
+                persistedStars: completion.stars,
+                persistedScore: completion.score
+            };
+        }
+
         return {
             missionId: 0,
             state: MissionHandler.MISSION_NOT_STARTED,
