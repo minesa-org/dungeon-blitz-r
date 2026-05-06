@@ -47,8 +47,6 @@ export class EntityHandler {
     private static readonly LEADER_AUTHORITATIVE_CLIENT_SPAWN_LEVELS = new Set<string>([
     ]);
     private static readonly PRIVATE_CLIENT_SPAWN_DUNGEON_LEVELS = new Set<string>([
-        'TutorialDungeon',
-        'TutorialDungeonHard'
     ]);
     private static readonly GOBLIN_RIVER_ROOM_SYNC_SKIP_LEVELS = new Set<string>([
         'TutorialDungeon',
@@ -62,6 +60,19 @@ export class EntityHandler {
             .trim()
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '');
+    }
+
+    private static isTutorialDungeonLocalOnlyClientSpawn(levelName: string | null | undefined, entity: any): boolean {
+        if (levelName !== 'TutorialDungeon' && levelName !== 'TutorialDungeonHard') {
+            return false;
+        }
+        if (!entity?.clientSpawned || entity?.isPlayer) {
+            return false;
+        }
+
+        const team = Number(entity?.team ?? 0);
+        const normalizedName = EntityHandler.normalizeIdentityName(entity?.name);
+        return team !== 2 || normalizedName.startsWith('introdummy');
     }
 
     private static getCraftTownTutorialAuthoredHelperIds(): Set<number> {
@@ -122,6 +133,10 @@ export class EntityHandler {
 
         if (levelName === 'CraftTownTutorial') {
             return false;
+        }
+
+        if (EntityHandler.isTutorialDungeonLocalOnlyClientSpawn(levelName, entity)) {
+            return true;
         }
 
         const team = Number(entity?.team ?? 0);
@@ -404,7 +419,14 @@ export class EntityHandler {
         client.entities.delete(duplicateId);
 
         if (canonicalId === duplicateId) {
-            // Keep the shared canonical entity alive locally without forcing a destroy/respawn cycle.
+            if (Number(entity?.team ?? 0) === 2 && (levelName === 'TutorialDungeon' || levelName === 'TutorialDungeonHard')) {
+                client.knownEntityIds.delete(duplicateId);
+                EntityHandler.sendDuplicateDestroySequence(client, duplicateId);
+                EntityHandler.resendCanonicalAfterDuplicateDestroy(client, canonical);
+                return true;
+            }
+
+            // Non-hostile same-id tutorial actors can keep the canonical id without a destroy/respawn cycle.
             client.knownEntityIds.add(canonicalId);
             return true;
         }
@@ -416,7 +438,9 @@ export class EntityHandler {
         if (client.knownEntityIds.has(canonicalId)) {
             return true;
         }
-        EntityHandler.ensureEntityKnown(client, levelName, canonicalId);
+        if (EntityHandler.canClientSeeEntity(client, canonical)) {
+            EntityHandler.sendEntity(client, canonical, { skipDuplicateWipe: true });
+        }
         
         return true;
     }
@@ -1032,6 +1056,31 @@ export class EntityHandler {
         }
     }
 
+    private static resendCanonicalAfterDuplicateDestroy(client: Client, canonicalEntity: any): void {
+        const canonicalId = Number(canonicalEntity?.id ?? 0);
+        if (canonicalId <= 0) {
+            return;
+        }
+
+        const token = client.token;
+        const levelScope = getClientLevelScope(client);
+        setTimeout(() => {
+            if (
+                client.token !== token ||
+                getClientLevelScope(client) !== levelScope ||
+                client.socket?.destroyed
+            ) {
+                return;
+            }
+
+            client.knownEntityIds.delete(canonicalId);
+            const snapshot = EntityHandler.resolveCanonicalEntity(levelScope, canonicalId) ?? canonicalEntity;
+            if (EntityHandler.canClientSeeEntity(client, snapshot)) {
+                EntityHandler.sendEntity(client, snapshot, { skipDuplicateWipe: true });
+            }
+        }, 850);
+    }
+
     private static buildEntityStateDeadPayload(entityId: number): Buffer {
         const bb = new BitBuffer(false);
         bb.writeMethod4(entityId);
@@ -1281,7 +1330,23 @@ export class EntityHandler {
     }
     
     // Server -> Client: Spawn Entity (Packet 0xF)
-    static sendEntity(client: Client, entity: EntityProps | any): void {
+    private static shouldWipeLocalDuplicateBeforeCanonicalSeed(client: Client, entity: EntityProps): boolean {
+        const levelName = client.currentLevel;
+        if (levelName !== 'TutorialDungeon' && levelName !== 'TutorialDungeonHard') {
+            return false;
+        }
+        const rawEntity = entity as any;
+        if (!rawEntity?.clientSpawned || rawEntity?.isPlayer || Number(rawEntity?.team ?? 0) !== 2) {
+            return false;
+        }
+
+        const ownerToken = Number(rawEntity?.ownerToken ?? 0);
+        return ownerToken > 0 &&
+            ownerToken !== client.token &&
+            EntityHandler.canClientUsePartySharedClientSpawnEntity(client, entity);
+    }
+
+    static sendEntity(client: Client, entity: EntityProps | any, options: { skipDuplicateWipe?: boolean } = {}): void {
         let props: EntityProps;
         
         if (entity.id && entity.entState !== undefined) {
@@ -1289,6 +1354,13 @@ export class EntityHandler {
         } else {
              // Fallback for NpcDef or other objects
              props = Entity.fromNpc(entity);
+        }
+
+        if (!options.skipDuplicateWipe && EntityHandler.shouldWipeLocalDuplicateBeforeCanonicalSeed(client, props)) {
+            client.knownEntityIds.delete(props.id);
+            EntityHandler.sendDuplicateDestroySequence(client, props.id);
+            EntityHandler.resendCanonicalAfterDuplicateDestroy(client, props);
+            return;
         }
         
         const data = Entity.serialize(props);
