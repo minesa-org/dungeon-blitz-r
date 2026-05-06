@@ -898,7 +898,7 @@ export class MissionHandler {
             return;
         }
 
-        MissionHandler.scheduleForcedDungeonCompletionIfAllowed(client, levelScope, destroyedEntity);
+        MissionHandler.scheduleForcedDungeonCompletionIfAllowed(client, currentLevel, levelScope, destroyedEntity);
     }
 
     static async handleForcedDungeonObjectiveCompletion(client: Client, destroyedEntity: any): Promise<void> {
@@ -932,10 +932,10 @@ export class MissionHandler {
             return;
         }
 
-        MissionHandler.scheduleForcedDungeonCompletionIfAllowed(client, levelScope, destroyedEntity);
+        MissionHandler.scheduleForcedDungeonCompletionIfAllowed(client, currentLevel, levelScope, destroyedEntity);
     }
 
-    private static scheduleForcedDungeonCompletionIfAllowed(client: Client, levelScope: string, triggerEntity: any): void {
+    private static scheduleForcedDungeonCompletionIfAllowed(client: Client, currentLevel: string, levelScope: string, triggerEntity: any): void {
         const authorityToken = resolveSharedDungeonProgressAuthorityToken(levelScope);
         if (authorityToken > 0 && authorityToken !== client.token) {
             return;

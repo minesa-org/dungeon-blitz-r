@@ -43,20 +43,11 @@ export class WorldEnter {
         5, 2, 3, 5, 5, 3, 2, 3, 2,
         5, 2, 3, 5, 5, 3, 2, 3, 2
     ];
+    private static readonly MAX_TALENT_NODE_ID = 42;
 
-    private static readonly TALENT_SLOT_BIT_WIDTHS: number[] = WorldEnter.TALENT_SLOT_MAX_POINTS.map((value) => {
-        let bits = 0;
-        if (value <= 2) {
-            bits = 1;
-        }
-        if (value <= 4) {
-            bits = 2;
-        }
-        if (value <= 5) {
-            bits = 3;
-        }
-        return bits;
-    });
+    private static readonly TALENT_SLOT_BIT_WIDTHS: number[] = WorldEnter.TALENT_SLOT_MAX_POINTS.map((value) =>
+        value > 0 ? 3 : 0
+    );
 
     private static readonly DEFAULT_NEWS_EVENT = {
         icon: 'a_NewsPetXPIcon',
@@ -202,15 +193,15 @@ export class WorldEnter {
             }
 
             let nodeID = Number(node.nodeID ?? index + 1);
-            if (!Number.isFinite(nodeID) || nodeID < 1 || nodeID > WorldEnter.TALENT_SLOT_MAX_POINTS.length) {
+            if (!Number.isFinite(nodeID) || nodeID < 1 || nodeID > WorldEnter.MAX_TALENT_NODE_ID) {
                 nodeID = index + 1;
             }
 
             let points = Number(node.points ?? 0);
-            const maxPoints = WorldEnter.TALENT_SLOT_MAX_POINTS[index];
             if (!Number.isFinite(points) || points < 1) {
                 points = 1;
             }
+            const maxPoints = WorldEnter.TALENT_SLOT_MAX_POINTS[index] ?? 0;
             if (points > maxPoints) {
                 points = maxPoints;
             }

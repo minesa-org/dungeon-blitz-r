@@ -94,6 +94,24 @@ function createActiveTalentPacket(entityId: number, masterClassId: number): Buff
     return bb.toBuffer();
 }
 
+function createAllocateTalentPacket(slots: Array<{ nodeID: number; points: number } | null>): Buffer {
+    const bb = new BitBuffer(false);
+
+    for (let index = 0; index < TalentConfig.NUM_TALENT_SLOTS; index += 1) {
+        const slot = slots[index] ?? null;
+        bb.writeMethod15(slot !== null);
+        if (!slot) {
+            continue;
+        }
+
+        bb.writeMethod6(slot.nodeID, 6);
+        bb.writeMethod6(slot.points - 1, TalentConfig.getSlotBitWidth(index));
+    }
+
+    bb.writeMethod15(false);
+    return bb.toBuffer();
+}
+
 function decodeCraftTownVisualData(packet: Buffer) {
     const br = new BitReader(packet);
 
@@ -172,8 +190,31 @@ async function testRespecUsesPythonNodeMapping(): Promise<void> {
     assert.equal(nodes[18].nodeID, 19);
     assert.equal(nodes[26].nodeID, 27);
     assert.equal(client.character.charms?.length ?? 0, 0);
+    assert.equal(TalentConfig.getSlotBitWidth(0), 3);
     assert.equal(TalentConfig.getSlotBitWidth(1), 3);
     assert.equal(TalentConfig.getSlotBitWidth(2), 3);
+    assert.equal(TalentConfig.getMaxPointsForSlotIndex(1), 2);
+    assert.equal(TalentConfig.getMaxPointsForSlotIndex(2), 3);
+}
+
+async function testAllocateTalentTreePreservesHighNodeTypeIdsAndClampsByStorageSlot(): Promise<void> {
+    const client = createClient();
+    const slots: Array<{ nodeID: number; points: number } | null> = new Array(TalentConfig.NUM_TALENT_SLOTS).fill(null);
+    slots[0] = { nodeID: 42, points: 5 };
+    slots[1] = { nodeID: 41, points: 5 };
+    slots[2] = { nodeID: 28, points: 3 };
+    slots[3] = { nodeID: 7, points: 1 };
+
+    await withMockedCharacterSave(async () => {
+        await TalentHandler.handleAllocateTalentTreePoints(client as never, createAllocateTalentPacket(slots));
+    });
+
+    const nodes = client.character.TalentTree?.['5']?.nodes ?? [];
+    assert.deepEqual(nodes[0], { nodeID: 42, points: 5, filled: true });
+    assert.deepEqual(nodes[1], { nodeID: 41, points: 2, filled: true });
+    assert.deepEqual(nodes[2], { nodeID: 28, points: 3, filled: true });
+    assert.deepEqual(nodes[3], { nodeID: 7, points: 1, filled: true });
+    assert.equal(nodes[4].filled, false);
 }
 
 async function testInstantResearchRequiresClaimLikePython(): Promise<void> {
@@ -382,6 +423,7 @@ function testCompletedDisciplineResearchSerializesAfterRestart(): void {
 
 async function main(): Promise<void> {
     await testRespecUsesPythonNodeMapping();
+    await testAllocateTalentTreePreservesHighNodeTypeIdsAndClampsByStorageSlot();
     await testInstantResearchRequiresClaimLikePython();
     await testTimedResearchSchedulesCompletionNotify();
     testEntityBuildsTalentsFromTalentTree();

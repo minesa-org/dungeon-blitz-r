@@ -55,6 +55,7 @@ export interface AbcParseResult {
   stringDataPositions: number[];
   multinameNames: string[];
   instances: InstanceInfo[];
+  classTraits: TraitInfo[][];
   methodBodies: Map<number, MethodBodyInfo>;
 }
 
@@ -463,13 +464,18 @@ export function parseAbc(ctx: SwfContext): AbcParseResult {
     instances.push({ classNameIdx, iinitMethodIdx, traits });
   }
 
+  const classTraits: TraitInfo[][] = [];
   for (let i = 0; i < classCount; i += 1) {
     [, pos] = readU30(data, pos, `abc.class[${i}].cinit`);
     let traitCount: number;
     [traitCount, pos] = readU30(data, pos, `abc.class[${i}].trait_count`);
+    const traits: TraitInfo[] = [];
     for (let j = 0; j < traitCount; j += 1) {
-      [, pos] = parseTrait(data, pos, `abc.class[${i}]`);
+      let trait: TraitInfo;
+      [trait, pos] = parseTrait(data, pos, `abc.class[${i}]`);
+      traits.push(trait);
     }
+    classTraits.push(traits);
   }
 
   [count, pos] = readU30(data, pos, "abc.script_count");
@@ -521,6 +527,7 @@ export function parseAbc(ctx: SwfContext): AbcParseResult {
     stringDataPositions,
     multinameNames,
     instances,
+    classTraits,
     methodBodies,
   };
 }

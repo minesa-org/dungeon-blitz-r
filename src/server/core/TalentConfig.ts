@@ -11,6 +11,7 @@ type TalentSlot = {
 
 export class TalentConfig {
     static readonly NUM_TALENT_SLOTS = 27;
+    static readonly MAX_TALENT_NODE_ID = 42;
 
     static readonly RESEARCH_DURATIONS = [
         0, 180, 7200, 14400, 21600, 37800, 54000, 70200, 86400, 108000, 129600, 150750,
@@ -43,12 +44,16 @@ export class TalentConfig {
     }
 
     static getSlotBitWidth(index: number): number {
-        const x = TalentConfig.CONST_529[index] ?? 0;
-        let width = 0;
-        if (x <= 2) width = 1;
-        if (x <= 4) width = 2;
-        if (x <= 5) width = 3;
-        return width;
+        const maxPoints = TalentConfig.CONST_529[index] ?? 0;
+        return maxPoints > 0 ? 3 : 0;
+    }
+
+    static getMaxPointsForSlotIndex(index: number): number {
+        index = Math.floor(Number(index));
+        if (!Number.isFinite(index) || index < 0 || index >= TalentConfig.NUM_TALENT_SLOTS) {
+            return 0;
+        }
+        return TalentConfig.CONST_529[index] ?? 0;
     }
 
     static buildEmptyTalentNodes(): TalentNode[] {
@@ -84,15 +89,15 @@ export class TalentConfig {
             }
 
             let nodeID = Number(node.nodeID ?? fallbackNodeId);
-            if (!Number.isFinite(nodeID) || nodeID < 1 || nodeID > TalentConfig.NUM_TALENT_SLOTS) {
+            if (!Number.isFinite(nodeID) || nodeID < 1 || nodeID > TalentConfig.MAX_TALENT_NODE_ID) {
                 nodeID = fallbackNodeId;
             }
 
             let points = Number(node.points ?? 0);
-            const maxPoints = TalentConfig.CONST_529[index] ?? 0;
             if (!Number.isFinite(points) || points < 1) {
                 points = 1;
             }
+            const maxPoints = TalentConfig.CONST_529[index] ?? 0;
             if (points > maxPoints) {
                 points = maxPoints;
             }
