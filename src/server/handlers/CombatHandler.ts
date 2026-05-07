@@ -884,7 +884,6 @@ export class CombatHandler {
         anchor: Client,
         levelScope: string,
         sourceEntity: any,
-        info: PowerHitRelayInfo,
         damage: number
     ): void {
         if (!CombatHandler.shouldSyncPrivateLocalEntityState(anchor.currentLevel, sourceEntity) || damage <= 0) {
@@ -907,13 +906,8 @@ export class CombatHandler {
                 continue;
             }
 
-            const rewrittenInfo: PowerHitRelayInfo = {
-                ...info,
-                targetId: localEntityId
-            };
             const resolution = CombatHandler.updateNpcTargetEntityAfterHit(levelScope, localEntityId, localEntity, damage);
             other.entities.set(localEntityId, localEntity);
-            other.send(0x0A, CombatHandler.buildPowerHitPayload(rewrittenInfo, resolution.appliedDamage || damage));
 
             if (resolution.killed) {
                 other.send(0x07, CombatHandler.buildEntityStatePayload(localEntityId, EntityState.DEAD, Boolean(localEntity.facingLeft)));
@@ -1631,6 +1625,70 @@ export class CombatHandler {
         return sourceSession;
     }
 
+    private static resolveForeignOwnedCombatSourceSession(
+        levelScope: string,
+        sourceId: number,
+        sourceEntity: any,
+        client: Client
+    ): Client | null {
+        if (!levelScope || sourceId <= 0) {
+            return null;
+        }
+
+        const sourcePlayerSession = CombatHandler.findPlayerSessionByEntityId(sourceId);
+        if (
+            sourcePlayerSession &&
+            sourcePlayerSession !== client &&
+            areClientsInSameLevelScope(client, sourcePlayerSession)
+        ) {
+            return sourcePlayerSession;
+        }
+
+        if (!sourceEntity || Boolean(sourceEntity.isPlayer)) {
+            return null;
+        }
+
+        const summonerId = Number(sourceEntity.summonerId ?? 0);
+        const summonerSession = summonerId > 0 ? CombatHandler.findPlayerSessionByEntityId(summonerId) : null;
+        if (
+            summonerSession &&
+            summonerSession !== client &&
+            areClientsInSameLevelScope(client, summonerSession)
+        ) {
+            return summonerSession;
+        }
+
+        const ownerToken = Number(sourceEntity.ownerToken ?? 0);
+        const ownerSession = ownerToken > 0 ? GlobalState.sessionsByToken.get(ownerToken) ?? null : null;
+        if (
+            ownerSession &&
+            ownerSession !== client &&
+            ownerSession.playerSpawned &&
+            getClientLevelScope(ownerSession) === levelScope
+        ) {
+            return ownerSession;
+        }
+
+        return null;
+    }
+
+    private static shouldEchoSharedHostileHitToAttacker(client: Client, levelName: string | null | undefined, targetEntity: any): boolean {
+        if (
+            !targetEntity ||
+            targetEntity.isPlayer ||
+            !EntityHandler.shouldMirrorClientSpawnEntityToParty(levelName, targetEntity)
+        ) {
+            return false;
+        }
+
+        const ownerToken = Number(targetEntity.ownerToken ?? 0);
+        if (ownerToken > 0) {
+            return ownerToken !== client.token;
+        }
+
+        return Number(targetEntity.ownerPartyId ?? 0) > 0;
+    }
+
     static async handlePowerCast(client: Client, data: Buffer): Promise<void> {
         if (LevelHandler.isGoblinRiverBossIntroLocked(client)) {
             return;
@@ -1640,7 +1698,18 @@ export class CombatHandler {
             return;
         }
 
-        const sourceSession = CombatHandler.resolveCombatSourceSession(getClientLevelScope(client), info.sourceId, client);
+        const levelScope = getClientLevelScope(client);
+        const sourceEntity = CombatHandler.resolveClientScopedCombatEntity(levelScope, client, info.sourceId);
+        const isHostileNpcSource = Boolean(
+            sourceEntity &&
+            !sourceEntity.isPlayer &&
+            Number(sourceEntity.team ?? 0) === EntityTeam.ENEMY
+        );
+        if (!isHostileNpcSource && CombatHandler.resolveForeignOwnedCombatSourceSession(levelScope, info.sourceId, sourceEntity, client)) {
+            return;
+        }
+
+        const sourceSession = CombatHandler.resolveCombatSourceSession(levelScope, info.sourceId, client);
         if (sourceSession) {
             noteDungeonRunCast(sourceSession, {
                 sourceId: info.sourceId,
@@ -1683,6 +1752,20 @@ export class CombatHandler {
             Number(sourceEntity.team ?? 0) === EntityTeam.ENEMY
         );
         const isPrivateLocalHostileTarget = CombatHandler.shouldSyncPrivateLocalEntityState(currentLevel, targetEntity);
+        const targetSession = CombatHandler.findPlayerSessionByEntityId(targetId);
+        if (!isHostileNpcSource && CombatHandler.resolveForeignOwnedCombatSourceSession(levelScope, sourceId, sourceEntity, client)) {
+            return;
+        }
+
+        if (
+            isHostileNpcSource &&
+            targetSession &&
+            areClientsInSameLevelScope(client, targetSession) &&
+            targetSession !== client
+        ) {
+            return;
+        }
+
         if (targetEntity && !targetEntity.isPlayer && Boolean(targetEntity.untargetable)) {
             return;
         }
@@ -1713,7 +1796,6 @@ export class CombatHandler {
         }
 
         let relayDamage = damage;
-        const targetSession = CombatHandler.findPlayerSessionByEntityId(targetId);
         if (targetSession && areClientsInSameLevelScope(client, targetSession)) {
             const preventDeath = CombatHandler.shouldPreventHostilePlayerDeath(levelScope, sourceId, targetSession);
             const resolution = CombatHandler.updatePlayerTargetAfterHit(targetSession, damage, preventDeath);
@@ -1743,7 +1825,7 @@ export class CombatHandler {
                 : CombatHandler.updateNpcTargetAfterHit(levelScope, targetId, damage);
             if (isPrivateLocalHostileTarget && resolution.entity) {
                 client.entities.set(targetId, resolution.entity);
-                CombatHandler.syncPrivateLocalEntityHit(client, levelScope, resolution.entity, info, resolution.appliedDamage || damage);
+                CombatHandler.syncPrivateLocalEntityHit(client, levelScope, resolution.entity, resolution.appliedDamage || damage);
                 if (resolution.killed) {
                     await CombatHandler.persistSharedDungeonEnemyDefeat(levelScope, targetId, resolution.entity);
                     await CombatHandler.handleEnemyDefeatState(sourceSession ?? client, levelScope, targetId, resolution.entity);
@@ -1765,6 +1847,7 @@ export class CombatHandler {
         }
 
         CombatHandler.broadcastCombatPacket(client, 0x0A, relayPayload, {
+            includeAnchor: CombatHandler.shouldEchoSharedHostileHitToAttacker(client, currentLevel, targetEntity),
             referencedEntityIds: [targetId, sourceId]
         });
     }
@@ -1924,6 +2007,16 @@ export class CombatHandler {
         const { targetId, sourceId, damage } = info;
         const levelScope = getClientLevelScope(client);
         const targetEntity = CombatHandler.resolveLevelEntity(levelScope, targetId);
+        const sourceEntity = CombatHandler.resolveClientScopedCombatEntity(levelScope, client, sourceId);
+        const isHostileNpcSource = Boolean(
+            sourceEntity &&
+            !sourceEntity.isPlayer &&
+            Number(sourceEntity.team ?? 0) === EntityTeam.ENEMY
+        );
+        if (!isHostileNpcSource && CombatHandler.resolveForeignOwnedCombatSourceSession(levelScope, sourceId, sourceEntity, client)) {
+            return;
+        }
+
         if (targetEntity && !targetEntity.isPlayer && Boolean(targetEntity.untargetable)) {
             return;
         }
@@ -1956,6 +2049,7 @@ export class CombatHandler {
         }
 
         CombatHandler.broadcastCombatPacket(client, 0x79, data, {
+            includeAnchor: CombatHandler.shouldEchoSharedHostileHitToAttacker(client, client.currentLevel, targetEntity),
             referencedEntityIds: [targetId, sourceId]
         });
     }

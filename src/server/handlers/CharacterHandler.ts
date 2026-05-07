@@ -840,7 +840,7 @@ export class CharacterHandler {
             ) ||
             char.PreviousLevel?.name ||
             "NewbieRoad";
-        const spawn = LevelConfig.getSpawnCoordinates(char, previousLevelName, currentLevelName);
+        let spawn = LevelConfig.getSpawnCoordinates(char, previousLevelName, currentLevelName);
         const isDungeonLevel = LevelConfig.isDungeonLevel(currentLevelName);
 
         // Generate Transfer Token
@@ -872,6 +872,7 @@ export class CharacterHandler {
                      syncAnchorStartedAt = other.syncAnchorStartedAt > 0 ? other.syncAnchorStartedAt : Date.now();
                      syncAnchorToken = other.syncAnchorToken > 0 ? other.syncAnchorToken : token;
                      syncAnchorCharacterName = String(other.syncAnchorCharacterName || other.character.name).trim();
+                     spawn = LevelHandler.resolveNearbyDungeonPartySpawnForClient(other, currentLevelName) ?? spawn;
                      // NOTE: Do NOT sync syncRoomId or syncStartedRoomIds here.
                      // Room progress replay causes null errors in the Flash client when
                      // it receives room event start packets before the level SWF is loaded.

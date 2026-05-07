@@ -390,6 +390,167 @@ async function testPowerHitFollowsPartyAudience(): Promise<void> {
     assert.equal(otherRoomStranger.sentPackets.some((packet) => packet.id === 0x0A), false);
 }
 
+async function testRemotePlayerPowerHitIsIgnored(): Promise<void> {
+    const owner = createFakeClient(205, 'Alpha', 1);
+    const mirror = createFakeClient(206, 'Beta', 1);
+
+    owner.currentLevel = 'GoblinRiverDungeon';
+    mirror.currentLevel = 'GoblinRiverDungeon';
+
+    attachPlayerEntity(owner);
+    attachPlayerEntity(mirror);
+
+    GlobalState.partyByMember.set('alpha', 12);
+    GlobalState.partyByMember.set('beta', 12);
+
+    const hostile = {
+        id: 5051,
+        name: 'SharedGoblin',
+        isPlayer: false,
+        x: 10,
+        y: 15,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: owner.token,
+        roomId: owner.currentRoomId,
+        hp: 100,
+        maxHp: 100
+    };
+    GlobalState.levelEntities.get(getClientLevelScope(owner as never))?.set(hostile.id, hostile);
+
+    GlobalState.sessionsByToken.set(owner.token, owner as never);
+    GlobalState.sessionsByToken.set(mirror.token, mirror as never);
+
+    await CombatHandler.handlePowerHit(mirror as never, buildPowerHitPayload(hostile.id, owner.clientEntID, 40, 77));
+
+    assert.equal(hostile.hp, 100, 'remote client should not be allowed to apply another player source hit');
+    assert.equal(owner.sentPackets.some((packet) => packet.id === 0x0A), false);
+    assert.equal(mirror.sentPackets.some((packet) => packet.id === 0x0A), false);
+
+    await CombatHandler.handlePowerHit(owner as never, buildPowerHitPayload(hostile.id, owner.clientEntID, 40, 77));
+
+    assert.equal(hostile.hp, 60, 'owning player hit should still apply once');
+    assert.equal(mirror.sentPackets.some((packet) => packet.id === 0x0A), true);
+}
+
+async function testForeignOwnedPowerHitSourceIsIgnored(): Promise<void> {
+    const creator = createFakeClient(207, 'Creator', 1);
+    const joiner = createFakeClient(208, 'Joiner', 1);
+
+    creator.currentLevel = 'GoblinRiverDungeon';
+    joiner.currentLevel = 'GoblinRiverDungeon';
+    creator.levelInstanceId = 'party-run';
+    joiner.levelInstanceId = 'party-run';
+
+    attachPlayerEntity(creator);
+    attachPlayerEntity(joiner);
+    GlobalState.partyByMember.set('creator', 19);
+    GlobalState.partyByMember.set('joiner', 19);
+
+    const creatorOwnedHelper = {
+        id: 5071,
+        name: 'MageHelper',
+        isPlayer: false,
+        x: 100,
+        y: 200,
+        v: 0,
+        team: 1,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: creator.token,
+        summonerId: creator.clientEntID,
+        roomId: creator.currentRoomId
+    };
+    const hostile = {
+        id: 5072,
+        name: 'GoblinClub',
+        isPlayer: false,
+        x: 140,
+        y: 200,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: creator.token,
+        ownerPartyId: 19,
+        roomId: creator.currentRoomId,
+        hp: 50,
+        maxHp: 50
+    };
+
+    const levelMap = GlobalState.levelEntities.get(getClientLevelScope(creator as never));
+    levelMap?.set(creatorOwnedHelper.id, creatorOwnedHelper);
+    levelMap?.set(hostile.id, hostile);
+    creator.knownEntityIds.add(creatorOwnedHelper.id);
+    creator.knownEntityIds.add(hostile.id);
+    joiner.knownEntityIds.add(creatorOwnedHelper.id);
+    joiner.knownEntityIds.add(hostile.id);
+    GlobalState.sessionsByToken.set(creator.token, creator as never);
+    GlobalState.sessionsByToken.set(joiner.token, joiner as never);
+
+    await CombatHandler.handlePowerHit(joiner as never, buildPowerHitPayload(hostile.id, creatorOwnedHelper.id, 50, 77));
+
+    assert.equal(hostile.hp, 50, 'joiner packets cannot apply damage through a creator-owned source entity');
+    assert.equal((hostile as any).dead, undefined);
+    assert.equal(creator.sentPackets.some((packet) => packet.id === 0x0A), false);
+    assert.equal(joiner.sentPackets.some((packet) => packet.id === 0x0A), false);
+}
+
+async function testPartySharedHostileHitEchoesToNonOwnerAttacker(): Promise<void> {
+    const creator = createFakeClient(209, 'Creator', 1);
+    const joiner = createFakeClient(210, 'Joiner', 1);
+
+    creator.currentLevel = 'GoblinRiverDungeon';
+    joiner.currentLevel = 'GoblinRiverDungeon';
+    creator.levelInstanceId = 'party-run';
+    joiner.levelInstanceId = 'party-run';
+
+    attachPlayerEntity(creator);
+    attachPlayerEntity(joiner);
+    GlobalState.partyByMember.set('creator', 20);
+    GlobalState.partyByMember.set('joiner', 20);
+
+    const hostile = {
+        id: 5073,
+        name: 'GoblinClub',
+        isPlayer: false,
+        x: 140,
+        y: 200,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: creator.token,
+        ownerPartyId: 20,
+        roomId: creator.currentRoomId,
+        hp: 50,
+        maxHp: 50
+    };
+
+    GlobalState.levelEntities.get(getClientLevelScope(creator as never))?.set(hostile.id, hostile);
+    creator.knownEntityIds.add(hostile.id);
+    joiner.knownEntityIds.add(hostile.id);
+    GlobalState.sessionsByToken.set(creator.token, creator as never);
+    GlobalState.sessionsByToken.set(joiner.token, joiner as never);
+
+    await CombatHandler.handlePowerHit(joiner as never, buildPowerHitPayload(hostile.id, joiner.clientEntID, 50, 77));
+
+    assert.equal(hostile.hp, 0);
+    assert.equal((hostile as any).dead, true);
+    assert.equal(
+        joiner.sentPackets.some((packet) => packet.id === 0x0A && parsePowerHitTargetId(packet.payload) === hostile.id),
+        true,
+        'non-owner attacker must receive the authoritative hit for the shared hostile it attacked'
+    );
+    assert.equal(
+        creator.sentPackets.some((packet) => packet.id === 0x0A && parsePowerHitTargetId(packet.payload) === hostile.id),
+        true,
+        'room creator still receives the shared hostile hit'
+    );
+}
+
 async function testBakedOutdoorHostileHitsStayOwnerLocal(): Promise<void> {
     const sender = createFakeClient(210, 'Alpha', 1);
     const partyOtherRoom = createFakeClient(211, 'Beta', 5);
@@ -468,6 +629,7 @@ async function testHostileHitsLeavePlayersAliveAndStayRoomScoped(): Promise<void
         team: 2,
         entState: EntityState.ACTIVE,
         clientSpawned: true,
+        ownerToken: victim.token,
         roomId: victim.currentRoomId,
         hp: 100
     };
@@ -563,6 +725,7 @@ async function testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatche
         team: 2,
         entState: EntityState.ACTIVE,
         clientSpawned: true,
+        ownerToken: victim.token,
         roomId: victim.currentRoomId,
         hp: 100
     };
@@ -594,6 +757,44 @@ async function testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatche
         false,
         'other rooms should still stay isolated from hostile combat packets'
     );
+}
+
+async function testRemoteHostileHitAgainstPlayerIsIgnored(): Promise<void> {
+    const victim = createFakeClient(330, 'VictimAuthority', 2);
+    const mirror = createFakeClient(331, 'MirrorAuthority', 2);
+
+    attachPlayerEntity(victim);
+    attachPlayerEntity(mirror);
+
+    const npc = {
+        id: 8130,
+        name: 'EnemyGoblinAuthority',
+        isPlayer: false,
+        x: 24,
+        y: 20,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: mirror.token,
+        roomId: victim.currentRoomId,
+        hp: 100
+    };
+    GlobalState.levelEntities.get(getClientLevelScope(victim as never))?.set(npc.id, npc);
+
+    GlobalState.sessionsByToken.set(victim.token, victim as never);
+    GlobalState.sessionsByToken.set(mirror.token, mirror as never);
+
+    await CombatHandler.handlePowerHit(mirror as never, buildPowerHitPayload(victim.clientEntID, npc.id, 25, 55));
+
+    assert.equal(victim.authoritativeCurrentHp, 100, 'remote hostile hit report should not damage another player');
+    assert.equal(victim.sentPackets.some((packet) => packet.id === 0x0A), false);
+    assert.equal(mirror.sentPackets.some((packet) => packet.id === 0x0A), false);
+
+    await CombatHandler.handlePowerHit(victim as never, buildPowerHitPayload(victim.clientEntID, npc.id, 25, 55));
+
+    assert.equal(victim.authoritativeCurrentHp, 75, 'victim-authored hostile hit should still apply once');
+    assert.equal(mirror.sentPackets.some((packet) => packet.id === 0x0A), true);
 }
 
 async function testEntityDestroyClearsKnownEntityCache(): Promise<void> {
@@ -795,10 +996,82 @@ async function testTutorialDungeonLocalEnemyHitUsesAttackersLocalEntityWhenIdsCo
 
     assert.equal(sender.entities.get(sharedLocalId)?.hp, 30, 'attacker local enemy should receive the hit even when the global id points at another owner');
     assert.equal(watcher.entities.get(sharedLocalId)?.hp, 30, 'party local equivalent should receive the same hit');
-    const hitPacket = watcher.sentPackets.find((packet) => packet.id === 0x0A);
-    assert.notEqual(hitPacket, undefined, 'party watcher should receive a rewritten hit for its own local enemy');
-    assert.equal(parsePowerHitTargetId(hitPacket!.payload), sharedLocalId);
-    assert.equal(parsePowerHitDamage(hitPacket!.payload), 20);
+    assert.equal(
+        watcher.sentPackets.some((packet) => packet.id === 0x0A),
+        false,
+        'party watcher already simulates the remote player power cast and should not receive a duplicate damage packet'
+    );
+}
+
+async function testTutorialDungeonLocalEnemyHitSuppressesNonPlayerSourceDamageEcho(): Promise<void> {
+    const sender = createFakeClient(437, 'Alpha', 1);
+    const roomCreator = createFakeClient(438, 'Beta', 1);
+
+    sender.currentLevel = 'TutorialDungeon';
+    roomCreator.currentLevel = 'TutorialDungeon';
+    sender.levelInstanceId = 'tutorial-shared';
+    roomCreator.levelInstanceId = 'tutorial-shared';
+
+    attachPlayerEntity(sender);
+    attachPlayerEntity(roomCreator);
+    GlobalState.partyByMember.set('alpha', 89);
+    GlobalState.partyByMember.set('beta', 89);
+
+    const helper = {
+        id: 7360,
+        name: 'ArrowProxy',
+        isPlayer: false,
+        x: 90,
+        y: 200,
+        v: 0,
+        team: 1,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: sender.token,
+        summonerId: sender.clientEntID,
+        roomId: sender.currentRoomId
+    };
+    const senderHostile = {
+        id: 7361,
+        name: 'IntroGoblinClub',
+        isPlayer: false,
+        x: 100,
+        y: 200,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: sender.token,
+        roomId: sender.currentRoomId,
+        hp: 50,
+        maxHp: 50
+    };
+    const creatorHostile = {
+        ...senderHostile,
+        id: 8361,
+        ownerToken: roomCreator.token,
+        hp: 50,
+        maxHp: 50
+    };
+
+    sender.entities.set(helper.id, helper);
+    sender.entities.set(senderHostile.id, senderHostile);
+    roomCreator.entities.set(creatorHostile.id, creatorHostile);
+    const levelMap = GlobalState.levelEntities.get(getClientLevelScope(sender as never));
+    levelMap?.set(helper.id, helper);
+    levelMap?.set(senderHostile.id, senderHostile);
+    GlobalState.sessionsByToken.set(sender.token, sender as never);
+    GlobalState.sessionsByToken.set(roomCreator.token, roomCreator as never);
+
+    await CombatHandler.handlePowerHit(sender as never, buildPowerHitPayload(senderHostile.id, helper.id, 20, 77));
+
+    assert.equal(sender.entities.get(senderHostile.id)?.hp, 30);
+    assert.equal(roomCreator.entities.get(creatorHostile.id)?.hp, 30);
+    assert.equal(
+        roomCreator.sentPackets.some((packet) => packet.id === 0x0A),
+        false,
+        'room creator should not receive a second private-local tutorial hit when the joiner hit source is a helper/projectile'
+    );
 }
 
 async function testTutorialDungeonLocalEnemyDestroySyncsToPartyEquivalent(): Promise<void> {
@@ -951,6 +1224,33 @@ async function main(): Promise<void> {
         GlobalState.entityLifeNonces.clear();
         GlobalState.entityLastRewardNonces.clear();
 
+        await testRemotePlayerPowerHitIsIgnored();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testForeignOwnedPowerHitSourceIsIgnored();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testPartySharedHostileHitEchoesToNonOwnerAttacker();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
         await testBakedOutdoorHostileHitsStayOwnerLocal();
 
         GlobalState.sessionsByToken.clear();
@@ -970,6 +1270,15 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatches();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testRemoteHostileHitAgainstPlayerIsIgnored();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
@@ -1006,6 +1315,15 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testTutorialDungeonLocalEnemyHitUsesAttackersLocalEntityWhenIdsCollide();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testTutorialDungeonLocalEnemyHitSuppressesNonPlayerSourceDamageEcho();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();

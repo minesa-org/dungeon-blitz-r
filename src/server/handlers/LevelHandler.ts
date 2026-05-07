@@ -92,6 +92,7 @@ export class LevelHandler {
     private static readonly DOORSTATE_CLOSED = 0;
     private static readonly DOORSTATE_STATIC = 1;
     private static readonly DOORSTATE_MISSIONREPEAT = 3;
+    private static readonly PARTY_DUNGEON_JOIN_OFFSET_X = 80;
     private static readonly GOBLIN_RIVER_INITIAL_PROGRESS = 11;
     private static readonly TUTORIAL_DUNGEON_INITIAL_PROGRESS = 11;
     private static readonly KEEP_TUTORIAL_HELPER_RESPAWN_DELAY_MS = 1200;
@@ -354,6 +355,37 @@ export class LevelHandler {
                 syncStartedRoomIds: startedRoomIds
             }
         };
+    }
+
+    private static resolveNearbyDungeonPartySpawn(
+        state: Pick<LevelSyncState, 'x' | 'y' | 'hasCoord'>
+    ): { x: number; y: number; hasCoord: boolean } | null {
+        if (
+            !state.hasCoord ||
+            !Number.isFinite(Number(state.x)) ||
+            !Number.isFinite(Number(state.y))
+        ) {
+            return null;
+        }
+
+        return {
+            x: Math.round(Number(state.x)) + LevelHandler.PARTY_DUNGEON_JOIN_OFFSET_X,
+            y: Math.round(Number(state.y)),
+            hasCoord: true
+        };
+    }
+
+    static resolveNearbyDungeonPartySpawnForClient(
+        session: Client,
+        targetLevel: string
+    ): { x: number; y: number; hasCoord: boolean } | null {
+        const normalizedTargetLevel = LevelConfig.normalizeLevelName(targetLevel);
+        if (!normalizedTargetLevel || !LevelConfig.isDungeonLevel(normalizedTargetLevel)) {
+            return null;
+        }
+
+        const candidate = LevelHandler.buildActiveTransferSyncAnchorCandidate(session, normalizedTargetLevel);
+        return candidate ? LevelHandler.resolveNearbyDungeonPartySpawn(candidate.state) : null;
     }
 
     private static buildPendingTransferSyncAnchorCandidate(
@@ -634,9 +666,12 @@ export class LevelHandler {
 
         if (anchor) {
             const anchorState = anchor.state;
-            if (!shouldSyncDungeonProgress && anchorState.hasCoord) {
-                x = Math.round(Number(anchorState.x ?? 0));
-                y = Math.round(Number(anchorState.y ?? 0));
+            if (anchorState.hasCoord) {
+                const anchoredSpawn = shouldSyncDungeonProgress
+                    ? LevelHandler.resolveNearbyDungeonPartySpawn(anchorState)
+                    : null;
+                x = Math.round(Number(anchoredSpawn?.x ?? anchorState.x ?? 0));
+                y = Math.round(Number(anchoredSpawn?.y ?? anchorState.y ?? 0));
                 hasCoord = true;
             }
 
@@ -663,8 +698,7 @@ export class LevelHandler {
             levelInstanceId = levelInstanceId ||
                 getReusableIncompleteDungeonSnapshotInstanceId(client.character, normalizedTargetLevel);
             syncAnchorStartedAt = syncAnchorStartedAt ?? Date.now();
-            // Dungeon start position is authored by the dungeon SWF; never force coordinates on entry.
-            hasCoord = false;
+            // Solo dungeon entries stay SWF-authored; party/social anchors preserve coordinates above.
         }
 
         if (

@@ -343,9 +343,9 @@ function testBuildTransferSyncStatePrefersPartyAnchorInDungeon(): void {
     const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'TutorialDungeon', null);
 
     assert.ok(syncState);
-    assert.equal(syncState.x, 0);
-    assert.equal(syncState.y, 0);
-    assert.equal(syncState.hasCoord, false);
+    assert.equal(syncState.x, 1857);
+    assert.equal(syncState.y, 2888);
+    assert.equal(syncState.hasCoord, true);
     assert.equal(syncState.syncAnchorToken, leader.token);
     assert.equal(syncState.syncAnchorCharacterName, 'Leader');
     assert.equal(syncState.syncAnchorStartedAt, 1111);
@@ -415,9 +415,9 @@ function testBuildTransferSyncStateUsesPendingPartyAnchorWhenLeaderStillTransfer
     const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'TutorialDungeon', null);
 
     assert.ok(syncState);
-    assert.equal(syncState.x, 0);
-    assert.equal(syncState.y, 0);
-    assert.equal(syncState.hasCoord, false);
+    assert.equal(syncState.x, 1857);
+    assert.equal(syncState.y, 2888);
+    assert.equal(syncState.hasCoord, true);
     assert.equal(syncState.levelInstanceId, 'party-run-pending');
     assert.equal(syncState.syncAnchorStartedAt, 900);
     assert.equal(syncState.syncAnchorToken, 7001);
@@ -758,6 +758,9 @@ function testBuildTransferSyncStatePrefersEarliestPartyAnchorAcrossActiveAndPend
     const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'TutorialDungeon', null);
 
     assert.ok(syncState);
+    assert.equal(syncState.x, 1580);
+    assert.equal(syncState.y, 2500);
+    assert.equal(syncState.hasCoord, true);
     assert.equal(syncState.levelInstanceId, 'party-run-early');
     assert.equal(syncState.syncAnchorStartedAt, 1000);
     assert.equal(syncState.syncAnchorToken, 7102);
@@ -1212,6 +1215,56 @@ function testEnterWorldTokenSkipsTargetLevelEntityIds(): void {
     assert.equal(GlobalState.tokenChar.get(4097)?.character, character);
 }
 
+function testEnterWorldDungeonPartyJoinSpawnsBesideActiveAnchor(): void {
+    const client = createClient();
+    client.userId = 41;
+    const character = createCharacter('Follower');
+    character.CurrentLevel = { name: 'TutorialDungeon', x: 0, y: 0 };
+    character.PreviousLevel = { name: 'NewbieRoad', x: 1421, y: 826 };
+    client.character = character;
+
+    const leader = {
+        token: 8001,
+        userId: 42,
+        character: createCharacter('Leader'),
+        characters: [],
+        entities: new Map<number, any>([[700, { x: 1234, y: 5678 }]]),
+        currentLevel: 'TutorialDungeon',
+        levelInstanceId: 'party-run-login',
+        entryLevel: 'NewbieRoad',
+        syncAnchorStartedAt: 3333,
+        syncAnchorToken: 8001,
+        syncAnchorCharacterName: 'Leader',
+        currentRoomId: 4,
+        startedRoomEvents: new Set<string>(['TutorialDungeon:4']),
+        clientEntID: 700,
+        lastDoorId: 0,
+        lastDoorTargetLevel: '',
+        playerSpawned: true
+    };
+
+    GlobalState.sessionsByToken.set(leader.token, leader as never);
+    GlobalState.partyByMember.set('follower', 88);
+    GlobalState.partyByMember.set('leader', 88);
+
+    withMockedRandom(
+        [(5000.5 / 0x10000)],
+        () => {
+            (CharacterHandler as any).sendEnterWorld(client, character);
+        }
+    );
+
+    const pendingEntry = GlobalState.pendingWorld.get(5000);
+    assert.ok(pendingEntry);
+    assert.equal(pendingEntry?.targetLevel, 'TutorialDungeon');
+    assert.equal(pendingEntry?.levelInstanceId, 'party-run-login');
+    assert.equal(pendingEntry?.newX, 1314);
+    assert.equal(pendingEntry?.newY, 5678);
+    assert.equal(pendingEntry?.newHasCoord, true);
+    assert.equal(pendingEntry?.syncAnchorToken, 8001);
+    assert.equal(pendingEntry?.syncAnchorCharacterName, 'Leader');
+}
+
 function testLevelTransferTokenSkipsTargetLevelEntityAndLivePlayerIds(): void {
     GlobalState.levelEntities.set('NewbieRoad', new Map<number, any>([
         [2701, { id: 2701, name: 'IntroGoblin', isPlayer: false, clientSpawned: true }]
@@ -1333,6 +1386,19 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
 
         testEnterWorldTokenSkipsTargetLevelEntityIds();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.sessionsByUserId.clear();
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.pendingExtended.clear();
+        GlobalState.usedTransferTokens.clear();
+        GlobalState.tokenChar.clear();
+        GlobalState.transferTokenAliases.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+
+        testEnterWorldDungeonPartyJoinSpawnsBesideActiveAnchor();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();
