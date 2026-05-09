@@ -816,25 +816,34 @@ export class CombatHandler {
         return CombatHandler.shouldMirrorClientSpawnEntityToParty(anchor.currentLevel, localEntity);
     }
 
-    private static relayPartyLocalEntityDestroy(anchor: Client, levelScope: string, entityId: number, data: Buffer): void {
+    private static relayPartyLocalEntityDefeat(anchor: Client, levelScope: string, entityId: number): void {
         if (!levelScope || entityId <= 0 || !anchor.playerSpawned) {
             return;
         }
 
         for (const other of GlobalState.sessionsByToken.values()) {
+            const localEntity = other.entities.get(entityId);
             if (
                 other === anchor ||
                 !other.playerSpawned ||
                 getClientLevelScope(other) !== levelScope ||
                 !areClientsInSameParty(anchor, other) ||
-                !CombatHandler.shouldMirrorClientSpawnEntityToParty(anchor.currentLevel, other.entities.get(entityId))
+                !CombatHandler.shouldMirrorClientSpawnEntityToParty(anchor.currentLevel, localEntity)
             ) {
                 continue;
             }
 
-            other.entities.delete(entityId);
+            localEntity.dead = true;
+            localEntity.hp = 0;
+            localEntity.entState = EntityState.DEAD;
+            const maxHp = Math.max(0, Math.round(Number(localEntity.maxHp ?? 0)));
+            if (maxHp > 0) {
+                localEntity.healthDelta = -maxHp;
+                localEntity.health_delta = -maxHp;
+            }
+            other.entities.set(entityId, localEntity);
             other.knownEntityIds.delete(entityId);
-            other.send(0x0D, data);
+            other.send(0x07, CombatHandler.buildEntityStatePayload(entityId, EntityState.DEAD, Boolean(localEntity.facingLeft)));
         }
     }
 
@@ -1654,7 +1663,7 @@ export class CombatHandler {
         if (shouldRelayDestroy) {
             CombatHandler.broadcastToSameLevel(levelScope, 0x0D, data, [], client);
         } else if (shouldMirrorClientSpawnEntity) {
-            CombatHandler.relayPartyLocalEntityDestroy(client, levelScope, entityId, data);
+            CombatHandler.relayPartyLocalEntityDefeat(client, levelScope, entityId);
         }
     }
 

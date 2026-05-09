@@ -2004,7 +2004,14 @@ export class MissionHandler {
             return true;
         }
 
-        if (MissionHandler.requiresCompletionBossDefeatForDungeon(levelName)) {
+        if (
+            MissionHandler.requiresBossDefeatForDungeon(levelName) &&
+            !MissionHandler.isRequiredDungeonBossEntity(levelName, entity)
+        ) {
+            return false;
+        }
+
+        if (MissionHandler.requiresBossAndChestCompletionForDungeon(levelName)) {
             return false;
         }
 

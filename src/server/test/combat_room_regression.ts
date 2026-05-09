@@ -152,6 +152,18 @@ function parseDestroyEntityId(payload: Buffer): number {
     return br.readMethod4();
 }
 
+function parseEntityState(payload: Buffer): { entityId: number; entState: number } {
+    const br = new BitReader(payload);
+    const entityId = br.readMethod4();
+    br.readMethod45();
+    br.readMethod45();
+    br.readMethod45();
+    return {
+        entityId,
+        entState: br.readMethod6(2)
+    };
+}
+
 function parsePowerHitDamage(payload: Buffer): number {
     const br = new BitReader(payload);
     br.readMethod4();
@@ -591,12 +603,12 @@ async function testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatche
     );
 }
 
-async function testEntityDestroyClearsKnownEntityCache(): Promise<void> {
+async function testPartySharedDungeonDestroyKeepsJoinerDeathState(): Promise<void> {
     const sender = createFakeClient(400, 'Alpha', 2);
     const watcher = createFakeClient(401, 'Beta', 2);
 
-    sender.currentLevel = 'TutorialDungeon';
-    watcher.currentLevel = 'TutorialDungeon';
+    sender.currentLevel = 'GhostBossDungeon';
+    watcher.currentLevel = 'GhostBossDungeon';
 
     attachPlayerEntity(sender);
     attachPlayerEntity(watcher);
@@ -629,8 +641,26 @@ async function testEntityDestroyClearsKnownEntityCache(): Promise<void> {
     bb.writeMethod15(false);
     await CombatHandler.handleEntityDestroy(sender as never, bb.toBuffer());
 
-    assert.equal(watcher.sentPackets.some((packet) => packet.id === 0x0D && parseDestroyEntityId(packet.payload) === hostile.id), true);
+    assert.equal(
+        watcher.sentPackets.some((packet) => packet.id === 0x0D && parseDestroyEntityId(packet.payload) === hostile.id),
+        false,
+        'party joiners should not receive immediate remove packets for shared dungeon enemy death'
+    );
+    assert.equal(
+        watcher.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            const state = parseEntityState(packet.payload);
+            return state.entityId === hostile.id && state.entState === EntityState.DEAD;
+        }),
+        true,
+        'party joiners should receive a dead state so the enemy dies locally instead of disappearing'
+    );
     assert.equal(watcher.knownEntityIds.has(hostile.id), false);
+    assert.equal(watcher.entities.has(hostile.id), true, 'joiner local enemy record should remain for the death display');
+    assert.equal(watcher.entities.get(hostile.id)?.dead, true);
+    assert.equal(watcher.entities.get(hostile.id)?.entState, EntityState.DEAD);
 }
 
 async function testOutdoorEntityDestroyStaysOwnerLocal(): Promise<void> {
@@ -811,7 +841,7 @@ async function main(): Promise<void> {
         GlobalState.entityLifeNonces.clear();
         GlobalState.entityLastRewardNonces.clear();
 
-        await testEntityDestroyClearsKnownEntityCache();
+        await testPartySharedDungeonDestroyKeepsJoinerDeathState();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
