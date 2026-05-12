@@ -552,7 +552,8 @@ async function testGoblinKidnappersAliasFullClearStillMaxesTrackedStats(): Promi
     const hostileB = {
         ...hostileA,
         id: 5312,
-        name: 'GoblinDagger'
+        name: 'GoblinBoss2',
+        entRank: 'Boss'
     };
     const chest = {
         id: 5313,
@@ -618,9 +619,15 @@ async function testGoblinKidnappersAliasFullClearStillMaxesTrackedStats(): Promi
     });
     noteDungeonRunKill(levelScope, [authority.character.name], hostileBDead.id, hostileBDead);
     noteDungeonRunChestOpened(authority as never, chest.id, chest);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [hostileA.id, hostileADead],
+        [hostileB.id, hostileBDead]
+    ]));
 
     LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
     await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 2));
+    MissionHandler.noteDungeonCutsceneEnd(authority as never, 1);
+    await sleep(0);
 
     const resultPacket = await getDungeonCompletePacket(authority);
     assert.ok(resultPacket, 'Goblin Kidnappers alias full clear should send the dungeon completion packet');

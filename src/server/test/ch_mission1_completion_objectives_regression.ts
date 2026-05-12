@@ -113,8 +113,8 @@ async function withScheduleCapture(run: (scheduledScopes: string[]) => Promise<v
     }
 }
 
-async function testWitherDungeonRequiresBossThenChest(): Promise<void> {
-    const client = createClient('CH_Mission1', 'boss-then-chest');
+async function testWitherDungeonCompletesOnBossDeath(): Promise<void> {
+    const client = createClient('CH_Mission1', 'boss-only');
     const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
     const boss = {
         id: 7101,
@@ -128,45 +128,18 @@ async function testWitherDungeonRequiresBossThenChest(): Promise<void> {
         clientSpawned: true,
         ownerToken: client.token
     };
-    const chest = {
-        id: 7102,
-        name: 'QuestTreasureChest',
-        isPlayer: false,
-        team: 0,
-        hp: 0,
-        dead: true,
-        clientSpawned: true,
-        ownerToken: client.token
-    };
 
     GlobalState.sessionsByToken.set(client.token, client as never);
     addEntity(client, boss.id, boss);
-    addEntity(client, chest.id, chest);
 
     await withScheduleCapture(async (scheduledScopes) => {
         await CombatHandler.handleEntityDestroy(client as never, createEntityDestroyPacket(boss.id));
-        assert.deepEqual(scheduledScopes, [], 'boss death alone should not complete Wither the Witch');
-
-        await CombatHandler.handleEntityDestroy(client as never, createEntityDestroyPacket(chest.id));
-        assert.deepEqual(scheduledScopes, [levelScope], 'destroying the required chest after the boss should complete the dungeon');
+        assert.deepEqual(scheduledScopes, [levelScope], 'boss death alone should complete Wither the Witch');
     });
 }
 
-async function testWitherDungeonRequiresChestThenBoss(): Promise<void> {
-    const client = createClient('CH_Mission1', 'chest-then-boss');
-    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
-    const boss = {
-        id: 7201,
-        name: 'MummyBoss',
-        isPlayer: false,
-        team: EntityTeam.ENEMY,
-        entRank: 'Boss',
-        entState: 0,
-        hp: 10,
-        dead: false,
-        clientSpawned: true,
-        ownerToken: client.token
-    };
+async function testWitherDungeonIgnoresHiddenChest(): Promise<void> {
+    const client = createClient('CH_Mission1', 'chest-ignored');
     const chest = {
         id: 7202,
         name: 'QuestTreasureChest',
@@ -179,22 +152,113 @@ async function testWitherDungeonRequiresChestThenBoss(): Promise<void> {
     };
 
     GlobalState.sessionsByToken.set(client.token, client as never);
-    addEntity(client, boss.id, boss);
     addEntity(client, chest.id, chest);
 
     await withScheduleCapture(async (scheduledScopes) => {
         await CombatHandler.handleEntityDestroy(client as never, createEntityDestroyPacket(chest.id));
-        assert.deepEqual(scheduledScopes, [], 'required chest alone should not complete Wither the Witch');
+        assert.deepEqual(scheduledScopes, [], 'hidden chest destruction should not complete Wither the Witch without the boss');
+    });
+}
 
+async function testWitherDungeonIgnoresAllChestsAfterBossDeath(): Promise<void> {
+    const client = createClient('CH_Mission1', 'boss-and-chests-ignored');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const boss = {
+        id: 7301,
+        name: 'MummyBoss',
+        isPlayer: false,
+        team: EntityTeam.ENEMY,
+        entRank: 'Boss',
+        entState: 0,
+        hp: 10,
+        dead: false,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 6
+    };
+    const hiddenChest = {
+        id: 7302,
+        name: 'QuestTreasureChest',
+        isPlayer: false,
+        team: 0,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 6
+    };
+    const normalChest = {
+        id: 7303,
+        name: 'TreasureChestEmpty',
+        isPlayer: false,
+        team: 0,
+        hp: 10,
+        dead: false,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 6
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    addEntity(client, boss.id, boss);
+    addEntity(client, hiddenChest.id, hiddenChest);
+    addEntity(client, normalChest.id, normalChest);
+
+    await withScheduleCapture(async (scheduledScopes) => {
         await CombatHandler.handleEntityDestroy(client as never, createEntityDestroyPacket(boss.id));
-        assert.deepEqual(scheduledScopes, [levelScope], 'boss death after the chest should complete the dungeon');
+        assert.deepEqual(scheduledScopes, [levelScope], 'boss death should complete Wither the Witch even when hidden and ordinary chests remain');
+
+        await CombatHandler.handleEntityDestroy(client as never, createEntityDestroyPacket(hiddenChest.id));
+        assert.deepEqual(
+            scheduledScopes,
+            [levelScope],
+            'hidden chest destruction should not schedule another Wither completion'
+        );
+    });
+}
+
+async function testWitherDungeonUsesOnlyBossKilledFlag(): Promise<void> {
+    const client = createClient('CH_Mission1', 'boss-flag-only');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const boss = {
+        id: 7401,
+        name: 'MummyBoss',
+        isPlayer: false,
+        team: EntityTeam.ENEMY,
+        entRank: 'Boss',
+        entState: 0,
+        hp: 10,
+        dead: false,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 8
+    };
+    const deadBossReport = {
+        ...boss,
+        entState: 6,
+        hp: 0,
+        dead: true
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    addEntity(client, boss.id, boss);
+
+    await withScheduleCapture(async (scheduledScopes) => {
+        await MissionHandler.handleForcedDungeonBossCompletion(client as never, deadBossReport);
+        assert.deepEqual(
+            scheduledScopes,
+            [levelScope],
+            'Wither the Witch should key only on the boss-killed flag'
+        );
     });
 }
 
 async function main(): Promise<void> {
     ensureDataLoaded();
-    await testWitherDungeonRequiresBossThenChest();
-    await testWitherDungeonRequiresChestThenBoss();
+    await testWitherDungeonCompletesOnBossDeath();
+    await testWitherDungeonIgnoresHiddenChest();
+    await testWitherDungeonIgnoresAllChestsAfterBossDeath();
+    await testWitherDungeonUsesOnlyBossKilledFlag();
     console.log('ch_mission1_completion_objectives_regression: ok');
 }
 

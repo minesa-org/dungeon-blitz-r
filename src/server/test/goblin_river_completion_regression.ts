@@ -366,67 +366,6 @@ async function testCompletionWaitsForAllBossesInBossRoom(): Promise<void> {
     );
 }
 
-async function testCompletionWaitsForBossRoomChest(): Promise<void> {
-    const client = createClient('GhostBossDungeon', MissionID.KillNephit, 'BossRoomChestCompletionTester');
-    client.levelInstanceId = 'boss-room-chest-completion';
-    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
-    const boss = {
-        id: 7392,
-        name: 'NephitLargeEye',
-        isPlayer: false,
-        team: 2,
-        entRank: 'Boss',
-        entState: 6,
-        hp: 0,
-        dead: true,
-        clientSpawned: true,
-        ownerToken: client.token,
-        roomId: 5
-    };
-    const chest = {
-        id: 7393,
-        name: 'TreasureChestEmpty',
-        isPlayer: false,
-        team: 2,
-        entState: 0,
-        hp: 100,
-        dead: false,
-        clientSpawned: true,
-        ownerToken: client.token,
-        roomId: 5
-    };
-
-    GlobalState.sessionsByToken.set(client.token, client as never);
-    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
-        [chest.id, { ...chest }]
-    ]));
-
-    await MissionHandler.handleForcedDungeonBossCompletion(client as never, boss);
-    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
-
-    assert.equal(
-        client.sentPackets.some((packet) => packet.id === 0x87),
-        false,
-        'boss death should wait for a live boss-room chest before showing completion'
-    );
-    assert.equal(
-        String((client as any).pendingDungeonCompletionScope ?? ''),
-        '',
-        'boss death should not queue completion while a boss-room chest is still alive'
-    );
-
-    const destroyedChest = { ...chest, entState: 6, hp: 0, dead: true };
-    GlobalState.levelEntities.set(levelScope, new Map<number, any>());
-    await MissionHandler.handleForcedDungeonObjectiveCompletion(client as never, destroyedChest);
-    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
-
-    assert.equal(
-        client.sentPackets.some((packet) => packet.id === 0x87),
-        true,
-        'destroying the boss-room chest after the boss should show completion'
-    );
-}
-
 async function testAnyDungeonBossKillAfterIntroCutsceneWaitsForPostDeathCutsceneEnd(): Promise<void> {
     const client = createClient('GhostBossDungeon', MissionID.KillNephit, 'GenericCutsceneEndedBossTester');
     const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
@@ -731,7 +670,7 @@ async function testGoblinRiverBossKillForcesDungeonCompleteScreen(): Promise<voi
         'client level-complete packets should stay queued until the cutscene end signal'
     );
 
-    await sleep(Math.max(25, MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS - 250));
+    await sleep(25);
 
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x87),
@@ -748,7 +687,7 @@ async function testGoblinRiverBossKillForcesDungeonCompleteScreen(): Promise<voi
         'recent skit activity should keep the completion screen settled after the cutscene end signal'
     );
 
-    await sleep(350);
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 50);
 
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x87),
@@ -1029,10 +968,6 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
         await testCompletionWaitsForAllBossesInBossRoom();
-        GlobalState.sessionsByToken.clear();
-        GlobalState.levelEntities.clear();
-        GlobalState.levelQuestProgress.clear();
-        await testCompletionWaitsForBossRoomChest();
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();

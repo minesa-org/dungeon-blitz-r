@@ -95,10 +95,7 @@ export class MissionHandler {
         SRN_Mission4: new Set(['WyrmGreat']),
         SRN_Mission4Hard: new Set(['WyrmGreatHard'])
     };
-    private static readonly DUNGEONS_REQUIRING_BOSS_AND_CHEST = new Set([
-        'CH_Mission1',
-        'CH_Mission1Hard'
-    ]);
+    private static readonly DUNGEONS_REQUIRING_BOSS_AND_CHEST = new Set<string>();
     private static readonly REQUIRED_DUNGEON_CHEST_NAMES_BY_LEVEL: Record<string, ReadonlySet<string>> = {
         CH_Mission1: new Set(['QuestTreasureChest']),
         CH_Mission1Hard: new Set(['QuestTreasureChest'])
@@ -917,19 +914,11 @@ export class MissionHandler {
             return;
         }
 
-        const isRequiredChest = MissionHandler.isRequiredDungeonChestEntity(currentLevel, destroyedEntity);
-        const bossRoomId = MissionHandler.getCompletionBossRoomId(levelScope);
-        const isBossRoomChest =
-            bossRoomId > 0 &&
-            MissionHandler.getEntityRoomId(destroyedEntity) === bossRoomId &&
-            MissionHandler.isDungeonCompletionChestEntity(destroyedEntity);
-        if (!isRequiredChest && !isBossRoomChest) {
+        if (!MissionHandler.isRequiredDungeonChestEntity(currentLevel, destroyedEntity)) {
             return;
         }
 
-        if (isRequiredChest) {
-            MissionHandler.markRequiredDungeonChestDestroyed(levelScope);
-        }
+        MissionHandler.markRequiredDungeonChestDestroyed(levelScope);
         if (!MissionHandler.hasMetRequiredDungeonCompletionObjectives(client, currentLevel, levelScope)) {
             return;
         }
@@ -2079,8 +2068,7 @@ export class MissionHandler {
             return bossNames.has(String(entity?.name ?? '').trim());
         }
 
-        return MissionHandler.requiresBossAndChestCompletionForDungeon(normalizedLevel) &&
-            MissionHandler.isDungeonCompletionBossEntity(entity);
+        return MissionHandler.isDungeonCompletionBossEntity(entity);
     }
 
     private static isRequiredDungeonChestEntity(levelName: string | null | undefined, entity: any): boolean {
@@ -2123,6 +2111,14 @@ export class MissionHandler {
         const progress = MissionHandler.getDungeonCompletionObjectiveProgress(levelScope);
         progress.bossDefeated = true;
 
+        const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
+        const scopedEntity = entityId > 0 ? GlobalState.levelEntities.get(levelScope)?.get(entityId) : null;
+        if (scopedEntity && typeof scopedEntity === 'object') {
+            scopedEntity.dead = true;
+            scopedEntity.hp = 0;
+            scopedEntity.entState = EntityState.DEAD;
+        }
+
         const roomId = MissionHandler.getEntityRoomId(entity);
         if (roomId > 0) {
             progress.bossRoomId = roomId;
@@ -2145,14 +2141,11 @@ export class MissionHandler {
     ): boolean {
         if (!MissionHandler.requiresBossAndChestCompletionForDungeon(levelName)) {
             return MissionHandler.hasDefeatedDungeonBoss(client, levelScope) &&
-                !MissionHandler.hasAliveRequiredDungeonBossInCompletionRoom(levelScope, levelName) &&
-                !MissionHandler.hasAliveBossRoomCompletionChest(levelScope);
+                !MissionHandler.hasAliveRequiredDungeonBossInCompletionRoom(levelScope, levelName);
         }
 
         return MissionHandler.hasDefeatedDungeonBoss(client, levelScope) &&
-            MissionHandler.hasRequiredDungeonChestDestroyed(levelScope) &&
-            !MissionHandler.hasAliveRequiredDungeonBossInCompletionRoom(levelScope, levelName) &&
-            !MissionHandler.hasAliveBossRoomCompletionChest(levelScope);
+            MissionHandler.hasRequiredDungeonChestDestroyed(levelScope);
     }
 
     private static isCraftTownTutorialBossEntity(entity: any): boolean {
@@ -2190,15 +2183,6 @@ export class MissionHandler {
     private static getEntityRoomId(entity: any): number {
         const roomId = Number(entity?.roomId ?? entity?.RoomID ?? entity?.room_id ?? 0);
         return Number.isFinite(roomId) && roomId > 0 ? Math.round(roomId) : 0;
-    }
-
-    private static isDungeonCompletionChestEntity(entity: any): boolean {
-        const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
-        const entType = entityName ? GameData.getEntType(entityName) ?? {} : {};
-        const behavior = String(entity?.Behavior ?? entity?.behavior ?? entType?.Behavior ?? entType?.behavior ?? '').trim();
-        return behavior === 'Chest' ||
-            behavior === 'TreasureChest' ||
-            /(?:^|treasure|quest)chest/i.test(entityName);
     }
 
     private static isAliveDungeonCompletionObjective(entity: any): boolean {
@@ -2254,31 +2238,6 @@ export class MissionHandler {
                 if (bossRoomId <= 0 || entityRoomId <= 0 || entityRoomId === bossRoomId) {
                     return true;
                 }
-            }
-        }
-
-        return false;
-    }
-
-    private static hasAliveBossRoomCompletionChest(levelScope: string | null | undefined): boolean {
-        const scopeKey = String(levelScope ?? '').trim();
-        const bossRoomId = MissionHandler.getCompletionBossRoomId(scopeKey);
-        if (!scopeKey || bossRoomId <= 0) {
-            return false;
-        }
-
-        const levelMap = GlobalState.levelEntities.get(scopeKey);
-        if (!levelMap?.size) {
-            return false;
-        }
-
-        for (const entity of levelMap.values()) {
-            if (
-                MissionHandler.getEntityRoomId(entity) === bossRoomId &&
-                MissionHandler.isDungeonCompletionChestEntity(entity) &&
-                MissionHandler.isAliveDungeonCompletionObjective(entity)
-            ) {
-                return true;
             }
         }
 
