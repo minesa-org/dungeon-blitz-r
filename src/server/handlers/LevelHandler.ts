@@ -3628,6 +3628,11 @@ export class LevelHandler {
             await MissionHandler.handleForcedDungeonBossCompletion(completionClient, ent);
         }
 
+        if (isSelf && entState === EntityState.DEAD) {
+            const { CombatHandler } = require('./CombatHandler') as typeof import('./CombatHandler');
+            CombatHandler.notePlayerDeathState(client);
+        }
+
         if (!client.playerSpawned || !client.currentLevel) {
             return;
         }

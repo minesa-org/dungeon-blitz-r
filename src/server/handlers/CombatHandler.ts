@@ -716,6 +716,30 @@ export class CombatHandler {
         CombatHandler.processOutOfCombatRegen(levelScope, nowMs);
     }
 
+    static notePlayerDeathState(client: Client, nowMs: number = Date.now()): void {
+        if (!client.character || client.clientEntID <= 0) {
+            return;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        const entity = client.entities.get(client.clientEntID);
+        if (entity && typeof entity === 'object') {
+            entity.dead = true;
+            entity.entState = EntityState.DEAD;
+            entity.hp = 0;
+        }
+
+        const levelEntity = CombatHandler.resolveLevelEntity(levelScope, client.clientEntID);
+        if (levelEntity && typeof levelEntity === 'object') {
+            levelEntity.dead = true;
+            levelEntity.entState = EntityState.DEAD;
+            levelEntity.hp = 0;
+        }
+
+        client.authoritativeCurrentHp = 0;
+        CombatHandler.armBossRegenForPlayerDeath(client, nowMs);
+    }
+
     private static clearEnemyDeathRegenArm(client: Client): void {
         client.enemyDeathRegenArmed = false;
     }
@@ -1675,7 +1699,7 @@ export class CombatHandler {
             noteDungeonRunDeath(client);
             client.processedRewardSources.clear();
             CombatHandler.clearLevelEnemyRewardTrackingForRespawn(client);
-            CombatHandler.armBossRegenForPlayerDeath(client);
+            CombatHandler.notePlayerDeathState(client);
         }
 
         const healAmount = CombatHandler.getRespawnHealAmount(client);

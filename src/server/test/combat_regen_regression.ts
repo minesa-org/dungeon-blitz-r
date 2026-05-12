@@ -4,6 +4,7 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { CombatHandler } from '../handlers/CombatHandler';
 import { CommandHandler } from '../handlers/CommandHandler';
+import { LevelHandler } from '../handlers/LevelHandler';
 import { Entity, EntityState } from '../core/Entity';
 import { getClientLevelScope } from '../core/LevelScope';
 import { AILogic } from '../core/AILogic';
@@ -114,6 +115,22 @@ function attachPlayerEntity(session: FakeClient): void {
         GlobalState.levelEntities.set(levelScope, levelMap);
     }
     levelMap.set(session.clientEntID, entity);
+}
+
+function buildIncrementalStatePayload(entityId: number, entState: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(entityId);
+    bb.writeMethod45(0);
+    bb.writeMethod45(0);
+    bb.writeMethod45(0);
+    bb.writeMethod6(entState, 2);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    return bb.toBuffer();
 }
 
 function parseRegenPacket(payload: Buffer): { entityId: number; amount: number } {
@@ -425,6 +442,88 @@ function testDeadPlayerArmsBossRegenImmediately(): void {
     assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }]);
 }
 
+async function testClientDeadStateArmsBossRegenImmediately(): Promise<void> {
+    resetState();
+
+    const player = createFakeClient(10, 'Kappa', 21);
+    attachPlayerEntity(player);
+
+    const bossId = 900010;
+    const boss = {
+        id: bossId,
+        name: 'YoungDragonDream',
+        isPlayer: false,
+        clientSpawned: true,
+        team: 2,
+        roomId: player.currentRoomId,
+        entState: EntityState.ACTIVE,
+        dead: false,
+        hp: 400,
+        maxHp: 1000,
+        lastCombatActivityAt: 0,
+        lastCombatRegenTickAt: 0
+    };
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(bossId, boss);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        player as never,
+        buildIncrementalStatePayload(player.clientEntID, EntityState.DEAD)
+    );
+
+    assert.equal(boss.hp, 410, 'client-reported player death should immediately arm boss regen');
+    assert.equal(player.enemyDeathRegenArmed, true, 'client-reported player death should keep boss regen armed until respawn');
+
+    const bossRegenPackets = player.sentPackets
+        .filter((packet) => packet.id === 0x3B)
+        .map((packet) => parseRegenPacket(packet.payload))
+        .filter((packet) => packet.entityId === bossId);
+    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }]);
+}
+
+async function testRespawnRequestMarksDeadBeforeArmingBossRegen(): Promise<void> {
+    resetState();
+
+    const player = createFakeClient(11, 'Lambda', 23);
+    attachPlayerEntity(player);
+
+    const bossId = 900011;
+    const boss = {
+        id: bossId,
+        name: 'YoungDragonDream',
+        isPlayer: false,
+        clientSpawned: true,
+        team: 2,
+        roomId: player.currentRoomId,
+        entState: EntityState.ACTIVE,
+        dead: false,
+        hp: 400,
+        maxHp: 1000,
+        lastCombatActivityAt: 0,
+        lastCombatRegenTickAt: 0
+    };
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(bossId, boss);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    const request = new BitBuffer(false);
+    request.writeMethod15(false);
+    await CombatHandler.handleRequestRespawn(player as never, request.toBuffer());
+
+    assert.equal(boss.hp, 410, 'respawn request should mark the player dead before arming boss regen');
+    assert.equal(player.authoritativeCurrentHp, 0, 'respawn request should record the death before sending the revive prompt');
+    assert.equal(player.enemyDeathRegenArmed, true, 'respawn request should arm boss regen until the revive broadcast arrives');
+
+    const bossRegenPackets = player.sentPackets
+        .filter((packet) => packet.id === 0x3B)
+        .map((packet) => parseRegenPacket(packet.payload))
+        .filter((packet) => packet.entityId === bossId);
+    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }]);
+}
+
 async function testRespawnDoesNotFullHealBoss(): Promise<void> {
     resetState();
 
@@ -475,6 +574,8 @@ async function run(): Promise<void> {
     testDirtyCombatStatsBlockRegenUntilFreshSync();
     testIdleWindowBlocksRegen();
     testDeadPlayerArmsBossRegenImmediately();
+    await testClientDeadStateArmsBossRegenImmediately();
+    await testRespawnRequestMarksDeadBeforeArmingBossRegen();
     await testRespawnDoesNotFullHealBoss();
     console.log('combat_regen_regression: ok');
 }

@@ -34608,9 +34608,9 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkStrength1</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkStrength1,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack.</Description>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
 		<CastAnimSource>L:Ground</CastAnimSource>
@@ -34639,10 +34639,10 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkStrength1</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkStrength1,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
 		<BasePowerName>DeathMark</BasePowerName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack.</Description>
 		<UpgradeDescription>10% Attack Debuff, Applies Curse</UpgradeDescription>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
@@ -34672,10 +34672,10 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkArmor1,DeathMarkStrength1</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkArmor1,DeathMarkStrength1,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
 		<BasePowerName>DeathMark</BasePowerName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack and Defense.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack and Defense.</Description>
 		<UpgradeDescription>5% Defense Debuff</UpgradeDescription>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
@@ -34705,10 +34705,10 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkArmor1,DeathMarkStrength2</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkArmor1,DeathMarkStrength2,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
 		<BasePowerName>DeathMark</BasePowerName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack and Defense.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack and Defense.</Description>
 		<UpgradeDescription>15% Attack Debuff</UpgradeDescription>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
@@ -34738,10 +34738,10 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkArmor2,DeathMarkStrength2</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkArmor2,DeathMarkStrength2,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
 		<BasePowerName>DeathMark</BasePowerName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack and Defense.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack and Defense.</Description>
 		<UpgradeDescription>8% Defense Debuff</UpgradeDescription>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
@@ -34771,10 +34771,10 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkArmor2,DeathMarkStrength3</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkArmor2,DeathMarkStrength3,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
 		<BasePowerName>DeathMark</BasePowerName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack and Defense.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack and Defense.</Description>
 		<UpgradeDescription>20% Attack Debuff</UpgradeDescription>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
@@ -34804,10 +34804,10 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkArmor3,DeathMarkStrength3</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkArmor3,DeathMarkStrength3,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
 		<BasePowerName>DeathMark</BasePowerName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack and Defense.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack and Defense.</Description>
 		<UpgradeDescription>10% Defense Debuff</UpgradeDescription>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
@@ -34837,10 +34837,10 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkArmor3,DeathMarkStrength4</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkArmor3,DeathMarkStrength4,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
 		<BasePowerName>DeathMark</BasePowerName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack and Defense.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack and Defense.</Description>
 		<UpgradeDescription>25% Attack Debuff</UpgradeDescription>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
@@ -34870,10 +34870,10 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkArmor4,DeathMarkStrength4</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkArmor4,DeathMarkStrength4,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
 		<BasePowerName>DeathMark</BasePowerName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack and Defense.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack and Defense.</Description>
 		<UpgradeDescription>12% Defense Debuff</UpgradeDescription>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
@@ -34903,10 +34903,10 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkArmor4,DeathMarkStrength5</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkArmor4,DeathMarkStrength5,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
 		<BasePowerName>DeathMark</BasePowerName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack and Defense.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack and Defense.</Description>
 		<UpgradeDescription>30% Attack Debuff</UpgradeDescription>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
@@ -34936,10 +34936,10 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Dark</DamageType>
 		<PowerGroup>DeathMark</PowerGroup>
-		<AddTargetBuff>Cursed,DeathMarkArmor5,DeathMarkStrength6</AddTargetBuff>
+		<AddTargetBuff>Cursed,DeathMarkArmor5,DeathMarkStrength6,PoisonCloud,DeathMarkUndeadVulnerability</AddTargetBuff>
 		<DisplayName>Death Mark</DisplayName>
 		<BasePowerName>DeathMark</BasePowerName>
-		<Description>Creates a ward. Enemies within are Cursed and have reduced Attack and Defense.</Description>
+		<Description>Creates a ward. Enemies within are Cursed, are Poisoned, take more damage from Undead minions, and have reduced Attack and Defense.</Description>
 		<UpgradeDescription>35% Attack Debuff, 15% Defense Debuff</UpgradeDescription>
 		<IconName>a_PowerIcon_DeathWard</IconName>
 		<CastSound>CHR_Necromancer_DeathMark_Cast</CastSound>
@@ -34957,7 +34957,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp">
 		<PowerID>5600</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -34970,7 +34970,7 @@
 		<PowerGroup>SpectralGrasp</PowerGroup>
 		<AddTargetBuff>Cursed,ArmorBane,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
-		<Description>Ranged attack that applies Curse and Armor Bane</Description>
+		<Description>Area attack that applies Curse and Armor Bane</Description>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -34992,7 +34992,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp1">
 		<PowerID>5601</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -35006,7 +35006,7 @@
 		<AddTargetBuff>Cursed,ArmorBane,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
 		<BasePowerName>SpectralGrasp</BasePowerName>
-		<Description>Ranged attack that applies Curse and Armor Bane</Description>
+		<Description>Area attack that applies Curse and Armor Bane</Description>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -35028,7 +35028,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp2">
 		<PowerID>5602</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -35042,7 +35042,7 @@
 		<AddTargetBuff>Cursed,ArmorBane,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
 		<BasePowerName>SpectralGrasp</BasePowerName>
-		<Description>Ranged attack that applies Curse and Armor Bane</Description>
+		<Description>Area attack that applies Curse and Armor Bane</Description>
 		<UpgradeDescription>Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>
@@ -35065,7 +35065,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp3">
 		<PowerID>5603</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -35079,7 +35079,7 @@
 		<AddTargetBuff>Cursed,ArmorBane,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
 		<BasePowerName>SpectralGrasp</BasePowerName>
-		<Description>Ranged attack that applies Curse and Armor Bane</Description>
+		<Description>Area attack that applies Curse and Armor Bane</Description>
 		<UpgradeDescription>Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>
@@ -35102,7 +35102,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp4">
 		<PowerID>5604</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -35116,8 +35116,8 @@
 		<AddTargetBuff>Cursed,ArmorBane,Weakened,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
 		<BasePowerName>SpectralGrasp</BasePowerName>
-		<Description>Ranged attack that applies Curse, Armor Bane, and Weaken</Description>
-		<UpgradeDescription>Adds Weaken. Increased Damage #olddmg#</UpgradeDescription>
+		<Description>Area attack that applies Curse, Armor Bane, and Weaken</Description>
+		<UpgradeDescription>Adds Weaken. Area damage. Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -35139,7 +35139,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp5">
 		<PowerID>5605</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -35153,7 +35153,7 @@
 		<AddTargetBuff>Cursed,ArmorBane,Weakened,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
 		<BasePowerName>SpectralGrasp</BasePowerName>
-		<Description>Ranged attack that applies Curse, Armor Bane, and Weaken</Description>
+		<Description>Area attack that applies Curse, Armor Bane, and Weaken</Description>
 		<UpgradeDescription>Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>
@@ -35176,7 +35176,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp6">
 		<PowerID>5606</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -35190,7 +35190,7 @@
 		<AddTargetBuff>Cursed,ArmorBane,Weakened,PoisonCloud,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
 		<BasePowerName>SpectralGrasp</BasePowerName>
-		<Description>Ranged attack that applies Curse, Armor Bane, Weaken, and Poison</Description>
+		<Description>Area attack that applies Curse, Armor Bane, Weaken, and Poison</Description>
 		<UpgradeDescription>Adds Poison</UpgradeDescription>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>
@@ -35213,7 +35213,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp7">
 		<PowerID>5607</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -35227,7 +35227,7 @@
 		<AddTargetBuff>Cursed,ArmorBane,Weakened,PoisonCloud,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
 		<BasePowerName>SpectralGrasp</BasePowerName>
-		<Description>Ranged attack that applies Curse, Armor Bane, Weaken, and Poison</Description>
+		<Description>Area attack that applies Curse, Armor Bane, Weaken, and Poison</Description>
 		<UpgradeDescription>Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>
@@ -35250,7 +35250,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp8">
 		<PowerID>5608</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -35264,7 +35264,7 @@
 		<AddTargetBuff>Cursed,ArmorBane,Weakened,Weakened,PoisonCloud,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
 		<BasePowerName>SpectralGrasp</BasePowerName>
-		<Description>Ranged attack that applies Curse, Armor Bane, Weaken, and Poison</Description>
+		<Description>Area attack that applies Curse, Armor Bane, Weaken, and Poison</Description>
 		<UpgradeDescription>Adds an extra stack of Weaken.</UpgradeDescription>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>
@@ -35287,7 +35287,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp9">
 		<PowerID>5609</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -35301,7 +35301,7 @@
 		<AddTargetBuff>Cursed,ArmorBane,Weakened,Weakened,PoisonCloud,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
 		<BasePowerName>SpectralGrasp</BasePowerName>
-		<Description>Ranged attack that applies Curse, Armor Bane, Weaken, and Poison</Description>
+		<Description>Area attack that applies Curse, Armor Bane, Weaken, and Poison</Description>
 		<UpgradeDescription>Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>
@@ -35324,7 +35324,7 @@
 	</Power>
 	<Power PowerName="SpectralGrasp10">
 		<PowerID>5610</PowerID>
-		<TargetMethod>RangedStrike</TargetMethod>
+		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
 		<AoERadius>120</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
@@ -35338,7 +35338,7 @@
 		<AddTargetBuff>Cursed,ArmorBane,ArmorBane,Weakened,Weakened,PoisonCloud,VineLance</AddTargetBuff>
 		<DisplayName>Spectral Grasp</DisplayName>
 		<BasePowerName>SpectralGrasp</BasePowerName>
-		<Description>Ranged attack that applies Curse, Armor Bane, Weaken, and Poison</Description>
+		<Description>Area attack that applies Curse, Armor Bane, Weaken, and Poison</Description>
 		<UpgradeDescription>Adds an extra stack of Armor Bane. Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_LichShot2</IconName>
 		<CastSound>CHR_Necromancer_SpectralGrab_A[275]CHR_Necromancer_SpectralGrab_B</CastSound>

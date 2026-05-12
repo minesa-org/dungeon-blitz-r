@@ -5463,6 +5463,21 @@
 			<AnimClass>a_SpiritBondBuffPlayer</AnimClass>
 		</GfxType>
 	</BuffType>
+	<BuffType BuffName="DeathMarkUndeadVulnerability">
+		<BuffID>737</BuffID>
+		<Attack>true</Attack>
+		<Duration>500</Duration>
+		<MagicDefense>-0.2</MagicDefense>
+		<MeleeDefense>-0.2</MeleeDefense>
+		<KingdomOnly>Undead</KingdomOnly>
+		<BuffLoc>Head</BuffLoc>
+		<BuffIcon>a_StatusIcon_DefenseDown</BuffIcon>
+		<GfxType>
+			<AnimScale>0.5</AnimScale>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_Debuff_Armor</AnimClass>
+		</GfxType>
+	</BuffType>
 	<BuffType BuffName="PlagueBattalion">
 		<BuffID>719</BuffID>
 		<Attack>false</Attack>
