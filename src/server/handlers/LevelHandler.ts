@@ -772,6 +772,7 @@ export class LevelHandler {
         bb.writeMethod4(entityId);
         bb.writeMethod6(dialogueId, 3);
         bb.writeMethod4(missionId);
+        MissionHandler.noteDungeonSkitActivity(client);
         client.sendBitBuffer(0x7B, bb);
     }
 
@@ -1012,6 +1013,7 @@ export class LevelHandler {
             if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
+            MissionHandler.noteDungeonSkitActivity(other);
             other.send(0x76, payload);
         }
     }

@@ -165,6 +165,16 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function getDungeonCompletePacket(client: FakeClient): Promise<SentPacket | undefined> {
+    const existing = client.sentPackets.find((packet) => packet.id === 0x87);
+    if (existing) {
+        return existing;
+    }
+
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+    return client.sentPackets.find((packet) => packet.id === 0x87);
+}
+
 function assertDungeonCompleteMatchesTracker(client: FakeClient, payload: Buffer): void {
     const result = parseDungeonComplete(payload);
     const summary = client.dungeonRun?.finalizedStats?.scoreSummary;
@@ -309,6 +319,9 @@ async function testGoblinRiverLevelCompleteWaitsForSharedProgressCompletion(): P
 
     LevelHandler.refreshSharedDungeonQuestProgress('GoblinRiverDungeon#goblin-shared');
     await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket());
+    if (!authority.sentPackets.some((packet) => packet.id === 0x87)) {
+        await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+    }
 
     assert.equal(
         authority.sentPackets.some((packet) => packet.id === 0x87),
@@ -378,8 +391,11 @@ async function testGoblinRiverFinalPacketUsesTrackerSummaryWithoutFallbackStats(
     if (!authority.sentPackets.some((packet) => packet.id === 0x87)) {
         await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 1));
     }
+    if (!authority.sentPackets.some((packet) => packet.id === 0x87)) {
+        await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+    }
 
-    const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
+    const resultPacket = await getDungeonCompletePacket(authority);
     assert.ok(resultPacket, 'shared-progress dungeon completion should still send 0x87');
     assertDungeonCompleteMatchesTracker(authority, resultPacket!.payload);
 
@@ -413,7 +429,8 @@ async function testGoblinRiverFullClearMaxesTrackedStats(
     const hostileB = {
         ...hostileA,
         id: 5302,
-        name: 'GoblinDagger'
+        name: levelName.endsWith('Hard') ? 'GoblinBoss2Hard' : 'GoblinBoss2',
+        entRank: 'Boss'
     };
     const chest = {
         id: 5303,
@@ -486,11 +503,17 @@ async function testGoblinRiverFullClearMaxesTrackedStats(
     });
     noteDungeonRunKill(levelScope, [authority.character.name], hostileBDead.id, hostileBDead);
     noteDungeonRunChestOpened(authority as never, chest.id, chest);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [hostileA.id, hostileADead],
+        [hostileB.id, hostileBDead]
+    ]));
 
     LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
     await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(packetProgress, 0, 2));
+    MissionHandler.noteDungeonCutsceneEnd(authority as never, 1);
+    await sleep(0);
 
-    const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
+    const resultPacket = await getDungeonCompletePacket(authority);
     assert.ok(resultPacket, `${levelName} should send the dungeon completion packet`);
     assertDungeonCompleteMatchesTracker(authority, resultPacket!.payload);
 
@@ -599,7 +622,7 @@ async function testGoblinKidnappersAliasFullClearStillMaxesTrackedStats(): Promi
     LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
     await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 2));
 
-    const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
+    const resultPacket = await getDungeonCompletePacket(authority);
     assert.ok(resultPacket, 'Goblin Kidnappers alias full clear should send the dungeon completion packet');
     assertDungeonCompleteMatchesTracker(authority, resultPacket!.payload);
 
@@ -669,7 +692,7 @@ async function testGoblinRiverFullClearMissClickStillMaxesAccuracy(): Promise<vo
     LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
     await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 1));
 
-    const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
+    const resultPacket = await getDungeonCompletePacket(authority);
     assert.ok(resultPacket, 'Goblin River miss-click scenario should complete');
     const result = parseDungeonComplete(resultPacket!.payload);
     const unlockedCap = authority.dungeonRun.finalizedStats!.scoreSummary.unlockedCap;
@@ -734,7 +757,7 @@ async function testGoblinRiverBossIntroLockSuppressesFalseMiss(): Promise<void> 
     LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
     await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 1));
 
-    const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
+    const resultPacket = await getDungeonCompletePacket(authority);
     assert.ok(resultPacket, 'Goblin River boss intro lock scenario should complete');
     const result = parseDungeonComplete(resultPacket!.payload);
     const unlockedCap = authority.dungeonRun.finalizedStats!.scoreSummary.unlockedCap;
@@ -787,7 +810,7 @@ async function testGoblinRiverCompletionProgressFullClearOverridesIncompleteObse
 
     await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(100, 0, 2));
 
-    const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
+    const resultPacket = await getDungeonCompletePacket(authority);
     assert.ok(resultPacket, 'completion-progress-driven Wolf\'s End full clear should send 0x87');
     const result = parseDungeonComplete(resultPacket!.payload);
     const unlockedCap = authority.dungeonRun.finalizedStats!.scoreSummary.unlockedCap;
@@ -835,7 +858,7 @@ async function testGoblinRiverAutoCompletesWhenSharedProgressReachesFullClear():
     LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
     await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
 
-    const resultPacket = authority.sentPackets.find((packet) => packet.id === 0x87);
+    const resultPacket = await getDungeonCompletePacket(authority);
     assert.ok(resultPacket, 'Goblin River should auto-send the completion packet when shared progress reaches 100%');
     assert.equal(Number(authority.character.missions['271']?.state ?? 0), 2, 'Goblin River should promote the active dungeon mission to ready-to-turn-in');
 }

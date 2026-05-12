@@ -149,6 +149,27 @@ function buildLevelCompletePayload(completionPercent: number = 100): Buffer {
     return bb.toBuffer();
 }
 
+async function testClientReportedCompletionBeforeBossDefeatIsIgnored(): Promise<void> {
+    const client = createClient('GhostBossDungeon', MissionID.KillNephit, 'EarlyClientCompletionTester');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>());
+
+    await MissionHandler.handleSetLevelComplete(client as never, buildLevelCompletePayload());
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'client-reported completion should not show dungeon stats before the dungeon boss is defeated'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.KillNephit)]?.state ?? 0),
+        1,
+        'client-reported completion should not complete the mission before Nephit is defeated'
+    );
+}
+
 async function testGoblinRiverBossKillAfterIntroCutsceneWaitsForPostDeathCutsceneEnd(): Promise<void> {
     const client = createClient('GoblinRiverDungeon', MissionID.GoblinRiver, 'CutsceneEndedBossTester');
     const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
@@ -240,6 +261,169 @@ async function testBossKillWithoutObservedCutsceneStartWaitsForCutsceneEnd(): Pr
         client.sentPackets.some((packet) => packet.id === 0x87),
         true,
         'boss death should show dungeon completion when the cutscene end signal arrives'
+    );
+}
+
+async function testMismatchedCutsceneEndReleasesPendingBossCompletion(): Promise<void> {
+    const client = createClient('GoblinRiverDungeon', MissionID.GoblinRiver, 'MismatchedCutsceneEndTester');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const boss = {
+        id: 6382,
+        name: 'GoblinBoss2',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 6,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 1
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>());
+
+    MissionHandler.noteDungeonCutsceneStart(client as never, 1);
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, boss);
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 2);
+    await sleep(0);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        true,
+        'same-scope cutscene end should release pending boss completion even when the room id differs'
+    );
+}
+
+async function testCompletionWaitsForAllBossesInBossRoom(): Promise<void> {
+    const client = createClient('GhostBossDungeon', MissionID.KillNephit, 'TwinBossCompletionTester');
+    client.levelInstanceId = 'twin-boss-completion';
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const firstBoss = {
+        id: 7382,
+        name: 'NephitLargeEye',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 6,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 4
+    };
+    const secondBoss = {
+        id: 7383,
+        name: 'NephitLargeEye',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 0,
+        hp: 100,
+        dead: false,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 4
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [secondBoss.id, { ...secondBoss }]
+    ]));
+
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, firstBoss);
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'defeating one boss should not complete a room that still has another live final boss'
+    );
+    assert.equal(
+        String((client as any).pendingDungeonCompletionScope ?? ''),
+        '',
+        'one boss death should not even queue completion while another final boss is alive'
+    );
+
+    const secondBossDead = { ...secondBoss, entState: 6, hp: 0, dead: true };
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>());
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, secondBossDead);
+
+    assert.equal(
+        Boolean((client as any).pendingDungeonCompletionWaitForCutsceneEnd ?? false),
+        true,
+        'the final boss death should queue completion behind the boss cutscene gate'
+    );
+
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 4);
+    await sleep(0);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        true,
+        'completion should show after all final bosses are defeated and the cutscene ends'
+    );
+}
+
+async function testCompletionWaitsForBossRoomChest(): Promise<void> {
+    const client = createClient('GhostBossDungeon', MissionID.KillNephit, 'BossRoomChestCompletionTester');
+    client.levelInstanceId = 'boss-room-chest-completion';
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const boss = {
+        id: 7392,
+        name: 'NephitLargeEye',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 6,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 5
+    };
+    const chest = {
+        id: 7393,
+        name: 'TreasureChestEmpty',
+        isPlayer: false,
+        team: 2,
+        entState: 0,
+        hp: 100,
+        dead: false,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 5
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [chest.id, { ...chest }]
+    ]));
+
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, boss);
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'boss death should wait for a live boss-room chest before showing completion'
+    );
+    assert.equal(
+        String((client as any).pendingDungeonCompletionScope ?? ''),
+        '',
+        'boss death should not queue completion while a boss-room chest is still alive'
+    );
+
+    const destroyedChest = { ...chest, entState: 6, hp: 0, dead: true };
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>());
+    await MissionHandler.handleForcedDungeonObjectiveCompletion(client as never, destroyedChest);
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        true,
+        'destroying the boss-room chest after the boss should show completion'
     );
 }
 
@@ -384,6 +568,109 @@ async function testClientLevelCompleteAfterBossDeathWaitsForCutsceneEnd(): Promi
     );
 }
 
+async function testClientLevelCompleteDuringBossDialogueBeforeBossDeathIsIgnored(): Promise<void> {
+    const client = createClient('DreamDragonDungeon', MissionID.SlayTheDragon, 'EarlyDialogueCompleteTester');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const boss = {
+        id: 7562,
+        name: 'YoungDragonDream',
+        isPlayer: false,
+        team: 2,
+        entState: 0,
+        hp: 100,
+        dead: false,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 1
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [boss.id, boss]
+    ]));
+
+    MissionHandler.noteDungeonCutsceneStart(client as never, 1);
+    await MissionHandler.handleSetLevelComplete(client as never, buildLevelCompletePayload());
+
+    assert.equal(
+        String((client as any).pendingDungeonCompletionScope ?? ''),
+        '',
+        'client level-complete packets during boss dialogue should not queue completion before the boss dies'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'client level-complete packets during boss dialogue should not show dungeon completion before the boss dies'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SlayTheDragon)]?.state ?? 0),
+        1,
+        "The Dragon's Dream should remain in progress while the boss is still alive"
+    );
+
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 1);
+    await sleep(0);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'ending the dialogue should not flush an unvalidated dungeon completion'
+    );
+}
+
+async function testDuplicateClientCompletionDoesNotBypassPendingSettleOrRepeatScreen(): Promise<void> {
+    const client = createClient('EG_Mission1', MissionID.TheAshenDryad, 'DuplicateCompleteTester');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const boss = {
+        id: 8701,
+        name: 'AshenDryadHero',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 6,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 1
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [boss.id, boss]
+    ]));
+
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, boss);
+    await MissionHandler.handleSetLevelComplete(client as never, buildLevelCompletePayload());
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'a duplicate client level-complete packet should not clear the pending settle gate'
+    );
+    assert.equal(
+        String((client as any).pendingDungeonCompletionScope ?? ''),
+        levelScope,
+        'the pending server-authorized completion should remain queued after a duplicate client packet'
+    );
+
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+
+    assert.equal(
+        client.sentPackets.filter((packet) => packet.id === 0x87).length,
+        1,
+        'the pending dungeon completion should show exactly one stats screen after the settle gate'
+    );
+
+    await MissionHandler.handleSetLevelComplete(client as never, buildLevelCompletePayload());
+
+    assert.equal(
+        client.sentPackets.filter((packet) => packet.id === 0x87).length,
+        1,
+        'later duplicate client level-complete packets should not show the dungeon completion screen again'
+    );
+}
+
 async function testGoblinRiverBossKillForcesDungeonCompleteScreen(): Promise<void> {
     const client = createClient('GoblinRiverDungeon', MissionID.GoblinRiver, 'GoblinBossTester');
     const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
@@ -454,6 +741,14 @@ async function testGoblinRiverBossKillForcesDungeonCompleteScreen(): Promise<voi
 
     MissionHandler.noteDungeonCutsceneEnd(client as never, 1);
     await sleep(0);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'recent skit activity should keep the completion screen settled after the cutscene end signal'
+    );
+
+    await sleep(350);
 
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x87),
@@ -717,11 +1012,27 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
+        await testClientReportedCompletionBeforeBossDefeatIsIgnored();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
         await testGoblinRiverBossKillAfterIntroCutsceneWaitsForPostDeathCutsceneEnd();
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
         await testBossKillWithoutObservedCutsceneStartWaitsForCutsceneEnd();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testMismatchedCutsceneEndReleasesPendingBossCompletion();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testCompletionWaitsForAllBossesInBossRoom();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testCompletionWaitsForBossRoomChest();
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
@@ -734,6 +1045,14 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
         await testClientLevelCompleteAfterBossDeathWaitsForCutsceneEnd();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testClientLevelCompleteDuringBossDialogueBeforeBossDeathIsIgnored();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testDuplicateClientCompletionDoesNotBypassPendingSettleOrRepeatScreen();
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();

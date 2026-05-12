@@ -181,6 +181,9 @@ export class Client {
     public goblinRiverBossIntroLockUntil: number = 0;
     public goblinRiverBossIntroUnlockTimer: NodeJS.Timeout | null = null;
     public forcedDungeonCompletionScope: string = "";
+    public finalizingDungeonCompletionScope: string = "";
+    public completedDungeonCompletionScope: string = "";
+    public completedDungeonCompletionSentAt: number = 0;
     public pendingDungeonCompletionScope: string = "";
     public pendingDungeonCompletionRequestedAt: number = 0;
     public pendingDungeonCompletionLastSkitAt: number = 0;
@@ -362,6 +365,9 @@ export class Client {
         }
         this.goblinRiverBossIntroLockUntil = 0;
         this.forcedDungeonCompletionScope = "";
+        this.finalizingDungeonCompletionScope = "";
+        this.completedDungeonCompletionScope = "";
+        this.completedDungeonCompletionSentAt = 0;
         this.pendingDungeonCompletionScope = "";
         this.pendingDungeonCompletionRequestedAt = 0;
         this.pendingDungeonCompletionLastSkitAt = 0;

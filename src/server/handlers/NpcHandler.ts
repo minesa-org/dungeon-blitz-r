@@ -542,6 +542,7 @@ export class NpcHandler {
         bb.writeMethod4(npcId);
         bb.writeMethod6(dialogueId, 3);
         bb.writeMethod4(missionId);
+        MissionHandler.noteDungeonSkitActivity(client);
         client.sendBitBuffer(0x7B, bb);
     }
 
@@ -562,6 +563,7 @@ export class NpcHandler {
         const bb = new BitBuffer();
         bb.writeMethod4(npcId);
         bb.writeMethod13(text);
+        MissionHandler.noteDungeonSkitActivity(client);
         client.sendBitBuffer(0x76, bb);
     }
 

@@ -9,6 +9,7 @@ import { GameData } from '../core/GameData';
 import { LevelConfig } from '../core/LevelConfig';
 import { PetHandler } from './PetHandler';
 import { BuildingHandler } from './BuildingHandler';
+import { MissionHandler } from './MissionHandler';
 import { noteDungeonRunBossCutscene, noteDungeonRunEntitySeen } from '../core/DungeonRunStats';
 import { areClientsInSameParty, getPartyIdForClient, isClientPartyLeader, sharesRoomIds } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope, getLevelScopeKey } from '../core/LevelScope';
@@ -820,6 +821,7 @@ export class EntityHandler {
         bb.writeMethod4(entityId);
         bb.writeMethod6(dialogueId, 3);
         bb.writeMethod4(missionId);
+        MissionHandler.noteDungeonSkitActivity(client);
         client.sendBitBuffer(0x7B, bb);
     }
 

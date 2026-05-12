@@ -46,6 +46,7 @@ type FakeClient = {
     pendingLoot: Map<number, any>;
     processedRewardSources: Set<string>;
     sentPackets: SentPacket[];
+    send: (id: number, payload: Buffer) => void;
     dungeonRun: any;
     sendBitBuffer: (id: number, bb: BitBuffer) => void;
 };
@@ -65,6 +66,10 @@ function ensureGameDataLoaded(): void {
     if (NpcLoader.getRawNpcsForLevel('TutorialDungeon').length === 0) {
         NpcLoader.load(dataDir);
     }
+}
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function createFakeClient(): FakeClient {
@@ -95,6 +100,9 @@ function createFakeClient(): FakeClient {
         processedRewardSources: new Set<string>(),
         sentPackets,
         dungeonRun: null,
+        send(id: number, payload: Buffer) {
+            sentPackets.push({ id, payload: Buffer.from(payload) });
+        },
         sendBitBuffer(id: number, bb: BitBuffer) {
             sentPackets.push({ id, payload: bb.toBuffer() });
         }
@@ -283,6 +291,13 @@ function getExpectedTimeBonus(levelName: string, bossRun: boolean, cap: number, 
 
 async function finalizeAndReadResult(client: FakeClient): Promise<ReturnType<typeof decodeDungeonCompletePacket>> {
     await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket());
+    if (!client.sentPackets.some((packet) => packet.id === 0x87) && (client as any).pendingDungeonCompletionWaitForCutsceneEnd) {
+        MissionHandler.noteDungeonCutsceneEnd(client as never, client.currentRoomId);
+        await sleep(0);
+    }
+    if (!client.sentPackets.some((packet) => packet.id === 0x87)) {
+        await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+    }
     const resultPacket = client.sentPackets.find((packet) => packet.id === 0x87);
     assert.ok(resultPacket, 'dungeon completion should send 0x87');
     return decodeDungeonCompletePacket(resultPacket!.payload);
@@ -298,6 +313,13 @@ async function finalizeAndReadResultWithPacket(
         client as never,
         createLevelCompletePacket(completionPercent, remainingKills, requiredKills)
     );
+    if (!client.sentPackets.some((packet) => packet.id === 0x87) && (client as any).pendingDungeonCompletionWaitForCutsceneEnd) {
+        MissionHandler.noteDungeonCutsceneEnd(client as never, client.currentRoomId);
+        await sleep(0);
+    }
+    if (!client.sentPackets.some((packet) => packet.id === 0x87)) {
+        await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+    }
     const resultPacket = client.sentPackets.find((packet) => packet.id === 0x87);
     assert.ok(resultPacket, 'dungeon completion should send 0x87');
     return decodeDungeonCompletePacket(resultPacket!.payload);
