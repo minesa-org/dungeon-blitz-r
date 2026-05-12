@@ -3195,6 +3195,9 @@ export class LevelHandler {
         LevelHandler.markRoomEventStarted(client, roomId);
 
         LevelHandler.relayToLevel(client, 0xA5, data);
+        for (const other of LevelHandler.forLevelRecipients(client, true)) {
+            MissionHandler.noteDungeonCutsceneStart(other, roomId);
+        }
     }
 
     static handleRoomInfoUpdate(client: Client, data: Buffer): void {

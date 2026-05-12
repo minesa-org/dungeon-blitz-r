@@ -8,6 +8,7 @@ import { NpcLoader } from '../data/NpcLoader';
 import { MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
 import { CombatHandler } from '../handlers/CombatHandler';
+import { LevelHandler } from '../handlers/LevelHandler';
 import { MissionHandler } from '../handlers/MissionHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 
@@ -32,6 +33,7 @@ type FakeClient = {
     lastDungeonCutsceneStartAt?: number;
     lastDungeonCutsceneEndScope?: string;
     lastDungeonCutsceneEndAt?: number;
+    startedRoomEvents: Set<string>;
     knownEntityIds: Set<number>;
     character: {
         name: string;
@@ -53,16 +55,17 @@ type FakeClient = {
 
 function ensureDataLoaded(): void {
     const dataDir = path.resolve(__dirname, '../data');
-    if (!LevelConfig.has('GoblinRiverDungeon') || !LevelConfig.has('GhostBossDungeon') || !LevelConfig.has('DreamDragonDungeon')) {
+    if (!LevelConfig.has('GoblinRiverDungeon') || !LevelConfig.has('GhostBossDungeon') || !LevelConfig.has('DreamDragonDungeon') || !LevelConfig.has('SRN_Mission4')) {
         LevelConfig.load(dataDir);
     }
-    if (!GameData.getEntType('GoblinBoss2') || !GameData.getEntType('NephitLargeEye') || !GameData.getEntType('YoungDragonDream')) {
+    if (!GameData.getEntType('GoblinBoss2') || !GameData.getEntType('NephitLargeEye') || !GameData.getEntType('YoungDragonDream') || !GameData.getEntType('WyrmGreat')) {
         GameData.load(dataDir);
     }
     if (
         !MissionLoader.getMissionDef(MissionID.GoblinRiver) ||
         !MissionLoader.getMissionDef(MissionID.KillNephit) ||
-        !MissionLoader.getMissionDef(MissionID.SlayTheDragon)
+        !MissionLoader.getMissionDef(MissionID.SlayTheDragon) ||
+        !MissionLoader.getMissionDef(MissionID.SlayOoyak)
     ) {
         MissionLoader.load(dataDir);
     }
@@ -105,6 +108,7 @@ function createClient(levelName: string, missionId: MissionID, characterName: st
         lastDungeonCutsceneStartAt: 0,
         lastDungeonCutsceneEndScope: '',
         lastDungeonCutsceneEndAt: 0,
+        startedRoomEvents: new Set<string>(),
         knownEntityIds: new Set<number>(),
         character,
         characters: [character],
@@ -146,6 +150,19 @@ function buildLevelCompletePayload(completionPercent: number = 100): Buffer {
     bb.writeMethod9(0);
     bb.writeMethod9(1);
     bb.writeMethod9(0);
+    return bb.toBuffer();
+}
+
+function buildRoomEventStartPayload(roomId: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod9(roomId);
+    bb.writeMethod15(false);
+    return bb.toBuffer();
+}
+
+function buildRoomClosePayload(roomId: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod9(roomId);
     return bb.toBuffer();
 }
 
@@ -261,6 +278,62 @@ async function testBossKillWithoutObservedCutsceneStartWaitsForCutsceneEnd(): Pr
         client.sentPackets.some((packet) => packet.id === 0x87),
         true,
         'boss death should show dungeon completion when the cutscene end signal arrives'
+    );
+}
+
+async function testClientRoomEventStartHoldsPendingBossCompletionUntilCutsceneEnds(): Promise<void> {
+    const client = createClient('SRN_Mission4', MissionID.SlayOoyak, 'RoomEventCutsceneTester');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const boss = {
+        id: 6362,
+        name: 'WyrmGreat',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 6,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 1
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [boss.id, boss]
+    ]));
+
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, boss);
+
+    assert.equal(
+        client.pendingDungeonCompletionWaitForCutsceneEnd,
+        false,
+        'non-hardcoded boss dungeons should use the normal settle gate until a cutscene start is observed'
+    );
+
+    LevelHandler.handleRoomEventStart(client as never, buildRoomEventStartPayload(1));
+
+    assert.equal(
+        client.activeDungeonCutsceneScope,
+        levelScope,
+        'client-reported room event starts should mark the dungeon cutscene as active'
+    );
+
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'pending boss completion should not show while a client-reported cutscene is active'
+    );
+
+    LevelHandler.handleRoomClose(client as never, buildRoomClosePayload(1));
+    await sleep(0);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        true,
+        'pending boss completion should show after the client-reported cutscene ends'
     );
 }
 
@@ -960,6 +1033,10 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
         await testBossKillWithoutObservedCutsceneStartWaitsForCutsceneEnd();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testClientRoomEventStartHoldsPendingBossCompletionUntilCutsceneEnds();
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();

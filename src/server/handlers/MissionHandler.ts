@@ -192,6 +192,10 @@ export class MissionHandler {
         [MissionID.GetHobgoblinNoserings]: new Set(['BlackGoblinBrute']),
         [MissionID.GetHobgoblinNoseringsHard]: new Set(['BlackGoblinBruteHard'])
     };
+    private static readonly SETTLE_THE_DEAD_MISSION_IDS = new Set([
+        MissionID.SettleTheDead,
+        MissionID.SettleTheDeadHard
+    ]);
     private static readonly COLLECTIBLE_KILL_PROGRESS_RULES: readonly CollectibleKillProgressRule[] = [
         {
             progressText: 'Devourer Tooth',
@@ -444,14 +448,7 @@ export class MissionHandler {
                 continue;
             }
 
-            const targetNames = MissionHandler.KILL_PROGRESS_TARGETS[missionId];
-            const activeTargetNames = MissionHandler.getMissionActiveTargetNames(missionDef);
-            const matchesKillTarget = Boolean(
-                targetNames && defeatedNames.some((name) => targetNames.has(name))
-            );
-            const matchesActiveTarget = activeTargetNames.some((name) => defeatedNames.includes(name));
-            const matchesCollectibleTarget = MissionHandler.matchesCollectibleKillProgress(missionDef, defeatedNames);
-            if (matchesKillTarget || matchesActiveTarget || matchesCollectibleTarget) {
+            if (MissionHandler.matchesEnemyKillProgress(missionId, missionDef, defeatedNames, currentLevel)) {
                 return true;
             }
         }
@@ -494,14 +491,7 @@ export class MissionHandler {
                 continue;
             }
 
-            const targetNames = MissionHandler.KILL_PROGRESS_TARGETS[missionId];
-            const activeTargetNames = MissionHandler.getMissionActiveTargetNames(missionDef);
-            const matchesKillTarget = Boolean(
-                targetNames && defeatedNames.some((name) => targetNames.has(name))
-            );
-            const matchesActiveTarget = activeTargetNames.some((name) => defeatedNames.includes(name));
-            const matchesCollectibleTarget = MissionHandler.matchesCollectibleKillProgress(missionDef, defeatedNames);
-            if (!matchesKillTarget && !matchesActiveTarget && !matchesCollectibleTarget) {
+            if (!MissionHandler.matchesEnemyKillProgress(missionId, missionDef, defeatedNames, currentLevel)) {
                 continue;
             }
 
@@ -774,7 +764,8 @@ export class MissionHandler {
                     missionUpdate.newlyCompleted &&
                     completedMissionId !== MissionID.DefendTheShip &&
                     completedMissionId !== MissionID.ClearYourHouse &&
-                    completedMissionDef
+                    completedMissionDef &&
+                    missionUpdate.state >= MissionHandler.MISSION_CLAIMED
                 ) {
                     MissionHandler.sendMissionCompleteUi(
                         client,
@@ -1934,6 +1925,59 @@ export class MissionHandler {
             .split(',')
             .map((entry) => entry.trim())
             .filter(Boolean);
+    }
+
+    private static matchesEnemyKillProgress(
+        missionId: number,
+        missionDef: MissionDef,
+        defeatedNames: string[],
+        currentLevel: string
+    ): boolean {
+        const targetNames = MissionHandler.KILL_PROGRESS_TARGETS[missionId];
+        if (targetNames && defeatedNames.some((name) => targetNames.has(name))) {
+            return true;
+        }
+
+        const activeTargetNames = MissionHandler.getMissionActiveTargetNames(missionDef);
+        if (activeTargetNames.some((name) => defeatedNames.includes(name))) {
+            return true;
+        }
+
+        if (MissionHandler.matchesCollectibleKillProgress(missionDef, defeatedNames)) {
+            return true;
+        }
+
+        return MissionHandler.matchesSettleTheDeadKillProgress(missionId, defeatedNames, currentLevel);
+    }
+
+    private static matchesSettleTheDeadKillProgress(
+        missionId: number,
+        defeatedNames: string[],
+        currentLevel: string
+    ): boolean {
+        if (
+            !MissionHandler.SETTLE_THE_DEAD_MISSION_IDS.has(missionId) ||
+            !MissionHandler.isCemeteryHillLevel(currentLevel)
+        ) {
+            return false;
+        }
+
+        return defeatedNames.some((name) => {
+            const entType = GameData.getEntType(name);
+            return (
+                String(entType?.Kingdom ?? '').trim() === 'Undead' &&
+                String(entType?.Realm ?? '').trim() !== 'Wisp'
+            );
+        });
+    }
+
+    private static isCemeteryHillLevel(currentLevel: string): boolean {
+        const normalized = String(currentLevel ?? '').trim();
+        return (
+            normalized === 'CemeteryHill' ||
+            normalized === 'CemeteryHillHard' ||
+            normalized.startsWith('CH_')
+        );
     }
 
     private static matchesCollectibleKillProgress(missionDef: MissionDef, defeatedNames: string[]): boolean {

@@ -114,6 +114,32 @@ function createForgottenForgeClient(): FakeClient {
     return client;
 }
 
+function createLordTillyRestClient(): FakeClient {
+    const client = createFakeClient();
+    client.currentLevel = 'CH_Mission4';
+    client.levelInstanceId = 'lord-tilly-rest-flow';
+    client.forcedDungeonCompletionScope = 'CH_Mission4#lord-tilly-rest-flow';
+    client.character.name = 'LordTillyRestTester';
+    client.character.level = 12;
+    client.character.CurrentLevel = { name: 'CH_Mission4', x: 0, y: 0 };
+    client.character.PreviousLevel = { name: 'CemeteryHill', x: 7469, y: 385 };
+    client.character.missions = {
+        [String(MissionID.JackalTreasure)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        [String(MissionID.MissingPappy)]: {
+            state: 1,
+            currCount: 0
+        }
+    };
+    client.character.questTrackerState = 100;
+    client.sentPackets.length = 0;
+    return client;
+}
+
 function createLevelCompletePacket(progress: number = 100, remainingKills: number = 0, requiredKills: number = 1): Buffer {
     const bb = new BitBuffer(false);
     bb.writeMethod9(progress);
@@ -174,19 +200,10 @@ async function testDungeonCompletionSyncsReadyMissionStateImmediately(): Promise
         true,
         'dungeon completion should still emit the mission-complete packet'
     );
-    const missionCompleteUi = client.sentPackets.find((packet) => packet.id === 0x84);
-    assert.ok(
-        missionCompleteUi,
-        'dungeon completion should immediately push the completed dungeon stars and score for map hover state'
-    );
-    assert.deepEqual(
-        decodeMissionCompleteUiPacket(missionCompleteUi!.payload),
-        {
-            missionId: MissionID.SlayTheDragon,
-            stars: 10,
-            score: Number(client.character.missions[String(MissionID.SlayTheDragon)]?.highscore ?? 0)
-        },
-        'mission-complete UI sync should carry the same stars and score stored on the completed dungeon mission'
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x84),
+        false,
+        'dungeon completion should not show the reward UI for missions that still require an NPC turn-in'
     );
     assert.equal(
         client.character.questTrackerState,
@@ -202,6 +219,33 @@ async function testDungeonCompletionSyncsReadyMissionStateImmediately(): Promise
         client.sentPackets.some((packet) => packet.id === 0xB7),
         true,
         'even low incoming progress should be overridden so the client shows the dungeon as finished immediately'
+    );
+}
+
+async function testLordTillyRestWaitsForNpcRewardClaim(): Promise<void> {
+    const client = createLordTillyRestClient();
+
+    await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket(100, 0, 1));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.MissingPappy)]?.state ?? 0),
+        2,
+        "Lord Tilly's Rest should become ready to turn in after dungeon completion"
+    );
+    assert.equal(
+        client.character.missions[String(MissionID.MissingPappy)]?.claimed,
+        undefined,
+        "Lord Tilly's Rest should not be marked claimed before talking to the return NPC"
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x86),
+        true,
+        "Lord Tilly's Rest should still emit the mission-complete notification"
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x84),
+        false,
+        "Lord Tilly's Rest should not open the reward UI until the return NPC turn-in"
     );
 }
 
@@ -247,6 +291,7 @@ async function testNoContactDungeonCompletionCreatesAndCompletesMission(): Promi
 async function main(): Promise<void> {
     ensureDataLoaded();
     await testDungeonCompletionSyncsReadyMissionStateImmediately();
+    await testLordTillyRestWaitsForNpcRewardClaim();
     await testNoContactDungeonCompletionCreatesAndCompletesMission();
     console.log('dungeon_completion_mission_sync_regression: ok');
 }

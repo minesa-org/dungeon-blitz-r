@@ -923,6 +923,125 @@ async function testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce():
     );
 }
 
+async function testSettleTheDeadProgressesOnCemeteryHillUndeadKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.SettleTheDead)]: {
+            state: 1,
+            currCount: 14
+        }
+    }, 'CemeteryHill');
+
+    await destroyEnemy(client, 8601, 'Mummy');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SettleTheDead)]?.currCount ?? 0),
+        15,
+        'Settle the Dead should count Cemetery Hill undead kills'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SettleTheDead)]?.state ?? 0),
+        2,
+        'Settle the Dead should become ready to turn in after enough undead kills'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [{ missionId: MissionID.SettleTheDead, progress: 1 }],
+        'Settle the Dead should emit additive progress packets for undead kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.SettleTheDead,
+        'Settle the Dead should notify the client when the objective is complete'
+    );
+}
+
+async function testSettleTheDeadHardProgressesOnCemeteryHillDungeonUndeadKillState(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.SettleTheDeadHard)]: {
+            state: 1,
+            currCount: 29
+        }
+    }, 'CH_MiniMission7Hard');
+    client.levelInstanceId = 'settle-the-dead-hard-dungeon';
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    const levelScope = getClientLevelScope(client as never);
+    const hostile = {
+        id: 8602,
+        name: 'InfusedSkeletonRogueHard',
+        isPlayer: false,
+        team: 2,
+        hp: 1,
+        entState: 0,
+        roomId: 0,
+        ownerToken: client.token
+    };
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [hostile.id, hostile]
+    ]));
+
+    await CombatHandler.handlePowerHit(
+        client as never,
+        buildPowerHitPayload(hostile.id, client.clientEntID, 5, 77)
+    );
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SettleTheDeadHard)]?.currCount ?? 0),
+        29,
+        'hard Settle the Dead should wait for the kill state inside Cemetery Hill dungeons'
+    );
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        client as never,
+        buildIncrementalStatePayload(hostile.id, EntityState.DEAD)
+    );
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SettleTheDeadHard)]?.currCount ?? 0),
+        30,
+        'hard Settle the Dead should count hard Cemetery Hill undead kill states'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SettleTheDeadHard)]?.state ?? 0),
+        2,
+        'hard Settle the Dead should become ready to turn in after enough undead kills'
+    );
+}
+
+async function testSettleTheDeadIgnoresWispsAndOtherZones(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.SettleTheDead)]: {
+            state: 1,
+            currCount: 0
+        }
+    }, 'CemeteryHill');
+
+    await destroyEnemy(client, 8603, 'WispRuby');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SettleTheDead)]?.currCount ?? 0),
+        0,
+        'Settle the Dead should not count Cemetery Hill wisps as risen dead'
+    );
+
+    client.currentLevel = 'JadeCity';
+    client.character.CurrentLevel = { name: 'JadeCity', x: 0, y: 0 };
+    await destroyEnemy(client, 8604, 'Mummy');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.SettleTheDead)]?.currCount ?? 0),
+        0,
+        'Settle the Dead should not count undead kills outside Cemetery Hill'
+    );
+}
+
 async function testCastleLizardProblemProgressesOnCastleLizardKills(): Promise<void> {
     resetGlobalState();
     const client = createClient({
@@ -1156,6 +1275,9 @@ async function main(): Promise<void> {
     await testLaterSideQuestCollectiblesProgressFromEnemyRealms();
     await testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
     await testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
+    await testSettleTheDeadProgressesOnCemeteryHillUndeadKills();
+    await testSettleTheDeadHardProgressesOnCemeteryHillDungeonUndeadKillState();
+    await testSettleTheDeadIgnoresWispsAndOtherZones();
     await testCastleLizardProblemProgressesOnCastleLizardKills();
     await testCastleLizardProblemWaitsForKillStateAfterLethalHit();
     await testCastleLizardProblemWaitsForKillStateInsideDungeons();
