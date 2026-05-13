@@ -512,6 +512,85 @@ async function testGetSpiderFangsProgressesOnSwampSpiderKills(): Promise<void> {
     );
 }
 
+async function testExtinguishTheFireProgressesOnGladeEmberKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.KillGladeEmbers)]: {
+            state: 1,
+            currCount: 18
+        }
+    }, 'EmeraldGlades');
+
+    await destroyEnemy(client, 8453, 'Ember');
+    await destroyEnemy(client, 8454, 'Ember2');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.KillGladeEmbers)]?.currCount ?? 0),
+        20,
+        'Extinguish the Fire should count both Emerald Glades Ember variants'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.KillGladeEmbers)]?.state ?? 0),
+        2,
+        'Extinguish the Fire should become ready to turn in after enough Embers are destroyed'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [
+            { missionId: MissionID.KillGladeEmbers, progress: 1 },
+            { missionId: MissionID.KillGladeEmbers, progress: 1 }
+        ],
+        'Extinguish the Fire should emit additive progress packets for Ember kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.KillGladeEmbers,
+        'Extinguish the Fire should notify the client when the Ember objective is complete'
+    );
+}
+
+async function testHardExtinguishTheFireProgressesOnHardGladeEmberKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.KillGladeEmbersHard)]: {
+            state: 1,
+            currCount: 39
+        }
+    }, 'EmeraldGladesHard');
+
+    await destroyEnemy(client, 8455, 'EmberHard');
+    await destroyEnemy(client, 8456, 'Ember2');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.KillGladeEmbersHard)]?.currCount ?? 0),
+        40,
+        'hard Extinguish the Fire should count hard Emerald Glades Embers only'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.KillGladeEmbersHard)]?.state ?? 0),
+        2,
+        'hard Extinguish the Fire should become ready to turn in after enough hard Embers are destroyed'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [{ missionId: MissionID.KillGladeEmbersHard, progress: 1 }],
+        'hard Extinguish the Fire should emit additive progress only for hard Ember kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.KillGladeEmbersHard,
+        'hard Extinguish the Fire should notify the client when the hard Ember objective is complete'
+    );
+}
+
 async function testBannersOfTheTuataraProgressesOnLizardBannerKills(): Promise<void> {
     resetGlobalState();
     const client = createClient({
@@ -1325,6 +1404,8 @@ async function main(): Promise<void> {
     await testLootersHardCompletesOnGoblinThiefHardKill();
     await testRecoverWandsProgressesOnGoblinShamanKills();
     await testGetSpiderFangsProgressesOnSwampSpiderKills();
+    await testExtinguishTheFireProgressesOnGladeEmberKills();
+    await testHardExtinguishTheFireProgressesOnHardGladeEmberKills();
     await testBannersOfTheTuataraProgressesOnLizardBannerKills();
     await testHardBannersOfTheTuataraProgressesOnLizardBannerKills();
     await testTuataraGreatHelmsProgressesOnLizardHeavyKills();

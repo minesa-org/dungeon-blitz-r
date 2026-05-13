@@ -252,6 +252,14 @@ export class MissionHandler {
         'MagmaRockHulkMiniHard',
         'MagmaRockHulkHard'
     ]);
+    private static readonly GLADE_EMBER_KILL_NAMES = new Set([
+        'Ember',
+        'Ember2'
+    ]);
+    private static readonly GLADE_EMBER_HARD_KILL_NAMES = new Set([
+        'EmberHard',
+        'Ember2Hard'
+    ]);
     private static readonly KILL_PROGRESS_TARGETS: Readonly<Record<number, ReadonlySet<string>>> = {
         [MissionID.GetGoblinNoserings]: new Set(['GoblinBrute']),
         [MissionID.GetGoblinWands]: new Set(['GoblinShamanHood', 'GoblinShamanSkullHat']),
@@ -276,7 +284,9 @@ export class MissionHandler {
         [MissionID.SquashSomeSpiders]: MissionHandler.STORMSHARD_SPIDER_KILL_NAMES,
         [MissionID.SquashSomeSpidersHard]: MissionHandler.STORMSHARD_SPIDER_KILL_NAMES,
         [MissionID.SlayCyclops]: MissionHandler.STORMSHARD_CYCLOPS_KILL_NAMES,
-        [MissionID.SlayCyclopsHard]: MissionHandler.STORMSHARD_CYCLOPS_KILL_NAMES
+        [MissionID.SlayCyclopsHard]: MissionHandler.STORMSHARD_CYCLOPS_KILL_NAMES,
+        [MissionID.KillGladeEmbers]: MissionHandler.GLADE_EMBER_KILL_NAMES,
+        [MissionID.KillGladeEmbersHard]: MissionHandler.GLADE_EMBER_HARD_KILL_NAMES
     };
     private static readonly SETTLE_THE_DEAD_MISSION_IDS = new Set([
         MissionID.SettleTheDead,
