@@ -4,7 +4,7 @@ import { GlobalState } from '../core/GlobalState';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { CombatHandler } from '../handlers/CombatHandler';
-import { Entity, EntityState } from '../core/Entity';
+import { Entity, EntityState, EntityTeam } from '../core/Entity';
 import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
 
@@ -603,6 +603,63 @@ async function testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatche
     );
 }
 
+async function testHostileDeathStateDoesNotEchoBackToLocalVictim(): Promise<void> {
+    const victim = createFakeClient(330, 'VictimDeadEcho', 2);
+    const sameRoomWatcher = createFakeClient(331, 'WatcherDeadEcho', 2);
+
+    attachPlayerEntity(victim);
+    attachPlayerEntity(sameRoomWatcher);
+
+    const victimEntity = victim.entities.get(victim.clientEntID);
+    victimEntity.hp = 0;
+    victimEntity.dead = true;
+    victimEntity.entState = EntityState.DEAD;
+    victim.authoritativeCurrentHp = 0;
+
+    const npc = {
+        id: 8125,
+        name: 'EnemyGoblinFinisher',
+        isPlayer: false,
+        x: 24,
+        y: 20,
+        v: 0,
+        team: EntityTeam.ENEMY,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        roomId: victim.currentRoomId,
+        hp: 100
+    };
+    GlobalState.levelEntities.get(getClientLevelScope(victim as never))?.set(npc.id, npc);
+
+    GlobalState.sessionsByToken.set(victim.token, victim as never);
+    GlobalState.sessionsByToken.set(sameRoomWatcher.token, sameRoomWatcher as never);
+
+    await CombatHandler.handlePowerHit(victim as never, buildPowerHitPayload(victim.clientEntID, npc.id, 10, 55));
+
+    assert.equal(
+        victim.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            const state = parseEntityState(packet.payload);
+            return state.entityId === victim.clientEntID && state.entState === EntityState.DEAD;
+        }),
+        false,
+        'local victim should not receive its own hostile death-state echo because LinkUpdater treats it as a remote entity update'
+    );
+    assert.equal(
+        sameRoomWatcher.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            const state = parseEntityState(packet.payload);
+            return state.entityId === victim.clientEntID && state.entState === EntityState.DEAD;
+        }),
+        true,
+        'same-room viewers should still receive the hostile death state'
+    );
+}
+
 async function testPartySharedDungeonDestroyKeepsJoinerDeathState(): Promise<void> {
     const sender = createFakeClient(400, 'Alpha', 2);
     const watcher = createFakeClient(401, 'Beta', 2);
@@ -833,6 +890,15 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatches();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testHostileDeathStateDoesNotEchoBackToLocalVictim();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();

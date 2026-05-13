@@ -1587,7 +1587,7 @@ export class CombatHandler {
                         CombatHandler.resolveLevelEntity(getClientLevelScope(targetSession), targetSession.clientEntID);
                     const facingLeft = Boolean(entity?.facingLeft);
                     const statePayload = CombatHandler.buildEntityStatePayload(targetSession.clientEntID, EntityState.DEAD, facingLeft);
-                    CombatHandler.broadcastEntityViewPacket(levelScope, sourceEntity, 0x07, statePayload, [targetSession.clientEntID, sourceId]);
+                    CombatHandler.broadcastEntityViewPacket(levelScope, sourceEntity, 0x07, statePayload, [targetSession.clientEntID, sourceId], targetSession);
                 } else {
                     CombatHandler.broadcastPlayerState(targetSession, EntityState.DEAD);
                 }

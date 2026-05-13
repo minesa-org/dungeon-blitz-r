@@ -652,8 +652,21 @@ export class LevelHandler {
 
         if (shouldSyncDungeonProgress) {
             syncAnchorStartedAt = syncAnchorStartedAt ?? Date.now();
-            // Dungeon start position is authored by the dungeon SWF; never force coordinates on entry.
-            hasCoord = false;
+            const dungeonEntrySpawnOverride =
+                !anchor &&
+                !levelInstanceId &&
+                syncRoomId === undefined &&
+                syncStartedRoomIds.length === 0
+                    ? LevelConfig.getDungeonEntrySpawnOverride(normalizedTargetLevel)
+                    : null;
+            if (dungeonEntrySpawnOverride) {
+                x = Math.round(dungeonEntrySpawnOverride.x);
+                y = Math.round(dungeonEntrySpawnOverride.y);
+                hasCoord = true;
+            } else {
+                // Dungeon start position is authored by the dungeon SWF unless a known level has broken spawn markers.
+                hasCoord = false;
+            }
         }
 
         if (
@@ -3031,7 +3044,7 @@ export class LevelHandler {
             return 0;
         }
 
-        return Math.max(0, Math.min(15, Math.round(Number(missionEntry.Tier ?? 0))));
+        return Math.max(1, Math.min(15, Math.round(Number(missionEntry.Tier ?? 0)) || 1));
     }
 
     static spawnLevelNpcs(client: Client, levelName: string): void {

@@ -1259,6 +1259,7 @@
 		<ZoneSet>OldMineMountain</ZoneSet>
 		<Priority>Story</Priority>
 		<ContactName>OMM_Moai01</ContactName>
+		<ReturnName>OMM_Moai01</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission2</Dungeon>
 		<MissionLevel>16</MissionLevel>
@@ -1269,6 +1270,7 @@
 		<Description>The Moai tells you about some human survivors, kept in chains by Meylour's followers.</Description>
 		<OfferText>Some of your kind might yet live as they once were.</OfferText>
 		<ActiveText>I know where some of your kind were taken.=@What are you? Some spirit?=We are the ancient protectors of this mountain.=Meylour toppled us from our thrones.=@Where are the survivors?=If they live, they're in one of Meylour's foul shrines.=You must hurry, lest their time come.=@I'm on my way!</ActiveText>
+		<ReturnText>Meylour rose in fury from the depths five decades past.</ReturnText>
 		<PraiseText>Meylour rose in fury from the depths five decades past.</PraiseText>
 	</MissionType>
 	<MissionType>
@@ -1297,6 +1299,7 @@
 		<ZoneSet>OldMineMountain</ZoneSet>
 		<Priority>Story</Priority>
 		<ContactName>OMM_Moai03</ContactName>
+		<ReturnName>OMM_Moai03</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission5</Dungeon>
 		<MissionLevel>17</MissionLevel>
@@ -1307,6 +1310,7 @@
 		<Description>The Moai tells you that high in the hills, a tribe of Gnoles has turned to worshipping Meylour.</Description>
 		<OfferText>The gnoles turn to Meylour in desparation.</OfferText>
 		<ActiveText>The gnoles normally have no love for gods.=But they hate humans for betraying them.=@Who betrayed them?=The humans of Felbridge were once their allies.=The Steward betrayed them.=Now they turn to Meylour for revenge.=@Ironic. The Steward worshipped Meylour as well.=Evil gods corrupt all.</ActiveText>
+		<ReturnText>Meylour is the essence of uncaring stone, anathema to all life.</ReturnText>
 		<PraiseText>Meylour is the essence of uncaring stone, anathema to all life.</PraiseText>
 	</MissionType>
 	<MissionType>
@@ -1428,6 +1432,7 @@
 		<ZoneSet>OldMineMountain</ZoneSet>
 		<Priority>Dungeon</Priority>
 		<ContactName>OMM_Statue01</ContactName>
+		<ReturnName>OMM_Statue01</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission4</Dungeon>
 		<MissionLevel>17</MissionLevel>
@@ -1438,6 +1443,7 @@
 		<Description>Long ago the great artificer Uthor forged powerful weapons. His armory, hidden near Stormfalls, is haunted and shunned.</Description>
 		<OfferText>Uthor's Exquisite Creations</OfferText>
 		<ActiveText>Closed=Trespassers Will Be Annihilated</ActiveText>
+		<ReturnText>Uthor's Exquisite Creations=Trespassers Will Be Annihilated=Closed</ReturnText>
 		<PraiseText>Uthor's Exquisite Creations=Trespassers Will Be Annihilated=Closed</PraiseText>
 	</MissionType>
 	<MissionType>
@@ -1446,6 +1452,8 @@
 		<PreReqMissions>AbandonedArmory</PreReqMissions>
 		<ZoneSet>OldMineMountain</ZoneSet>
 		<Priority>Dungeon</Priority>
+		<ContactName>OMM_Statue01</ContactName>
+		<ReturnName>OMM_Statue01</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission6</Dungeon>
 		<MissionLevel>17</MissionLevel>
@@ -1453,7 +1461,12 @@
 		<GoldReward>M</GoldReward>
 		<DisplayName>Forgotten Forge</DisplayName>
 		<TrackerText>Find the legendary lost forge of Uthor the Artificier</TrackerText>
+		<TrackerReturn>Return to Uthor's statue to claim your reward</TrackerReturn>
 		<Description>High in the Stormshard Peaks, the forge of Uthor the Artificier lies hidden. Few are bold or foolish enough to look for it.</Description>
+		<OfferText>Uthor's Exquisite Creations</OfferText>
+		<ActiveText>The forge remains hidden in the Stormshard Peaks.</ActiveText>
+		<ReturnText>Uthor's Exquisite Creations=The forge is found.</ReturnText>
+		<PraiseText>Uthor's Exquisite Creations=The forge is found.</PraiseText>
 		<ISayOnAccept>^tI wonder who this Uthor they speak of is…</ISayOnAccept>
 	</MissionType>
 	<MissionType>
@@ -3406,6 +3419,7 @@
 		<ZoneSet>OldMineMountainHard</ZoneSet>
 		<Priority>Story</Priority>
 		<ContactName>OMM_Moai01Hard</ContactName>
+		<ReturnName>OMM_Moai01Hard</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission2Hard</Dungeon>
 		<MissionLevel>31</MissionLevel>
@@ -3416,6 +3430,7 @@
 		<Description>The Moai tells you about some human survivors, kept in chains by Meylour's followers.</Description>
 		<OfferText>Some of your kind might yet live as they once were.</OfferText>
 		<ActiveText>I know where some of your kind were taken.=@What are you? Some spirit?=We are the ancient protectors of this mountain.=Meylour toppled us from our thrones.=@Where are the survivors?=If they live, they're in one of Meylour's foul shrines.=You must hurry, lest their time come.=@I'm on my way!</ActiveText>
+		<ReturnText>Meylour rose in fury from the depths five decades past.</ReturnText>
 		<PraiseText>Meylour rose in fury from the depths five decades past.</PraiseText>
 	</MissionType>
 	<MissionType>
@@ -3444,6 +3459,7 @@
 		<ZoneSet>OldMineMountainHard</ZoneSet>
 		<Priority>Story</Priority>
 		<ContactName>OMM_Moai03Hard</ContactName>
+		<ReturnName>OMM_Moai03Hard</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission5Hard</Dungeon>
 		<MissionLevel>32</MissionLevel>
@@ -3454,6 +3470,7 @@
 		<Description>The Moai tells you that high in the hills, a tribe of Gnoles has turned to worshipping Meylour.</Description>
 		<OfferText>The gnoles turn to Meylour in desparation.</OfferText>
 		<ActiveText>The gnoles normally have no love for gods.=But they hate humans for betraying them.=@Who betrayed them?=The humans of Felbridge were once their allies.=The Steward betrayed them.=Now they turn to Meylour for revenge.=@Ironic. The Steward worshipped Meylour as well.=Evil gods corrupt all.</ActiveText>
+		<ReturnText>Meylour is the essence of uncaring stone, anathema to all life.</ReturnText>
 		<PraiseText>Meylour is the essence of uncaring stone, anathema to all life.</PraiseText>
 	</MissionType>
 	<MissionType>
@@ -3575,6 +3592,7 @@
 		<ZoneSet>OldMineMountainHard</ZoneSet>
 		<Priority>Dungeon</Priority>
 		<ContactName>OMM_Statue01Hard</ContactName>
+		<ReturnName>OMM_Statue01Hard</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission4Hard</Dungeon>
 		<MissionLevel>32</MissionLevel>
@@ -3585,6 +3603,7 @@
 		<Description>Long ago the great artificer Uthor forged powerful weapons. His armory, hidden near Stormfalls, is haunted and shunned.</Description>
 		<OfferText>Uthor's Exquisite Creations</OfferText>
 		<ActiveText>Closed=Trespassers Will Be Annihilated</ActiveText>
+		<ReturnText>Uthor's Exquisite Creations=Trespassers Will Be Annihilated=Closed</ReturnText>
 		<PraiseText>Uthor's Exquisite Creations=Trespassers Will Be Annihilated=Closed</PraiseText>
 	</MissionType>
 	<MissionType>
@@ -3593,6 +3612,8 @@
 		<PreReqMissions>AbandonedArmoryHard</PreReqMissions>
 		<ZoneSet>OldMineMountainHard</ZoneSet>
 		<Priority>Dungeon</Priority>
+		<ContactName>OMM_Statue01Hard</ContactName>
+		<ReturnName>OMM_Statue01Hard</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission6Hard</Dungeon>
 		<MissionLevel>32</MissionLevel>
@@ -3600,7 +3621,12 @@
 		<GoldReward>M</GoldReward>
 		<DisplayName>Forgotten Forge</DisplayName>
 		<TrackerText>Find the legendary lost forge of Uthor the Artificier</TrackerText>
+		<TrackerReturn>Return to Uthor's statue to claim your reward</TrackerReturn>
 		<Description>High in the Stormshard Peaks, the forge of Uthor the Artificier lies hidden. Few are bold or foolish enough to look for it.</Description>
+		<OfferText>Uthor's Exquisite Creations</OfferText>
+		<ActiveText>The forge remains hidden in the Stormshard Peaks.</ActiveText>
+		<ReturnText>Uthor's Exquisite Creations=The forge is found.</ReturnText>
+		<PraiseText>Uthor's Exquisite Creations=The forge is found.</PraiseText>
 		<ISayOnAccept>^tI wonder who this Uthor they speak of is…</ISayOnAccept>
 	</MissionType>
 	<MissionType>

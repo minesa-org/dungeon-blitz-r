@@ -1229,6 +1229,7 @@
         "ZoneSet": "OldMineMountain",
         "Priority": "Story",
         "ContactName": "OMM_Moai01",
+        "ReturnName": "OMM_Moai01",
         "CompleteCount": "1",
         "Dungeon": "OMM_Mission2",
         "MissionLevel": "16",
@@ -1239,6 +1240,7 @@
         "Description": "The Moai tells you about some human survivors, kept in chains by Meylour's followers.",
         "OfferText": "Some of your kind might yet live as they once were.",
         "ActiveText": "I know where some of your kind were taken.=@What are you? Some spirit?=We are the ancient protectors of this mountain.=Meylour toppled us from our thrones.=@Where are the survivors?=If they live, they're in one of Meylour's foul shrines.=You must hurry, lest their time come.=@I'm on my way!",
+        "ReturnText": "Meylour rose in fury from the depths five decades past.",
         "PraiseText": "Meylour rose in fury from the depths five decades past."
     },
     {
@@ -1267,6 +1269,7 @@
         "ZoneSet": "OldMineMountain",
         "Priority": "Story",
         "ContactName": "OMM_Moai03",
+        "ReturnName": "OMM_Moai03",
         "CompleteCount": "1",
         "Dungeon": "OMM_Mission5",
         "MissionLevel": "17",
@@ -1277,6 +1280,7 @@
         "Description": "The Moai tells you that high in the hills, a tribe of Gnoles has turned to worshipping Meylour.",
         "OfferText": "The gnoles turn to Meylour in desparation.",
         "ActiveText": "The gnoles normally have no love for gods.=But they hate humans for betraying them.=@Who betrayed them?=The humans of Felbridge were once their allies.=The Steward betrayed them.=Now they turn to Meylour for revenge.=@Ironic. The Steward worshipped Meylour as well.=Evil gods corrupt all.",
+        "ReturnText": "Meylour is the essence of uncaring stone, anathema to all life.",
         "PraiseText": "Meylour is the essence of uncaring stone, anathema to all life."
     },
     {
@@ -1398,6 +1402,7 @@
         "ZoneSet": "OldMineMountain",
         "Priority": "Dungeon",
         "ContactName": "OMM_Statue01",
+        "ReturnName": "OMM_Statue01",
         "CompleteCount": "1",
         "Dungeon": "OMM_Mission4",
         "MissionLevel": "17",
@@ -1408,6 +1413,7 @@
         "Description": "Long ago the great artificer Uthor forged powerful weapons. His armory, hidden near Stormfalls, is haunted and shunned.",
         "OfferText": "Uthor's Exquisite Creations",
         "ActiveText": "Closed=Trespassers Will Be Annihilated",
+        "ReturnText": "Uthor's Exquisite Creations=Trespassers Will Be Annihilated=Closed",
         "PraiseText": "Uthor's Exquisite Creations=Trespassers Will Be Annihilated=Closed"
     },
     {
@@ -1416,6 +1422,8 @@
         "PreReqMissions": "AbandonedArmory",
         "ZoneSet": "OldMineMountain",
         "Priority": "Dungeon",
+        "ContactName": "OMM_Statue01",
+        "ReturnName": "OMM_Statue01",
         "CompleteCount": "1",
         "Dungeon": "OMM_Mission6",
         "MissionLevel": "17",
@@ -1423,7 +1431,12 @@
         "GoldReward": "M",
         "DisplayName": "Forgotten Forge",
         "TrackerText": "Find the legendary lost forge of Uthor the Artificier",
+        "TrackerReturn": "Return to Uthor's statue to claim your reward",
         "Description": "High in the Stormshard Peaks, the forge of Uthor the Artificier lies hidden. Few are bold or foolish enough to look for it.",
+        "OfferText": "Uthor's Exquisite Creations",
+        "ActiveText": "The forge remains hidden in the Stormshard Peaks.",
+        "ReturnText": "Uthor's Exquisite Creations=The forge is found.",
+        "PraiseText": "Uthor's Exquisite Creations=The forge is found.",
         "ISayOnAccept": "^tI wonder who this Uthor they speak of is…"
     },
     {
@@ -3376,6 +3389,7 @@
         "ZoneSet": "OldMineMountainHard",
         "Priority": "Story",
         "ContactName": "OMM_Moai01Hard",
+        "ReturnName": "OMM_Moai01Hard",
         "CompleteCount": "1",
         "Dungeon": "OMM_Mission2Hard",
         "MissionLevel": "31",
@@ -3386,6 +3400,7 @@
         "Description": "The Moai tells you about some human survivors, kept in chains by Meylour's followers.",
         "OfferText": "Some of your kind might yet live as they once were.",
         "ActiveText": "I know where some of your kind were taken.=@What are you? Some spirit?=We are the ancient protectors of this mountain.=Meylour toppled us from our thrones.=@Where are the survivors?=If they live, they're in one of Meylour's foul shrines.=You must hurry, lest their time come.=@I'm on my way!",
+        "ReturnText": "Meylour rose in fury from the depths five decades past.",
         "PraiseText": "Meylour rose in fury from the depths five decades past."
     },
     {
@@ -3414,6 +3429,7 @@
         "ZoneSet": "OldMineMountainHard",
         "Priority": "Story",
         "ContactName": "OMM_Moai03Hard",
+        "ReturnName": "OMM_Moai03Hard",
         "CompleteCount": "1",
         "Dungeon": "OMM_Mission5Hard",
         "MissionLevel": "32",
@@ -3424,6 +3440,7 @@
         "Description": "The Moai tells you that high in the hills, a tribe of Gnoles has turned to worshipping Meylour.",
         "OfferText": "The gnoles turn to Meylour in desparation.",
         "ActiveText": "The gnoles normally have no love for gods.=But they hate humans for betraying them.=@Who betrayed them?=The humans of Felbridge were once their allies.=The Steward betrayed them.=Now they turn to Meylour for revenge.=@Ironic. The Steward worshipped Meylour as well.=Evil gods corrupt all.",
+        "ReturnText": "Meylour is the essence of uncaring stone, anathema to all life.",
         "PraiseText": "Meylour is the essence of uncaring stone, anathema to all life."
     },
     {
@@ -3545,6 +3562,7 @@
         "ZoneSet": "OldMineMountainHard",
         "Priority": "Dungeon",
         "ContactName": "OMM_Statue01Hard",
+        "ReturnName": "OMM_Statue01Hard",
         "CompleteCount": "1",
         "Dungeon": "OMM_Mission4Hard",
         "MissionLevel": "32",
@@ -3555,6 +3573,7 @@
         "Description": "Long ago the great artificer Uthor forged powerful weapons. His armory, hidden near Stormfalls, is haunted and shunned.",
         "OfferText": "Uthor's Exquisite Creations",
         "ActiveText": "Closed=Trespassers Will Be Annihilated",
+        "ReturnText": "Uthor's Exquisite Creations=Trespassers Will Be Annihilated=Closed",
         "PraiseText": "Uthor's Exquisite Creations=Trespassers Will Be Annihilated=Closed"
     },
     {
@@ -3563,6 +3582,8 @@
         "PreReqMissions": "AbandonedArmoryHard",
         "ZoneSet": "OldMineMountainHard",
         "Priority": "Dungeon",
+        "ContactName": "OMM_Statue01Hard",
+        "ReturnName": "OMM_Statue01Hard",
         "CompleteCount": "1",
         "Dungeon": "OMM_Mission6Hard",
         "MissionLevel": "32",
@@ -3570,7 +3591,12 @@
         "GoldReward": "M",
         "DisplayName": "Forgotten Forge",
         "TrackerText": "Find the legendary lost forge of Uthor the Artificier",
+        "TrackerReturn": "Return to Uthor's statue to claim your reward",
         "Description": "High in the Stormshard Peaks, the forge of Uthor the Artificier lies hidden. Few are bold or foolish enough to look for it.",
+        "OfferText": "Uthor's Exquisite Creations",
+        "ActiveText": "The forge remains hidden in the Stormshard Peaks.",
+        "ReturnText": "Uthor's Exquisite Creations=The forge is found.",
+        "PraiseText": "Uthor's Exquisite Creations=The forge is found.",
         "ISayOnAccept": "^tI wonder who this Uthor they speak of is…"
     },
     {

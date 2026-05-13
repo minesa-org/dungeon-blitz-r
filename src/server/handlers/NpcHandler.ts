@@ -32,6 +32,14 @@ export class NpcHandler {
     private static readonly RETURN_DIALOGUE_CHAR_MS = 1;
     private static readonly DEFAULT_TURN_IN_STARS = 3;
     private static readonly DEFAULT_DIALOGUE_LANGUAGE = 'en';
+    private static readonly STONE_ORACLE_MISSION_BY_MOAI_KEY: Readonly<Record<string, { missionId: number; bit: number }>> = {
+        ommmoai01: { missionId: MissionID.StoneOraclesSpeak, bit: 1 },
+        ommmoai02: { missionId: MissionID.StoneOraclesSpeak, bit: 2 },
+        ommmoai03: { missionId: MissionID.StoneOraclesSpeak, bit: 4 },
+        ommmoai01hard: { missionId: MissionID.StoneOraclesSpeakHard, bit: 1 },
+        ommmoai02hard: { missionId: MissionID.StoneOraclesSpeakHard, bit: 2 },
+        ommmoai03hard: { missionId: MissionID.StoneOraclesSpeakHard, bit: 4 }
+    };
 
     private static async persistCharacter(client: Client): Promise<void> {
         if (!client.userId || !client.character) {
@@ -90,6 +98,9 @@ export class NpcHandler {
                 didMutate = true;
             }
             if (NpcHandler.repairCompletedDungeonQuestTurnIn(client.character, missionNpcKey)) {
+                didMutate = true;
+            }
+            if (NpcHandler.noteStoneOracleConsulted(client, missionNpcKey)) {
                 didMutate = true;
             }
 
@@ -408,6 +419,53 @@ export class NpcHandler {
         return false;
     }
 
+    private static noteStoneOracleConsulted(client: Client, npcKey: string): boolean {
+        if (!client.character) {
+            return false;
+        }
+
+        const oracle = NpcHandler.STONE_ORACLE_MISSION_BY_MOAI_KEY[npcKey];
+        if (!oracle) {
+            return false;
+        }
+
+        if (NpcHandler.getMissionState(client.character, oracle.missionId) !== NpcHandler.MISSION_IN_PROGRESS) {
+            return false;
+        }
+
+        const missionDef = MissionLoader.getMissionDef(oracle.missionId);
+        if (!missionDef) {
+            return false;
+        }
+
+        const entry = NpcHandler.getMissionEntry(client.character, oracle.missionId);
+        const currentMask = Math.max(0, Number(entry.oracleMask ?? 0));
+        if ((currentMask & oracle.bit) !== 0) {
+            return false;
+        }
+
+        const nextMask = currentMask | oracle.bit;
+        entry.oracleMask = nextMask;
+        const nextCount = [1, 2, 4].reduce(
+            (count, bit) => count + ((nextMask & bit) ? 1 : 0),
+            0
+        );
+        const completeCount = Math.max(1, Number(missionDef.CompleteCount ?? 1));
+        const nextState = nextCount >= completeCount
+            ? NpcHandler.MISSION_READY_TO_TURN_IN
+            : NpcHandler.MISSION_IN_PROGRESS;
+
+        NpcHandler.setMissionState(client.character, oracle.missionId, nextState, {
+            currCount: Math.min(nextCount, completeCount)
+        });
+        NpcHandler.getMissionEntry(client.character, oracle.missionId).oracleMask = nextMask;
+        NpcHandler.sendMissionProgress(client, oracle.missionId, 1);
+        if (nextState === NpcHandler.MISSION_READY_TO_TURN_IN) {
+            NpcHandler.sendMissionComplete(client, oracle.missionId);
+        }
+        return true;
+    }
+
     private static missionStartsReadyToTurnIn(missionDef: MissionDef | undefined): boolean {
         if (!missionDef) {
             return false;
@@ -508,6 +566,13 @@ export class NpcHandler {
         const bb = new BitBuffer(false);
         bb.writeMethod4(missionId);
         client.sendBitBuffer(0x86, bb);
+    }
+
+    private static sendMissionProgress(client: Client, missionId: number, progress: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(missionId);
+        bb.writeMethod4(Math.max(0, progress));
+        client.sendBitBuffer(0x83, bb);
     }
 
     private static getMissionCompletionStars(missionDef: MissionDef | undefined, missionEntry: MissionEntry): number {

@@ -87,6 +87,11 @@ export class LevelConfig {
         "JadeCityHard": { x: 10430, y: 1058 }
     };
 
+    private static readonly DUNGEON_ENTRY_SPAWN_OVERRIDES: Record<string, SpawnPoint> = {
+        "OMM_Mission8": { x: 2375, y: 849 },
+        "OMM_Mission8Hard": { x: 2375, y: 849 }
+    };
+
     private static asLevelRecord(value: any): { name?: string; x?: number; y?: number } {
         if (!value || typeof value !== 'object') {
             return {};
@@ -204,6 +209,15 @@ export class LevelConfig {
         }
         // Fallback
         return { x: 0, y: 0 };
+    }
+
+    static getDungeonEntrySpawnOverride(levelName: string | null | undefined): SpawnPoint | null {
+        const normalized = this.normalizeLevelName(levelName);
+        if (!normalized) {
+            return null;
+        }
+
+        return this.DUNGEON_ENTRY_SPAWN_OVERRIDES[normalized] ?? null;
     }
 
     static getDoorTarget(level: string, doorId: number): string | null {

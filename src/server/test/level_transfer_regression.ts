@@ -12,6 +12,7 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { LevelConfig } from '../core/LevelConfig';
 import { MissionID } from '../data/runtime';
+import { MissionLoader } from '../data/MissionLoader';
 
 function createCharacter(name: string): Character {
     return {
@@ -79,13 +80,21 @@ function readMethod91(br: BitReader): number {
     return br.readMethod20((prefix + 1) * 2);
 }
 
-function parseDoorStatePacket(payload: Buffer): { doorId: number; state: number; target: string } {
+function parseDoorStatePacket(payload: Buffer): { doorId: number; state: number; target: string; stars?: number } {
     const br = new BitReader(payload);
-    return {
+    const doorState = {
         doorId: br.readMethod4(),
         state: readMethod91(br),
         target: br.readMethod13()
     };
+    if (doorState.state === 3) {
+        return {
+            ...doorState,
+            stars: br.readMethod20(4)
+        };
+    }
+
+    return doorState;
 }
 
 function parseDoorTargetPacket(payload: Buffer): { doorId: number; target: string } {
@@ -146,7 +155,9 @@ function withMockedRandom(values: number[], fn: () => void): void {
 
 function ensureLevelConfigLoaded(): void {
     if (!LevelConfig.has('TutorialDungeon')) {
-        LevelConfig.load(path.resolve(__dirname, '../data'));
+        const dataDir = path.resolve(__dirname, '../data');
+        LevelConfig.load(dataDir);
+        MissionLoader.load(dataDir);
     }
 }
 
@@ -444,6 +455,60 @@ function testBuildTransferSyncStateSkipsStrangerDungeonInstance(): void {
     assert.equal(syncState.syncAnchorToken, undefined);
     assert.equal(syncState.syncAnchorCharacterName, undefined);
     assert.ok(Number(syncState.syncAnchorStartedAt) > 0, 'fresh dungeon entries should create a root anchor timestamp');
+}
+
+function testVeinsOfMeylourFreshEntryUsesBeginningSpawnOverride(): void {
+    const client = createClient();
+    client.character = createCharacter('VeinsRunner');
+    client.currentLevel = 'OldMineMountain';
+    client.playerSpawned = true;
+
+    const syncState = (LevelHandler as any).buildTransferSyncState(client, 'OMM_Mission8', null);
+
+    assert.ok(syncState);
+    assert.equal(syncState.hasCoord, true);
+    assert.equal(syncState.x, 2375);
+    assert.equal(syncState.y, 849);
+    assert.equal(syncState.syncRoomId, undefined);
+    assert.deepEqual(syncState.syncStartedRoomIds, []);
+}
+
+function testVeinsOfMeylourPartyEntryPreservesAnchorProgress(): void {
+    const follower = createClient();
+    follower.character = createCharacter('VeinsFollower');
+    follower.currentLevel = 'OldMineMountain';
+    follower.playerSpawned = true;
+
+    const leader = {
+        token: 6010,
+        userId: 61,
+        character: createCharacter('VeinsLeader'),
+        characters: [],
+        entities: new Map<number, any>([[191, { x: 22382, y: 4147 }]]),
+        currentLevel: 'OMM_Mission8',
+        levelInstanceId: 'veins-party-run',
+        entryLevel: 'OldMineMountain',
+        syncAnchorStartedAt: 4444,
+        currentRoomId: 12,
+        startedRoomEvents: new Set<string>(['OMM_Mission8:1', 'OMM_Mission8:12']),
+        clientEntID: 191,
+        lastDoorId: 0,
+        lastDoorTargetLevel: '',
+        playerSpawned: true
+    };
+
+    GlobalState.sessionsByToken.set(leader.token, leader as never);
+    GlobalState.partyByMember.set('veinsfollower', 98);
+    GlobalState.partyByMember.set('veinsleader', 98);
+
+    const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'OMM_Mission8', null);
+
+    assert.ok(syncState);
+    assert.equal(syncState.hasCoord, false);
+    assert.equal(syncState.levelInstanceId, 'veins-party-run');
+    assert.equal(syncState.syncAnchorToken, leader.token);
+    assert.equal(syncState.syncRoomId, 12);
+    assert.deepEqual(syncState.syncStartedRoomIds, [1, 12]);
 }
 
 function testBuildTransferSyncStateUsesPendingPartyAnchorWhenLeaderStillTransferring(): void {
@@ -891,6 +956,29 @@ function testFelbridgeDreadGateOpensAfterCapstoneClaimedWithoutLevelRequirement(
     assert.equal(client.lastDoorId, 300);
     assert.equal(client.lastDoorTargetLevel, 'BridgeTownHard');
     assert.equal(client.sentPackets.some((packet: { id: number }) => packet.id === 0x2E), true);
+}
+
+function testCompletedDungeonDoorShowsRepeatWithoutSavedTier(): void {
+    const client = createClient();
+    client.currentLevel = 'OldMineMountain';
+    client.character = createCharacter('ForgeRunner');
+    client.character.missions = {
+        [String(MissionID.ForgottenForge)]: {
+            state: 2,
+            currCount: 1
+        }
+    };
+
+    LevelHandler.handleRequestDoorState(client as never, createDoorStateRequestPacket(106));
+
+    const doorStatePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x42);
+    assert.ok(doorStatePacket);
+    assert.deepEqual(parseDoorStatePacket(doorStatePacket.payload), {
+        doorId: 106,
+        state: 3,
+        target: 'OMM_Mission6',
+        stars: 1
+    });
 }
 
 function testDisconnectRecoverySnapshotRepairsCraftTownEntryLoop(): void {
@@ -1611,6 +1699,18 @@ async function main(): Promise<void> {
         GlobalState.pendingWorld.clear();
         GlobalState.partyByMember.clear();
 
+        testVeinsOfMeylourFreshEntryUsesBeginningSpawnOverride();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.partyByMember.clear();
+
+        testVeinsOfMeylourPartyEntryPreservesAnchorProgress();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.partyByMember.clear();
+
         testBuildTransferSyncStateUsesPendingPartyAnchorWhenLeaderStillTransferring();
 
         GlobalState.sessionsByToken.clear();
@@ -1663,6 +1763,7 @@ async function main(): Promise<void> {
         testFelbridgeDreadGateRequiresCapstoneClaim();
         testFelbridgeDreadGateReadyToTurnInDoesNotUnlock();
         testFelbridgeDreadGateOpensAfterCapstoneClaimedWithoutLevelRequirement();
+        testCompletedDungeonDoorShowsRepeatWithoutSavedTier();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();
