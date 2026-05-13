@@ -140,6 +140,40 @@ function createLordTillyRestClient(): FakeClient {
     return client;
 }
 
+function createMeyloursEmbersClient(): FakeClient {
+    const client = createFakeClient();
+    client.currentLevel = 'OMM_Mission11';
+    client.levelInstanceId = 'meylours-embers-flow';
+    client.forcedDungeonCompletionScope = 'OMM_Mission11#meylours-embers-flow';
+    client.character.name = 'MeyloursEmbersTester';
+    client.character.level = 18;
+    client.character.xp = 0;
+    client.character.gold = 0;
+    client.character.CurrentLevel = { name: 'OMM_Mission11', x: 0, y: 0 };
+    client.character.PreviousLevel = { name: 'OldMineMountain', x: 189, y: 1335 };
+    client.character.missions = {
+        [String(MissionID.DeliverToSwamp)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        [String(MissionID.DragonsQuarry)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        [String(MissionID.CutToTheHeart)]: {
+            state: 1,
+            currCount: 0
+        }
+    };
+    client.character.questTrackerState = 100;
+    client.sentPackets.length = 0;
+    return client;
+}
+
 function createLevelCompletePacket(progress: number = 100, remainingKills: number = 0, requiredKills: number = 1): Buffer {
     const bb = new BitBuffer(false);
     bb.writeMethod9(progress);
@@ -316,12 +350,54 @@ async function testAcceptedForgottenForgeCompletionWaitsForTurnIn(): Promise<voi
     });
 }
 
+async function testMeyloursEmbersClaimsAdohiRewardAndPrimesGlades(): Promise<void> {
+    const client = createMeyloursEmbersClient();
+
+    await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket(100, 0, 1));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.CutToTheHeart)]?.state ?? 0),
+        3,
+        "Meylour's Embers should be claimed immediately after the dungeon completes"
+    );
+    assert.equal(
+        client.character.missions[String(MissionID.CutToTheHeart)]?.claimed,
+        1,
+        "Meylour's Embers should not wait for another Adohi turn-in"
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.HeadToTheGlades)]?.state ?? 0),
+        2,
+        'Emerald Glades should be primed as the next travel quest'
+    );
+    assert.equal(Number(client.character.xp ?? 0), 5, 'Adohi reward XP should be granted');
+    assert.equal(Number(client.character.gold ?? 0), 5, 'Adohi reward gold should be granted');
+
+    const gladesAdded = client.sentPackets.find((packet) => {
+        if (packet.id !== 0x85) {
+            return false;
+        }
+        return decodeMissionAddedPacket(packet.payload).missionId === MissionID.HeadToTheGlades;
+    });
+    assert.ok(gladesAdded, 'Emerald Glades should be pushed to the client after Meylour completes');
+    assert.deepEqual(decodeMissionAddedPacket(gladesAdded!.payload), {
+        missionId: MissionID.HeadToTheGlades,
+        active: 0
+    });
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x84),
+        true,
+        'Meylour completion should still show the Adohi mission reward UI'
+    );
+}
+
 async function main(): Promise<void> {
     ensureDataLoaded();
     await testDungeonCompletionSyncsReadyMissionStateImmediately();
     await testLordTillyRestWaitsForNpcRewardClaim();
     await testDungeonCompletionDoesNotCreateUnstartedMission();
     await testAcceptedForgottenForgeCompletionWaitsForTurnIn();
+    await testMeyloursEmbersClaimsAdohiRewardAndPrimesGlades();
     console.log('dungeon_completion_mission_sync_regression: ok');
 }
 

@@ -881,6 +881,13 @@ export class MissionHandler {
                 ) {
                     didMutate = true;
                 }
+
+                if (
+                    missionUpdate.newlyCompleted &&
+                    MissionHandler.claimMeyloursEmbersRewardAndPrimeGlades(client, missionUpdate)
+                ) {
+                    didMutate = true;
+                }
             }
 
             if (
@@ -1624,6 +1631,51 @@ export class MissionHandler {
             missionUpdate.persistedScore
         );
         MissionHandler.grantMissionRewards(client, missionDef);
+        return true;
+    }
+
+    private static claimMeyloursEmbersRewardAndPrimeGlades(
+        client: Client,
+        missionUpdate: DungeonMissionUpdateResult
+    ): boolean {
+        if (!client.character) {
+            return false;
+        }
+
+        const followupMissionId =
+            missionUpdate.missionId === MissionID.CutToTheHeart
+                ? MissionID.HeadToTheGlades
+                : missionUpdate.missionId === MissionID.CutToTheHeartHard
+                    ? MissionID.HeadToTheGladesHard
+                    : 0;
+        if (!followupMissionId) {
+            return false;
+        }
+
+        const completedMissionDef = MissionLoader.getMissionDef(missionUpdate.missionId);
+        const followupMissionDef = MissionLoader.getMissionDef(followupMissionId);
+        if (!completedMissionDef || !followupMissionDef) {
+            return false;
+        }
+
+        MissionHandler.grantMissionRewards(client, completedMissionDef);
+
+        if (MissionHandler.getMissionState(client.character, followupMissionId) !== MissionHandler.MISSION_NOT_STARTED) {
+            return true;
+        }
+        if (!MissionHandler.canStartMission(client.character, followupMissionDef)) {
+            return true;
+        }
+
+        const initialState = MissionHandler.getInitialMissionState(followupMissionDef);
+        MissionHandler.setMissionState(
+            client.character,
+            followupMissionId,
+            initialState,
+            followupMissionDef,
+            { currCount: 0 }
+        );
+        MissionHandler.sendMissionAdded(client, followupMissionId, initialState);
         return true;
     }
 
