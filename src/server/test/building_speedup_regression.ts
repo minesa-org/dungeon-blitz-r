@@ -114,6 +114,38 @@ async function testBuildingSpeedupCompletesUpgradeAndReassertsCraftTownState(): 
     );
 }
 
+async function testOfflineExpiredBuildingUpgradeAppliesOnSync(): Promise<void> {
+    const client = createClient();
+    client.character.buildingUpgrade = {
+        buildingID: 1,
+        rank: 2,
+        ReadyTime: Math.floor(Date.now() / 1000) - 30
+    };
+
+    await withMockedCharacterSave(async () => {
+        await BuildingHandler.syncCompletionState(client as never);
+    });
+
+    assert.equal(client.character.magicForge?.stats_by_building?.['1'], 2);
+    assert.deepEqual(client.character.buildingUpgrade, { buildingID: 0, rank: 0, ReadyTime: 0 });
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0xD8),
+        true,
+        'offline completed building upgrade should send a completion packet when the player is in CraftTown'
+    );
+    assert.equal(
+        client.sentPackets.filter((packet) => packet.id === 0xDA).length,
+        5,
+        'offline completed building upgrade should reassert CraftTown building state without scaffolding'
+    );
+    const tomePacket = client.sentPackets
+        .filter((packet) => packet.id === 0xDA)
+        .map((packet) => decodeBuildingDelta(packet.payload))
+        .find((packet) => packet.targetBuildingId === 1);
+    assert.equal(tomePacket?.targetRank, 2);
+    assert.equal(tomePacket?.scaffoldingId, 0);
+}
+
 async function testDuplicateBuiltTomeUpgradeRequestIsIgnoredAndReassertsHomeState(): Promise<void> {
     const client = createClient();
     client.character.magicForge = {
@@ -379,6 +411,7 @@ function testCraftTownRefreshUsesVisitedHomeOwnerBuildingState(): void {
 
 async function main(): Promise<void> {
     await testBuildingSpeedupCompletesUpgradeAndReassertsCraftTownState();
+    await testOfflineExpiredBuildingUpgradeAppliesOnSync();
     await testDuplicateBuiltTomeUpgradeRequestIsIgnoredAndReassertsHomeState();
     await testBuildingUpgradePersistsGoldPurchaseAndRealReadyTime();
     await testBuildingUpgradePersistsIdolPurchase();

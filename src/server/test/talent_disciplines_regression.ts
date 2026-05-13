@@ -421,6 +421,21 @@ function testCompletedDisciplineResearchSerializesAfterRestart(): void {
     );
 }
 
+function testCompletedClassZeroResearchSerializesAfterRestart(): void {
+    const character = createCharacter();
+    character.talentResearch = {
+        classIndex: 0,
+        ReadyTime: 0
+    };
+
+    const research = WorldEnter.getSerializableTalentResearch(character, Math.floor(Date.now() / 1000));
+    assert.deepEqual(
+        research,
+        { classIndex: 0, readyTime: 0 },
+        'completed class-index-zero research should stay claimable after room change or restart'
+    );
+}
+
 async function main(): Promise<void> {
     await testRespecUsesPythonNodeMapping();
     await testAllocateTalentTreePreservesHighNodeTypeIdsAndClampsByStorageSlot();
@@ -431,6 +446,7 @@ async function main(): Promise<void> {
     testWorldEnterResolvesMasterClassFromTowerState();
     await testSelectedDisciplinePersistsHomeTowerAfterRestart();
     testCompletedDisciplineResearchSerializesAfterRestart();
+    testCompletedClassZeroResearchSerializesAfterRestart();
     console.log('talent_disciplines_regression: ok');
 }
 

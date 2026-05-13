@@ -4,6 +4,8 @@ import { LevelConfig } from '../core/LevelConfig';
 import { WorldEnter } from '../utils/WorldEnter';
 
 function createCharacter(): any {
+    const futureReadyTime = Math.floor(Date.now() / 1000) + 86400;
+
     return {
         name: 'Alpha',
         class: 'paladin',
@@ -20,7 +22,7 @@ function createCharacter(): any {
         buildingUpgrade: {
             buildingID: 12,
             rank: 4,
-            ReadyTime: 999999999
+            ReadyTime: futureReadyTime
         }
     };
 }
@@ -94,7 +96,7 @@ function decodeCraftTownVisualData(packet: Buffer) {
     };
 }
 
-function buildCraftTownPacket(levelName: string): Buffer {
+function buildCraftTownPacket(levelName: string, character: any = createCharacter()): Buffer {
     const levelSpec = LevelConfig.get(levelName);
     return WorldEnter.buildEnterWorldPacket(
         77,
@@ -115,7 +117,7 @@ function buildCraftTownPacket(levelName: string): Buffer {
         true,
         10,
         20,
-        createCharacter()
+        character
     ).toBuffer();
 }
 
@@ -139,6 +141,19 @@ function testCraftTownPreservesLiveKeepUpgradeVisuals(): void {
     assert.equal(decoded.isCraftTown, true);
     assert.equal(decoded.keepRank, 0, 'town keep should use the supported repaired rank-zero art entry');
     assert.equal(decoded.scaffoldingLevel, 12, 'town keep should continue to use the live scaffolding state');
+}
+
+function testCraftTownSuppressesExpiredKeepUpgradeVisuals(): void {
+    const character = createCharacter();
+    character.buildingUpgrade = {
+        buildingID: 12,
+        rank: 4,
+        ReadyTime: Math.floor(Date.now() / 1000) - 30
+    };
+
+    const decoded = decodeCraftTownVisualData(buildCraftTownPacket('CraftTown', character));
+
+    assert.equal(decoded.scaffoldingLevel, 0, 'town enter-world packet should not show expired scaffolding');
 }
 
 function testCraftTownLevelConfigTreatsTownAsNonDungeon(): void {
@@ -165,13 +180,29 @@ function testCraftTownPlayerDataPreservesLiveKeepUpgradeState(): void {
     assert.equal(Number(safeUpgrade.buildingID ?? 0), 12, 'town player data should keep the live scaffolding building id');
 }
 
+function testCraftTownPlayerDataSuppressesExpiredKeepUpgradeState(): void {
+    const character = createCharacter();
+    character.buildingUpgrade = {
+        buildingID: 12,
+        rank: 4,
+        ReadyTime: Math.floor(Date.now() / 1000) - 30
+    };
+
+    const safeUpgrade = WorldEnter.getTutorialSafeBuildingUpgradeForLevel(character, 'CraftTown');
+
+    assert.equal(Number(safeUpgrade.buildingID ?? 0), 0, 'town player data should not keep expired scaffolding building id');
+    assert.equal(Number(safeUpgrade.ReadyTime ?? 0), 0, 'town player data should not keep expired scaffolding timer');
+}
+
 function main(): void {
     LevelConfig.load(require('path').resolve(__dirname, '..', 'data'));
     testCraftTownTutorialSuppressesKeepUpgradeVisuals();
     testCraftTownPreservesLiveKeepUpgradeVisuals();
+    testCraftTownSuppressesExpiredKeepUpgradeVisuals();
     testCraftTownLevelConfigTreatsTownAsNonDungeon();
     testCraftTownTutorialPlayerDataSuppressesKeepUpgradeState();
     testCraftTownPlayerDataPreservesLiveKeepUpgradeState();
+    testCraftTownPlayerDataSuppressesExpiredKeepUpgradeState();
     console.log('world_enter_crafttown_visual_state_regression: ok');
 }
 

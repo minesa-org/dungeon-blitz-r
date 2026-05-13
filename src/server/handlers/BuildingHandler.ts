@@ -36,6 +36,52 @@ export class BuildingHandler {
         client.characters = await db.saveCharacterSnapshot(client.userId, client.character);
     }
 
+    static async syncCompletionState(client: Client): Promise<void> {
+        if (!client.character) {
+            return;
+        }
+
+        const completed = BuildingHandler.applyCompletedBuildingUpgradeIfNeeded(client.character);
+        if (!completed) {
+            return;
+        }
+
+        await BuildingHandler.saveCharacter(client);
+        DebugLogger.logProgress('BuildingCompletion:syncApplied', client, client.character, {
+            buildingId: completed.buildingId,
+            rank: completed.rank
+        });
+
+        if (client.playerSpawned && client.currentLevel === 'CraftTown') {
+            BuildingHandler.sendBuildingComplete(client, completed.buildingId, completed.rank);
+            BuildingHandler.sendBuildingUpdate(client);
+        }
+    }
+
+    private static applyCompletedBuildingUpgradeIfNeeded(character: Record<string, any>): { buildingId: number; rank: number } | null {
+        const upgrade = BuildingHandler.asRecord(character.buildingUpgrade);
+        const buildingId = Math.max(0, Math.round(Number(upgrade.buildingID ?? 0)));
+        const rank = Math.max(0, Math.round(Number(upgrade.rank ?? 0)));
+        const readyTime = Math.max(0, Math.round(Number(upgrade.ReadyTime ?? 0)));
+        if (buildingId <= 0 || rank <= 0 || readyTime <= 0 || readyTime > Math.floor(Date.now() / 1000)) {
+            return null;
+        }
+
+        if (!character.magicForge || typeof character.magicForge !== 'object' || Array.isArray(character.magicForge)) {
+            character.magicForge = { stats_by_building: {} };
+        }
+        if (!character.magicForge.stats_by_building || typeof character.magicForge.stats_by_building !== 'object' || Array.isArray(character.magicForge.stats_by_building)) {
+            character.magicForge.stats_by_building = {};
+        }
+
+        const statsByBuilding = character.magicForge.stats_by_building as Record<string, number>;
+        const currentRank = Number(statsByBuilding[buildingId.toString()] ?? statsByBuilding[buildingId] ?? 0);
+        statsByBuilding[buildingId.toString()] = Math.max(currentRank, rank);
+        character.buildingUpgrade = { buildingID: 0, rank: 0, ReadyTime: 0 };
+
+        return { buildingId, rank: statsByBuilding[buildingId.toString()] };
+    }
+
     private static sendPremiumPurchase(client: Client, itemName: string, cost: number): void {
         if (cost <= 0) {
             return;
@@ -337,7 +383,11 @@ export class BuildingHandler {
          
          const masterClassId = WorldEnter.resolveMasterClass(homeCharacter);
          const towerBuildingId = MASTERCLASS_TO_BUILDING[masterClassId] || 3;
-         const scaffoldingId = homeCharacter.buildingUpgrade?.buildingID || 0;
+         const buildingUpgrade = BuildingHandler.asRecord(homeCharacter.buildingUpgrade);
+         const buildingReadyTime = Number(buildingUpgrade.ReadyTime ?? 0);
+         const scaffoldingId = buildingReadyTime > Math.floor(Date.now() / 1000)
+            ? Number(buildingUpgrade.buildingID ?? 0)
+            : 0;
 
          const sendDelta = (bid: number, targetRank: number) => {
              const prevRank = targetRank > 0 ? targetRank - 1 : 0;

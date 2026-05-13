@@ -316,8 +316,19 @@ export class WorldEnter {
 
     static getTutorialSafeBuildingUpgradeForLevel(character: Character | null | undefined, levelName: string | null | undefined): Record<string, unknown> {
         const buildingUpgrade = WorldEnter.asRecord(character?.buildingUpgrade);
+        const readyTime = Number(buildingUpgrade.ReadyTime ?? 0);
+        const isActiveUpgrade =
+            Number(buildingUpgrade.buildingID ?? 0) > 0 &&
+            Number.isFinite(readyTime) &&
+            readyTime > Math.floor(Date.now() / 1000);
         if (!WorldEnter.isCraftTownTutorialLevel(levelName)) {
-            return buildingUpgrade;
+            return isActiveUpgrade
+                ? buildingUpgrade
+                : {
+                    ...buildingUpgrade,
+                    buildingID: 0,
+                    ReadyTime: 0
+                };
         }
 
         return {
@@ -356,8 +367,12 @@ export class WorldEnter {
 
     static getSerializableTalentResearch(character: Character | Record<string, any>, now: number): { classIndex: number; readyTime: number } | null {
         const talentResearch = WorldEnter.asRecord(character.talentResearch);
-        const classIndex = Number(talentResearch.classIndex ?? 0);
-        if (!Number.isFinite(classIndex) || classIndex <= 0) {
+        if (talentResearch.classIndex === null || talentResearch.classIndex === undefined) {
+            return null;
+        }
+
+        const classIndex = Number(talentResearch.classIndex);
+        if (!Number.isFinite(classIndex) || classIndex < 0) {
             return null;
         }
 
