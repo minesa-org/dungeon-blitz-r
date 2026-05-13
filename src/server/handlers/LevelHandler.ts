@@ -3161,6 +3161,7 @@ export class LevelHandler {
             client.character.questTrackerState = progress;
         }
         noteDungeonRunCompletionProgress(client, progress);
+        MissionHandler.maybeScheduleFullClearDungeonCompletionFromProgress(client, progress);
 
         DebugLogger.logProgress('QuestProgress:update', client, client.character, {
             previousProgress,

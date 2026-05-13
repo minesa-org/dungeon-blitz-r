@@ -85,6 +85,7 @@ export class MissionHandler {
         'GoblinShamanHood',
         'IntroGoblinShamanHood'
     ]);
+    private static readonly FULL_CLEAR_ONLY_DUNGEON_PATTERN = /^CH_MiniMission\d+(Hard)?$/;
     private static readonly DUNGEONS_REQUIRING_BOSS_DEFEAT = new Set([
         'CH_Mission1',
         'CH_Mission1Hard',
@@ -498,6 +499,119 @@ export class MissionHandler {
         MissionHandler.sendQuestProgress(client, Math.max(0, Number(client.character.questTrackerState ?? 0)));
     }
 
+    static async prepareFullClearDungeonEntry(client: Client): Promise<void> {
+        if (!client.character) {
+            return;
+        }
+
+        const currentLevel =
+            LevelConfig.normalizeLevelName(client.currentLevel || String(client.character.CurrentLevel?.name ?? '')) ||
+            client.currentLevel ||
+            String(client.character.CurrentLevel?.name ?? '');
+        if (!MissionHandler.isFullClearOnlyDungeon(currentLevel)) {
+            return;
+        }
+
+        const missionDef = MissionLoader.findPrimaryMissionByDungeon(currentLevel);
+        if (!missionDef) {
+            return;
+        }
+
+        const existingState = MissionHandler.getMissionState(client.character, missionDef.MissionID);
+        if (existingState > MissionHandler.MISSION_NOT_STARTED) {
+            if (Number(client.character.questTrackerState ?? 0) !== 0) {
+                client.character.questTrackerState = 0;
+                if (client.playerSpawned) {
+                    MissionHandler.sendQuestProgress(client, 0);
+                }
+                if (client.userId) {
+                    await MissionHandler.saveCharacter(client);
+                }
+            }
+            return;
+        }
+
+        if (!MissionHandler.canStartMission(client.character, missionDef)) {
+            return;
+        }
+
+        MissionHandler.setMissionState(
+            client.character,
+            missionDef.MissionID,
+            MissionHandler.MISSION_IN_PROGRESS,
+            missionDef,
+            { currCount: 0 }
+        );
+        client.character.questTrackerState = 0;
+
+        if (client.playerSpawned) {
+            MissionHandler.sendMissionAdded(client, missionDef.MissionID, MissionHandler.MISSION_IN_PROGRESS);
+            MissionHandler.sendQuestProgress(client, 0);
+        }
+
+        if (client.userId) {
+            await MissionHandler.saveCharacter(client);
+        }
+    }
+
+    static isFullClearOnlyDungeon(levelName: string | null | undefined): boolean {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        return Boolean(normalizedLevel && MissionHandler.FULL_CLEAR_ONLY_DUNGEON_PATTERN.test(normalizedLevel));
+    }
+
+    static syncFullClearDungeonEntryMissionToClient(client: Client): void {
+        if (!client.character) {
+            return;
+        }
+
+        const currentLevel =
+            LevelConfig.normalizeLevelName(client.currentLevel || String(client.character.CurrentLevel?.name ?? '')) ||
+            client.currentLevel ||
+            String(client.character.CurrentLevel?.name ?? '');
+        if (!MissionHandler.isFullClearOnlyDungeon(currentLevel)) {
+            return;
+        }
+
+        const missionDef = MissionLoader.findPrimaryMissionByDungeon(currentLevel);
+        if (!missionDef) {
+            return;
+        }
+
+        if (MissionHandler.getMissionState(client.character, missionDef.MissionID) <= MissionHandler.MISSION_NOT_STARTED) {
+            return;
+        }
+
+        MissionHandler.sendMissionAdded(client, missionDef.MissionID, MissionHandler.MISSION_IN_PROGRESS);
+    }
+
+    static maybeScheduleFullClearDungeonCompletionFromProgress(client: Client, progress: number): void {
+        if (!client.character || Math.max(0, Number(progress ?? 0)) < 100) {
+            return;
+        }
+
+        const currentLevel =
+            LevelConfig.normalizeLevelName(client.currentLevel || String(client.character.CurrentLevel?.name ?? '')) ||
+            client.currentLevel ||
+            String(client.character.CurrentLevel?.name ?? '');
+        if (!MissionHandler.isFullClearOnlyDungeon(currentLevel)) {
+            return;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        if (!levelScope || MissionHandler.hasFinalizedDungeonCompletion(client, levelScope)) {
+            return;
+        }
+
+        MissionHandler.scheduleDungeonCompletion(
+            client,
+            MissionHandler.buildSyntheticLevelCompletePacket(100),
+            {
+                forcedDungeonCompletionScope: levelScope,
+                waitForCutsceneEnd: String(client.activeDungeonCutsceneScope ?? '').trim() === levelScope
+            }
+        );
+    }
+
     static shouldWaitForEnemyKillStateMissionProgress(client: Client, destroyedEntity: any): boolean {
         if (!client.character) {
             return false;
@@ -746,7 +860,8 @@ export class MissionHandler {
                 client,
                 currentLevel,
                 levelScope,
-                clearedDungeon
+                clearedDungeon,
+                effectiveCompletionPercent
             )
         ) {
             return;
@@ -1138,7 +1253,8 @@ export class MissionHandler {
         client: Client,
         currentLevel: string,
         levelScope: string,
-        clearedDungeon: boolean
+        clearedDungeon: boolean,
+        completionPercent: number
     ): boolean {
         if (!LevelConfig.isDungeonLevel(currentLevel)) {
             return true;
@@ -1150,6 +1266,10 @@ export class MissionHandler {
 
         if (currentLevel === 'TutorialBoat' || currentLevel === 'TutorialDungeon') {
             return true;
+        }
+
+        if (MissionHandler.isFullClearOnlyDungeon(currentLevel)) {
+            return Math.max(0, Number(completionPercent ?? 0)) >= 100;
         }
 
         if (MissionHandler.requiresBossDefeatForDungeon(currentLevel)) {
@@ -2311,6 +2431,10 @@ export class MissionHandler {
 
     private static shouldForceCompleteDungeonOnEnemyDefeat(levelScope: string, entity: any): boolean {
         const levelName = getScopeLevelName(levelScope);
+        if (MissionHandler.isFullClearOnlyDungeon(levelName)) {
+            return false;
+        }
+
         if (MissionHandler.isDungeonMiniBossEntity(entity)) {
             return false;
         }

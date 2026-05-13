@@ -1,8 +1,11 @@
 import { strict as assert } from 'assert';
 import * as path from 'path';
+import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
+import { getClientLevelScope } from '../core/LevelScope';
 import { MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
+import { LevelHandler } from '../handlers/LevelHandler';
 import { MissionHandler } from '../handlers/MissionHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
@@ -31,17 +34,19 @@ type FakeClient = {
         questTrackerState: number;
         lastCompletedDungeonLevel?: string;
     };
+    characters?: any[];
     entities: Map<number, unknown>;
     sentPackets: SentPacket[];
+    send: (id: number, payload: Buffer) => void;
     sendBitBuffer: (id: number, bb: BitBuffer) => void;
 };
 
 function ensureDataLoaded(): void {
     const dataDir = path.resolve(__dirname, '../data');
-    if (!LevelConfig.has('DreamDragonDungeon')) {
+    if (!LevelConfig.has('DreamDragonDungeon') || !LevelConfig.has('CH_MiniMission1')) {
         LevelConfig.load(dataDir);
     }
-    if (!MissionLoader.getMissionDef(MissionID.SlayTheDragon)) {
+    if (!MissionLoader.getMissionDef(MissionID.SlayTheDragon) || !MissionLoader.getMissionDef(MissionID.ClearMini1)) {
         MissionLoader.load(dataDir);
     }
 }
@@ -80,6 +85,9 @@ function createFakeClient(): FakeClient {
         },
         entities: new Map(),
         sentPackets,
+        send(id: number, payload: Buffer): void {
+            sentPackets.push({ id, payload: Buffer.from(payload) });
+        },
         sendBitBuffer(id: number, bb: BitBuffer): void {
             sentPackets.push({ id, payload: bb.toBuffer() });
         }
@@ -174,6 +182,29 @@ function createMeyloursEmbersClient(): FakeClient {
     return client;
 }
 
+function createCemeteryMiniClient(): FakeClient {
+    const client = createFakeClient();
+    client.currentLevel = 'CH_MiniMission1';
+    client.levelInstanceId = 'lady-ellen-full-clear-flow';
+    client.forcedDungeonCompletionScope = '';
+    client.character.name = 'LadyEllenFullClearTester';
+    client.character.level = 11;
+    client.character.CurrentLevel = { name: 'CH_MiniMission1', x: 0, y: 0 };
+    client.character.PreviousLevel = { name: 'CemeteryHill', x: 7469, y: 385 };
+    client.character.missions = {
+        [String(MissionID.DeliverToSwamp)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        }
+    };
+    client.character.questTrackerState = 72;
+    client.sentPackets.length = 0;
+    client.characters = [client.character];
+    return client;
+}
+
 function createLevelCompletePacket(progress: number = 100, remainingKills: number = 0, requiredKills: number = 1): Buffer {
     const bb = new BitBuffer(false);
     bb.writeMethod9(progress);
@@ -185,6 +216,16 @@ function createLevelCompletePacket(progress: number = 100, remainingKills: numbe
     bb.writeMethod9(requiredKills);
     bb.writeMethod9(10);
     return bb.toBuffer();
+}
+
+function createQuestProgressPacket(progress: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(progress);
+    return bb.toBuffer();
+}
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function decodeMissionAddedPacket(payload: Buffer): { missionId: number; active: number } {
@@ -391,13 +432,100 @@ async function testMeyloursEmbersClaimsAdohiRewardAndPrimesGlades(): Promise<voi
     );
 }
 
+async function testCemeteryMiniDungeonStartsMissionOnEntry(): Promise<void> {
+    const client = createCemeteryMiniClient();
+
+    await MissionHandler.prepareFullClearDungeonEntry(client as never);
+    MissionHandler.syncFullClearDungeonEntryMissionToClient(client as never);
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.ClearMini1)]?.state ?? 0),
+        1,
+        'Cemetery Hill mini tomb entry should start its matching clear mission'
+    );
+    assert.equal(
+        Number(client.character.questTrackerState ?? -1),
+        0,
+        'Cemetery Hill mini tomb entry should reset the dungeon progress tracker'
+    );
+    const missionAdded = client.sentPackets.find((packet) => packet.id === 0x85);
+    assert.ok(
+        missionAdded,
+        'Cemetery Hill mini tomb entry should push the active mission snapshot to the client'
+    );
+    assert.deepEqual(decodeMissionAddedPacket(missionAdded!.payload), {
+        missionId: MissionID.ClearMini1,
+        active: 1
+    });
+}
+
+async function testCemeteryMiniDungeonCompletesOnlyFromFullClearProgress(): Promise<void> {
+    const client = createCemeteryMiniClient();
+    client.character.missions[String(MissionID.ClearMini1)] = {
+        state: 1,
+        currCount: 0
+    };
+    const levelScope = getClientLevelScope(client as never);
+    const finalEnemy = {
+        id: 91001,
+        name: 'Mummy14',
+        isPlayer: false,
+        team: 2,
+        entState: 6,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 1
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>());
+
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, finalEnemy);
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'Cemetery Hill mini tombs should not complete from last-hostile death alone'
+    );
+
+    await LevelHandler.handleQuestProgressUpdate(client as never, createQuestProgressPacket(100));
+    await sleep(MissionHandler.DUNGEON_COMPLETION_SKIT_SETTLE_MS + 100);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        true,
+        'Cemetery Hill mini tombs should show the dungeon completion screen at 100% progress'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.ClearMini1)]?.state ?? 0),
+        3,
+        'Cemetery Hill mini tomb completion should claim the matching clear mission'
+    );
+}
+
 async function main(): Promise<void> {
+    const sessionsByToken = new Map(GlobalState.sessionsByToken);
+    const levelEntities = new Map(GlobalState.levelEntities);
     ensureDataLoaded();
-    await testDungeonCompletionSyncsReadyMissionStateImmediately();
-    await testLordTillyRestWaitsForNpcRewardClaim();
-    await testDungeonCompletionDoesNotCreateUnstartedMission();
-    await testAcceptedForgottenForgeCompletionWaitsForTurnIn();
-    await testMeyloursEmbersClaimsAdohiRewardAndPrimesGlades();
+    try {
+        await testDungeonCompletionSyncsReadyMissionStateImmediately();
+        await testLordTillyRestWaitsForNpcRewardClaim();
+        await testDungeonCompletionDoesNotCreateUnstartedMission();
+        await testAcceptedForgottenForgeCompletionWaitsForTurnIn();
+        await testMeyloursEmbersClaimsAdohiRewardAndPrimesGlades();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        await testCemeteryMiniDungeonStartsMissionOnEntry();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        await testCemeteryMiniDungeonCompletesOnlyFromFullClearProgress();
+    } finally {
+        GlobalState.sessionsByToken = sessionsByToken;
+        GlobalState.levelEntities = levelEntities;
+    }
     console.log('dungeon_completion_mission_sync_regression: ok');
 }
 

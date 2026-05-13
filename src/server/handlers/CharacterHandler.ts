@@ -1108,6 +1108,7 @@ export class CharacterHandler {
             hasCoord: entry.newHasCoord ?? false
         };
         LevelHandler.prepareGoblinRiverDungeonEntryState(client);
+        await MissionHandler.prepareFullClearDungeonEntry(client);
 
         // Send Player Data (0x10)
         const pdPkt = WorldEnter.buildPlayerDataPacket(
@@ -1133,6 +1134,7 @@ export class CharacterHandler {
             payloadPreview: DebugLogger.previewBuffer(pdBuffer)
         });
 
+        MissionHandler.syncFullClearDungeonEntryMissionToClient(client);
         MissionHandler.syncMissionStateToClient(client);
         CharacterHandler.sendBootstrappedStoryMission(client, storyRepair.addedMissionId);
 
