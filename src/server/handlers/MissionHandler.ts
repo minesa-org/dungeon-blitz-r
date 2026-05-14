@@ -87,12 +87,16 @@ export class MissionHandler {
     ]);
     private static readonly FULL_CLEAR_ONLY_DUNGEON_PATTERN = /^CH_MiniMission\d+(Hard)?$/;
     private static readonly DUNGEONS_REQUIRING_BOSS_DEFEAT = new Set([
+        'AC_Mission6',
+        'AC_Mission6Hard',
         'CH_Mission1',
         'CH_Mission1Hard',
         'SRN_Mission4',
         'SRN_Mission4Hard'
     ]);
     private static readonly REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL: Record<string, ReadonlySet<string>> = {
+        AC_Mission6: new Set(['NephitLargeEye']),
+        AC_Mission6Hard: new Set(['NephitLargeEyeHard']),
         SRN_Mission4: new Set(['WyrmGreat']),
         SRN_Mission4Hard: new Set(['WyrmGreatHard'])
     };
@@ -104,6 +108,8 @@ export class MissionHandler {
     private static readonly dungeonCompletionObjectiveProgress = new Map<string, DungeonCompletionObjectiveProgress>();
     // These boss kills intentionally open a post-death room cutscene before the stats screen.
     private static readonly DUNGEONS_WITH_POST_DEATH_BOSS_CUTSCENE = new Set([
+        'AC_Mission6',
+        'AC_Mission6Hard',
         'GoblinRiverDungeon',
         'GoblinRiverDungeonHard',
         'GhostBossDungeon',
@@ -2559,6 +2565,9 @@ export class MissionHandler {
         }
 
         const stats = client ? getActiveDungeonRunStats(client) : null;
+        if (MissionHandler.REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL[levelName]?.size) {
+            return false;
+        }
         return Boolean(stats && stats.levelScope === scopeKey && stats.bossKilled);
     }
 
