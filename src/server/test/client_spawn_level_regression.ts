@@ -28,6 +28,7 @@ type FakeClient = {
     mountTransferGraceUntil: number;
     syncAnchorStartedAt: number;
     startedRoomEvents: Set<string>;
+    triggeredLevelStates: Set<string>;
     knownEntityIds: Set<number>;
     entities: Map<number, any>;
     keepTutorialState?: ReturnType<typeof createKeepTutorialState> | null;
@@ -74,6 +75,7 @@ function createFakeClient(name: string): FakeClient {
         mountTransferGraceUntil: 0,
         syncAnchorStartedAt: 0,
         startedRoomEvents: new Set<string>(),
+        triggeredLevelStates: new Set<string>(),
         knownEntityIds: new Set<number>(),
         entities: new Map<number, any>(),
         keepTutorialState: null,
@@ -106,6 +108,14 @@ function parseRoomEventStart(payload: Buffer): { roomId: number; flag: boolean }
     return {
         roomId: br.readMethod4(),
         flag: br.readMethod15()
+    };
+}
+
+function parseLevelState(payload: Buffer): { key: string; value: string } {
+    const br = new BitReader(payload);
+    return {
+        key: br.readMethod26(),
+        value: br.readMethod26()
     };
 }
 
@@ -1312,6 +1322,98 @@ function testTutorialDungeonTraversalParrotStartsWhenPlayerReachesRoom(): void {
     );
 }
 
+async function testDeepgardDragonMiniBossIntroStartsOnTriggerCrossing(): Promise<void> {
+    const roomId = 2003367144;
+    const leader = createFakeClient('Alpha');
+    const follower = createFakeClient('Beta');
+    leader.currentLevel = 'AC_Mission1';
+    follower.currentLevel = 'AC_Mission1';
+    leader.levelInstanceId = 'deepgard-run';
+    follower.levelInstanceId = 'deepgard-run';
+    leader.clientEntID = 9101;
+    follower.clientEntID = 9102;
+    leader.entities.set(leader.clientEntID, {
+        id: leader.clientEntID,
+        name: 'Alpha',
+        isPlayer: true,
+        x: -2700,
+        y: -2500,
+        v: 0,
+        team: 1
+    });
+    follower.entities.set(follower.clientEntID, {
+        id: follower.clientEntID,
+        name: 'Beta',
+        isPlayer: true,
+        x: -2800,
+        y: -2500,
+        v: 0,
+        team: 1
+    });
+    GlobalState.sessionsByToken.set(leader.token, leader as never);
+    GlobalState.sessionsByToken.set(follower.token, follower as never);
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        leader as never,
+        buildIncrementalUpdatePayload(leader.clientEntID, 160, 0, 0)
+    );
+
+    const leaderTriggers = leader.sentPackets
+        .filter((packet) => packet.id === 0x40)
+        .map((packet) => parseLevelState(packet.payload));
+    const followerTriggers = follower.sentPackets
+        .filter((packet) => packet.id === 0x40)
+        .map((packet) => parseLevelState(packet.payload));
+
+    assert.deepEqual(leaderTriggers, [{ key: `${roomId}^Trigger^am_Trigger_Cutscene`, value: '' }]);
+    assert.deepEqual(followerTriggers, [{ key: `${roomId}^Trigger^am_Trigger_Cutscene`, value: '' }]);
+    assert.equal(leader.triggeredLevelStates.has(`AC_Mission1:${roomId}:am_Trigger_Cutscene`), true);
+    assert.equal(follower.triggeredLevelStates.has(`AC_Mission1:${roomId}:am_Trigger_Cutscene`), true);
+    assert.equal(leader.startedRoomEvents.has(`AC_Mission1:${roomId}`), false);
+    assert.equal(follower.startedRoomEvents.has(`AC_Mission1:${roomId}`), false);
+
+    leader.sentPackets.length = 0;
+    follower.sentPackets.length = 0;
+    await LevelHandler.handleEntityIncrementalUpdate(
+        leader as never,
+        buildIncrementalUpdatePayload(leader.clientEntID, 80, 0, 0)
+    );
+
+    assert.deepEqual(
+        leader.sentPackets.filter((packet) => packet.id === 0xA5),
+        [],
+        'Deepgard mini-boss trigger should only be synthesized once per run'
+    );
+    assert.deepEqual(leader.sentPackets.filter((packet) => packet.id === 0x40), []);
+    assert.deepEqual(follower.sentPackets.filter((packet) => packet.id === 0xA5), []);
+    assert.deepEqual(follower.sentPackets.filter((packet) => packet.id === 0x40), []);
+}
+
+async function testDeepgardDragonMiniBossIntroIgnoresWrongVerticalBand(): Promise<void> {
+    const client = createFakeClient('Alpha');
+    client.currentLevel = 'AC_Mission1Hard';
+    client.clientEntID = 9201;
+    client.entities.set(client.clientEntID, {
+        id: client.clientEntID,
+        name: 'Alpha',
+        isPlayer: true,
+        x: -2700,
+        y: -500,
+        v: 0,
+        team: 1
+    });
+    GlobalState.sessionsByToken.set(client.token, client as never);
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        client as never,
+        buildIncrementalUpdatePayload(client.clientEntID, 160, 0, 0)
+    );
+
+    assert.deepEqual(client.sentPackets.filter((packet) => packet.id === 0xA5), []);
+    assert.deepEqual(client.sentPackets.filter((packet) => packet.id === 0x40), []);
+    assert.equal(client.triggeredLevelStates.has('AC_Mission1Hard:2003367144:am_Trigger_Cutscene'), false);
+}
+
 function testConflictingLocalIdsStillTriggerRemotePlayerSeed(): void {
     const sender = createFakeClient('Alpha');
     const watcher = createFakeClient('Beta');
@@ -2129,6 +2231,16 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testTutorialDungeonTraversalParrotStartsWhenPlayerReachesRoom();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        await testDeepgardDragonMiniBossIntroStartsOnTriggerCrossing();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        await testDeepgardDragonMiniBossIntroIgnoresWrongVerticalBand();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

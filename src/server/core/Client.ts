@@ -164,6 +164,7 @@ export class Client {
     public knownEntityIds: Set<number> = new Set();
     public pendingLoot: Map<number, PendingLootDrop> = new Map();
     public processedRewardSources: Set<string> = new Set();
+    public triggeredLevelStates: Set<string> = new Set();
     public dungeonRun: DungeonRunStats | null = null;
     public pendingMissionTurnIns: Set<number> = new Set();
     public authoritativeMaxHp: number = 100;

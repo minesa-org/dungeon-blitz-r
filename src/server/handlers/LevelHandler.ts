@@ -87,6 +87,10 @@ export class LevelHandler {
     private static readonly GOBLIN_RIVER_INITIAL_PROGRESS = 11;
     private static readonly TUTORIAL_DUNGEON_INITIAL_PROGRESS = 11;
     private static readonly KEEP_TUTORIAL_HELPER_RESPAWN_DELAY_MS = 1200;
+    private static readonly DEEPGARD_DRAGON_MINIBOSS_ROOM_ID = 2003367144;
+    private static readonly DEEPGARD_DRAGON_MINIBOSS_TRIGGER_X = -2560;
+    private static readonly DEEPGARD_DRAGON_MINIBOSS_TRIGGER_MIN_Y = -3100;
+    private static readonly DEEPGARD_DRAGON_MINIBOSS_TRIGGER_MAX_Y = -1750;
     private static craftTownTutorialHelperIdsCache: number[] | null = null;
     private static readonly GOBLIN_RIVER_BOSS_INTRO_TEXTS = new Set<string>([
         "You're the one that killed our Kraken!",
@@ -198,6 +202,7 @@ export class LevelHandler {
         target.syncAnchorCharacterName = String(source.syncAnchorCharacterName ?? '').trim();
         target.entities = new Map(source.entities);
         target.startedRoomEvents = new Set(source.startedRoomEvents);
+        target.triggeredLevelStates = new Set(source.triggeredLevelStates);
         target.dungeonRun = cloneDungeonRunStats(source.dungeonRun);
     }
 
@@ -2287,6 +2292,7 @@ export class LevelHandler {
         client.playerSpawned = false;
         client.pendingLoot.clear();
         client.processedRewardSources.clear();
+        client.triggeredLevelStates.clear();
         finalizeDungeonRun(client, 'leave');
         client.dungeonRun = null;
         client.currentRoomId = 0;
@@ -2400,6 +2406,49 @@ export class LevelHandler {
         ) {
             LevelHandler.sendRoomEventStart(client, LevelHandler.TUTORIAL_DUNGEON_DROP_ROOM_EVENT, true);
         }
+    }
+
+    private static maybeTriggerDeepgardDragonMiniBossIntro(
+        client: Client,
+        previousX: number,
+        currentX: number,
+        currentY: number
+    ): void {
+        const currentLevel = LevelConfig.normalizeLevelName(client.currentLevel);
+        if (currentLevel !== 'AC_Mission1' && currentLevel !== 'AC_Mission1Hard') {
+            return;
+        }
+
+        const roomId = LevelHandler.DEEPGARD_DRAGON_MINIBOSS_ROOM_ID;
+        const triggerKey = `${currentLevel}:${roomId}:am_Trigger_Cutscene`;
+        if (client.triggeredLevelStates.has(triggerKey)) {
+            return;
+        }
+
+        const crossedTrigger =
+            previousX < LevelHandler.DEEPGARD_DRAGON_MINIBOSS_TRIGGER_X &&
+            currentX >= LevelHandler.DEEPGARD_DRAGON_MINIBOSS_TRIGGER_X;
+        const insideTriggerBand =
+            currentY >= LevelHandler.DEEPGARD_DRAGON_MINIBOSS_TRIGGER_MIN_Y &&
+            currentY <= LevelHandler.DEEPGARD_DRAGON_MINIBOSS_TRIGGER_MAX_Y;
+
+        if (!crossedTrigger || !insideTriggerBand) {
+            return;
+        }
+
+        for (const other of LevelHandler.forLevelRecipients(client, true)) {
+            if (!other.triggeredLevelStates.has(triggerKey)) {
+                other.triggeredLevelStates.add(triggerKey);
+                LevelHandler.sendRoomTriggerState(other, roomId, 'am_Trigger_Cutscene');
+            }
+        }
+    }
+
+    private static sendRoomTriggerState(client: Client, roomId: number, triggerName: string): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod26(`${Math.max(0, Math.round(roomId))}^Trigger^${triggerName}`);
+        bb.writeMethod26('');
+        client.sendBitBuffer(0x40, bb);
     }
 
     private static setGoblinRiverHostilesUntargetable(client: Client, untargetable: boolean): void {
@@ -3582,6 +3631,7 @@ export class LevelHandler {
             !ent.isPlayer &&
             Number(ent.team ?? 0) === EntityTeam.ENEMY;
 
+        const previousX = Number(ent.x ?? 0);
         ent.x += deltaX;
         ent.y += deltaY;
         ent.v = Number(ent.v ?? 0) + deltaVX;
@@ -3640,6 +3690,13 @@ export class LevelHandler {
                     }
                 );
             }
+
+            LevelHandler.maybeTriggerDeepgardDragonMiniBossIntro(
+                client,
+                previousX,
+                Number(ent.x ?? 0),
+                Number(ent.y ?? 0)
+            );
         }
 
         if (
