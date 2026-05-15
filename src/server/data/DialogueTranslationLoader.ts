@@ -14,6 +14,54 @@ export class DialogueTranslationLoader {
     private static readonly DEFAULT_LOCALE = 'en';
     private static readonly translationsByLocale: Map<string, Map<string, string>> = new Map();
     private static loaded = false;
+    private static readonly HELP_FALLBACKS = [
+        'Yardim edin!',
+        'Beni koruyun!',
+        'Buraya yardim gerek!'
+    ];
+    private static readonly WARNING_FALLBACKS = [
+        'Dikkat!',
+        'Tetikte olun!',
+        'Tehlike yakinda!'
+    ];
+    private static readonly FIRE_FALLBACKS = [
+        'Her sey yanacak!',
+        'Kule doneceksin!',
+        'Alevler seni yutacak!'
+    ];
+    private static readonly KILL_FALLBACKS = [
+        'Seni yok edecegim!',
+        'Burada oleceksin!',
+        'Seni parcalayacagim!',
+        'Sonun geldi!',
+        'Kanini dokecegim!',
+        'Seni mezara gonderecegim!'
+    ];
+    private static readonly ATTACK_FALLBACKS = [
+        'Saldiriya gecin!',
+        'Ustune gidin!',
+        'Onu durdurun!',
+        'Hucum edin!',
+        'Etrafini sarin!',
+        'Savasa hazirlanin!'
+    ];
+    private static readonly INTRUDER_FALLBACKS = [
+        'Davetsiz misafir!',
+        'Yabanci burada!',
+        'Hirsizi yakalayin!',
+        'Buraya ait degilsin!',
+        'Ihlalciyi durdurun!'
+    ];
+    private static readonly GENERIC_ENEMY_FALLBACKS = [
+        'Geri cekil!',
+        'Buradan gecemezsin!',
+        'Sana izin vermeyecegiz!',
+        'Bunu odetecegiz!',
+        'Kaderin burada bitecek!',
+        'Gucumuzu goreceksin!',
+        'Karsimiza cikmamaliydin!',
+        'Burasi bizim bolgemiz!'
+    ];
 
     private static normalizeLocale(locale: string): string {
         const normalized = String(locale ?? '').trim().toLowerCase();
@@ -67,6 +115,19 @@ export class DialogueTranslationLoader {
         return /[A-Za-z]{2,}/.test(text);
     }
 
+    private static pickFallback(text: string, choices: string[]): string {
+        if (!choices.length) {
+            return text;
+        }
+
+        let hash = 0;
+        for (const char of String(text ?? '')) {
+            hash = ((hash << 5) - hash + char.charCodeAt(0)) | 0;
+        }
+
+        return choices[Math.abs(hash) % choices.length];
+    }
+
     private static translateUnknownRoomThought(text: string): string {
         const clean = this.stripClientDirectives(text);
         if (!this.looksLikeEnglishText(clean)) {
@@ -77,10 +138,10 @@ export class DialogueTranslationLoader {
             return 'Hicbir sey.';
         }
         if (/\b(help|save|protect)\b/i.test(clean)) {
-            return 'Yardim edin!';
+            return this.pickFallback(clean, this.HELP_FALLBACKS);
         }
         if (/\b(warning|beware)\b/i.test(clean)) {
-            return 'Dikkat!';
+            return this.pickFallback(clean, this.WARNING_FALLBACKS);
         }
         if (/\b(Meylour)\b/i.test(clean)) {
             return 'Meylour icin!';
@@ -92,19 +153,19 @@ export class DialogueTranslationLoader {
             return 'Imparator icin!';
         }
         if (/\b(burn|fire|ashes|ash)\b/i.test(clean)) {
-            return 'Her sey yanacak!';
+            return this.pickFallback(clean, this.FIRE_FALLBACKS);
         }
         if (/\b(die|kill|slay|destroy|annihilation|curse|blood)\b/i.test(clean)) {
-            return 'Geber!';
+            return this.pickFallback(clean, this.KILL_FALLBACKS);
         }
         if (/\b(come|rise|charge|attack|swarm|defend|guard|to me)\b/i.test(clean)) {
-            return 'Saldirin!';
+            return this.pickFallback(clean, this.ATTACK_FALLBACKS);
         }
         if (/\b(human|trespasser|thief|thieves|usurper)\b/i.test(clean)) {
-            return 'Davetsiz misafir!';
+            return this.pickFallback(clean, this.INTRUDER_FALLBACKS);
         }
 
-        return 'Saldirin!';
+        return this.pickFallback(clean, this.GENERIC_ENEMY_FALLBACKS);
     }
 
     static load(dataDir: string): void {

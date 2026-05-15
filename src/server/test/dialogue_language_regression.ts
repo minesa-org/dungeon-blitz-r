@@ -73,6 +73,14 @@ function createRoomThoughtPacket(entityId: number, text: string): Buffer {
     return bb.toBuffer();
 }
 
+function createStartSkitPacket(entityId: number, text: string): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod9(entityId);
+    bb.writeMethod15(false);
+    bb.writeMethod26(text);
+    return bb.toBuffer();
+}
+
 function decodeRoomThought(payload: Buffer): { entityId: number; text: string } {
     const br = new BitReader(payload);
     return {
@@ -216,7 +224,29 @@ function testTurkishRoomThoughtFallbackPreventsEnemyEnglish(): void {
 
     const packet = client.sentPackets.find((entry) => entry.id === 0x76);
     assert.ok(packet, 'enemy room thought should still be relayed');
-    assert.equal(decodeRoomThought(packet!.payload).text, 'Saldirin!');
+    assert.equal(decodeRoomThought(packet!.payload).text, 'Bunu odetecegiz!');
+}
+
+function testTurkishEnemyFallbackKeepsLineVariety(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const first = DialogueTranslationLoader.translateText(
+        'I will crush you!',
+        'tr',
+        { fallbackToGeneric: true }
+    );
+    const second = DialogueTranslationLoader.translateText(
+        'Attack now!',
+        'tr',
+        { fallbackToGeneric: true }
+    );
+
+    assert.equal(first, 'Sana izin vermeyecegiz!');
+    assert.equal(second, 'Hucum edin!');
+    assert.notEqual(first, second, 'unknown enemy fallback should not collapse every line to one taunt');
+    assert.notEqual(first, 'Geber!');
+    assert.notEqual(second, 'Saldirin!');
 }
 
 function testSpecificDungeonRoomThoughtTranslation(): void {
@@ -313,15 +343,102 @@ function testLevelHandlerRoomThoughtUsesRecipientLanguage(): void {
     });
 }
 
+function testCapstoneBossDialogueTranslatesEnemyAndPlayerLines(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51006;
+    client.currentLevel = 'AC_Mission6';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+    client.entities.set(670, {
+        id: 670,
+        name: 'GreatNephit',
+        team: EntityTeam.ENEMY
+    });
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        SocialHandler.handleStartSkit(
+            client as never,
+            createStartSkitPacket(670, 'Ahhh, you finished off the dragon generals.')
+        );
+        SocialHandler.handleStartSkit(
+            client as never,
+            createStartSkitPacket(1, 'Prepare for another disappointment, Nephit.')
+        );
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const thoughts = client.sentPackets
+        .filter((entry) => entry.id === 0x76)
+        .map((entry) => decodeRoomThought(entry.payload));
+
+    assert.deepEqual(thoughts, [
+        {
+            entityId: 670,
+            text: 'Ahhh, ejderha generallerini bitirmissin.'
+        },
+        {
+            entityId: 1,
+            text: 'Nephit, bir hayal kirikligina daha hazirlan.'
+        }
+    ]);
+}
+
+function testCapstoneRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+
+    const capstoneLines = [
+        "There's a strange light coming from that tunnel...",
+        'More of those blue crytals.',
+        'Is this where they come from?',
+        'These ghosts are different.',
+        "Nephit's summoning spirits from everwhere now!",
+        'Where am I?',
+        'What is this place?',
+        'Ghosts of all my former foes.',
+        "Nephit's throwing everything at me.",
+        "I've never heard of a place like this!",
+        'I feel caught between two worlds.',
+        "Hopefully there's some stable ground ahead.",
+        'RAAAAAAWWWRRR!',
+        'uugggugugu.....',
+        'Ahhh, you finished off the dragon generals.',
+        "I'd hoped you would kill each other.",
+        'Prepare for another disappointment, Nephit.',
+        'You know, I helped Baron Hocke create this Capstone.',
+        'Then you know how dangerous it would be to disrupt it.',
+        'Dangerous to you. Empowering for me.',
+        'Once I drain its powers, I shall live again...',
+        'And every ancient secret shall be revealed unto me!',
+        'You should know by now, #tn#...',
+        'This body is a mere placeholder',
+        "Now let me show you Capstone's true potential!"
+    ];
+
+    const missing = capstoneLines.filter((line) => !String(translations.translations?.[line] ?? '').trim());
+    assert.deepEqual(missing, [], 'Capstone dungeon dialogue should have Turkish translations');
+}
+
 async function main(): Promise<void> {
     await testLanguageCommandSwitchesToTurkishWithoutBroadcasting();
     await testLanguageCommandSwitchesBackToEnglish();
     testTurkishDialogueFilesCoverAllSourceDialogue();
     testTurkishRoomThoughtUsesTranslationTable();
     testTurkishRoomThoughtFallbackPreventsEnemyEnglish();
+    testTurkishEnemyFallbackKeepsLineVariety();
     testSpecificDungeonRoomThoughtTranslation();
     testSplitDungeonRoomThoughtTranslation();
     testLevelHandlerRoomThoughtUsesRecipientLanguage();
+    testCapstoneBossDialogueTranslatesEnemyAndPlayerLines();
+    testCapstoneRoomDialogueTranslationsCoverExtractedSource();
     console.log('dialogue_language_regression: ok');
 }
 
