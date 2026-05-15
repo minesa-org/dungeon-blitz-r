@@ -209,7 +209,6 @@ const WORDS = new Map(Object.entries({
     weapon: 'silah',
     weapons: 'silahlar',
     sword: 'kilic',
-    shield: 'kalkan',
     bow: 'yay',
     staff: 'asa',
     robe: 'cubbe',
