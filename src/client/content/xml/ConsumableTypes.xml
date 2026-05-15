@@ -2,7 +2,7 @@
 <ConsumableTypes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<ConsumableType ConsumableName="---Template---">
 		<ConsumableID>0</ConsumableID>
-		<DisplayName>Template</DisplayName>
+		<DisplayName>Yerel Esya 3EC1AE</DisplayName>
 		<IconName>a_Icon_PotionGearFind</IconName>
 		<RareBoost>0</RareBoost>
 		<LegendaryBoost>0</LegendaryBoost>
@@ -12,129 +12,129 @@
 		<MaterialFind>0</MaterialFind>
 		<XP>0</XP>
 		<Magnitude>300</Magnitude>
-		<Description>WhatIDo</Description>
+		<Description>What I Do</Description>
 		<Type>Potion</Type>
 		<Rarity>Rarity</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="MinorRareCatalyst">
 		<ConsumableID>1</ConsumableID>
-		<DisplayName>Inventor's Trinket</DisplayName>
+		<DisplayName>Yerel Esya 3E62B8</DisplayName>
 		<IconName>a_Icon_PrimordialHeart</IconName>
 		<RareBoost>100</RareBoost>
 		<LegendaryBoost>0</LegendaryBoost>
-		<Description>Use in Forge to guarantee a &lt;font color='#0099FF'&gt;Rare&lt;/font&gt; charm</Description>
+		<Description>kullan icinde Forge guarantee bir &lt;font renk='#0099FF'&gt;nadir&lt;/font&gt; tilsim</Description>
 		<Type>Catalyst</Type>
 		<Rarity>M</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="MinorLegendaryCatalyst">
 		<ConsumableID>2</ConsumableID>
-		<DisplayName>Voidmatter</DisplayName>
+		<DisplayName>Yerel Esya AD8410</DisplayName>
 		<IconName>a_Icon_PrimordialHeart</IconName>
 		<RareBoost>0</RareBoost>
 		<LegendaryBoost>0</LegendaryBoost>
-		<Description>UNUSED</Description>
+		<Description>Turkce aciklama FAAFCF.</Description>
 		<Type>Catalyst</Type>
 		<Rarity>R</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="MajorRareCatalyst">
 		<ConsumableID>3</ConsumableID>
-		<DisplayName>Dragonfire Talisman</DisplayName>
+		<DisplayName>Yerel Esya BB03F2</DisplayName>
 		<IconName>a_Icon_DragonfireTalisman</IconName>
 		<RareBoost>100</RareBoost>
 		<LegendaryBoost>50</LegendaryBoost>
-		<Description>Use in Forge to guarantee &lt;font color='#0099FF'&gt;Rare&lt;/font&gt; charm and add a 50% chance to make it &lt;font color='#F8DD45'&gt;Legendary&lt;/font&gt;</Description>
+		<Description>kullan icinde Forge guarantee &lt;font renk='#0099FF'&gt;nadir&lt;/font&gt; tilsim ve add bir 50% sans make it &lt;font renk='#F8DD45'&gt;efsanevi&lt;/font&gt;</Description>
 		<Type>Catalyst</Type>
 		<Rarity>R</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="MajorLegendaryCatalyst">
 		<ConsumableID>4</ConsumableID>
-		<DisplayName>Heart of the Furnace</DisplayName>
+		<DisplayName>Heart Furnace</DisplayName>
 		<IconName>a_Icon_HeartoftheFurnace</IconName>
 		<RareBoost>0</RareBoost>
 		<LegendaryBoost>100</LegendaryBoost>
-		<Description>Use in Forge to guarantee a &lt;font color='#F8DD45'&gt;Legendary&lt;/font&gt; charm</Description>
+		<Description>kullan icinde Forge guarantee bir &lt;font renk='#F8DD45'&gt;efsanevi&lt;/font&gt; tilsim</Description>
 		<Type>Catalyst</Type>
 		<Rarity>L</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="ForgeXP">
 		<ConsumableID>5</ConsumableID>
-		<DisplayName>The Tinker's Soul</DisplayName>
+		<DisplayName>Tinker's ruh</DisplayName>
 		<IconName>a_Icon_Anvil</IconName>
 		<ArtisanXP>4000</ArtisanXP>
-		<Description>Immediately Gain 4000 Artisan XP</Description>
+		<Description>Immediately kazan 4000 Artisan XP</Description>
 		<Type>ForgeXP</Type>
 		<Rarity>M</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="GoldFindRegular">
 		<ConsumableID>6</ConsumableID>
-		<DisplayName>Potion of Gold Find</DisplayName>
+		<DisplayName>Potion altin bul</DisplayName>
 		<IconName>a_Icon_PotionGoldFind</IconName>
 		<GoldFind>0.5</GoldFind>
-		<Description>Adds 50% to your Gold Find for 1-2 dungeons</Description>
+		<Description>Adds 50% senin altin bul icin 1-2 zindanlar</Description>
 		<Type>Potion</Type>
 		<Rarity>M</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="MaterialFindRegular">
 		<ConsumableID>7</ConsumableID>
-		<DisplayName>Potion of Material Find</DisplayName>
+		<DisplayName>Potion malzeme bul</DisplayName>
 		<IconName>a_Icon_PotionMaterial</IconName>
 		<MaterialFind>0.5</MaterialFind>
-		<Description>Adds 50% to your Material Find for 1-2 dungeons</Description>
+		<Description>Adds 50% senin malzeme bul icin 1-2 zindanlar</Description>
 		<Type>Potion</Type>
 		<Rarity>M</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="XPFindRegular">
 		<ConsumableID>8</ConsumableID>
-		<DisplayName>Potion of XP Boost</DisplayName>
+		<DisplayName>Potion XP artis</DisplayName>
 		<IconName>a_Icon_PotionXP</IconName>
 		<XP>0.5</XP>
-		<Description>Adds 50% to your XP Boost for 1-2 dungeons</Description>
+		<Description>Adds 50% senin XP artis icin 1-2 zindanlar</Description>
 		<Type>Potion</Type>
 		<Rarity>M</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="Resurrection">
 		<ConsumableID>9</ConsumableID>
-		<DisplayName>Vengeance Potion</DisplayName>
+		<DisplayName>Yerel Esya 3FB520</DisplayName>
 		<IconName>a_Icon_PotionVeng</IconName>
-		<Description>Instantly revive with a Power Surge; a buff granting the user full mana and a boost in damage for a short period of time</Description>
+		<Description>Instantly revive ile bir guc dalga; bir buff granting user full mana ve bir artis icinde hasar icin bir short period sure</Description>
 		<Type>ResPotion</Type>
 		<Rarity>R</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="RarePetFood">
 		<ConsumableID>10</ConsumableID>
-		<DisplayName>Arcane Chew Bone</DisplayName>
+		<DisplayName>Arcane Chew kemik</DisplayName>
 		<IconName>a_Icon_LegendaryPetFood</IconName>
 		<Magnitude>60000</Magnitude>
-		<Description>Gives your pet 60,000 XP and grants your pet a level.</Description>
+		<Description>Gives senin evcil 60,000 XP ve verir senin evcil bir seviye.</Description>
 		<Type>PetFood</Type>
 		<Rarity>L</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="PetFood">
 		<ConsumableID>11</ConsumableID>
-		<DisplayName>Savory Steak</DisplayName>
+		<DisplayName>Yerel Esya 98113D</DisplayName>
 		<IconName>a_Icon_Petfood</IconName>
 		<Magnitude>30000</Magnitude>
-		<Description>Gives your pet 30,000 XP</Description>
+		<Description>Gives senin evcil 30,000 XP</Description>
 		<Type>PetFood</Type>
 		<Rarity>M</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="AwesomeCashShopBoost">
 		<ConsumableID>12</ConsumableID>
-		<DisplayName>Potion of Triple Find</DisplayName>
+		<DisplayName>Potion uclu bul</DisplayName>
 		<IconName>a_Icon_PotionGearFind</IconName>
 		<GoldFind>0.75</GoldFind>
 		<MaterialFind>0.75</MaterialFind>
 		<XP>0.75</XP>
-		<Description>Adds 75% to your XP, Material and Gold Find for 1-2 dungeons</Description>
+		<Description>Adds 75% senin XP, malzeme ve altin bul icin 1-2 zindanlar</Description>
 		<Type>Potion</Type>
 		<Rarity>R</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="GearFindRegular">
 		<ConsumableID>13</ConsumableID>
-		<DisplayName>Potion of Gear Find</DisplayName>
+		<DisplayName>Potion Ekipman bul</DisplayName>
 		<IconName>a_Icon_PotionGearFind</IconName>
 		<GearFind>0.5</GearFind>
-		<Description>Adds 50% to your Gear Find for 1-2 dungeons</Description>
+		<Description>Adds 50% senin Ekipman bul icin 1-2 zindanlar</Description>
 		<Type>Potion</Type>
 		<Rarity>M</Rarity>
 	</ConsumableType>

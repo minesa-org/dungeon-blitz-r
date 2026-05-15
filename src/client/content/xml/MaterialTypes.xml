@@ -2,7 +2,7 @@
 <MaterialTypes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<MaterialType MaterialName="---Template---">
 		<MaterialID>0</MaterialID>
-		<DisplayName>---Template---</DisplayName>
+		<DisplayName>Yerel Esya 49D89B</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Kingdom</Kingdom>
 		<DropRealm>Realm</DropRealm>
@@ -11,7 +11,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicDragonM">
 		<MaterialID>1</MaterialID>
-		<DisplayName>Massive Scale</DisplayName>
+		<DisplayName>Yerel Esya 20B351</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Dragon</DropRealm>
@@ -19,7 +19,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicDragonR">
 		<MaterialID>2</MaterialID>
-		<DisplayName>Dragon Talon</DisplayName>
+		<DisplayName>ejderha Talon</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Dragon</DropRealm>
@@ -27,7 +27,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicDragonL">
 		<MaterialID>3</MaterialID>
-		<DisplayName>Skull of the Gods</DisplayName>
+		<DisplayName>Skull Gods</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Dragon</DropRealm>
@@ -36,7 +36,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicHumanM">
 		<MaterialID>4</MaterialID>
-		<DisplayName>Conjured Flame</DisplayName>
+		<DisplayName>Yerel Esya 129B60</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -44,7 +44,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicHumanR">
 		<MaterialID>5</MaterialID>
-		<DisplayName>Ruby Charm</DisplayName>
+		<DisplayName>Ruby tilsim</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -52,7 +52,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicHumanL">
 		<MaterialID>6</MaterialID>
-		<DisplayName>Drakefire Talisman</DisplayName>
+		<DisplayName>Yerel Esya AAD4B1</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -61,7 +61,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicLizardM">
 		<MaterialID>7</MaterialID>
-		<DisplayName>Smooth Scales</DisplayName>
+		<DisplayName>Yerel Esya C92457</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Lizard</DropRealm>
@@ -69,7 +69,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicLizardR">
 		<MaterialID>8</MaterialID>
-		<DisplayName>Lizard Tooth</DisplayName>
+		<DisplayName>kertenkele Tooth</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Lizard</DropRealm>
@@ -77,7 +77,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicLizardL">
 		<MaterialID>9</MaterialID>
-		<DisplayName>Bloodguard Bracers</DisplayName>
+		<DisplayName>Yerel Esya E2E7F6</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Lizard</DropRealm>
@@ -86,7 +86,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicRaptorM">
 		<MaterialID>10</MaterialID>
-		<DisplayName>Raptor Scales</DisplayName>
+		<DisplayName>Yerel Esya 949702</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Raptor</DropRealm>
@@ -94,7 +94,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicRaptorR">
 		<MaterialID>11</MaterialID>
-		<DisplayName>Severed Talon</DisplayName>
+		<DisplayName>Yerel Esya 7C8D66</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Raptor</DropRealm>
@@ -102,7 +102,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicRaptorL">
 		<MaterialID>12</MaterialID>
-		<DisplayName>Eye of the Wild</DisplayName>
+		<DisplayName>Eye Wild</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Raptor</DropRealm>
@@ -111,7 +111,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicWyrmM">
 		<MaterialID>13</MaterialID>
-		<DisplayName>Wyrm Tail</DisplayName>
+		<DisplayName>ejder Tail</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Wyrm</DropRealm>
@@ -119,7 +119,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicWyrmR">
 		<MaterialID>14</MaterialID>
-		<DisplayName>Thick Hide</DisplayName>
+		<DisplayName>Yerel Esya D98F0B</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Wyrm</DropRealm>
@@ -127,7 +127,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicWyrmL">
 		<MaterialID>15</MaterialID>
-		<DisplayName>Bellow Gland</DisplayName>
+		<DisplayName>Yerel Esya B9E2C7</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>Wyrm</DropRealm>
@@ -136,7 +136,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalAbominationM">
 		<MaterialID>16</MaterialID>
-		<DisplayName>Unholy Sutures</DisplayName>
+		<DisplayName>Yerel Esya 34DB41</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Abomination</DropRealm>
@@ -144,7 +144,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalAbominationR">
 		<MaterialID>17</MaterialID>
-		<DisplayName>Accursed Heart</DisplayName>
+		<DisplayName>Yerel Esya CD5147</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Abomination</DropRealm>
@@ -152,7 +152,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalAbominationL">
 		<MaterialID>18</MaterialID>
-		<DisplayName>Maw of Madness</DisplayName>
+		<DisplayName>Maw Madness</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Abomination</DropRealm>
@@ -161,7 +161,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalConstructM">
 		<MaterialID>19</MaterialID>
-		<DisplayName>Construct Gear</DisplayName>
+		<DisplayName>Construct Ekipman</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Construct</DropRealm>
@@ -169,7 +169,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalConstructR">
 		<MaterialID>20</MaterialID>
-		<DisplayName>Construct Oil</DisplayName>
+		<DisplayName>Yerel Esya 3A08E8</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Construct</DropRealm>
@@ -177,7 +177,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalConstructL">
 		<MaterialID>21</MaterialID>
-		<DisplayName>Ancient Power Core</DisplayName>
+		<DisplayName>kadim guc Core</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Construct</DropRealm>
@@ -186,7 +186,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalDemonM">
 		<MaterialID>22</MaterialID>
-		<DisplayName>Demonic Fur</DisplayName>
+		<DisplayName>Yerel Esya 8D85F7</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Demon</DropRealm>
@@ -194,7 +194,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalDemonR">
 		<MaterialID>23</MaterialID>
-		<DisplayName>Brutal Horns</DisplayName>
+		<DisplayName>Yerel Esya 81BDA2</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Demon</DropRealm>
@@ -202,7 +202,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalDemonL">
 		<MaterialID>24</MaterialID>
-		<DisplayName>Bitter Soul</DisplayName>
+		<DisplayName>aci ruh</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Demon</DropRealm>
@@ -211,7 +211,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalDreadM">
 		<MaterialID>25</MaterialID>
-		<DisplayName>Dread Steel</DisplayName>
+		<DisplayName>dehset celik</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Dread</DropRealm>
@@ -219,7 +219,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalDreadR">
 		<MaterialID>26</MaterialID>
-		<DisplayName>Ancient Emblem</DisplayName>
+		<DisplayName>kadim Emblem</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Dread</DropRealm>
@@ -227,7 +227,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalDreadL">
 		<MaterialID>27</MaterialID>
-		<DisplayName>Dreadnaught Doubloon</DisplayName>
+		<DisplayName>Yerel Esya E2F4ED</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Dread</DropRealm>
@@ -236,7 +236,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalHumanM">
 		<MaterialID>28</MaterialID>
-		<DisplayName>Runed Pages</DisplayName>
+		<DisplayName>Yerel Esya E42886</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -244,7 +244,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalHumanR">
 		<MaterialID>29</MaterialID>
-		<DisplayName>Profane Sigil</DisplayName>
+		<DisplayName>Yerel Esya 6256FA</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -252,7 +252,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalHumanL">
 		<MaterialID>30</MaterialID>
-		<DisplayName>Infernal Focus</DisplayName>
+		<DisplayName>Cehennem odak</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -261,7 +261,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalImpM">
 		<MaterialID>31</MaterialID>
-		<DisplayName>Sharp Claw</DisplayName>
+		<DisplayName>Yerel Esya 320D08</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Imp</DropRealm>
@@ -269,7 +269,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalImpR">
 		<MaterialID>32</MaterialID>
-		<DisplayName>Broken Spear Tip</DisplayName>
+		<DisplayName>Broken mizrak Tip</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Imp</DropRealm>
@@ -277,7 +277,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalImpL">
 		<MaterialID>33</MaterialID>
-		<DisplayName>Lucky Imp's Foot</DisplayName>
+		<DisplayName>Yerel Esya 83936E</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Imp</DropRealm>
@@ -286,7 +286,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalPsychophageM">
 		<MaterialID>34</MaterialID>
-		<DisplayName>Little Wing</DisplayName>
+		<DisplayName>Yerel Esya 55B367</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Psychophage</DropRealm>
@@ -294,7 +294,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalPsychophageR">
 		<MaterialID>35</MaterialID>
-		<DisplayName>Acrid Ichor</DisplayName>
+		<DisplayName>Yerel Esya 4AAEF3</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Psychophage</DropRealm>
@@ -302,7 +302,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalPsychophageL">
 		<MaterialID>36</MaterialID>
-		<DisplayName>Extract of the Third Eye</DisplayName>
+		<DisplayName>Extract Third Eye</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Psychophage</DropRealm>
@@ -311,7 +311,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalRockHulkM">
 		<MaterialID>37</MaterialID>
-		<DisplayName>Dolcite</DisplayName>
+		<DisplayName>Yerel Esya DC416E</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>RockHulk</DropRealm>
@@ -319,7 +319,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalRockHulkR">
 		<MaterialID>38</MaterialID>
-		<DisplayName>Woomerite</DisplayName>
+		<DisplayName>Yerel Esya 37BB67</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>RockHulk</DropRealm>
@@ -327,7 +327,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalRockHulkL">
 		<MaterialID>39</MaterialID>
-		<DisplayName>Hamilite</DisplayName>
+		<DisplayName>Yerel Esya 32E620</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>RockHulk</DropRealm>
@@ -336,7 +336,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalShadeM">
 		<MaterialID>40</MaterialID>
-		<DisplayName>Shade Stone</DisplayName>
+		<DisplayName>Shade tas</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Shade</DropRealm>
@@ -344,7 +344,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalShadeR">
 		<MaterialID>41</MaterialID>
-		<DisplayName>Dark Talisman</DisplayName>
+		<DisplayName>koyu Talisman</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Shade</DropRealm>
@@ -352,7 +352,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalShadeL">
 		<MaterialID>42</MaterialID>
-		<DisplayName>Void Matter</DisplayName>
+		<DisplayName>Yerel Esya 0C53FB</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Shade</DropRealm>
@@ -361,7 +361,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalWispM">
 		<MaterialID>43</MaterialID>
-		<DisplayName>Black Soot</DisplayName>
+		<DisplayName>siyah Soot</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Wisp</DropRealm>
@@ -369,7 +369,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalWispR">
 		<MaterialID>44</MaterialID>
-		<DisplayName>Emberheart</DisplayName>
+		<DisplayName>Yerel Esya A10CA0</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Wisp</DropRealm>
@@ -377,7 +377,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalWispL">
 		<MaterialID>45</MaterialID>
-		<DisplayName>Everburning Stone</DisplayName>
+		<DisplayName>Everburning tas</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>Wisp</DropRealm>
@@ -386,7 +386,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicGiantM">
 		<MaterialID>46</MaterialID>
-		<DisplayName>Oasis Water</DisplayName>
+		<DisplayName>Yerel Esya C385D5</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Giant</DropRealm>
@@ -394,7 +394,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicGiantR">
 		<MaterialID>47</MaterialID>
-		<DisplayName>Giant's Shard</DisplayName>
+		<DisplayName>Yerel Esya 8CCFEF</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Giant</DropRealm>
@@ -402,7 +402,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicGiantL">
 		<MaterialID>48</MaterialID>
-		<DisplayName>Moonglow Harvest</DisplayName>
+		<DisplayName>Yerel Esya 785A24</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Giant</DropRealm>
@@ -411,7 +411,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicGriffonM">
 		<MaterialID>49</MaterialID>
-		<DisplayName>Brilliant Feather</DisplayName>
+		<DisplayName>Yerel Esya 0BD4F1</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Griffon</DropRealm>
@@ -419,7 +419,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicGriffonR">
 		<MaterialID>50</MaterialID>
-		<DisplayName>Griffon Talon</DisplayName>
+		<DisplayName>Yerel Esya 248964</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Griffon</DropRealm>
@@ -427,7 +427,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicGriffonL">
 		<MaterialID>51</MaterialID>
-		<DisplayName>Mysterious Griffon Egg</DisplayName>
+		<DisplayName>Mysterious Griffon yumurta</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Griffon</DropRealm>
@@ -436,7 +436,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicHumanM">
 		<MaterialID>52</MaterialID>
-		<DisplayName>Plate Steel</DisplayName>
+		<DisplayName>Plate celik</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -444,7 +444,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicHumanR">
 		<MaterialID>53</MaterialID>
-		<DisplayName>Defused Bomb</DisplayName>
+		<DisplayName>Defused bomba</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -452,7 +452,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicHumanL">
 		<MaterialID>54</MaterialID>
-		<DisplayName>Mithian Parchment</DisplayName>
+		<DisplayName>Yerel Esya 08DF2E</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -461,7 +461,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicImperialM">
 		<MaterialID>55</MaterialID>
-		<DisplayName>Worn Leather</DisplayName>
+		<DisplayName>Yerel Esya AD98EA</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Imperial</DropRealm>
@@ -469,7 +469,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicImperialR">
 		<MaterialID>56</MaterialID>
-		<DisplayName>Imperial Talisman</DisplayName>
+		<DisplayName>Yerel Esya 054CF5</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Imperial</DropRealm>
@@ -477,7 +477,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicImperialL">
 		<MaterialID>57</MaterialID>
-		<DisplayName>Lost Imperial Coin</DisplayName>
+		<DisplayName>Yerel Esya 08018B</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Imperial</DropRealm>
@@ -486,7 +486,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicLionM">
 		<MaterialID>58</MaterialID>
-		<DisplayName>Lion Pelt</DisplayName>
+		<DisplayName>Yerel Esya 9911FF</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Lion</DropRealm>
@@ -494,7 +494,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicLionR">
 		<MaterialID>59</MaterialID>
-		<DisplayName>Ring of Pride</DisplayName>
+		<DisplayName>yuzuk Pride</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Lion</DropRealm>
@@ -502,7 +502,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicLionL">
 		<MaterialID>60</MaterialID>
-		<DisplayName>Regal Pendant</DisplayName>
+		<DisplayName>Yerel Esya B58FEF</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Lion</DropRealm>
@@ -511,7 +511,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicMinotaurM">
 		<MaterialID>61</MaterialID>
-		<DisplayName>Shattered Hoof</DisplayName>
+		<DisplayName>Yerel Esya 0D54A2</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Minotaur</DropRealm>
@@ -519,7 +519,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicMinotaurR">
 		<MaterialID>62</MaterialID>
-		<DisplayName>Minotaur Horn</DisplayName>
+		<DisplayName>Yerel Esya 1158FE</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Minotaur</DropRealm>
@@ -527,7 +527,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicMinotaurL">
 		<MaterialID>63</MaterialID>
-		<DisplayName>Golden Nosering</DisplayName>
+		<DisplayName>altin Nosering</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Minotaur</DropRealm>
@@ -536,7 +536,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicWolfM">
 		<MaterialID>64</MaterialID>
-		<DisplayName>Wolf Pelt</DisplayName>
+		<DisplayName>Kurt Pelt</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Wolf</DropRealm>
@@ -544,7 +544,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicWolfR">
 		<MaterialID>65</MaterialID>
-		<DisplayName>Black Talon</DisplayName>
+		<DisplayName>siyah Talon</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Wolf</DropRealm>
@@ -552,7 +552,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicWolfL">
 		<MaterialID>66</MaterialID>
-		<DisplayName>Golden Earring</DisplayName>
+		<DisplayName>altin Earring</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>Wolf</DropRealm>
@@ -561,7 +561,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanBatM">
 		<MaterialID>67</MaterialID>
-		<DisplayName>Cavebat Fur</DisplayName>
+		<DisplayName>Yerel Esya 2942C2</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Bat</DropRealm>
@@ -569,7 +569,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanBatR">
 		<MaterialID>68</MaterialID>
-		<DisplayName>Bloodbat Fathom</DisplayName>
+		<DisplayName>Yerel Esya EB958D</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Bat</DropRealm>
@@ -577,7 +577,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanBatL">
 		<MaterialID>69</MaterialID>
-		<DisplayName>Duskwing Talons</DisplayName>
+		<DisplayName>Yerel Esya 5E4D19</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Bat</DropRealm>
@@ -586,7 +586,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanDevourerM">
 		<MaterialID>70</MaterialID>
-		<DisplayName>Devourer Pulp</DisplayName>
+		<DisplayName>Yerel Esya 991AAE</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Devourer</DropRealm>
@@ -594,7 +594,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanDevourerR">
 		<MaterialID>71</MaterialID>
-		<DisplayName>Medicinal Root</DisplayName>
+		<DisplayName>Medicinal kok</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Devourer</DropRealm>
@@ -602,7 +602,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanDevourerL">
 		<MaterialID>72</MaterialID>
-		<DisplayName>Magic Bean</DisplayName>
+		<DisplayName>buyu Bean</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Devourer</DropRealm>
@@ -611,7 +611,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanDryadM">
 		<MaterialID>73</MaterialID>
-		<DisplayName>Charred Bark</DisplayName>
+		<DisplayName>Yerel Esya E0F08D</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Dryad</DropRealm>
@@ -619,7 +619,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanDryadR">
 		<MaterialID>74</MaterialID>
-		<DisplayName>Singed Staffhead</DisplayName>
+		<DisplayName>Yerel Esya FE64FE</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Dryad</DropRealm>
@@ -627,7 +627,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanDryadL">
 		<MaterialID>75</MaterialID>
-		<DisplayName>Wildgrowth Blossom</DisplayName>
+		<DisplayName>Yerel Esya 703298</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Dryad</DropRealm>
@@ -636,7 +636,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanScarabM">
 		<MaterialID>76</MaterialID>
-		<DisplayName>Carapace</DisplayName>
+		<DisplayName>Yerel Esya 508E80</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Scarab</DropRealm>
@@ -644,7 +644,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanScarabR">
 		<MaterialID>77</MaterialID>
-		<DisplayName>Scarab Horn</DisplayName>
+		<DisplayName>Yerel Esya E3FE9B</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Scarab</DropRealm>
@@ -652,7 +652,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanScarabL">
 		<MaterialID>78</MaterialID>
-		<DisplayName>Vision of the Tomb</DisplayName>
+		<DisplayName>Vision Tomb</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Scarab</DropRealm>
@@ -661,7 +661,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanSpiderM">
 		<MaterialID>79</MaterialID>
-		<DisplayName>Spider Leg</DisplayName>
+		<DisplayName>orumcek Leg</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Spider</DropRealm>
@@ -669,7 +669,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanSpiderR">
 		<MaterialID>80</MaterialID>
-		<DisplayName>Poison Gland</DisplayName>
+		<DisplayName>zehir Gland</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Spider</DropRealm>
@@ -677,7 +677,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanSpiderL">
 		<MaterialID>81</MaterialID>
-		<DisplayName>Death Silk</DisplayName>
+		<DisplayName>olum Silk</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Spider</DropRealm>
@@ -686,7 +686,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanTreantM">
 		<MaterialID>82</MaterialID>
-		<DisplayName>Efflorescence Roots</DisplayName>
+		<DisplayName>Yerel Esya 22B16D</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Treant</DropRealm>
@@ -694,7 +694,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanTreantR">
 		<MaterialID>83</MaterialID>
-		<DisplayName>Golden Leaf</DisplayName>
+		<DisplayName>altin Leaf</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Treant</DropRealm>
@@ -702,7 +702,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanTreantL">
 		<MaterialID>84</MaterialID>
-		<DisplayName>Seed of Seasons</DisplayName>
+		<DisplayName>Seed Seasons</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>Treant</DropRealm>
@@ -711,7 +711,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogCyclopsM">
 		<MaterialID>85</MaterialID>
-		<DisplayName>Bone Zemi Fragment</DisplayName>
+		<DisplayName>kemik Zemi Fragment</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Cyclops</DropRealm>
@@ -719,7 +719,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogCyclopsR">
 		<MaterialID>86</MaterialID>
-		<DisplayName>Earthen Phylactery</DisplayName>
+		<DisplayName>Yerel Esya FD25C1</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Cyclops</DropRealm>
@@ -727,7 +727,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogCyclopsL">
 		<MaterialID>87</MaterialID>
-		<DisplayName>Hand of the Mountain</DisplayName>
+		<DisplayName>Hand Binekain</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Cyclops</DropRealm>
@@ -736,7 +736,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogGnomeM">
 		<MaterialID>88</MaterialID>
-		<DisplayName>Tiny Teeth</DisplayName>
+		<DisplayName>Yerel Esya 34429C</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Gnome</DropRealm>
@@ -744,7 +744,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogGnomeR">
 		<MaterialID>89</MaterialID>
-		<DisplayName>Pure Obsidilite</DisplayName>
+		<DisplayName>Yerel Esya FCF1D5</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Gnome</DropRealm>
@@ -752,7 +752,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogGnomeL">
 		<MaterialID>90</MaterialID>
-		<DisplayName>Shadow Ring</DisplayName>
+		<DisplayName>golge yuzuk</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Gnome</DropRealm>
@@ -761,7 +761,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogGoblinM">
 		<MaterialID>91</MaterialID>
-		<DisplayName>Yak Jerky</DisplayName>
+		<DisplayName>Yerel Esya 93CA1D</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Goblin</DropRealm>
@@ -769,7 +769,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogGoblinR">
 		<MaterialID>92</MaterialID>
-		<DisplayName>Felsilk Bolt</DisplayName>
+		<DisplayName>Felsilk ok</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Goblin</DropRealm>
@@ -777,7 +777,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogGoblinL">
 		<MaterialID>93</MaterialID>
-		<DisplayName>Onyx Goblin Dagger</DisplayName>
+		<DisplayName>Onyx goblin Dagger</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Goblin</DropRealm>
@@ -786,7 +786,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogHumanM">
 		<MaterialID>94</MaterialID>
-		<DisplayName>Silver Nugget</DisplayName>
+		<DisplayName>gumus Nugget</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -794,7 +794,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogHumanR">
 		<MaterialID>95</MaterialID>
-		<DisplayName>Gold Nugget</DisplayName>
+		<DisplayName>altin Nugget</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -802,7 +802,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogHumanL">
 		<MaterialID>96</MaterialID>
-		<DisplayName>Korgold Ingot</DisplayName>
+		<DisplayName>Yerel Esya F2B11F</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Human</DropRealm>
@@ -811,7 +811,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogImpM">
 		<MaterialID>97</MaterialID>
-		<DisplayName>Tattered Rags</DisplayName>
+		<DisplayName>Yerel Esya E3241D</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Imp</DropRealm>
@@ -819,7 +819,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogImpR">
 		<MaterialID>98</MaterialID>
-		<DisplayName>Imp Tail</DisplayName>
+		<DisplayName>Yerel Esya 10FA86</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Imp</DropRealm>
@@ -827,7 +827,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogImpL">
 		<MaterialID>99</MaterialID>
-		<DisplayName>Abyssal Fang</DisplayName>
+		<DisplayName>Yerel Esya E662CD</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Imp</DropRealm>
@@ -836,7 +836,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogRatlingM">
 		<MaterialID>100</MaterialID>
-		<DisplayName>Tuft of Hair</DisplayName>
+		<DisplayName>Tuft Hair</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Ratling</DropRealm>
@@ -844,7 +844,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogRatlingR">
 		<MaterialID>101</MaterialID>
-		<DisplayName>Ratling Tail</DisplayName>
+		<DisplayName>Yerel Esya DC23C4</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Ratling</DropRealm>
@@ -852,7 +852,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogRatlingL">
 		<MaterialID>102</MaterialID>
-		<DisplayName>Troglodyte Talisman</DisplayName>
+		<DisplayName>Yerel Esya C921B3</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>Ratling</DropRealm>
@@ -861,7 +861,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadDragonM">
 		<MaterialID>103</MaterialID>
-		<DisplayName>Ivory Scale</DisplayName>
+		<DisplayName>Yerel Esya 7C76C3</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Dragon</DropRealm>
@@ -869,7 +869,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadDragonR">
 		<MaterialID>104</MaterialID>
-		<DisplayName>Emerald Dream</DisplayName>
+		<DisplayName>Emerald ruya</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Dragon</DropRealm>
@@ -877,7 +877,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadDragonL">
 		<MaterialID>105</MaterialID>
-		<DisplayName>Stone of Whispers</DisplayName>
+		<DisplayName>tas Whispers</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Dragon</DropRealm>
@@ -886,7 +886,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadGhostM">
 		<MaterialID>106</MaterialID>
-		<DisplayName>Chilling Air</DisplayName>
+		<DisplayName>Chilling hava</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Ghost</DropRealm>
@@ -894,7 +894,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadGhostR">
 		<MaterialID>107</MaterialID>
-		<DisplayName>Banshee Scream</DisplayName>
+		<DisplayName>banshee Scream</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Ghost</DropRealm>
@@ -902,7 +902,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadGhostL">
 		<MaterialID>108</MaterialID>
-		<DisplayName>Phantom Heart</DisplayName>
+		<DisplayName>Yerel Esya 9ED9B5</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Ghost</DropRealm>
@@ -911,7 +911,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadMummyM">
 		<MaterialID>109</MaterialID>
-		<DisplayName>Timeworn Flax</DisplayName>
+		<DisplayName>Yerel Esya 332F0B</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Mummy</DropRealm>
@@ -919,7 +919,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadMummyR">
 		<MaterialID>110</MaterialID>
-		<DisplayName>Ancient Linen</DisplayName>
+		<DisplayName>kadim Linen</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Mummy</DropRealm>
@@ -927,7 +927,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadMummyL">
 		<MaterialID>111</MaterialID>
-		<DisplayName>Sand of the Ancients</DisplayName>
+		<DisplayName>Sand Ancients</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Mummy</DropRealm>
@@ -936,7 +936,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadSkeletonM">
 		<MaterialID>112</MaterialID>
-		<DisplayName>Splintered Bone</DisplayName>
+		<DisplayName>Splintered kemik</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Skeleton</DropRealm>
@@ -944,7 +944,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadSkeletonR">
 		<MaterialID>113</MaterialID>
-		<DisplayName>Spellbonded Femur</DisplayName>
+		<DisplayName>Yerel Esya 7FA2E4</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Skeleton</DropRealm>
@@ -952,7 +952,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadSkeletonL">
 		<MaterialID>114</MaterialID>
-		<DisplayName>Laughing Skull</DisplayName>
+		<DisplayName>Yerel Esya 8CC523</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Skeleton</DropRealm>
@@ -961,7 +961,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadSpiritM">
 		<MaterialID>115</MaterialID>
-		<DisplayName>Aetheric Heart</DisplayName>
+		<DisplayName>Yerel Esya 3A487E</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Spirit</DropRealm>
@@ -969,7 +969,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadSpiritR">
 		<MaterialID>116</MaterialID>
-		<DisplayName>Ethereal Strands</DisplayName>
+		<DisplayName>ruhani Strands</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Spirit</DropRealm>
@@ -977,7 +977,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadSpiritL">
 		<MaterialID>117</MaterialID>
-		<DisplayName>Spirit Stone</DisplayName>
+		<DisplayName>ruh tas</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Spirit</DropRealm>
@@ -986,7 +986,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadWispM">
 		<MaterialID>118</MaterialID>
-		<DisplayName>Ectoplasm</DisplayName>
+		<DisplayName>Yerel Esya 02C570</DisplayName>
 		<Rarity>M</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Wisp</DropRealm>
@@ -994,7 +994,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadWispR">
 		<MaterialID>119</MaterialID>
-		<DisplayName>Spectral Essence</DisplayName>
+		<DisplayName>ruhani Essence</DisplayName>
 		<Rarity>R</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Wisp</DropRealm>
@@ -1002,7 +1002,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadWispL">
 		<MaterialID>120</MaterialID>
-		<DisplayName>Vehement Netherstone</DisplayName>
+		<DisplayName>Yerel Esya 5E6242</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>Wisp</DropRealm>
@@ -1011,7 +1011,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="InfernalSpecialHalloweenL">
 		<MaterialID>121</MaterialID>
-		<DisplayName>Candy Corn</DisplayName>
+		<DisplayName>Yerel Esya 814787</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Infernal</Kingdom>
 		<DropRealm>SpecialHalloween</DropRealm>
@@ -1019,7 +1019,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="TrogSpecialHalloweenL">
 		<MaterialID>122</MaterialID>
-		<DisplayName>Candy Corn</DisplayName>
+		<DisplayName>Yerel Esya 814787</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Trog</Kingdom>
 		<DropRealm>SpecialHalloween</DropRealm>
@@ -1027,7 +1027,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="MythicSpecialHalloweenL">
 		<MaterialID>123</MaterialID>
-		<DisplayName>Candy Corn</DisplayName>
+		<DisplayName>Yerel Esya 814787</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Mythic</Kingdom>
 		<DropRealm>SpecialHalloween</DropRealm>
@@ -1035,7 +1035,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="UndeadSpecialHalloweenL">
 		<MaterialID>124</MaterialID>
-		<DisplayName>Candy Corn</DisplayName>
+		<DisplayName>Yerel Esya 814787</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Undead</Kingdom>
 		<DropRealm>SpecialHalloween</DropRealm>
@@ -1043,7 +1043,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="SylvanSpecialHalloweenL">
 		<MaterialID>125</MaterialID>
-		<DisplayName>Candy Corn</DisplayName>
+		<DisplayName>Yerel Esya 814787</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Sylvan</Kingdom>
 		<DropRealm>SpecialHalloween</DropRealm>
@@ -1051,7 +1051,7 @@
 	</MaterialType>
 	<MaterialType MaterialName="DraconicSpecialHalloweenL">
 		<MaterialID>126</MaterialID>
-		<DisplayName>Candy Corn</DisplayName>
+		<DisplayName>Yerel Esya 814787</DisplayName>
 		<Rarity>L</Rarity>
 		<Kingdom>Draconic</Kingdom>
 		<DropRealm>SpecialHalloween</DropRealm>

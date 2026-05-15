@@ -618,6 +618,120 @@ async function testIronicHuntIgnoresNonScorpionScarabKills(): Promise<void> {
     );
 }
 
+async function testShazariSideQuestKillsProgressFromExplicitTargets(): Promise<void> {
+    const cases: Array<{
+        missionId: MissionID;
+        currentLevel: string;
+        enemyName: string;
+        ignoredEnemyName: string;
+        startingCount: number;
+        expectedLabel: string;
+    }> = [
+        {
+            missionId: MissionID.DestroyWaspHives,
+            currentLevel: 'ShazariDesert',
+            enemyName: 'TreeHiveSpawner',
+            ignoredEnemyName: 'SandWasp',
+            startingCount: 19,
+            expectedLabel: "Heavy Hive Hittin'"
+        },
+        {
+            missionId: MissionID.CollectGoblinCharms,
+            currentLevel: 'ShazariDesert',
+            enemyName: 'OutlanderGladiator',
+            ignoredEnemyName: 'OutlanderSpikeVigil',
+            startingCount: 9,
+            expectedLabel: 'You Lost Your Marbles'
+        },
+        {
+            missionId: MissionID.CollectGiantBracers,
+            currentLevel: 'ShazariDesert',
+            enemyName: 'OasisGiant',
+            ignoredEnemyName: 'OasisPuck',
+            startingCount: 9,
+            expectedLabel: 'Repo Men'
+        },
+        {
+            missionId: MissionID.CollectWormGlands,
+            currentLevel: 'ShazariDesert',
+            enemyName: 'SandWorm',
+            ignoredEnemyName: 'SandWormLarva',
+            startingCount: 14,
+            expectedLabel: "It's Snot a Problem"
+        },
+        {
+            missionId: MissionID.DestroyWaspHivesHard,
+            currentLevel: 'ShazariDesertHard',
+            enemyName: 'TreeHiveSpawnerHard',
+            ignoredEnemyName: 'TreeHiveSpawner',
+            startingCount: 39,
+            expectedLabel: "Hard Heavy Hive Hittin'"
+        },
+        {
+            missionId: MissionID.CollectGoblinCharmsHard,
+            currentLevel: 'ShazariDesertHard',
+            enemyName: 'OutlanderGladiatorHard',
+            ignoredEnemyName: 'OutlanderGladiator',
+            startingCount: 19,
+            expectedLabel: 'Hard You Lost Your Marbles'
+        },
+        {
+            missionId: MissionID.CollectGiantBracersHard,
+            currentLevel: 'ShazariDesertHard',
+            enemyName: 'OasisGiantHard',
+            ignoredEnemyName: 'OasisGiant',
+            startingCount: 19,
+            expectedLabel: 'Hard Repo Men'
+        },
+        {
+            missionId: MissionID.CollectWormGlandsHard,
+            currentLevel: 'ShazariDesertHard',
+            enemyName: 'SandWormHard',
+            ignoredEnemyName: 'SandWorm',
+            startingCount: 29,
+            expectedLabel: "Hard It's Snot a Problem"
+        }
+    ];
+
+    for (const item of cases) {
+        resetGlobalState();
+        const client = createClient({
+            [String(item.missionId)]: {
+                state: 1,
+                currCount: item.startingCount
+            }
+        }, item.currentLevel);
+
+        await destroyEnemy(client, 8480 + item.missionId, item.ignoredEnemyName);
+        await destroyEnemy(client, 8580 + item.missionId, item.enemyName);
+
+        assert.equal(
+            Number(client.character.missions[String(item.missionId)]?.currCount ?? 0),
+            item.startingCount + 1,
+            `${item.expectedLabel} should count only its Shazari quest target`
+        );
+        assert.equal(
+            Number(client.character.missions[String(item.missionId)]?.state ?? 0),
+            2,
+            `${item.expectedLabel} should become ready to turn in after the final target kill`
+        );
+        assert.deepEqual(
+            client.sentPackets
+                .filter((packet) => packet.id === 0x83)
+                .map((packet) => decodeMissionProgressPacket(packet.payload)),
+            [{ missionId: item.missionId, progress: 1 }],
+            `${item.expectedLabel} should emit one additive mission progress packet`
+        );
+        assert.equal(
+            decodeMissionCompletePacket(
+                client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+            ),
+            item.missionId,
+            `${item.expectedLabel} should notify the client when the objective is complete`
+        );
+    }
+}
+
 async function testHardExtinguishTheFireProgressesOnHardGladeEmberKills(): Promise<void> {
     resetGlobalState();
     const client = createClient({
@@ -1472,6 +1586,7 @@ async function main(): Promise<void> {
     await testExtinguishTheFireProgressesOnGladeEmberKills();
     await testIronicHuntProgressesOnScorpionKills();
     await testIronicHuntIgnoresNonScorpionScarabKills();
+    await testShazariSideQuestKillsProgressFromExplicitTargets();
     await testHardExtinguishTheFireProgressesOnHardGladeEmberKills();
     await testBannersOfTheTuataraProgressesOnLizardBannerKills();
     await testHardBannersOfTheTuataraProgressesOnLizardBannerKills();

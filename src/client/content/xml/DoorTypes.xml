@@ -6,7 +6,7 @@
 		<TargetMapName>SwampRoadNorth</TargetMapName>
 		<TargetDoorID>2</TargetDoorID>
 		<RequiredMissions>DeliverToSwamp</RequiredMissions>
-		<LockedMessage>^tI need to secure Wolf's End first.=^tOnce the goblins and undead are under control...=^tI'll be able to head inland to the rest of Ellyria.</LockedMessage>
+		<LockedMessage>^t I need secure Kurt's End first.=^t Once goblinler ve olumsuz are under control...=^t I'll be able head inland rest Ellyria.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>NewbieRoad</MapName>
@@ -14,7 +14,7 @@
 		<TargetMapName>TutorialDungeon</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RescueAnna</RequiredMissions>
-		<LockedMessage>^tI should go back to town=^tI should talk to the villagers in the town</LockedMessage>
+		<LockedMessage>^t I should go back kasaba=^t I should konus villagers icinde kasaba</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>TutorialDungeon</MapName>
@@ -28,7 +28,7 @@
 		<TargetMapName>GoblinRiverDungeon</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GoblinRiver</RequiredMissions>
-		<LockedMessage>^tThat path leads to the river=^tWith goblin tracks in and out=^tThe villagers might know more about this</LockedMessage>
+		<LockedMessage>^t That path leads nehir=^t ile goblin tracks icinde ve out=^t villagers might know daha about this</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>NewbieRoad</MapName>
@@ -36,7 +36,7 @@
 		<TargetMapName>GhostBossDungeon</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>KillNephit</RequiredMissions>
-		<LockedMessage>^tA dank tomb=^tWith goblin tracks in and out=^tThe villagers to the west might know more about this</LockedMessage>
+		<LockedMessage>^t bir dank tomb=^t ile goblin tracks icinde ve out=^t villagers west might know daha about this</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>NewbieRoad</MapName>
@@ -44,7 +44,7 @@
 		<TargetMapName>DreamDragonDungeon</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayTheDragon</RequiredMissions>
-		<LockedMessage>^tIt's closed and locked=^tNo one has been here in a long, long time.=^tMaybe someone in Wolf's End knows more about it.</LockedMessage>
+		<LockedMessage>^t It's closed ve kilitli=^t yok one has been here icinde bir long, long sure.=^t Maybe someone icinde Kurt's End knows daha about it.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>NewbieRoad</MapName>
@@ -64,7 +64,7 @@
 		<TargetMapName>SwampRoadConnectionMission</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ClearTheBridge</RequiredMissions>
-		<LockedMessage>^tDark and impassable=^tAre those spider webs?=^tIck=^tNo one's going to Felbridge that way yet.</LockedMessage>
+		<LockedMessage>^t koyu ve impassable=^t Are those orumcek webs?=^t Ick=^t yok one's going Felkopru that way yet.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -78,7 +78,7 @@
 		<TargetMapName>SRN_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>StopCastout</RequiredMissions>
-		<LockedMessage>^tSomeone has fortified this tower.=^tI should check in with the soldiers from Wolf's End.=^tThey've had time to scout the area.</LockedMessage>
+		<LockedMessage>^t Someone has fortified this kule.=^t I should check icinde ile soldiers kaynakli Kurt's End.=^t They've had sure scout area.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -86,7 +86,7 @@
 		<TargetMapName>SRN_Mission2</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayYornak</RequiredMissions>
-		<LockedMessage>^tA tower of a happier time=^tThose villagers can help me plan my plundering</LockedMessage>
+		<LockedMessage>^t bir kule bir happier sure=^t Those villagers can yardim beni plan benim plundering</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -94,7 +94,7 @@
 		<TargetMapName>SRN_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlaySvar</RequiredMissions>
-		<LockedMessage>^tA Tuatara fort.=^tI should see if my allies know more about it.=^tSo I know what I'm getting into.</LockedMessage>
+		<LockedMessage>^t bir Tuatara fort.=^t I should see if benim allies know daha about it.=^t So I know what I'm getting into.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -102,7 +102,7 @@
 		<TargetMapName>SRN_Mission4</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayOoyak</RequiredMissions>
-		<LockedMessage>^tLots of big animal tracks around here.=^tI should see if the scouts know more about what's inside.</LockedMessage>
+		<LockedMessage>^t Lots big animal tracks around here.=^t I should see if scouts know daha about what's inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -110,7 +110,7 @@
 		<TargetMapName>SRN_Mission5</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>StopBroodvictor</RequiredMissions>
-		<LockedMessage>^tThe Citadel of Wissen.=^tI need to check with the scouts and see if they know more about who's inside.</LockedMessage>
+		<LockedMessage>^t Citadel Wissen.=^t I need check ile scouts ve see if they know daha about who's inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -118,7 +118,7 @@
 		<TargetMapName>SRN_Mission6</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayMindlessQueen</RequiredMissions>
-		<LockedMessage>^tThis granary used to feed thousands.=^tSome of the soldiers from Wolf's End will know more about it.</LockedMessage>
+		<LockedMessage>^t This granary used feed thousands.=^t Some soldiers kaynakli Kurt's End will know daha about it.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -126,7 +126,7 @@
 		<TargetMapName>SRN_Mission7</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlaySvath</RequiredMissions>
-		<LockedMessage>^tThis old citadel is stranger than the others.=^tI wonder what the scouts have learned about it.</LockedMessage>
+		<LockedMessage>^t This eski citadel is stranger than others.=^t I wonder what scouts have ogrenildi about it.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadConnectionMission</MapName>
@@ -164,7 +164,7 @@
 		<TargetMapName>CemeteryHill</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>FindTheOutpost</RequiredMissions>
-		<LockedMessage>^tThere is a huge graveyard behind this gate.=^tThe Felbridge folk might know more about this.</LockedMessage>
+		<LockedMessage>^t There is bir huge graveyard behind this gate.=^t Felkopru folk might know daha about this.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTown</MapName>
@@ -172,14 +172,14 @@
 		<TargetMapName>AC_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DeepgardDragon</RequiredMissions>
-		<LockedMessage>^tA powerful magic barrier blocks the way.=^tThis bridge leads to the Castle Hocke=^tI need to figure out how to get in there.=^tAnd how to be ready for what's inside.</LockedMessage>
+		<LockedMessage>^t bir powerful buyu bariyer blocks way.=^t This kopru leads Kale Hocke=^t I need figure out how get icinde there.=^t ve how be ready icin what's inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTown</MapName>
 		<DoorID>5</DoorID>
 		<TargetMapName>CemeteryHill</TargetMapName>
 		<TargetDoorID>3</TargetDoorID>
-		<LockedMessage>^tThe gate seems to be locked=^tMaybe the other entrance is open</LockedMessage>
+		<LockedMessage>^t gate seems be kilitli=^t Maybe other entrance is ac</LockedMessage>
 		<CompletedMissions>FindTheOutpost</CompletedMissions>
 	</DoorType>
 	<DoorType>
@@ -188,14 +188,14 @@
 		<TargetMapName>OldMineMountain</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HeadToTheMountains</RequiredMissions>
-		<LockedMessage>^tThis road leads into the Stormshard Mountains.=^tIt is little used except by monsters now.=^tI may find need to go there.=^tBut first let's get Felbridge sorted.</LockedMessage>
+		<LockedMessage>^t This yol leads into Stormshard Binekains.=^t It is little used except by canavarlar now.=^t I may bul need go there.=^t But first let's get Felkopru sorted.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTown</MapName>
 		<DoorID>300</DoorID>
 		<TargetMapName>BridgeTownHard</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
-		<LockedMessage>^tA powerful magic seals this entrance.=^tI still need to learn more about the Sleeping Lands.</LockedMessage>
+		<LockedMessage>^t bir powerful buyu seals this entrance.=^t I still need ogren daha about uyuyan topraklar.</LockedMessage>
 		<CompletedMissions>Capstone</CompletedMissions>
 	</DoorType>
 	<DoorType>
@@ -204,7 +204,7 @@
 		<TargetMapName>BT_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DefeatBanditCamp</RequiredMissions>
-		<LockedMessage>^tMaybe I should head to town to find out more.</LockedMessage>
+		<LockedMessage>^t Maybe I should head kasaba bul out daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTown</MapName>
@@ -212,7 +212,7 @@
 		<TargetMapName>BT_Mission2</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>OldHeroesNeverDie</RequiredMissions>
-		<LockedMessage>^tDeep woods.=^tThere are bandit tracks all over this forest.=^tMany tracks go east from here.</LockedMessage>
+		<LockedMessage>^t derin woods.=^t There are bandit tracks tum over this forest.=^t Many tracks go east kaynakli here.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTown</MapName>
@@ -220,7 +220,7 @@
 		<TargetMapName>BT_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>MouthOfMeylour</RequiredMissions>
-		<LockedMessage>^tA dark cavern.=^tNowhere I want to go right now.</LockedMessage>
+		<LockedMessage>^t bir koyu cavern.=^t Nowhere I want go right now.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BT_Mission3</MapName>
@@ -234,7 +234,7 @@
 		<TargetMapName>BT_Mission4</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DerelictionOfDuty</RequiredMissions>
-		<LockedMessage>^tThe Steward's house.=^tIt looks neat and clean inside.</LockedMessage>
+		<LockedMessage>^t Steward's house.=^t It looks neat ve clean inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -254,7 +254,7 @@
 		<TargetMapName>CH_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RescueYagaga</RequiredMissions>
-		<LockedMessage>^tA closed mausoleum.=^tIt looks like someone lives here.=^tI'll check with my friend from Wolf's End andfind the outpost to the west and ask them.</LockedMessage>
+		<LockedMessage>^t bir closed mausoleum.=^t It looks like someone lives here.=^t I'll check ile benim friend kaynakli Kurt's End andfind outpost west ve ask them.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -262,7 +262,7 @@
 		<TargetMapName>CH_Mission2</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>JackalTreasure</RequiredMissions>
-		<LockedMessage>^tAnother dusty mausoleum.=^tI wonder if they know more at the outpost.</LockedMessage>
+		<LockedMessage>^t Another dusty mausoleum.=^t I wonder if they know daha at outpost.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -270,7 +270,7 @@
 		<TargetMapName>CH_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DefeatCrovnag</RequiredMissions>
-		<LockedMessage>^tAnother grim tomb.=^tIt says 'Here lies Lord Crovnag.'=^tI wonder who that was.=^tThe witch Yagarah might know.</LockedMessage>
+		<LockedMessage>^t Another grim tomb.=^t It says 'Here lies Lord Crovnag.'=^t I wonder who that was.=^t witch Yagarah might know.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -278,7 +278,7 @@
 		<TargetMapName>CH_Mission4</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>MissingPappy</RequiredMissions>
-		<LockedMessage>^tA grim, dark tomb.=^tI wonder if they know more at the outpost.</LockedMessage>
+		<LockedMessage>^t bir grim, koyu tomb.=^t I wonder if they know daha at outpost.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -286,7 +286,7 @@
 		<TargetMapName>CH_Mission5</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DestroyTheIdol</RequiredMissions>
-		<LockedMessage>^tYet another dark dungeon door.=^tLike so many on this hill.=^tThe witch Yagarah could tell me more.</LockedMessage>
+		<LockedMessage>^t Yet another koyu zindan door.=^t Like so many uzerinde this tepe.=^t witch Yagarah could tell beni daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -294,7 +294,7 @@
 		<TargetMapName>CH_Mission6</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DiscoverSecret</RequiredMissions>
-		<LockedMessage>^tIt's closed and locked.=^tAnd grim and dark.=^tThe witch Yagarah can help me figure out which mausoleums Nephit might be in.</LockedMessage>
+		<LockedMessage>^t It's closed ve kilitli.=^t ve grim ve koyu.=^t witch Yagarah can yardim beni figure out which mausoleums Nephit might be icinde.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -302,7 +302,7 @@
 		<TargetMapName>CH_Mission7</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SealTheWisps</RequiredMissions>
-		<LockedMessage>^tIt's closed and locked=^tI wonder if that witch can help me learn more about this place.</LockedMessage>
+		<LockedMessage>^t It's closed ve kilitli=^t I wonder if that witch can yardim beni ogren daha about this place.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -310,7 +310,7 @@
 		<TargetMapName>CH_Mission8</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DefeatDogfather</RequiredMissions>
-		<LockedMessage>^tNice waterfall.</LockedMessage>
+		<LockedMessage>^t Nice waterfall.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -378,7 +378,7 @@
 		<TargetMapName>EmeraldGlades</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HeadToTheGlades</RequiredMissions>
-		<LockedMessage>^tThe path is crumbled and impassable.=^tIt heads around the mountainside.</LockedMessage>
+		<LockedMessage>^t path is crumbled ve impassable.=^t It heads around mountainside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -386,7 +386,7 @@
 		<TargetMapName>OMM_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GiveVoiceToStone</RequiredMissions>
-		<LockedMessage>^tA dark cavern.=^tGoblin tracks lead in.=^tThe villagers might be able to tell me more.=^tBetter find out what I'm getting into...=^tBefore I tear these goblins up.</LockedMessage>
+		<LockedMessage>^t bir koyu cavern.=^t goblin tracks lead icinde.=^t villagers might be able tell beni daha.=^t Better bul out what I'm getting into...=^t Before I tear these goblinler up.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -394,7 +394,7 @@
 		<TargetMapName>OMM_Mission2</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GardenOfTheLost</RequiredMissions>
-		<LockedMessage>^tA crevice in the mountainside.=^tProbably certain death in there.=^tTheexpeditin from Felbridge might know this mountain better.</LockedMessage>
+		<LockedMessage>^t bir crevice icinde mountainside.=^t Probably certain olum icinde there.=^t Theexpeditin kaynakli Felkopru might know this dag better.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -402,7 +402,7 @@
 		<TargetMapName>OMM_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>EyeOfTheTyrant</RequiredMissions>
-		<LockedMessage>^tAnother tunnel into the mountain.=^tLike many.=^tI should check with the expedition from Felbridge.</LockedMessage>
+		<LockedMessage>^t Another tunnel into dag.=^t Like many.=^t I should check ile expedition kaynakli Felkopru.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -410,7 +410,7 @@
 		<TargetMapName>OMM_Mission4</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AbandonedArmory</RequiredMissions>
-		<LockedMessage>^tA mysterious doorway.=^tI wonder why that statue is here.=^tThe Felbridge folk could tell me more.</LockedMessage>
+		<LockedMessage>^t bir mysterious doorway.=^t I wonder why that heykel is here.=^t Felkopru folk could tell beni daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -418,7 +418,7 @@
 		<TargetMapName>OMM_Mission5</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HuntedToTheEdge</RequiredMissions>
-		<LockedMessage>^tThe river leads up into the rocks.=^tThe Moai could tell me where in these mountains Meylour's followers are.</LockedMessage>
+		<LockedMessage>^t nehir leads up into rocks.=^t Moai could tell beni where icinde these mountains Meylour's followers are.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -426,7 +426,7 @@
 		<TargetMapName>OMM_Mission6</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ForgottenForge</RequiredMissions>
-		<LockedMessage>^tIt's locked.=^tThe expedition from Felbridge might be able to tell more more.</LockedMessage>
+		<LockedMessage>^t It's kilitli.=^t expedition kaynakli Felkopru might be able tell daha daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -434,7 +434,7 @@
 		<TargetMapName>OMM_Mission7</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GriffinsRedoubt</RequiredMissions>
-		<LockedMessage>^tA tunnel.=^tThe expedition member may know more.</LockedMessage>
+		<LockedMessage>^t bir tunnel.=^t expedition member may know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -442,7 +442,7 @@
 		<TargetMapName>OMM_Mission8</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>BloodInTheVeins</RequiredMissions>
-		<LockedMessage>^tAbandoned mineshaft.=^tProbably nothing in there.=^tThe expedition might know more.</LockedMessage>
+		<LockedMessage>^t Abandoned mineshaft.=^t Probably nothing icinde there.=^t expedition might know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OMM_Mission8</MapName>
@@ -450,7 +450,7 @@
 		<TargetMapName>OMM_Mission9</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GrahlsRebellion</RequiredMissions>
-		<LockedMessage>^tI'm going to clear these caves before I leave.</LockedMessage>
+		<LockedMessage>^t I'm going clear these caves before I ayril.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -458,7 +458,7 @@
 		<TargetMapName>OMM_Mission9</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GrahlsRebellion</RequiredMissions>
-		<LockedMessage>^tAbandoned mineshaft.=^tProbably nothing in there.=^tThe expedition might know more.</LockedMessage>
+		<LockedMessage>^t Abandoned mineshaft.=^t Probably nothing icinde there.=^t expedition might know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OMM_Mission9</MapName>
@@ -466,7 +466,7 @@
 		<TargetMapName>OMM_Mission10</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DragonsQuarry</RequiredMissions>
-		<LockedMessage>^tI'm going to clear this cave before I leave.</LockedMessage>
+		<LockedMessage>^t I'm going clear this cave before I ayril.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -474,7 +474,7 @@
 		<TargetMapName>OMM_Mission10</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DragonsQuarry</RequiredMissions>
-		<LockedMessage>^tDeep abandoned mineshaft.=^tProbably nothing in there.=^tThe expedition might know more.</LockedMessage>
+		<LockedMessage>^t derin abandoned mineshaft.=^t Probably nothing icinde there.=^t expedition might know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OMM_Mission10</MapName>
@@ -482,7 +482,7 @@
 		<TargetMapName>OMM_Mission11</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>CutToTheHeart</RequiredMissions>
-		<LockedMessage>^tI'm going to clear this cave before I leave.</LockedMessage>
+		<LockedMessage>^t I'm going clear this cave before I ayril.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -490,7 +490,7 @@
 		<TargetMapName>OMM_Mission11</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>CutToTheHeart</RequiredMissions>
-		<LockedMessage>^tDeeper abandoned mineshaft.=^tProbably nothing in there.=^tThe expedition might know more.</LockedMessage>
+		<LockedMessage>^t Deeper abandoned mineshaft.=^t Probably nothing icinde there.=^t expedition might know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OMM_Mission11</MapName>
@@ -498,7 +498,7 @@
 		<TargetMapName>EmeraldGlades</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HeadToTheGlades</RequiredMissions>
-		<LockedMessage>^tI'm going to clear this cave before I leave.</LockedMessage>
+		<LockedMessage>^t I'm going clear this cave before I ayril.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -506,7 +506,7 @@
 		<TargetMapName>OMM_Mission12</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>MeylourFinale</RequiredMissions>
-		<LockedMessage>^tMysterious cavern=^tHalf collapsed=^tDo I see glowing rock?=^tI hope I never have need to go in there</LockedMessage>
+		<LockedMessage>^t Mysterious cavern=^t Half collapsed=^t Do I see glowing rock?=^t I hope I never have need go icinde there</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGlades</MapName>
@@ -520,7 +520,7 @@
 		<TargetMapName>EmeraldGladesHard</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>HeadToTheGlades,HeadToTheGladesHard</RequiredMissions>
-		<LockedMessage>^tAnother Dreadfold Portal. Like the one in Felbridge, but closed.=^tA shortcut to the Dread doppelganger of these Glades?=^tTo open this gate, I must cross into the Dreadfold by the Felbridge Portal.=^tAnd find this portal's twin in Dread Emerald Glades.</LockedMessage>
+		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Felkopru, but closed.=^t bir shortcut dehset doppelganger these cayirlar?=^t ac this gate, I must cross into Dreadfold by Felkopru Portal.=^t ve bul this portal's twin icinde dehset Zumrut Cayirlari.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGlades</MapName>
@@ -528,7 +528,7 @@
 		<TargetMapName>EG_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>TheAshenDryad</RequiredMissions>
-		<LockedMessage>^tA strange side path.=^tMaybe that dryad back west can tell me more.</LockedMessage>
+		<LockedMessage>^t bir strange side path.=^t Maybe that dryad back west can tell beni daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGlades</MapName>
@@ -536,7 +536,7 @@
 		<TargetMapName>EG_Mission2</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>OutOnALimb</RequiredMissions>
-		<LockedMessage>^tA hole in the trunk.=^tThose dryads might be able to tell me more.</LockedMessage>
+		<LockedMessage>^t bir hole icinde trunk.=^t Those dryads might be able tell beni daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGlades</MapName>
@@ -544,7 +544,7 @@
 		<TargetMapName>EG_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RottenToTheRoots</RequiredMissions>
-		<LockedMessage>^tA hole in the roots.=^tThese dryads might know where it leads.</LockedMessage>
+		<LockedMessage>^t bir hole icinde roots.=^t These dryads might know where it leads.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGlades</MapName>
@@ -552,7 +552,7 @@
 		<TargetMapName>EG_Mission4</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HopeSpringsEternal</RequiredMissions>
-		<LockedMessage>^tA strange temple.=^tThe dryads might tell a bit more about what I'm getting into here.</LockedMessage>
+		<LockedMessage>^t bir strange tapinak.=^t dryads might tell bir bit daha about what I'm getting into here.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGlades</MapName>
@@ -560,7 +560,7 @@
 		<TargetMapName>EG_Mission5</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RefugeOfTheDamned</RequiredMissions>
-		<LockedMessage>^tA strange ruin=^tThe dryads might tell a bit more about what I'm getting into here</LockedMessage>
+		<LockedMessage>^t bir strange ruin=^t dryads might tell bir bit daha about what I'm getting into here</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>AC_Mission1</MapName>
@@ -586,7 +586,7 @@
 		<TargetMapName>AC_Mission2</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>EmeraldThrone</RequiredMissions>
-		<LockedMessage>^tA dark sidedoor.=^tI should ask the survivors where it leads.</LockedMessage>
+		<LockedMessage>^t bir koyu sidedoor.=^t I should ask survivors where it leads.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>Castle</MapName>
@@ -594,7 +594,7 @@
 		<TargetMapName>AC_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>BattlesLostAndWon</RequiredMissions>
-		<LockedMessage>^tA side path to the other side of the battlefield.=^tThe survivors in the courtyard might know more.</LockedMessage>
+		<LockedMessage>^t bir side path other side battlefield.=^t survivors icinde courtyard might know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>Castle</MapName>
@@ -602,7 +602,7 @@
 		<TargetMapName>AC_Mission4</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AethericObservatory</RequiredMissions>
-		<LockedMessage>^tThe door to this ancient tower is barred.=^tI need the password.</LockedMessage>
+		<LockedMessage>^t door this kadim kule is barred.=^t I need password.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>Castle</MapName>
@@ -610,7 +610,7 @@
 		<TargetMapName>AC_Mission5</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>LastStand</RequiredMissions>
-		<LockedMessage>^tA dark passage.=^tMaybe the wizard Titus will know more.</LockedMessage>
+		<LockedMessage>^t bir koyu passage.=^t Maybe wizard Titus will know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>Castle</MapName>
@@ -618,7 +618,7 @@
 		<TargetMapName>AC_Mission6</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>Capstone</RequiredMissions>
-		<LockedMessage>^tA dungeon entrance.=^tMaybe Titus can tell me where it leads.</LockedMessage>
+		<LockedMessage>^t bir zindan entrance.=^t Maybe Titus can tell beni where it leads.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>Castle</MapName>
@@ -626,7 +626,7 @@
 		<TargetMapName>ShazariDesert</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>IntoTheDepths</RequiredMissions>
-		<LockedMessage>^tWhoa, hot magic.=^tI should ask Titus about this.</LockedMessage>
+		<LockedMessage>^t Whoa, hot buyu.=^t I should ask Titus about this.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesert</MapName>
@@ -640,7 +640,7 @@
 		<TargetMapName>JC_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HeadToValhaven</RequiredMissions>
-		<LockedMessage>^tI'm not ready yet.=^tI should take care of things here first.</LockedMessage>
+		<LockedMessage>^t I'm degil ready yet.=^t I should take care things here first.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesert</MapName>
@@ -648,7 +648,7 @@
 		<TargetMapName>ShazariDesertHard</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>IntoTheDepths,IntoTheDepthsHard</RequiredMissions>
-		<LockedMessage>^tAnother Dreadfold Portal. Like the one in Felbridge, but closed=^tA shortcut to Dread Shazari, no doubt=^tTo open this gate, I can cross into the Dreadfold by the Felbridge Portal=^tThen make my way to this portal's twin in Dread Shazari=^tDo I dare?</LockedMessage>
+		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Felkopru, but closed=^t bir shortcut dehset Shazari, yok doubt=^t ac this gate, I can cross into Dreadfold by Felkopru Portal=^t Then make benim way this portal's twin icinde dehset Shazari=^t Do I dare?</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesert</MapName>
@@ -656,7 +656,7 @@
 		<TargetMapName>SD_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>TempleOfShadows</RequiredMissions>
-		<LockedMessage>^tTitus should be able to tell me about this strange door.=^tI saw him back west.</LockedMessage>
+		<LockedMessage>^t Titus should be able tell beni about this strange door.=^t I saw him back west.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesert</MapName>
@@ -664,7 +664,7 @@
 		<TargetMapName>SD_Mission2</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ScarabInvasion</RequiredMissions>
-		<LockedMessage>^tA strange passage down.=^tI hear strange chittering.=^tI can ask those desert folk what's inside.</LockedMessage>
+		<LockedMessage>^t bir strange passage down.=^t I hear strange chittering.=^t I can ask those col folk what's inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesert</MapName>
@@ -672,7 +672,7 @@
 		<TargetMapName>SD_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>BloodAndSand</RequiredMissions>
-		<LockedMessage>^tI hear the clash of arms below.=^tI bet the desert townsfolk can tell me more.</LockedMessage>
+		<LockedMessage>^t I hear clash arms below.=^t I bet col townsfolk can tell beni daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesert</MapName>
@@ -680,7 +680,7 @@
 		<TargetMapName>SD_Mission4</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GoblinDiplomacy</RequiredMissions>
-		<LockedMessage>^tA strange gate.=^tGzarek and his nomads might know where it leads.</LockedMessage>
+		<LockedMessage>^t bir strange gate.=^t Gzarek ve his nomads might know where it leads.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesert</MapName>
@@ -688,7 +688,7 @@
 		<TargetMapName>SD_Mission5</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AncientBurialGrounds</RequiredMissions>
-		<LockedMessage>^tA mysterious burial ground.=^tI'll ask the guy with the dog head what he knows.=^tNaturally.</LockedMessage>
+		<LockedMessage>^t bir mysterious burial ground.=^t I'll ask guy ile dog head what he knows.=^t Naturally.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesert</MapName>
@@ -696,7 +696,7 @@
 		<TargetMapName>SD_Mission6</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AttuneTheAnchor</RequiredMissions>
-		<LockedMessage>^tThat is one colossal pyramid.=^tPerhaps Titus can tell me the lore of this place.=^tI will ask him what he can tell me.</LockedMessage>
+		<LockedMessage>^t That is one colossal pyramid.=^t Perhaps Titus can tell beni lore this place.=^t I will ask him what he can tell beni.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -710,7 +710,7 @@
 		<TargetMapName>JadeCityHard</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>HeadToValhaven,HeadToValhavenHard</RequiredMissions>
-		<LockedMessage>^tAnother Dreadfold Portal. Like the one in Felbridge, but closed=^tA shortcut to Dread Valhaven, no doubt=^tTo open this gate, I can cross into the Dreadfold by the Felbridge Portal=^tThen make my way to this portal's twin in Dread Valhaven=^tDo I dare?</LockedMessage>
+		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Felkopru, but closed=^t bir shortcut dehset Valhaven, yok doubt=^t ac this gate, I can cross into Dreadfold by Felkopru Portal=^t Then make benim way this portal's twin icinde dehset Valhaven=^t Do I dare?</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -730,7 +730,7 @@
 		<TargetMapName>JC_Mission2</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>BackAlleyDeals</RequiredMissions>
-		<LockedMessage>^tThis is one shady alley.=^tI shouldn't be here.</LockedMessage>
+		<LockedMessage>^t This is one shady alley.=^t I shouldn't be here.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JC_Mission2</MapName>
@@ -738,7 +738,7 @@
 		<TargetMapName>JC_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>TheProdigalSon</RequiredMissions>
-		<LockedMessage>^tLooks like he went this way.=^tBetter take care of this mess first.</LockedMessage>
+		<LockedMessage>^t Looks like he went this way.=^t Better take care this mess first.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -746,7 +746,7 @@
 		<TargetMapName>JC_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>TheProdigalSon</RequiredMissions>
-		<LockedMessage>^tI wonder why this tea shop is locked.=^tMaybe someone in town knows.</LockedMessage>
+		<LockedMessage>^t I wonder why this tea shop is kilitli.=^t Maybe someone icinde kasaba knows.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -754,7 +754,7 @@
 		<TargetMapName>JC_Mission4</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SewerSurfin</RequiredMissions>
-		<LockedMessage>^tThe sewer opening is cold and dark.=^tI hear eerie voices echo from within.</LockedMessage>
+		<LockedMessage>^t sewer opening is soguk ve koyu.=^t I hear eerie voices echo kaynakli icindeki.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -762,7 +762,7 @@
 		<TargetMapName>JC_Mission5</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>TempleOfLostDreams</RequiredMissions>
-		<LockedMessage>^tI have strayed to far from town.=^tI should head back.</LockedMessage>
+		<LockedMessage>^t I have strayed far kaynakli kasaba.=^t I should head back.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -770,7 +770,7 @@
 		<TargetMapName>JC_Mission6</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>Inception</RequiredMissions>
-		<LockedMessage>^tThese doors must enclose great secrets.=^tSomeone has to know how to get in.</LockedMessage>
+		<LockedMessage>^t These doors must enclose buyuk secrets.=^t Someone has know how get icinde.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -778,7 +778,7 @@
 		<TargetMapName>JC_Mission7</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>Intervention</RequiredMissions>
-		<LockedMessage>^tThis palace is impressive and uninviting.=^tI better go before the guards comes.</LockedMessage>
+		<LockedMessage>^t This palace is impressive ve uninviting.=^t I better go before guards comes.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -786,7 +786,7 @@
 		<TargetMapName>JC_Mission8</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AttackOfOpportunity</RequiredMissions>
-		<LockedMessage>^tThis must be the city barracks.=^tThe imperial army is huge.</LockedMessage>
+		<LockedMessage>^t This must be sehir barracks.=^t imperial army is huge.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -794,14 +794,14 @@
 		<TargetMapName>JC_Mission9</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ShadowsOfThePast</RequiredMissions>
-		<LockedMessage>^tThe door creaks and cracks from age.=^tThis door seems out of place.</LockedMessage>
+		<LockedMessage>^t door creaks ve cracks kaynakli age.=^t This door seems out place.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
 		<DoorID>110</DoorID>
 		<TargetMapName>JC_Mission10</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
-		<LockedMessage>^tLooks like an ancient vault.=^tBetter turn back before I get lost.</LockedMessage>
+		<LockedMessage>^t Looks like bir kadim vault.=^t Better turn back before I get lost.</LockedMessage>
 		<CompletedMissions>TempleOfLostDreams</CompletedMissions>
 	</DoorType>
 	<DoorType>
@@ -810,7 +810,7 @@
 		<TargetMapName>JC_Mission11</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RingOfFire</RequiredMissions>
-		<LockedMessage>^tWord on the street is some pretty bad people roam these parts.=^tI should go search for more information.</LockedMessage>
+		<LockedMessage>^t Word uzerinde street is some pretty bad people roam these parts.=^t I should go search icin daha information.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -818,7 +818,7 @@
 		<TargetMapName>JC_Mini1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AttackOfOpportunity</RequiredMissions>
-		<LockedMessage>^tLooks like one of the emperor's guard towers.=^tThey sure do keep a tight watch.</LockedMessage>
+		<LockedMessage>^t Looks like one imparator muhafiz towers.=^t They sure do hisar bir tight watch.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -826,7 +826,7 @@
 		<TargetMapName>JC_Mini2</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AttackOfOpportunity</RequiredMissions>
-		<LockedMessage>^tLooks like one of the emperor's guard towers.=^tThere is so much security here.</LockedMessage>
+		<LockedMessage>^t Looks like one imparator muhafiz towers.=^t There is so much security here.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>NewbieRoadHard</MapName>
@@ -840,7 +840,7 @@
 		<TargetMapName>TutorialDungeonHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RescueAnnaHard</RequiredMissions>
-		<LockedMessage>^tThis seems better fortified than before=^tMaybe the villagers know more about this</LockedMessage>
+		<LockedMessage>^t This seems better fortified than before=^t Maybe villagers know daha about this</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>NewbieRoadHard</MapName>
@@ -848,7 +848,7 @@
 		<TargetMapName>GoblinRiverDungeonHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GoblinRiverHard</RequiredMissions>
-		<LockedMessage>^tThat path leads to the river=^tWith goblin tracks in and out=^tThe villagers might know more about this</LockedMessage>
+		<LockedMessage>^t That path leads nehir=^t ile goblin tracks icinde ve out=^t villagers might know daha about this</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>NewbieRoadHard</MapName>
@@ -856,7 +856,7 @@
 		<TargetMapName>GhostBossDungeonHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>KillNephitHard</RequiredMissions>
-		<LockedMessage>^tA dank tomb=^tWith goblin tracks in and out=^tThe villagers to the west might know more about this</LockedMessage>
+		<LockedMessage>^t bir dank tomb=^t ile goblin tracks icinde ve out=^t villagers west might know daha about this</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>NewbieRoadHard</MapName>
@@ -864,7 +864,7 @@
 		<TargetMapName>DreamDragonDungeonHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayTheDragonHard</RequiredMissions>
-		<LockedMessage>^tIt's closed and locked=^tI think I can see evil seeping out=^tMaybe these villagers know whether it holds plunder=^t..Or certain death</LockedMessage>
+		<LockedMessage>^t It's closed ve kilitli=^t I think I can see evil seeping out=^t Maybe these villagers know whether it holds plunder=^t..veya certain olum</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -884,7 +884,7 @@
 		<TargetMapName>SRN_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>StopCastoutHard</RequiredMissions>
-		<LockedMessage>^tSomeone has fortified this tower.=^tI should check in with the soldiers from Wolf's End.=^tThey've had time to scout the area.</LockedMessage>
+		<LockedMessage>^t Someone has fortified this kule.=^t I should check icinde ile soldiers kaynakli Kurt's End.=^t They've had sure scout area.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -892,7 +892,7 @@
 		<TargetMapName>SRN_Mission2Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayYornakHard</RequiredMissions>
-		<LockedMessage>^tA tower of a happier time=^tThose villagers can help me plan my plundering</LockedMessage>
+		<LockedMessage>^t bir kule bir happier sure=^t Those villagers can yardim beni plan benim plundering</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -900,7 +900,7 @@
 		<TargetMapName>SRN_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlaySvarHard</RequiredMissions>
-		<LockedMessage>^tA Tuatara fort.=^tI should see if my allies know more about it.=^tSo I know what I'm getting into.</LockedMessage>
+		<LockedMessage>^t bir Tuatara fort.=^t I should see if benim allies know daha about it.=^t So I know what I'm getting into.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -908,7 +908,7 @@
 		<TargetMapName>SRN_Mission4Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayOoyakHard</RequiredMissions>
-		<LockedMessage>^tLots of big animal tracks around here.=^tI should see if the scouts know more about what's inside.</LockedMessage>
+		<LockedMessage>^t Lots big animal tracks around here.=^t I should see if scouts know daha about what's inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -916,7 +916,7 @@
 		<TargetMapName>SRN_Mission5Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>StopBroodvictorHard</RequiredMissions>
-		<LockedMessage>^tThe Citadel of Wissen.=^tI need to check with the scouts and see if they know more about who's inside.</LockedMessage>
+		<LockedMessage>^t Citadel Wissen.=^t I need check ile scouts ve see if they know daha about who's inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -924,7 +924,7 @@
 		<TargetMapName>SRN_Mission6Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayMindlessQueenHard</RequiredMissions>
-		<LockedMessage>^tThis granary used to feed thousands.=^tSome of the soldiers from Wolf's End will know more about it.</LockedMessage>
+		<LockedMessage>^t This granary used feed thousands.=^t Some soldiers kaynakli Kurt's End will know daha about it.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -932,7 +932,7 @@
 		<TargetMapName>SRN_Mission7Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlaySvathHard</RequiredMissions>
-		<LockedMessage>^tThis old citadel is stranger than the others.=^tI wonder what the scouts have learned about it.</LockedMessage>
+		<LockedMessage>^t This eski citadel is stranger than others.=^t I wonder what scouts have ogrenildi about it.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadConnectionMissionHard</MapName>
@@ -958,7 +958,7 @@
 		<TargetMapName>SwampRoadConnectionMissionHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ClearTheBridgeHard</RequiredMissions>
-		<LockedMessage>^tDark and impassable=^tAre those spider webs?=^tIck=^tNo one's going to Felbridge that way.</LockedMessage>
+		<LockedMessage>^t koyu ve impassable=^t Are those orumcek webs?=^t Ick=^t yok one's going Felkopru that way.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTownHard</MapName>
@@ -972,7 +972,7 @@
 		<TargetMapName>CemeteryHillHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>FindTheOutpostHard</RequiredMissions>
-		<LockedMessage>^tThere is too much evil behind this gate.=^tThe Felbridge folk might know more about this.</LockedMessage>
+		<LockedMessage>^t There is too much evil behind this gate.=^t Felkopru folk might know daha about this.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTownHard</MapName>
@@ -980,14 +980,14 @@
 		<TargetMapName>AC_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DeepgardDragonHard</RequiredMissions>
-		<LockedMessage>^tThe way is blocked by powerful magic.=^tThis bridge leads to Castle Hocke.=^tI need to figure out how to get in there.=^tAnd how to be ready for what's inside.</LockedMessage>
+		<LockedMessage>^t way is blocked by powerful buyu.=^t This kopru leads Kale Hocke.=^t I need figure out how get icinde there.=^t ve how be ready icin what's inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTownHard</MapName>
 		<DoorID>5</DoorID>
 		<TargetMapName>CemeteryHillHard</TargetMapName>
 		<TargetDoorID>3</TargetDoorID>
-		<LockedMessage>^tThe gate seems to be locked.=^tMaybe the other entrance is open.</LockedMessage>
+		<LockedMessage>^t gate seems be kilitli.=^t Maybe other entrance is ac.</LockedMessage>
 		<CompletedMissions>FindTheOutpostHard</CompletedMissions>
 	</DoorType>
 	<DoorType>
@@ -996,7 +996,7 @@
 		<TargetMapName>OldMineMountainHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HeadToTheMountainsHard</RequiredMissions>
-		<LockedMessage>^This road leads into the Stormshard Mountains=^tIt is little used except by monsters now=^tI may find need to go there=^tBut first let's get Felbridge sorted</LockedMessage>
+		<LockedMessage>^This yol leads into Stormshard Binekains=^t It is little used except by canavarlar now=^t I may bul need go there=^t But first let's get Felkopru sorted</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTownHard</MapName>
@@ -1010,7 +1010,7 @@
 		<TargetMapName>BT_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DefeatBanditCampHard</RequiredMissions>
-		<LockedMessage>^tMaybe I should head to town to find out more.</LockedMessage>
+		<LockedMessage>^t Maybe I should head kasaba bul out daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTownHard</MapName>
@@ -1018,7 +1018,7 @@
 		<TargetMapName>BT_Mission2Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>OldHeroesNeverDieHard</RequiredMissions>
-		<LockedMessage>^tDeep woods.=^tThere are bandit tracks all over this forest.=^tMany tracks go east from here.</LockedMessage>
+		<LockedMessage>^t derin woods.=^t There are bandit tracks tum over this forest.=^t Many tracks go east kaynakli here.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTownHard</MapName>
@@ -1026,7 +1026,7 @@
 		<TargetMapName>BT_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>MouthOfMeylourHard</RequiredMissions>
-		<LockedMessage>^tA dark cavern.=^tNowhere I want to go right now.</LockedMessage>
+		<LockedMessage>^t bir koyu cavern.=^t Nowhere I want go right now.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BT_Mission3Hard</MapName>
@@ -1040,7 +1040,7 @@
 		<TargetMapName>BT_Mission4Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DerelictionOfDutyHard</RequiredMissions>
-		<LockedMessage>^tThe Steward's house.=^tIt looks neat and clean inside.</LockedMessage>
+		<LockedMessage>^t Steward's house.=^t It looks neat ve clean inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1060,7 +1060,7 @@
 		<TargetMapName>CH_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RescueYagagaHard</RequiredMissions>
-		<LockedMessage>^tA closed mausoleum.=^tIt looks like someone lives here.=^tI'll check with my friend from Wolf's End andfind the outpost to the west and ask them.</LockedMessage>
+		<LockedMessage>^t bir closed mausoleum.=^t It looks like someone lives here.=^t I'll check ile benim friend kaynakli Kurt's End andfind outpost west ve ask them.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1068,7 +1068,7 @@
 		<TargetMapName>CH_Mission2Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>JackalTreasureHard</RequiredMissions>
-		<LockedMessage>^tAnother dusty mausoleum.=^tI wonder if they know more at the outpost.</LockedMessage>
+		<LockedMessage>^t Another dusty mausoleum.=^t I wonder if they know daha at outpost.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1076,7 +1076,7 @@
 		<TargetMapName>CH_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DefeatCrovnagHard</RequiredMissions>
-		<LockedMessage>^tAnother grim tomb.=^tIt says 'Here lies Lord Crovnag.'=^tI wonder who that was.=^tThe witch Yagarah might know.</LockedMessage>
+		<LockedMessage>^t Another grim tomb.=^t It says 'Here lies Lord Crovnag.'=^t I wonder who that was.=^t witch Yagarah might know.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1084,7 +1084,7 @@
 		<TargetMapName>CH_Mission4Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>MissingPappyHard</RequiredMissions>
-		<LockedMessage>^tA grim, dark tomb.=^tI wonder if they know more at the outpost.</LockedMessage>
+		<LockedMessage>^t bir grim, koyu tomb.=^t I wonder if they know daha at outpost.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1092,7 +1092,7 @@
 		<TargetMapName>CH_Mission5Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DestroyTheIdolHard</RequiredMissions>
-		<LockedMessage>^tYet another dark dungeon door.=^tLike so many on this hill.=^tThe witch Yagarah could tell me more.</LockedMessage>
+		<LockedMessage>^t Yet another koyu zindan door.=^t Like so many uzerinde this tepe.=^t witch Yagarah could tell beni daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1100,7 +1100,7 @@
 		<TargetMapName>CH_Mission6Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DiscoverSecretHard</RequiredMissions>
-		<LockedMessage>^tIt's closed and locked.=^tAnd grim and dark.=^tThe witch Yagarah can help me figure out which mausoleums Nephit might be in.</LockedMessage>
+		<LockedMessage>^t It's closed ve kilitli.=^t ve grim ve koyu.=^t witch Yagarah can yardim beni figure out which mausoleums Nephit might be icinde.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1108,7 +1108,7 @@
 		<TargetMapName>CH_Mission7Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SealTheWispsHard</RequiredMissions>
-		<LockedMessage>^tIt's closed and locked=^tI wonder if that witch can help me learn more about this place.</LockedMessage>
+		<LockedMessage>^t It's closed ve kilitli=^t I wonder if that witch can yardim beni ogren daha about this place.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1116,7 +1116,7 @@
 		<TargetMapName>CH_Mission8Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DefeatDogfatherHard</RequiredMissions>
-		<LockedMessage>^tNice waterfall.</LockedMessage>
+		<LockedMessage>^t Nice waterfall.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1184,7 +1184,7 @@
 		<TargetMapName>EmeraldGladesHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HeadToTheGladesHard</RequiredMissions>
-		<LockedMessage>^tThe path is crumbled and impassable.=^tIt heads around the mountainside.</LockedMessage>
+		<LockedMessage>^t path is crumbled ve impassable.=^t It heads around mountainside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1192,7 +1192,7 @@
 		<TargetMapName>OMM_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GiveVoiceToStoneHard</RequiredMissions>
-		<LockedMessage>^tA dark cavern.=^tGoblin tracks lead in.=^tThe villagers might be able to tell me more.=^tBetter find out what I'm getting into...=^tBefore I tear these goblins up.</LockedMessage>
+		<LockedMessage>^t bir koyu cavern.=^t goblin tracks lead icinde.=^t villagers might be able tell beni daha.=^t Better bul out what I'm getting into...=^t Before I tear these goblinler up.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1200,7 +1200,7 @@
 		<TargetMapName>OMM_Mission2Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GardenOfTheLostHard</RequiredMissions>
-		<LockedMessage>^tA crevice in the mountainside.=^tProbably certain death in there.=^tTheexpeditin from Felbridge might know this mountain better.</LockedMessage>
+		<LockedMessage>^t bir crevice icinde mountainside.=^t Probably certain olum icinde there.=^t Theexpeditin kaynakli Felkopru might know this dag better.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1208,7 +1208,7 @@
 		<TargetMapName>OMM_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>EyeOfTheTyrantHard</RequiredMissions>
-		<LockedMessage>^tAnother tunnel into the mountain.=^tLike many.=^tI should check with the expedition from Felbridge.</LockedMessage>
+		<LockedMessage>^t Another tunnel into dag.=^t Like many.=^t I should check ile expedition kaynakli Felkopru.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1216,7 +1216,7 @@
 		<TargetMapName>OMM_Mission4Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AbandonedArmoryHard</RequiredMissions>
-		<LockedMessage>^tA mysterious doorway.=^tI wonder why that statue is here.=^tThe Felbridge folk could tell me more.</LockedMessage>
+		<LockedMessage>^t bir mysterious doorway.=^t I wonder why that heykel is here.=^t Felkopru folk could tell beni daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1224,7 +1224,7 @@
 		<TargetMapName>OMM_Mission5Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HuntedToTheEdgeHard</RequiredMissions>
-		<LockedMessage>^tThe river leads up into the rocks.=^tThe Moai could tell me where in these mountains Meylour's followers are.</LockedMessage>
+		<LockedMessage>^t nehir leads up into rocks.=^t Moai could tell beni where icinde these mountains Meylour's followers are.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1232,7 +1232,7 @@
 		<TargetMapName>OMM_Mission6Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ForgottenForgeHard</RequiredMissions>
-		<LockedMessage>^tIt's locked.=^tThe expedition from Felbridge might be able to tell more more.</LockedMessage>
+		<LockedMessage>^t It's kilitli.=^t expedition kaynakli Felkopru might be able tell daha daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1240,7 +1240,7 @@
 		<TargetMapName>OMM_Mission7Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GriffinsRedoubtHard</RequiredMissions>
-		<LockedMessage>^tA tunnel.=^tThe expedition member may know more.</LockedMessage>
+		<LockedMessage>^t bir tunnel.=^t expedition member may know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1248,7 +1248,7 @@
 		<TargetMapName>OMM_Mission8Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>BloodInTheVeinsHard</RequiredMissions>
-		<LockedMessage>^tAbandoned mineshaft.=^tProbably nothing in there.=^tThe expedition might know more.</LockedMessage>
+		<LockedMessage>^t Abandoned mineshaft.=^t Probably nothing icinde there.=^t expedition might know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OMM_Mission8Hard</MapName>
@@ -1256,7 +1256,7 @@
 		<TargetMapName>OMM_Mission9Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GrahlsRebellionHard</RequiredMissions>
-		<LockedMessage>^tI'm going to clear these caves before I leave.</LockedMessage>
+		<LockedMessage>^t I'm going clear these caves before I ayril.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1264,7 +1264,7 @@
 		<TargetMapName>OMM_Mission9Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GrahlsRebellionHard</RequiredMissions>
-		<LockedMessage>^tAbandoned mineshaft.=^tProbably nothing in there.=^tThe expedition might know more.</LockedMessage>
+		<LockedMessage>^t Abandoned mineshaft.=^t Probably nothing icinde there.=^t expedition might know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OMM_Mission9Hard</MapName>
@@ -1272,7 +1272,7 @@
 		<TargetMapName>OMM_Mission10Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DragonsQuarryHard</RequiredMissions>
-		<LockedMessage>^tI'm going to clear this cave before I leave.</LockedMessage>
+		<LockedMessage>^t I'm going clear this cave before I ayril.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1280,7 +1280,7 @@
 		<TargetMapName>OMM_Mission10Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DragonsQuarryHard</RequiredMissions>
-		<LockedMessage>^tDeep abandoned mineshaft.=^tProbably nothing in there.=^tThe expedition might know more.</LockedMessage>
+		<LockedMessage>^t derin abandoned mineshaft.=^t Probably nothing icinde there.=^t expedition might know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OMM_Mission10Hard</MapName>
@@ -1288,7 +1288,7 @@
 		<TargetMapName>OMM_Mission11Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>CutToTheHeartHard</RequiredMissions>
-		<LockedMessage>^tI'm going to clear this cave before I leave.</LockedMessage>
+		<LockedMessage>^t I'm going clear this cave before I ayril.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1296,7 +1296,7 @@
 		<TargetMapName>OMM_Mission11Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>CutToTheHeartHard</RequiredMissions>
-		<LockedMessage>^tDeeper abandoned mineshaft.=^tProbably nothing in there.=^tThe expedition might know more.</LockedMessage>
+		<LockedMessage>^t Deeper abandoned mineshaft.=^t Probably nothing icinde there.=^t expedition might know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OMM_Mission11Hard</MapName>
@@ -1304,7 +1304,7 @@
 		<TargetMapName>EmeraldGladesHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HeadToTheGladesHard</RequiredMissions>
-		<LockedMessage>^tI'm going to clear this dungeon before I leave.</LockedMessage>
+		<LockedMessage>^t I'm going clear this zindan before I ayril.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1312,7 +1312,7 @@
 		<TargetMapName>OMM_Mission12Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>MeylourFinaleHard</RequiredMissions>
-		<LockedMessage>^tMysterious cavern=^tHalf collapsed=^tDo I see glowing rock?=^tI hope I never have need to go in there</LockedMessage>
+		<LockedMessage>^t Mysterious cavern=^t Half collapsed=^t Do I see glowing rock?=^t I hope I never have need go icinde there</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGladesHard</MapName>
@@ -1326,7 +1326,7 @@
 		<TargetMapName>EmeraldGlades</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>HeadToTheGlades,HeadToTheGladesHard</RequiredMissions>
-		<LockedMessage>^tAnother Dreadfold Portal. Like the one in Felbridge, but closed=^tA shortcut to the Dread doppelganger of these Glades?=^tTo open this gate, I must cross into the Dreadfold by the Felbridge Portal=^tAnd find this portal's twin in Dread Emerald Glades</LockedMessage>
+		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Felkopru, but closed=^t bir shortcut dehset doppelganger these cayirlar?=^t ac this gate, I must cross into Dreadfold by Felkopru Portal=^t ve bul this portal's twin icinde dehset Zumrut Cayirlari</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGladesHard</MapName>
@@ -1334,7 +1334,7 @@
 		<TargetMapName>EG_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>TheAshenDryadHard</RequiredMissions>
-		<LockedMessage>^tA strange side path=^tMaybe that dryad back west can tell me more</LockedMessage>
+		<LockedMessage>^t bir strange side path=^t Maybe that dryad back west can tell beni daha</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGladesHard</MapName>
@@ -1342,7 +1342,7 @@
 		<TargetMapName>EG_Mission2Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>OutOnALimbHard</RequiredMissions>
-		<LockedMessage>^tA hole in the trunk=^tThose dryads might be able to tell me more</LockedMessage>
+		<LockedMessage>^t bir hole icinde trunk=^t Those dryads might be able tell beni daha</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGladesHard</MapName>
@@ -1350,7 +1350,7 @@
 		<TargetMapName>EG_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RottenToTheRootsHard</RequiredMissions>
-		<LockedMessage>^tA hole in the roots=^tThese dryads might know where it leads</LockedMessage>
+		<LockedMessage>^t bir hole icinde roots=^t These dryads might know where it leads</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGladesHard</MapName>
@@ -1358,7 +1358,7 @@
 		<TargetMapName>EG_Mission4Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HopeSpringsEternalHard</RequiredMissions>
-		<LockedMessage>^tA strange temple=^tThe dryads might tell a bit more about what I'm getting into here=^tMany ruined temples have more death than treasure=^tA little preparation goes a long way=^tMy grandpappy used to say</LockedMessage>
+		<LockedMessage>^t bir strange tapinak=^t dryads might tell bir bit daha about what I'm getting into here=^t Many ruined temples have daha olum than treasure=^t bir little preparation goes bir long way=^t benim grandpappy used say</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGladesHard</MapName>
@@ -1366,7 +1366,7 @@
 		<TargetMapName>EG_Mission5Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RefugeOfTheDamnedHard</RequiredMissions>
-		<LockedMessage>^tA strange ruin=^tThe dryads might tell a bit more about what I'm getting into here=^tMany ruined temples have more death than treasure=^tA little preparation goes a long way=^tMy grandpappy used to say</LockedMessage>
+		<LockedMessage>^t bir strange ruin=^t dryads might tell bir bit daha about what I'm getting into here=^t Many ruined temples have daha olum than treasure=^t bir little preparation goes bir long way=^t benim grandpappy used say</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>AC_Mission1Hard</MapName>
@@ -1392,7 +1392,7 @@
 		<TargetMapName>AC_Mission2Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>EmeraldThroneHard</RequiredMissions>
-		<LockedMessage>^tA dark sidedoor.=^tI should ask the survivors where it leads.</LockedMessage>
+		<LockedMessage>^t bir koyu sidedoor.=^t I should ask survivors where it leads.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CastleHard</MapName>
@@ -1400,7 +1400,7 @@
 		<TargetMapName>AC_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>BattlesLostAndWonHard</RequiredMissions>
-		<LockedMessage>^tA side path to the other side of the battlefield.=^tThe survivors in the courtyard might know more.</LockedMessage>
+		<LockedMessage>^t bir side path other side battlefield.=^t survivors icinde courtyard might know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CastleHard</MapName>
@@ -1408,7 +1408,7 @@
 		<TargetMapName>AC_Mission4Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AethericObservatoryHard</RequiredMissions>
-		<LockedMessage>^tThe door to this ancient tower is barred.=^tI need the password.</LockedMessage>
+		<LockedMessage>^t door this kadim kule is barred.=^t I need password.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CastleHard</MapName>
@@ -1416,7 +1416,7 @@
 		<TargetMapName>AC_Mission5Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>LastStandHard</RequiredMissions>
-		<LockedMessage>^tA dark passage.=^tMaybe the wizard Titus will know more.</LockedMessage>
+		<LockedMessage>^t bir koyu passage.=^t Maybe wizard Titus will know daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CastleHard</MapName>
@@ -1424,7 +1424,7 @@
 		<TargetMapName>AC_Mission6Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>CapstoneHard</RequiredMissions>
-		<LockedMessage>^tA dungeon entrance.=^tMaybe Titus can tell me where it leads.</LockedMessage>
+		<LockedMessage>^t bir zindan entrance.=^t Maybe Titus can tell beni where it leads.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CastleHard</MapName>
@@ -1432,7 +1432,7 @@
 		<TargetMapName>ShazariDesertHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>IntoTheDepthsHard</RequiredMissions>
-		<LockedMessage>^tWhoa, hot magic.=^tI should ask Titus about this.</LockedMessage>
+		<LockedMessage>^t Whoa, hot buyu.=^t I should ask Titus about this.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesertHard</MapName>
@@ -1446,7 +1446,7 @@
 		<TargetMapName>JC_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HeadToValhavenHard</RequiredMissions>
-		<LockedMessage>^tI'm not ready yet.=^tI should take care of things here first.</LockedMessage>
+		<LockedMessage>^t I'm degil ready yet.=^t I should take care things here first.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesertHard</MapName>
@@ -1454,7 +1454,7 @@
 		<TargetMapName>ShazariDesert</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>IntoTheDepths,IntoTheDepthsHard</RequiredMissions>
-		<LockedMessage>^tTitus should be able to tell me about this strange door.=^tI saw him back west.</LockedMessage>
+		<LockedMessage>^t Titus should be able tell beni about this strange door.=^t I saw him back west.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesertHard</MapName>
@@ -1462,7 +1462,7 @@
 		<TargetMapName>SD_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>TempleOfShadowsHard</RequiredMissions>
-		<LockedMessage>^tA strange passage down.=^tI hear strange chittering.=^tI can ask those desert folk what's inside.</LockedMessage>
+		<LockedMessage>^t bir strange passage down.=^t I hear strange chittering.=^t I can ask those col folk what's inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesertHard</MapName>
@@ -1470,7 +1470,7 @@
 		<TargetMapName>SD_Mission2Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ScarabInvasionHard</RequiredMissions>
-		<LockedMessage>^tI hear the clash of arms below.=^tI bet the desert townsfolk can tell me more.</LockedMessage>
+		<LockedMessage>^t I hear clash arms below.=^t I bet col townsfolk can tell beni daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesertHard</MapName>
@@ -1478,7 +1478,7 @@
 		<TargetMapName>SD_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>BloodAndSandHard</RequiredMissions>
-		<LockedMessage>^tA strange gate.=^tGzarek and his nomads might know where it leads.</LockedMessage>
+		<LockedMessage>^t bir strange gate.=^t Gzarek ve his nomads might know where it leads.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesertHard</MapName>
@@ -1486,7 +1486,7 @@
 		<TargetMapName>SD_Mission4Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GoblinDiplomacyHard</RequiredMissions>
-		<LockedMessage>^tA mysterious burial ground.=^tI'll ask the guy with the dog head what he knows.=^tNaturally.</LockedMessage>
+		<LockedMessage>^t bir mysterious burial ground.=^t I'll ask guy ile dog head what he knows.=^t Naturally.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesertHard</MapName>
@@ -1494,7 +1494,7 @@
 		<TargetMapName>SD_Mission5Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AncientBurialGroundsHard</RequiredMissions>
-		<LockedMessage>^tThat is one colossal pyramid.=^tPerhaps Titus can tell me the lore of this place.=^tI will ask him what he can tell me.</LockedMessage>
+		<LockedMessage>^t That is one colossal pyramid.=^t Perhaps Titus can tell beni lore this place.=^t I will ask him what he can tell beni.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesertHard</MapName>
@@ -1502,7 +1502,7 @@
 		<TargetMapName>SD_Mission6Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AttuneTheAnchorHard</RequiredMissions>
-		<LockedMessage>^tThat is one colossal pyramid=^tPerhaps Titus can tell me the lore of this place=^tI will ask him what he can tell me</LockedMessage>
+		<LockedMessage>^t That is one colossal pyramid=^t Perhaps Titus can tell beni lore this place=^t I will ask him what he can tell beni</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1516,7 +1516,7 @@
 		<TargetMapName>JadeCity</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>HeadToValhaven,HeadToValhavenHard</RequiredMissions>
-		<LockedMessage>^tAnother Dreadfold Portal. Like the one in Felbridge, but closed=^tA shortcut to Dread Valhaven, no doubt=^tTo open this gate, I can cross into the Dreadfold by the Felbridge Portal=^tThen make my way to this portal's twin in Dread Valhaven=^tDo I dare?</LockedMessage>
+		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Felkopru, but closed=^t bir shortcut dehset Valhaven, yok doubt=^t ac this gate, I can cross into Dreadfold by Felkopru Portal=^t Then make benim way this portal's twin icinde dehset Valhaven=^t Do I dare?</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1536,7 +1536,7 @@
 		<TargetMapName>JC_Mission2Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>BackAlleyDealsHard</RequiredMissions>
-		<LockedMessage>^tThis is one shady alley.=^tI shouldn't be here.</LockedMessage>
+		<LockedMessage>^t This is one shady alley.=^t I shouldn't be here.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JC_Mission2Hard</MapName>
@@ -1544,7 +1544,7 @@
 		<TargetMapName>JC_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>TheProdigalSonHard</RequiredMissions>
-		<LockedMessage>^tLooks like he went this way.=^tBetter take care of this mess first.</LockedMessage>
+		<LockedMessage>^t Looks like he went this way.=^t Better take care this mess first.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1552,7 +1552,7 @@
 		<TargetMapName>JC_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>TheProdigalSonHard</RequiredMissions>
-		<LockedMessage>^tI wonder why this tea shop is locked.=^tMaybe someone in town knows.</LockedMessage>
+		<LockedMessage>^t I wonder why this tea shop is kilitli.=^t Maybe someone icinde kasaba knows.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1560,7 +1560,7 @@
 		<TargetMapName>JC_Mission4Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SewerSurfinHard</RequiredMissions>
-		<LockedMessage>^tThe sewer opening is cold and dark.=^tI hear eerie voices echo from within.</LockedMessage>
+		<LockedMessage>^t sewer opening is soguk ve koyu.=^t I hear eerie voices echo kaynakli icindeki.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1568,7 +1568,7 @@
 		<TargetMapName>JC_Mission5Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>TempleOfLostDreamsHard</RequiredMissions>
-		<LockedMessage>^tI have strayed to far from town.=^tI should head back.</LockedMessage>
+		<LockedMessage>^t I have strayed far kaynakli kasaba.=^t I should head back.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1576,7 +1576,7 @@
 		<TargetMapName>JC_Mission6Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>InceptionHard</RequiredMissions>
-		<LockedMessage>^tThese doors must enclose great secrets.=^tSomeone has to know how to get in.</LockedMessage>
+		<LockedMessage>^t These doors must enclose buyuk secrets.=^t Someone has know how get icinde.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1584,7 +1584,7 @@
 		<TargetMapName>JC_Mission7Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>InterventionHard</RequiredMissions>
-		<LockedMessage>^tThis palace is impressive and uninviting.=^tI better go before the guards comes.</LockedMessage>
+		<LockedMessage>^t This palace is impressive ve uninviting.=^t I better go before guards comes.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1592,7 +1592,7 @@
 		<TargetMapName>JC_Mission8Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AttackOfOpportunityHard</RequiredMissions>
-		<LockedMessage>^tThis must be the city barracks.=^tThe imperial army is huge.</LockedMessage>
+		<LockedMessage>^t This must be sehir barracks.=^t imperial army is huge.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1600,14 +1600,14 @@
 		<TargetMapName>JC_Mission9Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ShadowsOfThePastHard</RequiredMissions>
-		<LockedMessage>^tThe door creaks and cracks from age.=^tThis door seems out of place.</LockedMessage>
+		<LockedMessage>^t door creaks ve cracks kaynakli age.=^t This door seems out place.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
 		<DoorID>110</DoorID>
 		<TargetMapName>JC_Mission10Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
-		<LockedMessage>^tLooks like an ancient vault.=^tBetter turn back before I get lost.</LockedMessage>
+		<LockedMessage>^t Looks like bir kadim vault.=^t Better turn back before I get lost.</LockedMessage>
 		<CompletedMissions>TempleOfLostDreamsHard</CompletedMissions>
 	</DoorType>
 	<DoorType>
@@ -1616,7 +1616,7 @@
 		<TargetMapName>JC_Mission11Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RingOfFireHard</RequiredMissions>
-		<LockedMessage>^tWord on the street is some pretty bad people roam these parts.=^tI should go search for more information.</LockedMessage>
+		<LockedMessage>^t Word uzerinde street is some pretty bad people roam these parts.=^t I should go search icin daha information.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1624,7 +1624,7 @@
 		<TargetMapName>JC_Mini1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AttackOfOpportunityHard</RequiredMissions>
-		<LockedMessage>^tLooks like one of the emperor's guard towers.=^tThey sure do keep a tight watch.</LockedMessage>
+		<LockedMessage>^t Looks like one imparator muhafiz towers.=^t They sure do hisar bir tight watch.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>
@@ -1632,6 +1632,6 @@
 		<TargetMapName>JC_Mini2Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AttackOfOpportunityHard</RequiredMissions>
-		<LockedMessage>^tLooks like one of the emperor's guard towers.=^tThere is so much security here.</LockedMessage>
+		<LockedMessage>^t Looks like one imparator muhafiz towers.=^t There is so much security here.</LockedMessage>
 	</DoorType>
 </DoorTypes>

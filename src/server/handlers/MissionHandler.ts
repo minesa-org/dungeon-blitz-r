@@ -262,6 +262,58 @@ export class MissionHandler {
         'EmberHard',
         'Ember2Hard'
     ]);
+    private static readonly SHAZARI_WASP_HIVE_KILL_NAMES = new Set([
+        'TreeHiveSpawner'
+    ]);
+    private static readonly SHAZARI_WASP_HIVE_HARD_KILL_NAMES = new Set([
+        'TreeHiveSpawnerHard'
+    ]);
+    private static readonly SHAZARI_OUTLANDER_KILL_NAMES = new Set([
+        'OutlanderGladiator',
+        'OutlanderRogue',
+        'OutlanderMinotaur',
+        'OutlanderMinotaur2',
+        'OutlanderWyrm',
+        'OutlanderBoss'
+    ]);
+    private static readonly SHAZARI_OUTLANDER_HARD_KILL_NAMES = new Set([
+        'OutlanderGladiatorHard',
+        'OutlanderRogueHard',
+        'OutlanderMinotaurHard',
+        'OutlanderMinotaur2Hard',
+        'OutlanderWyrmHard',
+        'OutlanderBossHard'
+    ]);
+    private static readonly SHAZARI_GIANT_KILL_NAMES = new Set([
+        'OasisGiant',
+        'OasisGiant2',
+        'OasisWarlock',
+        'OasisColossus',
+        'OasisVizierYellow',
+        'OasisVizierGreen',
+        'OasisVizierRed',
+        'OasisVizier'
+    ]);
+    private static readonly SHAZARI_GIANT_HARD_KILL_NAMES = new Set([
+        'OasisGiantHard',
+        'OasisGiant2Hard',
+        'OasisWarlockHard',
+        'OasisColossusHard',
+        'OasisVizierYellowHard',
+        'OasisVizierGreenHard',
+        'OasisVizierRedHard',
+        'OasisVizierHard'
+    ]);
+    private static readonly SHAZARI_SANDWORM_KILL_NAMES = new Set([
+        'SandWorm',
+        'SandWorm2',
+        'SandWormGreater'
+    ]);
+    private static readonly SHAZARI_SANDWORM_HARD_KILL_NAMES = new Set([
+        'SandWormHard',
+        'SandWorm2Hard',
+        'SandWormGreaterHard'
+    ]);
     private static readonly KILL_PROGRESS_TARGETS: Readonly<Record<number, ReadonlySet<string>>> = {
         [MissionID.GetGoblinNoserings]: new Set(['GoblinBrute']),
         [MissionID.GetGoblinWands]: new Set(['GoblinShamanHood', 'GoblinShamanSkullHat']),
@@ -288,7 +340,15 @@ export class MissionHandler {
         [MissionID.SlayCyclops]: MissionHandler.STORMSHARD_CYCLOPS_KILL_NAMES,
         [MissionID.SlayCyclopsHard]: MissionHandler.STORMSHARD_CYCLOPS_KILL_NAMES,
         [MissionID.KillGladeEmbers]: MissionHandler.GLADE_EMBER_KILL_NAMES,
-        [MissionID.KillGladeEmbersHard]: MissionHandler.GLADE_EMBER_HARD_KILL_NAMES
+        [MissionID.KillGladeEmbersHard]: MissionHandler.GLADE_EMBER_HARD_KILL_NAMES,
+        [MissionID.DestroyWaspHives]: MissionHandler.SHAZARI_WASP_HIVE_KILL_NAMES,
+        [MissionID.DestroyWaspHivesHard]: MissionHandler.SHAZARI_WASP_HIVE_HARD_KILL_NAMES,
+        [MissionID.CollectGoblinCharms]: MissionHandler.SHAZARI_OUTLANDER_KILL_NAMES,
+        [MissionID.CollectGoblinCharmsHard]: MissionHandler.SHAZARI_OUTLANDER_HARD_KILL_NAMES,
+        [MissionID.CollectGiantBracers]: MissionHandler.SHAZARI_GIANT_KILL_NAMES,
+        [MissionID.CollectGiantBracersHard]: MissionHandler.SHAZARI_GIANT_HARD_KILL_NAMES,
+        [MissionID.CollectWormGlands]: MissionHandler.SHAZARI_SANDWORM_KILL_NAMES,
+        [MissionID.CollectWormGlandsHard]: MissionHandler.SHAZARI_SANDWORM_HARD_KILL_NAMES
     };
     private static readonly SETTLE_THE_DEAD_MISSION_IDS = new Set([
         MissionID.SettleTheDead,
