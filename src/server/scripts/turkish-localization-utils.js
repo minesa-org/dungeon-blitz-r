@@ -137,7 +137,6 @@ const WORDS = new Map(Object.entries({
     normal: 'normal',
     dread: 'dehset',
     ancient: 'kadim',
-    legendary: 'efsanevi',
     magic: 'buyu',
     magical: 'buyulu',
     power: 'guc',
