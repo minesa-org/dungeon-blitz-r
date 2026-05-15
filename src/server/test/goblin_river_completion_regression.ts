@@ -859,6 +859,85 @@ async function testNephitBossKillForcesDungeonCompleteScreen(): Promise<void> {
     );
 }
 
+async function testCapstoneIntermediateNephitBodyDoesNotCompleteDungeon(): Promise<void> {
+    const client = createClient('AC_Mission6', MissionID.Capstone, 'CapstoneEarlyBodyTester');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const firstBody = {
+        id: 7451,
+        name: 'GreatNephit',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 6,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 6
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>());
+
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, firstBody);
+    await MissionHandler.handleSetLevelComplete(client as never, buildLevelCompletePayload());
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'defeating the first Capstone Nephit body should not show the dungeon completion screen'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.Capstone)]?.state ?? 0),
+        1,
+        'defeating the first Capstone Nephit body should not complete Capstone'
+    );
+}
+
+async function testCapstoneFinalNephitKillForcesDungeonCompleteScreen(): Promise<void> {
+    const client = createClient('AC_Mission6', MissionID.Capstone, 'CapstoneFinalBossTester');
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const finalBoss = {
+        id: 7452,
+        name: 'NephitLargeEye',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 6,
+        hp: 0,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: client.token,
+        roomId: 7
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>());
+
+    MissionHandler.noteDungeonCutsceneStart(client as never, 7);
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, finalBoss);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'killing final Capstone Nephit should wait for the defeat cutscene'
+    );
+
+    MissionHandler.noteDungeonCutsceneEnd(client as never, 7);
+    await sleep(0);
+
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        true,
+        'killing final Capstone Nephit should show dungeon completion after the cutscene ends'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.Capstone)]?.state ?? 0),
+        2,
+        'forcing Capstone completion should move Capstone to ready-to-turn-in'
+    );
+}
+
 async function testLastHostileDeathForcesDungeonCompleteWithoutBossRank(): Promise<void> {
     const client = createClient('GoblinRiverDungeon', MissionID.GoblinRiver, 'FallbackBossTester');
     const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
@@ -1073,6 +1152,14 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();
         await testNephitBossKillForcesDungeonCompleteScreen();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testCapstoneIntermediateNephitBodyDoesNotCompleteDungeon();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.levelQuestProgress.clear();
+        await testCapstoneFinalNephitKillForcesDungeonCompleteScreen();
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.levelQuestProgress.clear();

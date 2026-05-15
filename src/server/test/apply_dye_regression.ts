@@ -202,8 +202,55 @@ async function testApplyDyeUpdatesAppearanceAndPersists(): Promise<void> {
     assert.equal(localEntity?.pantColor, GameData.getDyeColor(pantDyeId), 'live entity pant color should update');
 }
 
+async function testApplyDyeMirrorsExactTierInventoryGear(): Promise<void> {
+    ensureGameDataLoaded();
+
+    const client = createClient(3);
+    client.character.equippedGears[0] = { gearID: 1177, tier: 2, runes: [0, 0, 0], colors: [0, 0] };
+    client.character.inventoryGears = [
+        { gearID: 1177, tier: 1, runes: [0, 0, 0], colors: [7, 8] },
+        { gearID: 1177, tier: 2, runes: [0, 0, 0], colors: [0, 0] }
+    ];
+
+    const originalSaveCharacterSnapshot = JsonAdapter.prototype.saveCharacterSnapshot;
+    const originalSessionsByToken = GlobalState.sessionsByToken;
+    const originalLevelEntities = GlobalState.levelEntities;
+
+    let savedCharacter: any = null;
+    JsonAdapter.prototype.saveCharacterSnapshot = async function(_userId: number, character: any): Promise<any[]> {
+        savedCharacter = character;
+        return [character];
+    };
+
+    GlobalState.sessionsByToken = new Map([[client.token, client as never]]);
+    GlobalState.levelEntities = new Map([[client.currentLevel, new Map([[client.clientEntID, client.entities.get(client.clientEntID)]])]]);
+
+    try {
+        await CharacterHandler.handleApplyDyes(
+            client as never,
+            buildApplyDyePacket(
+                client.clientEntID,
+                [45, 46],
+                GameData.getDyeId('WizardWoolWhite'),
+                GameData.getDyeId('BroodMotherBlack')
+            )
+        );
+    } finally {
+        JsonAdapter.prototype.saveCharacterSnapshot = originalSaveCharacterSnapshot;
+        GlobalState.sessionsByToken = originalSessionsByToken;
+        GlobalState.levelEntities = originalLevelEntities;
+    }
+
+    assert.ok(savedCharacter, 'dye apply should persist the updated character');
+    assert.deepEqual(client.character.equippedGears[0].colors, [45, 46]);
+    assert.deepEqual(client.character.inventoryGears[0].colors, [7, 8], 'same gearID with different tier should not be overwritten');
+    assert.deepEqual(client.character.inventoryGears[1].colors, [45, 46], 'matching gearID and tier should mirror equipped gear colors');
+    assert.deepEqual(savedCharacter.inventoryGears[1].colors, [45, 46], 'saved snapshot should include the mirrored exact-tier colors');
+}
+
 async function main(): Promise<void> {
     await testApplyDyeUpdatesAppearanceAndPersists();
+    await testApplyDyeMirrorsExactTierInventoryGear();
     console.log('apply_dye_regression: ok');
 }
 

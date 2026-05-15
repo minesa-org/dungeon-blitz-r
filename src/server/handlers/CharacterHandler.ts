@@ -597,7 +597,7 @@ export class CharacterHandler {
             }
         }
 
-        const touchedGearIds = new Set<number>();
+        const touchedGearKeys = new Set<string>();
         for (const [slot, [nextPrimary, nextSecondary]] of dyesBySlot.entries()) {
             const gear = equippedGears[slot - 1] && typeof equippedGears[slot - 1] === 'object'
                 ? equippedGears[slot - 1] as Record<string, unknown>
@@ -609,12 +609,12 @@ export class CharacterHandler {
             gear.colors = [Number(nextPrimary), Number(nextSecondary)];
             const gearId = Number(gear.gearID ?? 0);
             if (gearId > 0) {
-                touchedGearIds.add(gearId);
+                touchedGearKeys.add(`${gearId}:${Number(gear.tier ?? 0)}`);
             }
         }
 
-        if (touchedGearIds.size > 0) {
-            const inventoryByGearId = new Map<number, Record<string, unknown>>();
+        if (touchedGearKeys.size > 0) {
+            const inventoryByGearKey = new Map<string, Record<string, unknown>>();
             for (const rawGear of inventoryGears) {
                 if (!rawGear || typeof rawGear !== 'object') {
                     continue;
@@ -622,7 +622,7 @@ export class CharacterHandler {
                 const gear = rawGear as Record<string, unknown>;
                 const gearId = Number(gear.gearID ?? 0);
                 if (gearId > 0) {
-                    inventoryByGearId.set(gearId, gear);
+                    inventoryByGearKey.set(`${gearId}:${Number(gear.tier ?? 0)}`, gear);
                 }
             }
 
@@ -632,11 +632,12 @@ export class CharacterHandler {
                 }
                 const gear = rawGear as Record<string, unknown>;
                 const gearId = Number(gear.gearID ?? 0);
-                if (gearId <= 0 || !touchedGearIds.has(gearId)) {
+                const gearKey = `${gearId}:${Number(gear.tier ?? 0)}`;
+                if (gearId <= 0 || !touchedGearKeys.has(gearKey)) {
                     continue;
                 }
 
-                const matchingInventory = inventoryByGearId.get(gearId);
+                const matchingInventory = inventoryByGearKey.get(gearKey);
                 if (matchingInventory) {
                     matchingInventory.colors = Array.isArray(gear.colors) ? [...gear.colors] : [0, 0];
                 } else {
