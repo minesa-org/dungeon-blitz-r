@@ -22,3 +22,13 @@
 	at Game/method_1636()
 	at Main/method_1284()
 
+[2026-05-16T12:40:35.256Z] User 10: ArgumentError: Error #2015: Invalid BitmapData.
+	at flash.display::BitmapData/ctor()
+	at flash.display::BitmapData()
+	at class_82/method_193()
+	at class_82/method_1049()
+	at Game/method_1923()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+
