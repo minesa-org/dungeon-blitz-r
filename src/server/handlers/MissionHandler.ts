@@ -168,6 +168,18 @@ export class MissionHandler {
     private static readonly SWAMP_LIZARD_HELM_HARD_KILL_NAMES = new Set([
         'LizardHeavyHard'
     ]);
+    private static readonly SWAMP_DEVOURER_TOOTH_KILL_NAMES = new Set([
+        'DevourerShooting',
+        'DevourerHeavy',
+        'DevourerMiniBoss',
+        'DevourerGreat'
+    ]);
+    private static readonly SWAMP_DEVOURER_TOOTH_HARD_KILL_NAMES = new Set([
+        'DevourerShootingHard',
+        'DevourerHeavyHard',
+        'DevourerMiniBossHard',
+        'DevourerGreatHard'
+    ]);
     private static readonly CASTLE_LIZARD_PROBLEM_KILL_NAMES = new Set([
         'CastleLizard1',
         'CastleLizard2',
@@ -186,63 +198,98 @@ export class MissionHandler {
         'CastleLizardHeavy1Hard',
         'CastleLizardHeavy2Hard'
     ]);
+    private static readonly CEMETERY_HEIRLOOM_KILL_NAMES = new Set([
+        'DogPackmate',
+        'DogPackmate2',
+        'DogAlpha',
+        'DogRogue',
+        'DogChieftain',
+        'JackalPackmate',
+        'JackalPackmate2',
+        'JackalAlpha',
+        'JackalRogue',
+        'JackalChieftain'
+    ]);
+    private static readonly CEMETERY_HEIRLOOM_HARD_KILL_NAMES = new Set([
+        'DogPackmateHard',
+        'DogPackmate2Hard',
+        'DogAlphaHard',
+        'DogRogueHard',
+        'DogChieftainHard',
+        'JackalPackmateHard',
+        'JackalPackmate2Hard',
+        'JackalAlphaHard',
+        'JackalRogueHard',
+        'JackalChieftainHard'
+    ]);
     private static readonly STORMSHARD_GNOME_KILL_NAMES = new Set([
         'CaveGnome',
-        'CaveGnomeHard',
         'PuckShadow',
         'PuckShadow2',
-        'PuckShadowServant',
+        'PuckShadowServant'
+    ]);
+    private static readonly STORMSHARD_GNOME_HARD_KILL_NAMES = new Set([
+        'CaveGnomeHard',
         'PuckShadowHard',
         'PuckShadow2Hard',
-        'PuckShadowServantHard',
-        'OasisPuck',
-        'OasisPuckHard'
+        'PuckShadowServantHard'
     ]);
     private static readonly STORMSHARD_CYCLOPS_KILL_NAMES = new Set([
         'Cyclops',
         'CyclopsCoward',
         'CyclopsBerserker',
         'CyclopsChieftain',
-        'CyclopsHard',
-        'CyclopsCowardHard',
-        'CyclopsBerserkerHard',
-        'CyclopsChieftainHard',
         'StormCyclops',
         'StormCyclopsCoward',
         'StormCyclopsBerserker',
         'StormCyclopsChieftain',
-        'StormCyclopsHard',
-        'StormCyclopsCowardHard',
-        'StormCyclopsBerserkerHard',
-        'StormCyclopsChieftainHard',
         'RockCyclops',
         'RockCyclopsCoward',
         'RockCyclopsBerserker',
         'RockCyclopsChieftain',
+        'MagmaCyclopsLt01',
+        'MagmaCyclopsLt02',
+        'MagmaCyclopsLt03',
+        'MagmaCyclopsLt04',
+        'MagmaCyclopsMiniBoss',
+        'MagmaCyclopsBoss'
+    ]);
+    private static readonly STORMSHARD_CYCLOPS_HARD_KILL_NAMES = new Set([
+        'CyclopsHard',
+        'CyclopsCowardHard',
+        'CyclopsBerserkerHard',
+        'CyclopsChieftainHard',
+        'StormCyclopsHard',
+        'StormCyclopsCowardHard',
+        'StormCyclopsBerserkerHard',
+        'StormCyclopsChieftainHard',
         'RockCyclopsHard',
         'RockCyclopsCowardHard',
         'RockCyclopsBerserkerHard',
-        'RockCyclopsChieftainHard'
+        'RockCyclopsChieftainHard',
+        'MagmaCyclopsLt01Hard',
+        'MagmaCyclopsLt02Hard',
+        'MagmaCyclopsLt03Hard',
+        'MagmaCyclopsLt04Hard',
+        'MagmaCyclopsMiniBossHard',
+        'MagmaCyclopsBossHard'
     ]);
     private static readonly STORMSHARD_SPIDER_KILL_NAMES = new Set([
         'CaveSpider',
         'CaveSpider2',
+        'AbominationSpider',
+        'LeapingSpider',
+        'LeapingSpider2'
+    ]);
+    private static readonly STORMSHARD_SPIDER_HARD_KILL_NAMES = new Set([
         'CaveSpiderHard',
         'CaveSpider2Hard',
-        'AbominationSpider',
         'AbominationSpiderHard',
-        'LeapingSpider',
-        'LeapingSpider2',
         'LeapingSpiderHard',
-        'LeapingSpider2Hard',
-        'GladeSpider',
-        'GladeSpider2',
-        'GladeSpiderHard',
-        'GladeSpider2Hard'
+        'LeapingSpider2Hard'
     ]);
     private static readonly STORMSHARD_ROCK_HULK_KILL_NAMES = new Set([
         'MeylourHulk',
-        'MeylourHulkHard',
         'RockHulkMini',
         'GraniteRockHulkMini',
         'MarbleRockHulkMini',
@@ -251,6 +298,11 @@ export class MissionHandler {
         'MarbleRockHulk',
         'RockHulkGreater',
         'RockHulkKing',
+        'MagmaRockHulkMini',
+        'MagmaRockHulk'
+    ]);
+    private static readonly STORMSHARD_ROCK_HULK_HARD_KILL_NAMES = new Set([
+        'MeylourHulkHard',
         'RockHulkMiniHard',
         'GraniteRockHulkMiniHard',
         'MarbleRockHulkMiniHard',
@@ -259,10 +311,32 @@ export class MissionHandler {
         'MarbleRockHulkHard',
         'RockHulkGreaterHard',
         'RockHulkKingHard',
-        'MagmaRockHulkMini',
-        'MagmaRockHulk',
         'MagmaRockHulkMiniHard',
         'MagmaRockHulkHard'
+    ]);
+    private static readonly STORMSHARD_LION_JEWELRY_KILL_NAMES = new Set([
+        'LionPridemate',
+        'LionPridemate2',
+        'LionAlpha',
+        'LionAlpha2',
+        'LionGreater',
+        'LionLord',
+        'CougarWarrior',
+        'CougarWarrior2',
+        'CougarGreater',
+        'CougarGreater2'
+    ]);
+    private static readonly STORMSHARD_LION_JEWELRY_HARD_KILL_NAMES = new Set([
+        'LionPridemateHard',
+        'LionPridemate2Hard',
+        'LionAlphaHard',
+        'LionAlpha2Hard',
+        'LionGreaterHard',
+        'LionLordHard',
+        'CougarWarriorHard',
+        'CougarWarrior2Hard',
+        'CougarGreaterHard',
+        'CougarGreater2Hard'
     ]);
     private static readonly GLADE_EMBER_KILL_NAMES = new Set([
         'Ember',
@@ -271,6 +345,58 @@ export class MissionHandler {
     private static readonly GLADE_EMBER_HARD_KILL_NAMES = new Set([
         'EmberHard',
         'Ember2Hard'
+    ]);
+    private static readonly GLADE_DARK_TOTEM_KILL_NAMES = new Set([
+        'AshenDryad',
+        'AshenDryad2',
+        'AshenDryadWizard',
+        'AshenDryadHero'
+    ]);
+    private static readonly GLADE_DARK_TOTEM_HARD_KILL_NAMES = new Set([
+        'AshenDryadHard',
+        'AshenDryad2Hard',
+        'AshenDryadWizardHard',
+        'AshenDryadHeroHard'
+    ]);
+    private static readonly GLADE_PRIEST_MASK_KILL_NAMES = new Set([
+        'FirePriest',
+        'FirePriest2',
+        'FirePriestWizard',
+        'FirePriestBoss'
+    ]);
+    private static readonly GLADE_PRIEST_MASK_HARD_KILL_NAMES = new Set([
+        'FirePriestHard',
+        'FirePriest2Hard',
+        'FirePriestWizardHard',
+        'FirePriestBossHard'
+    ]);
+    private static readonly CASTLE_DREAD_MASK_KILL_NAMES = new Set([
+        'DreadPaladin',
+        'DreadPaladin2',
+        'DreadPaladin3',
+        'DreadChampion',
+        'DreadChampion2',
+        'DreadChampion3',
+        'DreadLord'
+    ]);
+    private static readonly CASTLE_DREAD_MASK_HARD_KILL_NAMES = new Set([
+        'DreadPaladinHard',
+        'DreadPaladin2Hard',
+        'DreadPaladin3Hard',
+        'DreadChampionHard',
+        'DreadChampion2Hard',
+        'DreadChampion3Hard',
+        'DreadLordHard'
+    ]);
+    private static readonly SHAZARI_SCORPION_STINGER_KILL_NAMES = new Set([
+        'ScarabPredator',
+        'ScarabPredator2',
+        'ScarabScorpion'
+    ]);
+    private static readonly SHAZARI_SCORPION_STINGER_HARD_KILL_NAMES = new Set([
+        'ScarabPredatorHard',
+        'ScarabPredator2Hard',
+        'ScarabScorpionHard'
     ]);
     private static readonly SHAZARI_WASP_HIVE_KILL_NAMES = new Set([
         'TreeHiveSpawner'
@@ -324,6 +450,94 @@ export class MissionHandler {
         'SandWorm2Hard',
         'SandWormGreaterHard'
     ]);
+    private static readonly JADE_IMPERIAL_INSIGNIA_KILL_NAMES = new Set([
+        'ImperialMagus',
+        'ImperialGuard',
+        'ImperialMagi',
+        'ImperialMagi2',
+        'GuardCaptain',
+        'ImperialChampion',
+        'DefectorMage',
+        'TowerGuard1',
+        'TowerGuard2',
+        'ShadowPuppet'
+    ]);
+    private static readonly JADE_IMPERIAL_INSIGNIA_HARD_KILL_NAMES = new Set([
+        'ImperialMagusHard',
+        'ImperialGuardHard',
+        'ImperialMagiHard',
+        'ImperialMagi2Hard',
+        'GuardCaptainHard',
+        'ImperialChampionHard',
+        'DefectorMageHard',
+        'TowerGuard1Hard',
+        'TowerGuard2Hard',
+        'ShadowPuppetHard'
+    ]);
+    private static readonly JADE_RATLING_MUSHROOM_KILL_NAMES = new Set([
+        'RatlingSword',
+        'RatlingMace',
+        'RatlingArmor',
+        'RatlingShaman',
+        'RatlingShamanHood',
+        'RatlingKing'
+    ]);
+    private static readonly JADE_RATLING_MUSHROOM_HARD_KILL_NAMES = new Set([
+        'RatlingSwordHard',
+        'RatlingMaceHard',
+        'RatlingArmorHard',
+        'RatlingShamanHard',
+        'RatlingShamanHoodHard',
+        'RatlingKingHard'
+    ]);
+    private static readonly JADE_BRIGAND_NECKLACE_KILL_NAMES = new Set([
+        'BrigandBrawler',
+        'BrigandBrawler2',
+        'BrigandCutthroat',
+        'BrigandCutthroat2',
+        'BrigandCryomancer',
+        'BrigandChamp'
+    ]);
+    private static readonly JADE_BRIGAND_NECKLACE_HARD_KILL_NAMES = new Set([
+        'BrigandBrawlerHard',
+        'BrigandBrawler2Hard',
+        'BrigandCutthroatHard',
+        'BrigandCutthroat2Hard',
+        'BrigandCryomancerHard',
+        'BrigandChampHard'
+    ]);
+    private static readonly JADE_DEMON_TEAR_KILL_NAMES = new Set([
+        'AbyssalStinger',
+        'GreaterAbyssalStinger',
+        'GreaterDemonMaligner',
+        'DemonReaper',
+        'DemonReaver',
+        'Ghoul',
+        'Ghoul2',
+        'ShadeWarrior',
+        'ShadeMage',
+        'ShadeMage2',
+        'ShadeSummoner',
+        'ShadeSummoner2',
+        'ShadeInquisitor',
+        'DemonMaligner'
+    ]);
+    private static readonly JADE_DEMON_TEAR_HARD_KILL_NAMES = new Set([
+        'AbyssalStingerHard',
+        'GreaterAbyssalStingerHard',
+        'GreaterDemonMalignerHard',
+        'DemonReaperHard',
+        'DemonReaverHard',
+        'GhoulHard',
+        'Ghoul2Hard',
+        'ShadeWarriorHard',
+        'ShadeMageHard',
+        'ShadeMage2Hard',
+        'ShadeSummonerHard',
+        'ShadeSummoner2Hard',
+        'ShadeInquisitor2Hard',
+        'DemonMalignerHard'
+    ]);
     private static readonly KILL_PROGRESS_TARGETS: Readonly<Record<number, ReadonlySet<string>>> = {
         [MissionID.GetGoblinNoserings]: new Set(['GoblinBrute']),
         [MissionID.GetGoblinWands]: new Set(['GoblinShamanHood', 'GoblinShamanSkullHat']),
@@ -335,22 +549,36 @@ export class MissionHandler {
         [MissionID.GetLizardBannersHard]: MissionHandler.SWAMP_LIZARD_BANNER_HARD_KILL_NAMES,
         [MissionID.GetSpiderFangs]: MissionHandler.SWAMP_SPIDER_KILL_NAMES,
         [MissionID.GetSpiderFangsHard]: MissionHandler.SWAMP_SPIDER_HARD_KILL_NAMES,
+        [MissionID.GetDevourerTeeth]: MissionHandler.SWAMP_DEVOURER_TOOTH_KILL_NAMES,
+        [MissionID.GetDevourerTeethHard]: MissionHandler.SWAMP_DEVOURER_TOOTH_HARD_KILL_NAMES,
         [MissionID.GetLizardGreatHelm]: MissionHandler.SWAMP_LIZARD_HELM_KILL_NAMES,
         [MissionID.GetLizardGreatHelmHard]: MissionHandler.SWAMP_LIZARD_HELM_HARD_KILL_NAMES,
+        [MissionID.RetrieveHeirlooms]: MissionHandler.CEMETERY_HEIRLOOM_KILL_NAMES,
+        [MissionID.RetrieveHeirloomsHard]: MissionHandler.CEMETERY_HEIRLOOM_HARD_KILL_NAMES,
         [MissionID.SpiritProblem]: MissionHandler.CASTLE_LIZARD_PROBLEM_KILL_NAMES,
         [MissionID.SpiritProblemHard]: MissionHandler.CASTLE_LIZARD_PROBLEM_HARD_KILL_NAMES,
         [MissionID.GetHobgoblinNoserings]: new Set(['BlackGoblinBrute']),
         [MissionID.GetHobgoblinNoseringsHard]: new Set(['BlackGoblinBruteHard']),
         [MissionID.CollectRockShards]: MissionHandler.STORMSHARD_ROCK_HULK_KILL_NAMES,
-        [MissionID.CollectRockShardsHard]: MissionHandler.STORMSHARD_ROCK_HULK_KILL_NAMES,
+        [MissionID.CollectRockShardsHard]: MissionHandler.STORMSHARD_ROCK_HULK_HARD_KILL_NAMES,
         [MissionID.DriveAwayGnomes]: MissionHandler.STORMSHARD_GNOME_KILL_NAMES,
-        [MissionID.DriveAwayGnomesHard]: MissionHandler.STORMSHARD_GNOME_KILL_NAMES,
+        [MissionID.DriveAwayGnomesHard]: MissionHandler.STORMSHARD_GNOME_HARD_KILL_NAMES,
         [MissionID.SquashSomeSpiders]: MissionHandler.STORMSHARD_SPIDER_KILL_NAMES,
-        [MissionID.SquashSomeSpidersHard]: MissionHandler.STORMSHARD_SPIDER_KILL_NAMES,
+        [MissionID.SquashSomeSpidersHard]: MissionHandler.STORMSHARD_SPIDER_HARD_KILL_NAMES,
         [MissionID.SlayCyclops]: MissionHandler.STORMSHARD_CYCLOPS_KILL_NAMES,
-        [MissionID.SlayCyclopsHard]: MissionHandler.STORMSHARD_CYCLOPS_KILL_NAMES,
+        [MissionID.SlayCyclopsHard]: MissionHandler.STORMSHARD_CYCLOPS_HARD_KILL_NAMES,
+        [MissionID.GatherLionJewelry]: MissionHandler.STORMSHARD_LION_JEWELRY_KILL_NAMES,
+        [MissionID.GatherLionJewelryHard]: MissionHandler.STORMSHARD_LION_JEWELRY_HARD_KILL_NAMES,
+        [MissionID.GatherDarkTotems]: MissionHandler.GLADE_DARK_TOTEM_KILL_NAMES,
+        [MissionID.GatherDarkTotemsHard]: MissionHandler.GLADE_DARK_TOTEM_HARD_KILL_NAMES,
+        [MissionID.GatherPriestMasks]: MissionHandler.GLADE_PRIEST_MASK_KILL_NAMES,
+        [MissionID.GatherPriestMasksHard]: MissionHandler.GLADE_PRIEST_MASK_HARD_KILL_NAMES,
         [MissionID.KillGladeEmbers]: MissionHandler.GLADE_EMBER_KILL_NAMES,
         [MissionID.KillGladeEmbersHard]: MissionHandler.GLADE_EMBER_HARD_KILL_NAMES,
+        [MissionID.GatherDreadMasks]: MissionHandler.CASTLE_DREAD_MASK_KILL_NAMES,
+        [MissionID.GatherDreadMasksHard]: MissionHandler.CASTLE_DREAD_MASK_HARD_KILL_NAMES,
+        [MissionID.GatherScorpionStingers]: MissionHandler.SHAZARI_SCORPION_STINGER_KILL_NAMES,
+        [MissionID.GatherScorpionStingersHard]: MissionHandler.SHAZARI_SCORPION_STINGER_HARD_KILL_NAMES,
         [MissionID.DestroyWaspHives]: MissionHandler.SHAZARI_WASP_HIVE_KILL_NAMES,
         [MissionID.DestroyWaspHivesHard]: MissionHandler.SHAZARI_WASP_HIVE_HARD_KILL_NAMES,
         [MissionID.CollectGoblinCharms]: MissionHandler.SHAZARI_OUTLANDER_KILL_NAMES,
@@ -358,7 +586,15 @@ export class MissionHandler {
         [MissionID.CollectGiantBracers]: MissionHandler.SHAZARI_GIANT_KILL_NAMES,
         [MissionID.CollectGiantBracersHard]: MissionHandler.SHAZARI_GIANT_HARD_KILL_NAMES,
         [MissionID.CollectWormGlands]: MissionHandler.SHAZARI_SANDWORM_KILL_NAMES,
-        [MissionID.CollectWormGlandsHard]: MissionHandler.SHAZARI_SANDWORM_HARD_KILL_NAMES
+        [MissionID.CollectWormGlandsHard]: MissionHandler.SHAZARI_SANDWORM_HARD_KILL_NAMES,
+        [MissionID.CollectImperialInsignias]: MissionHandler.JADE_IMPERIAL_INSIGNIA_KILL_NAMES,
+        [MissionID.CollectImperialInsigniasHard]: MissionHandler.JADE_IMPERIAL_INSIGNIA_HARD_KILL_NAMES,
+        [MissionID.CollectStolenMushrooms]: MissionHandler.JADE_RATLING_MUSHROOM_KILL_NAMES,
+        [MissionID.CollectStolenMushroomsHard]: MissionHandler.JADE_RATLING_MUSHROOM_HARD_KILL_NAMES,
+        [MissionID.CollectBrigandNecklaces]: MissionHandler.JADE_BRIGAND_NECKLACE_KILL_NAMES,
+        [MissionID.CollectBrigandNecklacesHard]: MissionHandler.JADE_BRIGAND_NECKLACE_HARD_KILL_NAMES,
+        [MissionID.CollectDemonTears]: MissionHandler.JADE_DEMON_TEAR_KILL_NAMES,
+        [MissionID.CollectDemonTearsHard]: MissionHandler.JADE_DEMON_TEAR_HARD_KILL_NAMES
     };
     private static readonly SETTLE_THE_DEAD_MISSION_IDS = new Set([
         MissionID.SettleTheDead,
@@ -2238,13 +2474,13 @@ export class MissionHandler {
         currentLevel: string
     ): boolean {
         const targetNames = MissionHandler.KILL_PROGRESS_TARGETS[missionId];
-        if (targetNames && defeatedNames.some((name) => targetNames.has(name))) {
-            return true;
+        if (targetNames) {
+            return defeatedNames.some((name) => targetNames.has(name));
         }
 
         const activeTargetNames = MissionHandler.getMissionActiveTargetNames(missionDef);
-        if (activeTargetNames.some((name) => defeatedNames.includes(name))) {
-            return true;
+        if (activeTargetNames.length) {
+            return activeTargetNames.some((name) => defeatedNames.includes(name));
         }
 
         if (MissionHandler.matchesCollectibleKillProgress(missionDef, defeatedNames)) {
