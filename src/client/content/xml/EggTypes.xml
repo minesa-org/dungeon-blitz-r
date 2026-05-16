@@ -203,7 +203,7 @@
 		<DisplayName>Amber Ejderha yumurta</DisplayName>
 		<ClassType>Dragon</ClassType>
 		<Color>Yellow</Color>
-		<Description>This beauty comes tum way kaynakli top Stormshard Binekains.</Description>
+		<Description>This beauty comes tum way kaynakli top Firtina Tasi Daglari.</Description>
 		<EggRank>2</EggRank>
 		<Art>a_EggArt_YellowDragon</Art>
 	</EggType>
@@ -221,7 +221,7 @@
 		<DisplayName>Emerald Ejderha yumurta</DisplayName>
 		<ClassType>Dragon</ClassType>
 		<Color>Green</Color>
-		<Description>This one was sunk derin icinde siyah Rose Mire, where ejderhalar thought I couldn't bul it.</Description>
+		<Description>This one was sunk derin icinde Siyah Gul Batakligi, where ejderhalar thought I couldn't bul it.</Description>
 		<EggRank>2</EggRank>
 		<Art>a_EggArt_GreenDragon</Art>
 	</EggType>
@@ -239,7 +239,7 @@
 		<DisplayName>Saffron Avian yumurta</DisplayName>
 		<ClassType>Bird</ClassType>
 		<Color>Yellow</Color>
-		<Description>Can sen believe that icinde Valhaven, they cooked these nadir birds icin imparator?</Description>
+		<Description>Can sen believe that icinde Val Limani, they cooked these nadir birds icin imparator?</Description>
 		<EggRank>2</EggRank>
 		<Art>a_EggArt_YellowBird</Art>
 	</EggType>

@@ -29,13 +29,13 @@
           "Haydut arkadaslarinin icabina baktiginda buna cevap verecegim.",
           "Evet, oyleler ve onlar sizin topraklarinizdan.",
           "Geri dondun mu? Yani belki sen digerleri gibi degilsin.",
-          "Arkadaslarini Wolf's End'den Mezarlik Tepesi'ne gonderdim. Istedikleri takdirde oraya yerlesebilirler.",
-          "Siz Kurt Burnu halkina burada yer yok.",
+          "Arkadaslarini Kurtlarin Sonu'ndan Mezarlik Tepesi'ne gonderdim. Istedikleri takdirde oraya yerlesebilirler.",
+          "Siz Kurtlarin Sonu halkina burada yer yok.",
           "Benim halkim 40 yil once buraya yerlesti.",
           "Kole oldugumuz cok uzak bir ulkeden geldik.",
           "Artik ozgur ve mureffeh bir hayat yasiyoruz.",
           "Biz kendi hakkimizi koruyoruz.",
-          "Arkadaslarini Wolf's End'den Mezarlik Tepesi'ne gonderdim.",
+          "Arkadaslarini Kurtlarin Sonu'ndan Mezarlik Tepesi'ne gonderdim.",
           "Yerlesecek yeni topraklar ariyorlarsa, onlara sahip olabilirler.",
           "Dilenciler secici olamazlar."
         ]
@@ -238,7 +238,7 @@
       "samuel": {
         "displayName": "Samuel",
         "defaultLines": [
-          "Felbridge guzel bir yer.",
+          "Fel Koprusu guzel bir yer.",
           "Disaridakilerin isleri karistirmasina ihtiyacimiz yok."
         ]
       },
@@ -278,13 +278,13 @@
           "Haydut arkadaslarinin icabina baktiginda buna cevap verecegim.",
           "Evet, oyleler ve onlar sizin topraklarinizdan.",
           "Geri dondun mu? Yani belki sen digerleri gibi degilsin.",
-          "Arkadaslarini Wolf's End'den Mezarlik Tepesi'ne gonderdim. Istedikleri takdirde oraya yerlesebilirler.",
-          "Siz Kurt Burnu halkina burada yer yok.",
+          "Arkadaslarini Kurtlarin Sonu'ndan Mezarlik Tepesi'ne gonderdim. Istedikleri takdirde oraya yerlesebilirler.",
+          "Siz Kurtlarin Sonu halkina burada yer yok.",
           "Benim halkim 40 yil once buraya yerlesti.",
           "Kole oldugumuz cok uzak bir ulkeden geldik.",
           "Artik ozgur ve mureffeh bir hayat yasiyoruz.",
           "Biz kendi hakkimizi koruyoruz.",
-          "Arkadaslarini Wolf's End'den Mezarlik Tepesi'ne gonderdim.",
+          "Arkadaslarini Kurtlarin Sonu'ndan Mezarlik Tepesi'ne gonderdim.",
           "Yerlesecek yeni topraklar ariyorlarsa, onlara sahip olabilirler.",
           "Dilenciler secici olamazlar."
         ]
@@ -477,7 +477,7 @@
       "samuelhard": {
         "displayName": "Samuel",
         "defaultLines": [
-          "Felbridge guzel bir yer.",
+          "Fel Koprusu guzel bir yer.",
           "Disaridakilerin isleri karistirmasina ihtiyacimiz yok."
         ]
       },
@@ -750,7 +750,7 @@
       },
       "egscout01": {
         "defaultLines": [
-          "Meylour'un sirlari Stormshard Dagi'nda.",
+          "Meylour'un sirlari Firtina Tasi Dagi'nda.",
           "Madenlerden gectigine gore guclu bir kahraman olmalisin!",
           "Halkimizi yeniden bir araya getirdiginiz icin tesekkur ederiz!",
           "Meylour'un Ashen Dryad'lari Ur-Tree'i kusatiyor!",
@@ -829,7 +829,7 @@
           "Ancak zaman onlari acimasiz ve baskalarini kiskandirdi.",
           "Guclerini Goblinlere ve Ejderhalara kaptirdilar...",
           "Sigismund Hocke, Goblin Krallarini yenmek icin onlara basvurdu.",
-          "Ve simdi onun Valhaven'daki yonetimini destekliyorlar.",
+          "Ve simdi onun Val Limani'ndaki yonetimini destekliyorlar.",
           "Seelie buyusune karsi koymak icin Seelie buyusu gerekir.",
           "Kayip Dusler Tapinagi'na gidin...",
           "Orada Imparator'un korumalarina karsi kullanabilecegim bir sey bulabilirsin.",
@@ -876,7 +876,7 @@
         "defaultLines": [
           "Imparatorun burada yaptigi bir trajedi ama her sey kaybolmadi",
           "Sehrin kendisini lekeleyen Seelie pisliginin agirligi altindan haykirdigini hissedebiliyorum.",
-          "Zehir, panzehir yapmanin anahtari oldugundan, iblis gozyaslari da Valhaven'in aurasini temizlemenin anahtaridir.",
+          "Zehir, panzehir yapmanin anahtari oldugundan, iblis gozyaslari da Val Limani'nin aurasini temizlemenin anahtaridir.",
           "Cok yasa dostum.",
           "Isleri yoluna koymak icin uzun bir surece baslayacagim...",
           "Senin gibi asil bir ruhla tanismak kalbimi sevindiriyor"
@@ -925,7 +925,7 @@
           "Ozgurluk!",
           "Burada ne yaptin...",
           "sana yeterince tesekkur edemem",
-          "Valhaven yuzyillardir ilk kez ozgur.",
+          "Val Limani yuzyillardir ilk kez ozgur.",
           "Goblinler, Ejderhalar ve Seelie'nin hepsi yenildi.",
           "Sonunda barisi ogrenecegiz.",
           "Cete liderlerini durdurmasaydin olmus olurdum.",
@@ -1044,7 +1044,7 @@
           "Ancak zaman onlari acimasiz ve baskalarini kiskandirdi.",
           "Guclerini Goblinlere ve Ejderhalara kaptirdilar...",
           "Sigismund Hocke, Goblin Krallarini yenmek icin onlara basvurdu.",
-          "Ve simdi onun Valhaven'daki yonetimini destekliyorlar.",
+          "Ve simdi onun Val Limani'ndaki yonetimini destekliyorlar.",
           "Seelie buyusune karsi koymak icin Seelie buyusu gerekir.",
           "Kayip Dusler Tapinagi'na gidin...",
           "Orada Imparator'un korumalarina karsi kullanabilecegim bir sey bulabilirsin.",
@@ -1091,7 +1091,7 @@
         "defaultLines": [
           "Imparatorun burada yaptigi bir trajedi ama her sey kaybolmadi",
           "Sehrin kendisini lekeleyen Seelie pisliginin agirligi altindan haykirdigini hissedebiliyorum.",
-          "Zehir, panzehir yapmanin anahtari oldugundan, iblis gozyaslari da Valhaven'in aurasini temizlemenin anahtaridir.",
+          "Zehir, panzehir yapmanin anahtari oldugundan, iblis gozyaslari da Val Limani'nin aurasini temizlemenin anahtaridir.",
           "Cok yasa dostum.",
           "Isleri yoluna koymak icin uzun bir surece baslayacagim...",
           "Senin gibi asil bir ruhla tanismak kalbimi sevindiriyor"
@@ -1140,7 +1140,7 @@
           "Ozgurluk!",
           "Burada ne yaptin...",
           "sana yeterince tesekkur edemem",
-          "Valhaven yuzyillardir ilk kez ozgur.",
+          "Val Limani yuzyillardir ilk kez ozgur.",
           "Goblinler, Ejderhalar ve Seelie'nin hepsi yenildi.",
           "Sonunda barisi ogrenecegiz.",
           "Cete liderlerini durdurmasaydin olmus olurdum.",
@@ -1302,7 +1302,7 @@
         "defaultLines": [
           "Sahildeki goblinlerin bizi kesin bitirecegini sanmistik.",
           "Denizden yeni bir yuz gormek hâlâ mucize gibi geliyor.",
-          "Burada kalacaksan, Wolf's End bir cesur ele daha hayir demez."
+          "Burada kalacaksan, Kurtlarin Sonu bir cesur ele daha hayir demez."
         ],
         "displayName": "Tyna"
       },
@@ -1379,7 +1379,7 @@
       "nrquestanna03": {
         "displayName": "Anna",
         "defaultLines": [
-          "Wolf's End artik guvende; simdi kotulugu daha da geri surebiliriz.",
+          "Kurtlarin Sonu artik guvende; simdi kotulugu daha da geri surebiliriz.",
           "Onumuzde daha cok zor savas var ama yapabiliriz.",
           "Bu topraklarin tamami bir zamanlar yesil meraydi."
         ],
@@ -1391,7 +1391,7 @@
             "lines": [
               "Dogu yolu acik olabilir ama bu guvenli oldugu anlamina gelmez.",
               "Bu savasi ic bolgelere tasiyacaksan tek basina gitme.",
-              "Wolf's End sonunda nefes alabildi, ama ancak biraz."
+              "Kurtlarin Sonu sonunda nefes alabildi, ama ancak biraz."
             ]
           }
         ]
@@ -1520,7 +1520,7 @@
       "nrelrichard": {
         "displayName": "Ehric",
         "defaultLines": [
-          "Kurt Burnu'nun disindan hic insan gormedim.",
+          "Kurtlarin Sonu'nun disindan hic insan gormedim.",
           "Yalniz oldugumuzu saniyorduk.",
           "Butun hayatimi goblinlerden korkarak gecirdim.",
           "Ve daha kotu seyler.",
@@ -1533,7 +1533,7 @@
           "Yukaridaki eski tapinak olumsuzlerin ilk geldigi yer.",
           "O zamandan beri geliyorlar.",
           "Eger en kotulerinden bazilarini yok etmeme yardim edebilirsen...",
-          "Kurt Burnu'na yayilmalarini onleyebiliriz.",
+          "Kurtlarin Sonu'na yayilmalarini onleyebiliriz.",
           "Tesekkur ederim.",
           "Onlarla savasmaya devam edecegim.",
           "Ama bunlara asla alisamayacagim.",
@@ -1567,7 +1567,7 @@
           "Burada hala insanlarin olduguna sasiriyorum.",
           "Anna'yi serbest biraktigin icin tesekkurler! Savascilarimizin liderlerine ihtiyaci var.",
           "Evet, deniz kaptaniniz bana Goblin savaslarindan bahsediyordu.",
-          "Elli yil once bizi koruyan Kurt Sonu Kalesi'miz vardi.",
+          "Elli yil once bizi koruyan Kurtlarin Sonu Kalesi'miz vardi.",
           "Sigismund Hocke, kaleyi kesif gezisi icin bir us olarak insa etti.",
           "Ama goblinler ve daha kotusu bizi onlarca yil once surgune gonderdi.",
           "Goblin oldurme becerilerinle...",
@@ -1635,7 +1635,7 @@
       "nrquestanna03hard": {
         "defaultLines": [
           "Bir ejderha! Sadece bir tur ruya hayaleti olsa bile sasirtici.",
-          "Kurt Burnu'nu guvende tuttugumuzda, topraklarin cogunu kotulukten geri alabiliriz.",
+          "Kurtlarin Sonu'nu guvende tuttugumuzda, topraklarin cogunu kotulukten geri alabiliriz.",
           "Sizin sayenizde yeniden ayaga kalktik ve savasmaya haziriz!",
           "Elbette! Abbod'un ailesi buranin dogusundaki bolgeden.",
           "Mirasini geri almak icin sabirsizlaniyor.",
@@ -1730,7 +1730,7 @@
           "Buyulu cevher Alurit'i ve Kalbi ariyorlar",
           "Eseri ele gecirmek ve Meylour Kilici'ni etkinlestirmek icin hepsini yenmeniz gerekecek.",
           "Buyulu cevher Alumite'yi ve Kalbi ariyorlar",
-          "Emerald Glades'e ulasmak icin buranin dogusundaki ilk yoldan ilerleyin",
+          "Zumrut Cayirlari'na ulasmak icin buranin dogusundaki ilk yoldan ilerleyin",
           "Doguya dogru ilerlemeye devam edin"
         ]
       },
@@ -1758,7 +1758,7 @@
           "Gnole'lar caresizlik icinde Meylour'a donuyor.",
           "Gnole'larin normalde tanrilara sevgisi yoktur.",
           "Ama onlara ihanet ettikleri icin insanlardan nefret ediyorlar.",
-          "Felbridge'in insanlari bir zamanlar onlarin muttefikiydi.",
+          "Fel Koprusu'nun insanlari bir zamanlar onlarin muttefikiydi.",
           "Komiser onlara ihanet etti.",
           "Simdi intikam icin Meylour'a donuyorlar.",
           "Kotu tanrilar herkesi yozlastirir."
@@ -1766,7 +1766,7 @@
       },
       "ommscout01": {
         "defaultLines": [
-          "Stormshard Daglari daha yuksege cikilamayacak kadar tehlikeli",
+          "Firtina Tasi Daglari daha yuksege cikilamayacak kadar tehlikeli",
           "Kesif ileride.",
           "Dikkatli olun, her yerde goblinler var.",
           "Yakindaki magaralarda bol miktarda goblin var.",
@@ -1793,9 +1793,9 @@
           "Buyulu zirh...",
           "Buyulu tencere...",
           "Her seyi buyuledi!",
-          "Felbridge parlayacak.",
+          "Fel Koprusu parlayacak.",
           "Ve ikimiz de kâr edecegiz.",
-          "Tesekkur ederim! Felbridge'deki demirci bunun icin guzel bir bedel odeyecek.",
+          "Tesekkur ederim! Fel Koprusu'ndeki demirci bunun icin guzel bir bedel odeyecek.",
           "Yardiminiz icin tekrar tesekkurler!"
         ]
       },
@@ -1862,7 +1862,7 @@
           "Buyulu cevher Alurit'i ve Kalbi ariyorlar",
           "Eseri ele gecirmek ve Meylour Kilici'ni etkinlestirmek icin hepsini yenmeniz gerekecek.",
           "Buyulu cevher Alumite'yi ve Kalbi ariyorlar",
-          "Emerald Glades'e ulasmak icin buranin dogusundaki ilk yoldan ilerleyin",
+          "Zumrut Cayirlari'na ulasmak icin buranin dogusundaki ilk yoldan ilerleyin",
           "Doguya dogru ilerlemeye devam edin",
           "Sen basardin. Iyi. Tecrubeli bir goblin savascisina ihtiyacimiz var."
         ]
@@ -1891,7 +1891,7 @@
           "Gnole'lar caresizlik icinde Meylour'a donuyor.",
           "Gnole'larin normalde tanrilara sevgisi yoktur.",
           "Ama onlara ihanet ettikleri icin insanlardan nefret ediyorlar.",
-          "Felbridge'in insanlari bir zamanlar onlarin muttefikiydi.",
+          "Fel Koprusu'nun insanlari bir zamanlar onlarin muttefikiydi.",
           "Komiser onlara ihanet etti.",
           "Simdi intikam icin Meylour'a donuyorlar.",
           "Kotu tanrilar herkesi yozlastirir."
@@ -1899,7 +1899,7 @@
       },
       "ommscout01hard": {
         "defaultLines": [
-          "Stormshard Daglari daha yuksege cikilamayacak kadar tehlikeli",
+          "Firtina Tasi Daglari daha yuksege cikilamayacak kadar tehlikeli",
           "Kesif gezisinin geri kalani dagin daha yukarisinda.",
           "Dikkatli olun, her yerde goblinler var.",
           "Yakindaki magaralarda bol miktarda goblin var.",
@@ -1927,9 +1927,9 @@
           "Buyulu zirh...",
           "Buyulu tencere...",
           "Her seyi buyuledi!",
-          "Felbridge parlayacak.",
+          "Fel Koprusu parlayacak.",
           "Ve ikimiz de kâr edecegiz.",
-          "Tesekkur ederim! Felbridge'deki demirci bunun icin guzel bir bedel odeyecek.",
+          "Tesekkur ederim! Fel Koprusu'ndeki demirci bunun icin guzel bir bedel odeyecek.",
           "Yardiminiz icin tekrar tesekkurler!"
         ]
       },
@@ -2017,10 +2017,10 @@
       "npcdune09": {
         "displayName": "Beull",
         "defaultLines": [
-          "Valhaven Imparatoru'nun onunde diz cokmeyecegim.",
+          "Val Limani Imparatoru'nun onunde diz cokmeyecegim.",
           "O bir ejderha olmayabilir...",
           "Ama ona hâlâ guvenmiyorum.",
-          "Valhaven onun hukumdarligi doneminde daha da kotuye gitti."
+          "Val Limani onun hukumdarligi doneminde daha da kotuye gitti."
         ]
       },
       "npcgoblinnomad01": {
@@ -2059,7 +2059,7 @@
       "npckasa": {
         "displayName": "Kasa",
         "defaultLines": [
-          "Imparator geldiginde ailem Valhaven'dan kacti.",
+          "Imparator geldiginde ailem Val Limani'ndan kacti.",
           "Goblinlerden nefret ediyor.",
           "Gercekten onlardan nefret ediyor."
         ]
@@ -2082,7 +2082,7 @@
       "npcnorgog": {
         "displayName": "Norgog",
         "defaultLines": [
-          "Imparator Valhaven'i halkimdan aldi.",
+          "Imparator Val Limani'ni halkimdan aldi.",
           "Gerci goblinler cok daha iyi degildi.",
           "Butun varliklar zalim olabilir."
         ]
@@ -2127,7 +2127,7 @@
           "Dogudaki duvarin otesinde kamp kurmuslar.",
           "Tesekkur ederim kahraman! Iyi sanlar!",
           "Demek Seelie'ydi. Kesinlikle Imparatorun yardimina ihtiyacimiz olacak!",
-          "Valhaven'dan birini bul.",
+          "Val Limani'ndan birini bul.",
           "Seelie gibi bir dusmana karsi Imparator'un yardimina ihtiyacimiz var.",
           "Hic sansimiz yok!",
           "Tesekkurlerim! Artik Seelie'ler yenildigine gore korkacak daha az seyimiz var.",
@@ -2172,7 +2172,7 @@
       },
       "sdjackal01": {
         "defaultLines": [
-          "Yasli goblin seni bir Valhaven elcisi bulman icin gonderdi, degil mi?",
+          "Yasli goblin seni bir Val Limani elcisi bulman icin gonderdi, degil mi?",
           "Ben kesinlikle buyukelci degilim.",
           "Seelie'nin arkasinda bizzat Imparatorun olduguna inaniyorum.",
           "Bu yuzden kanita ihtiyacim var.",
@@ -2181,12 +2181,12 @@
           "Bakalim Imparatorluk'un mudahalesine dair herhangi bir isaret bulacak misin?",
           "Ben de bu kadar dusundum! Imparator her zaman acimasiz ve asagiliktir.",
           "Benimle iskelede bulus.",
-          "Boylece seni gizlice Valhaven'a sokabilirim elbette.",
+          "Boylece seni gizlice Val Limani'na sokabilirim elbette.",
           "Imparatorun planlarini burada bozdunuz.",
           "En yeni dusmaninizla savasirken yardima ihtiyaciniz olacak.",
           "Cok yetenekli arkadaslarim var.",
           "Tekneye gelin.",
-          "Imparatoru ve onun Seelie muttefiklerini durdurmak icin benimle Valhaven'a gelmeniz gerekecek.",
+          "Imparatoru ve onun Seelie muttefiklerini durdurmak icin benimle Val Limani'na gelmeniz gerekecek.",
           "Imparator simdi senin pesinde olacak.",
           "Bir zamanlar harika bir adamdi.",
           "Aniden ortaya cikti ve Goblinleri kovdu.",
@@ -2362,10 +2362,10 @@
       "npcdune09hard": {
         "displayName": "Beull",
         "defaultLines": [
-          "Valhaven Imparatoru'nun onunde diz cokmeyecegim.",
+          "Val Limani Imparatoru'nun onunde diz cokmeyecegim.",
           "O bir ejderha olmayabilir...",
           "Ama ona hâlâ guvenmiyorum.",
-          "Valhaven onun hukumdarligi doneminde daha da kotuye gitti."
+          "Val Limani onun hukumdarligi doneminde daha da kotuye gitti."
         ]
       },
       "npcgoblinnomad01hard": {
@@ -2404,7 +2404,7 @@
       "npckasahard": {
         "displayName": "Kasa",
         "defaultLines": [
-          "Imparator geldiginde ailem Valhaven'dan kacti.",
+          "Imparator geldiginde ailem Val Limani'ndan kacti.",
           "Goblinlerden nefret ediyor.",
           "Gercekten onlardan nefret ediyor."
         ]
@@ -2427,7 +2427,7 @@
       "npcnorgoghard": {
         "displayName": "Norgog",
         "defaultLines": [
-          "Imparator Valhaven'i halkimdan aldi.",
+          "Imparator Val Limani'ni halkimdan aldi.",
           "Gerci goblinler cok daha iyi degildi.",
           "Butun varliklar zalim olabilir."
         ]
@@ -2472,7 +2472,7 @@
           "Dogudaki duvarin otesinde kamp kurmuslar.",
           "Tesekkur ederim kahraman! Iyi sanlar!",
           "Demek Seelie'ydi. Kesinlikle Imparatorun yardimina ihtiyacimiz olacak!",
-          "Valhaven'dan birini bul.",
+          "Val Limani'ndan birini bul.",
           "Seelie gibi bir dusmana karsi Imparator'un yardimina ihtiyacimiz var.",
           "Hic sansimiz yok!",
           "Tesekkurlerim! Artik Seelie'ler yenildigine gore korkacak daha az seyimiz var.",
@@ -2517,7 +2517,7 @@
       },
       "sdjackal01hard": {
         "defaultLines": [
-          "Yasli goblin seni bir Valhaven elcisi bulman icin gonderdi, degil mi?",
+          "Yasli goblin seni bir Val Limani elcisi bulman icin gonderdi, degil mi?",
           "Ben kesinlikle buyukelci degilim.",
           "Seelie'nin arkasinda bizzat Imparatorun olduguna inaniyorum.",
           "Bu yuzden kanita ihtiyacim var.",
@@ -2526,12 +2526,12 @@
           "Bakalim Imparatorluk'un mudahalesine dair herhangi bir isaret bulacak misin?",
           "Ben de bu kadar dusundum! Imparator her zaman acimasiz ve asagiliktir.",
           "Benimle iskelede bulus.",
-          "Boylece seni gizlice Valhaven'a sokabilirim elbette.",
+          "Boylece seni gizlice Val Limani'na sokabilirim elbette.",
           "Imparatorun planlarini burada bozdunuz.",
           "En yeni dusmaninizla savasirken yardima ihtiyaciniz olacak.",
           "Cok yetenekli arkadaslarim var.",
           "Tekneye gelin.",
-          "Imparatoru ve onun Seelie muttefiklerini durdurmak icin benimle Valhaven'a gelmeniz gerekecek.",
+          "Imparatoru ve onun Seelie muttefiklerini durdurmak icin benimle Val Limani'na gelmeniz gerekecek.",
           "Imparator simdi senin pesinde olacak.",
           "Bir zamanlar harika bir adamdi.",
           "Aniden ortaya cikti ve Goblinleri kovdu.",
@@ -2663,7 +2663,7 @@
       "bede": {
         "displayName": "Bede",
         "defaultLines": [
-          "Bu bir zamanlar Felbridge'e giden yoldu",
+          "Bu bir zamanlar Fel Koprusu'ne giden yoldu",
           "Artik kesin olume giden yol",
           "umarim yolu acabilirsin"
         ]
@@ -2898,7 +2898,7 @@
       "bedehard": {
         "displayName": "Bede",
         "defaultLines": [
-          "Bu bir zamanlar Felbridge'e giden yoldu",
+          "Bu bir zamanlar Fel Koprusu'ne giden yoldu",
           "Artik kesin olume giden yol",
           "umarim yolu acabilirsin"
         ]

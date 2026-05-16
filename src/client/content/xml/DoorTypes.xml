@@ -6,7 +6,7 @@
 		<TargetMapName>SwampRoadNorth</TargetMapName>
 		<TargetDoorID>2</TargetDoorID>
 		<RequiredMissions>DeliverToSwamp</RequiredMissions>
-		<LockedMessage>^t I need secure Kurt's End first.=^t Once goblinler ve olumsuz are under control...=^t I'll be able head inland rest Ellyria.</LockedMessage>
+		<LockedMessage>^t I need secure Kurtlarin Sonu first.=^t Once goblinler ve olumsuz are under control...=^t I'll be able head inland rest Ellyria.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>NewbieRoad</MapName>
@@ -44,7 +44,7 @@
 		<TargetMapName>DreamDragonDungeon</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayTheDragon</RequiredMissions>
-		<LockedMessage>^t It's closed ve kilitli=^t yok one has been here icinde bir long, long sure.=^t Maybe someone icinde Kurt's End knows daha about it.</LockedMessage>
+		<LockedMessage>^t It's closed ve kilitli=^t yok one has been here icinde bir long, long sure.=^t Maybe someone icinde Kurtlarin Sonu knows daha about it.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>NewbieRoad</MapName>
@@ -64,7 +64,7 @@
 		<TargetMapName>SwampRoadConnectionMission</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ClearTheBridge</RequiredMissions>
-		<LockedMessage>^t koyu ve impassable=^t Are those orumcek webs?=^t Ick=^t yok one's going Felkopru that way yet.</LockedMessage>
+		<LockedMessage>^t koyu ve impassable=^t Are those orumcek webs?=^t Ick=^t yok one's going Fel Koprusu that way yet.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -78,7 +78,7 @@
 		<TargetMapName>SRN_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>StopCastout</RequiredMissions>
-		<LockedMessage>^t Someone has fortified this kule.=^t I should check icinde ile soldiers kaynakli Kurt's End.=^t They've had sure scout area.</LockedMessage>
+		<LockedMessage>^t Someone has fortified this kule.=^t I should check icinde ile soldiers kaynakli Kurtlarin Sonu.=^t They've had sure scout area.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -118,7 +118,7 @@
 		<TargetMapName>SRN_Mission6</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayMindlessQueen</RequiredMissions>
-		<LockedMessage>^t This granary used feed thousands.=^t Some soldiers kaynakli Kurt's End will know daha about it.</LockedMessage>
+		<LockedMessage>^t This granary used feed thousands.=^t Some soldiers kaynakli Kurtlarin Sonu will know daha about it.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -164,7 +164,7 @@
 		<TargetMapName>CemeteryHill</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>FindTheOutpost</RequiredMissions>
-		<LockedMessage>^t There is bir huge graveyard behind this gate.=^t Felkopru folk might know daha about this.</LockedMessage>
+		<LockedMessage>^t There is bir huge graveyard behind this gate.=^t Fel Koprusu folk might know daha about this.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTown</MapName>
@@ -172,7 +172,7 @@
 		<TargetMapName>AC_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DeepgardDragon</RequiredMissions>
-		<LockedMessage>^t bir powerful buyu bariyer blocks way.=^t This kopru leads Kale Hocke=^t I need figure out how get icinde there.=^t ve how be ready icin what's inside.</LockedMessage>
+		<LockedMessage>^t bir powerful buyu bariyer blocks way.=^t This kopru leads Hocke Kalesi=^t I need figure out how get icinde there.=^t ve how be ready icin what's inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTown</MapName>
@@ -188,7 +188,7 @@
 		<TargetMapName>OldMineMountain</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HeadToTheMountains</RequiredMissions>
-		<LockedMessage>^t This yol leads into Stormshard Binekains.=^t It is little used except by canavarlar now.=^t I may bul need go there.=^t But first let's get Felkopru sorted.</LockedMessage>
+		<LockedMessage>^t This yol leads into Firtina Tasi Daglari.=^t It is little used except by canavarlar now.=^t I may bul need go there.=^t But first let's get Fel Koprusu sorted.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTown</MapName>
@@ -254,7 +254,7 @@
 		<TargetMapName>CH_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RescueYagaga</RequiredMissions>
-		<LockedMessage>^t bir closed mausoleum.=^t It looks like someone lives here.=^t I'll check ile benim friend kaynakli Kurt's End andfind outpost west ve ask them.</LockedMessage>
+		<LockedMessage>^t bir closed mausoleum.=^t It looks like someone lives here.=^t I'll check ile benim friend kaynakli Kurtlarin Sonu andfind outpost west ve ask them.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -394,7 +394,7 @@
 		<TargetMapName>OMM_Mission2</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GardenOfTheLost</RequiredMissions>
-		<LockedMessage>^t bir crevice icinde mountainside.=^t Probably certain olum icinde there.=^t Theexpeditin kaynakli Felkopru might know this dag better.</LockedMessage>
+		<LockedMessage>^t bir crevice icinde mountainside.=^t Probably certain olum icinde there.=^t Theexpeditin kaynakli Fel Koprusu might know this dag better.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -402,7 +402,7 @@
 		<TargetMapName>OMM_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>EyeOfTheTyrant</RequiredMissions>
-		<LockedMessage>^t Another tunnel into dag.=^t Like many.=^t I should check ile expedition kaynakli Felkopru.</LockedMessage>
+		<LockedMessage>^t Another tunnel into dag.=^t Like many.=^t I should check ile expedition kaynakli Fel Koprusu.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -410,7 +410,7 @@
 		<TargetMapName>OMM_Mission4</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AbandonedArmory</RequiredMissions>
-		<LockedMessage>^t bir mysterious doorway.=^t I wonder why that heykel is here.=^t Felkopru folk could tell beni daha.</LockedMessage>
+		<LockedMessage>^t bir mysterious doorway.=^t I wonder why that heykel is here.=^t Fel Koprusu folk could tell beni daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -426,7 +426,7 @@
 		<TargetMapName>OMM_Mission6</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ForgottenForge</RequiredMissions>
-		<LockedMessage>^t It's kilitli.=^t expedition kaynakli Felkopru might be able tell daha daha.</LockedMessage>
+		<LockedMessage>^t It's kilitli.=^t expedition kaynakli Fel Koprusu might be able tell daha daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountain</MapName>
@@ -520,7 +520,7 @@
 		<TargetMapName>EmeraldGladesHard</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>HeadToTheGlades,HeadToTheGladesHard</RequiredMissions>
-		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Felkopru, but closed.=^t bir shortcut dehset doppelganger these cayirlar?=^t ac this gate, I must cross into Dreadfold by Felkopru Portal.=^t ve bul this portal's twin icinde dehset Zumrut Cayirlari.</LockedMessage>
+		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Fel Koprusu, but closed.=^t bir shortcut dehset doppelganger these cayirlar?=^t ac this gate, I must cross into Dreadfold by Fel Koprusu Portal.=^t ve bul this portal's twin icinde dehset Zumrut Cayirlari.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGlades</MapName>
@@ -648,7 +648,7 @@
 		<TargetMapName>ShazariDesertHard</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>IntoTheDepths,IntoTheDepthsHard</RequiredMissions>
-		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Felkopru, but closed=^t bir shortcut dehset Shazari, yok doubt=^t ac this gate, I can cross into Dreadfold by Felkopru Portal=^t Then make benim way this portal's twin icinde dehset Shazari=^t Do I dare?</LockedMessage>
+		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Fel Koprusu, but closed=^t bir shortcut dehset Shazari, yok doubt=^t ac this gate, I can cross into Dreadfold by Fel Koprusu Portal=^t Then make benim way this portal's twin icinde dehset Shazari=^t Do I dare?</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>ShazariDesert</MapName>
@@ -710,7 +710,7 @@
 		<TargetMapName>JadeCityHard</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>HeadToValhaven,HeadToValhavenHard</RequiredMissions>
-		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Felkopru, but closed=^t bir shortcut dehset Valhaven, yok doubt=^t ac this gate, I can cross into Dreadfold by Felkopru Portal=^t Then make benim way this portal's twin icinde dehset Valhaven=^t Do I dare?</LockedMessage>
+		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Fel Koprusu, but closed=^t bir shortcut dehset Val Limani, yok doubt=^t ac this gate, I can cross into Dreadfold by Fel Koprusu Portal=^t Then make benim way this portal's twin icinde dehset Val Limani=^t Do I dare?</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCity</MapName>
@@ -884,7 +884,7 @@
 		<TargetMapName>SRN_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>StopCastoutHard</RequiredMissions>
-		<LockedMessage>^t Someone has fortified this kule.=^t I should check icinde ile soldiers kaynakli Kurt's End.=^t They've had sure scout area.</LockedMessage>
+		<LockedMessage>^t Someone has fortified this kule.=^t I should check icinde ile soldiers kaynakli Kurtlarin Sonu.=^t They've had sure scout area.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -924,7 +924,7 @@
 		<TargetMapName>SRN_Mission6Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlayMindlessQueenHard</RequiredMissions>
-		<LockedMessage>^t This granary used feed thousands.=^t Some soldiers kaynakli Kurt's End will know daha about it.</LockedMessage>
+		<LockedMessage>^t This granary used feed thousands.=^t Some soldiers kaynakli Kurtlarin Sonu will know daha about it.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -958,7 +958,7 @@
 		<TargetMapName>SwampRoadConnectionMissionHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ClearTheBridgeHard</RequiredMissions>
-		<LockedMessage>^t koyu ve impassable=^t Are those orumcek webs?=^t Ick=^t yok one's going Felkopru that way.</LockedMessage>
+		<LockedMessage>^t koyu ve impassable=^t Are those orumcek webs?=^t Ick=^t yok one's going Fel Koprusu that way.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTownHard</MapName>
@@ -972,7 +972,7 @@
 		<TargetMapName>CemeteryHillHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>FindTheOutpostHard</RequiredMissions>
-		<LockedMessage>^t There is too much evil behind this gate.=^t Felkopru folk might know daha about this.</LockedMessage>
+		<LockedMessage>^t There is too much evil behind this gate.=^t Fel Koprusu folk might know daha about this.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTownHard</MapName>
@@ -980,7 +980,7 @@
 		<TargetMapName>AC_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>DeepgardDragonHard</RequiredMissions>
-		<LockedMessage>^t way is blocked by powerful buyu.=^t This kopru leads Kale Hocke.=^t I need figure out how get icinde there.=^t ve how be ready icin what's inside.</LockedMessage>
+		<LockedMessage>^t way is blocked by powerful buyu.=^t This kopru leads Hocke Kalesi.=^t I need figure out how get icinde there.=^t ve how be ready icin what's inside.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTownHard</MapName>
@@ -996,7 +996,7 @@
 		<TargetMapName>OldMineMountainHard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>HeadToTheMountainsHard</RequiredMissions>
-		<LockedMessage>^This yol leads into Stormshard Binekains=^t It is little used except by canavarlar now=^t I may bul need go there=^t But first let's get Felkopru sorted</LockedMessage>
+		<LockedMessage>^This yol leads into Firtina Tasi Daglari=^t It is little used except by canavarlar now=^t I may bul need go there=^t But first let's get Fel Koprusu sorted</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>BridgeTownHard</MapName>
@@ -1060,7 +1060,7 @@
 		<TargetMapName>CH_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RescueYagagaHard</RequiredMissions>
-		<LockedMessage>^t bir closed mausoleum.=^t It looks like someone lives here.=^t I'll check ile benim friend kaynakli Kurt's End andfind outpost west ve ask them.</LockedMessage>
+		<LockedMessage>^t bir closed mausoleum.=^t It looks like someone lives here.=^t I'll check ile benim friend kaynakli Kurtlarin Sonu andfind outpost west ve ask them.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1200,7 +1200,7 @@
 		<TargetMapName>OMM_Mission2Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>GardenOfTheLostHard</RequiredMissions>
-		<LockedMessage>^t bir crevice icinde mountainside.=^t Probably certain olum icinde there.=^t Theexpeditin kaynakli Felkopru might know this dag better.</LockedMessage>
+		<LockedMessage>^t bir crevice icinde mountainside.=^t Probably certain olum icinde there.=^t Theexpeditin kaynakli Fel Koprusu might know this dag better.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1208,7 +1208,7 @@
 		<TargetMapName>OMM_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>EyeOfTheTyrantHard</RequiredMissions>
-		<LockedMessage>^t Another tunnel into dag.=^t Like many.=^t I should check ile expedition kaynakli Felkopru.</LockedMessage>
+		<LockedMessage>^t Another tunnel into dag.=^t Like many.=^t I should check ile expedition kaynakli Fel Koprusu.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1216,7 +1216,7 @@
 		<TargetMapName>OMM_Mission4Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>AbandonedArmoryHard</RequiredMissions>
-		<LockedMessage>^t bir mysterious doorway.=^t I wonder why that heykel is here.=^t Felkopru folk could tell beni daha.</LockedMessage>
+		<LockedMessage>^t bir mysterious doorway.=^t I wonder why that heykel is here.=^t Fel Koprusu folk could tell beni daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1232,7 +1232,7 @@
 		<TargetMapName>OMM_Mission6Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>ForgottenForgeHard</RequiredMissions>
-		<LockedMessage>^t It's kilitli.=^t expedition kaynakli Felkopru might be able tell daha daha.</LockedMessage>
+		<LockedMessage>^t It's kilitli.=^t expedition kaynakli Fel Koprusu might be able tell daha daha.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>OldMineMountainHard</MapName>
@@ -1326,7 +1326,7 @@
 		<TargetMapName>EmeraldGlades</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>HeadToTheGlades,HeadToTheGladesHard</RequiredMissions>
-		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Felkopru, but closed=^t bir shortcut dehset doppelganger these cayirlar?=^t ac this gate, I must cross into Dreadfold by Felkopru Portal=^t ve bul this portal's twin icinde dehset Zumrut Cayirlari</LockedMessage>
+		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Fel Koprusu, but closed=^t bir shortcut dehset doppelganger these cayirlar?=^t ac this gate, I must cross into Dreadfold by Fel Koprusu Portal=^t ve bul this portal's twin icinde dehset Zumrut Cayirlari</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGladesHard</MapName>
@@ -1516,7 +1516,7 @@
 		<TargetMapName>JadeCity</TargetMapName>
 		<TargetDoorID>300</TargetDoorID>
 		<RequiredMissions>HeadToValhaven,HeadToValhavenHard</RequiredMissions>
-		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Felkopru, but closed=^t bir shortcut dehset Valhaven, yok doubt=^t ac this gate, I can cross into Dreadfold by Felkopru Portal=^t Then make benim way this portal's twin icinde dehset Valhaven=^t Do I dare?</LockedMessage>
+		<LockedMessage>^t Another Dreadfold Portal. Like one icinde Fel Koprusu, but closed=^t bir shortcut dehset Val Limani, yok doubt=^t ac this gate, I can cross into Dreadfold by Fel Koprusu Portal=^t Then make benim way this portal's twin icinde dehset Val Limani=^t Do I dare?</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>JadeCityHard</MapName>

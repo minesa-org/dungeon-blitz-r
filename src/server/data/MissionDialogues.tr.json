@@ -18,7 +18,7 @@
       "ReturnText": "Anna'yi kurtardigin icin tesekkur ederim! Savascilarimizin liderine ihtiyaci var.=@Benim icin zevkti. Hayatim boyunca goblinlerle savastim.=Evet, deniz kaptanin bana Goblin Savaslari'ni anlatiyordu.=@Gorunuse gore zaferimiz henuz tam degil."
     },
     "5": {
-      "OfferText": "Elli yil once bizi koruyan yer Wolf's End Kalesi'ydi.",
+      "OfferText": "Elli yil once bizi koruyan yer Kurtlarin Sonu Kalesi'ydi.",
       "ActiveText": "Sigismund Hocke kaleyi seferi icin us olarak insa etti.=Ama goblinler ve daha beterleri bizi onlarca yil once oradan surdu.=Senin goblin dograma yeteneginle...=@Kaleyi geri alacak kisi ben olabilirim.=Dogrusu hâli pek ic acici degil, artik bir harabe sadece.=@Temizlerim ve yeniden kurmaya baslarim.=@Ellyria'da guvenli bir yere ihtiyacim var.=Eger goblinleri surup atarsan, yeniden insa icin elimizden gelen destegi veririz.=@Goblinlerle ben ilgilenirim.=@Hatta bunu hemen simdi yaparim.",
       "ReturnText": "Eski kaleyi temizledin mi? O zaman senindir. Burayi yeniden duzgun bir yuva haline getirmeye yardimci olacagiz.=@Tesekkur ederim Belediye Baskanim. Bunu iyi bir sekilde kullanacagim."
     },
@@ -33,7 +33,7 @@
       "ReturnText": "Bir ejderha! Gercek olmasa da boylesi bir ruya hayaleti bile inanilmaz."
     },
     "8": {
-      "OfferText": "Wolf's End guvendeyken, bu topraklarin daha fazlasini kotulukten geri alabiliriz.",
+      "OfferText": "Kurtlarin Sonu guvendeyken, bu topraklarin daha fazlasini kotulukten geri alabiliriz.",
       "ActiveText": "Sayende yeniden ayaga kalktik ve savasmaya haziriz!=@Bunu duymak guzel. Okyanusun bu tarafindaki goblinleri bitirmeyi hedefliyorum.=@Insanlarin bana yardim edecek mi?=Elbette! Abbod'un ailesi buranin dogusundaki topraklardan.= Ata mirasini geri almak icin can atiyor.=@Harika. Bir de Uyuyan Topraklar hakkinda daha fazlasini ogrenmem gerek.=Ben hic duymadim.=Ama Wissen Kalesi'ndeki arsivlerde bir kayit olabilir.=@O halde hem kaleyi hem Abbod'un topraklarini ozgurlestirecegim.=@Abbod'a onu orada gorecegimi soyle!=Kasabaya doner donmez soylerim, sampiyon.",
       "ReturnText": "Burada kampimizi guclendirecegiz kahraman. Bize onderlik ettigin icin tesekkurler.",
       "PraiseText": "Bu koy geri alacagimiz ilk yer olacak.=@Onumuzde daha cok cetin savas var ama basarabiliriz.=Buralar bir zamanlar yemyesil otlaklardi.=Goblinler ve buyuleri burayi batakliga cevirdi.=@Buyuyle yapilan, buyuyle bozulabilir.=@Birlikte bu topragi yeniden ayaga kaldiracagiz.=@En azindan buyuk kismini.=Buyuk kismi bile hayal ettigimden fazla."
@@ -63,7 +63,7 @@
     },
     "14": {
       "OfferText": "Su mahzenden olumsuzler durmadan yukseliyor.",
-      "ActiveText": "Olumsuzlerin ilk ciktigi yer yukaridaki eski mabet.=O gunden beri gelmeye devam ediyorlar.=En tehlikelilerinden bazilarini yok etmeme yardim edersen...=Wolf's End'e yayilmalarini engelleyebiliriz.",
+      "ActiveText": "Olumsuzlerin ilk ciktigi yer yukaridaki eski mabet.=O gunden beri gelmeye devam ediyorlar.=En tehlikelilerinden bazilarini yok etmeme yardim edersen...=Kurtlarin Sonu'na yayilmalarini engelleyebiliriz.",
       "ReturnText": "Minnettarim.",
       "PraiseText": "Savasmaya devam edecegim.=Ama onlara asla alisamayacagim.=Ne kokularina.=Ne soyledikleri urkutucu seylere.=Ama en cok da kokularina."
     },
@@ -113,7 +113,7 @@
     },
     "23": {
       "OfferText": "Sirada ne var #tn#?",
-      "ActiveText": "Artik Tuatara yenildigine gore...=Planin nedir?=@Castle Hocke'a gidecegim.=@Eminim artik hepsi canavarlar ve harabelerdir.=Buradan gecen Tuatara Lejyonu'ndan kimsenin sag kurtulabilecegini hayal edemiyorum.=@Ve Nephit'in bir seylerin pesinde olduguna suphe yok.=@O kaleye girmem gerekiyor...=@Eger bu canavarlarin nereden geldigine dair gercegi ogreneceksem.",
+      "ActiveText": "Artik Tuatara yenildigine gore...=Planin nedir?=@Hocke Kalesi'ne gidecegim.=@Eminim artik hepsi canavarlar ve harabelerdir.=Buradan gecen Tuatara Lejyonu'ndan kimsenin sag kurtulabilecegini hayal edemiyorum.=@Ve Nephit'in bir seylerin pesinde olduguna suphe yok.=@O kaleye girmem gerekiyor...=@Eger bu canavarlarin nereden geldigine dair gercegi ogreneceksem.",
       "ReturnText": "Dur orada, yabanci. Sen kimsin?",
       "PraiseText": "Bu kisimlarda cok buyuk degisiklikler yaptiniz."
     },
@@ -181,8 +181,8 @@
       "ReturnText": "Geri dondun mu? Yani belki sen digerleri gibi degilsin."
     },
     "35": {
-      "OfferText": "Arkadaslarini Wolf's End'den Mezarlik Tepesi'ne gonderdim. Istedikleri takdirde oraya yerlesebilirler.",
-      "ActiveText": "Siz Kurt Burnu halkina burada yer yok.=@Nereden geldin peki?=Benim halkim 40 yil once buraya yerlesti.=Kole oldugumuz cok uzak bir ulkeden geldik.=Artik ozgur ve mureffeh bir hayat yasiyoruz.=@Ama canavarlar! Goblinler, ejderhalar, olumsuzler...=Biz kendi hakkimizi koruyoruz.=Arkadaslarini Wolf's End'den Mezarlik Tepesi'ne gonderdim.=Yerlesecek yeni topraklar ariyorlarsa, onlara sahip olabilirler.=@Bir Mezarlik mi?=Dilenciler secici olamazlar.",
+      "OfferText": "Arkadaslarini Kurtlarin Sonu'ndan Mezarlik Tepesi'ne gonderdim. Istedikleri takdirde oraya yerlesebilirler.",
+      "ActiveText": "Siz Kurtlarin Sonu halkina burada yer yok.=@Nereden geldin peki?=Benim halkim 40 yil once buraya yerlesti.=Kole oldugumuz cok uzak bir ulkeden geldik.=Artik ozgur ve mureffeh bir hayat yasiyoruz.=@Ama canavarlar! Goblinler, ejderhalar, olumsuzler...=Biz kendi hakkimizi koruyoruz.=Arkadaslarini Kurtlarin Sonu'ndan Mezarlik Tepesi'ne gonderdim.=Yerlesecek yeni topraklar ariyorlarsa, onlara sahip olabilirler.=@Bir Mezarlik mi?=Dilenciler secici olamazlar.",
       "ReturnText": "Burada oldugunuz icin yildizlara tesekkur edin! Nephit'in kara buyusu geri dondu!",
       "PraiseText": "Babam halkimizi kolelikten kurtardi.=@Nereden geldin?=Asla gidemeyecegin bir yere dostum.=Kelimelerin otesinde korkunc bir yerde.=@Ejderhalardan ve goblinlerden nasil kurtuldunuz ve...=Guvenligimiz bizim endisemizdir.=Buyuk fedakarliklar yaptik.=Ama bunlar gerekliydi.=Halkimi ne pahasina olursa olsun korudum.=Belki de kendi ailen icin endiselenmelisin."
     },
@@ -207,7 +207,7 @@
     },
     "40": {
       "OfferText": "Cadi Yagarah, Nephit'le is birligi icinde olabilir!",
-      "ActiveText": "Felbridge Komiseri, Mezarlik Tepesi'ne yerlesmenin guvenli olacagini soyledi.=@Acikcasi oyle degil.=Oluler bu sabah mezarlarindan dirilmeye basladi!=@Nephit'in calismasina benziyor.=Evet oyle ama bir cadi hakkinda bilgi aldik.=Adi Yagarah ve Nephit'le calisiyor olabilir.=Buranin dogusundaki bir mozolede saklandigini dusunuyoruz.=@Nephit'in herhangi bir arkadasi benim dusmanimdir.",
+      "ActiveText": "Fel Koprusu Komiseri, Mezarlik Tepesi'ne yerlesmenin guvenli olacagini soyledi.=@Acikcasi oyle degil.=Oluler bu sabah mezarlarindan dirilmeye basladi!=@Nephit'in calismasina benziyor.=Evet oyle ama bir cadi hakkinda bilgi aldik.=Adi Yagarah ve Nephit'le calisiyor olabilir.=Buranin dogusundaki bir mozolede saklandigini dusunuyoruz.=@Nephit'in herhangi bir arkadasi benim dusmanimdir.",
       "ReturnText": "Beni kurtardigin icin tesekkur ederim",
       "PraiseText": "Gnole'lar onlarca yildir insanlardan nefret ediyor.=Yardim icin Nephit'e basvurmalari surpriz degil."
     },
@@ -231,7 +231,7 @@
     },
     "45": {
       "OfferText": "Bu topraklari halkinin adina geri almana yardim ettigim icin gurur duyuyorum.",
-      "ActiveText": "Felbridge'deki eski dostlarima burada senin adamlarinla ​​kalacagimi soyleyebilirsin.",
+      "ActiveText": "Fel Koprusu'ndeki eski dostlarima burada senin adamlarinla ​​kalacagimi soyleyebilirsin.",
       "ReturnText": "Bir kez daha geri dondun. Orada ne yaptiysan burada da bir seyler yapilmis.",
       "PraiseText": "Burada yaptiginiz her sey icin tesekkur ederiz!"
     },
@@ -259,7 +259,7 @@
     },
     "50": {
       "OfferText": "Burada da yukselen olumsuzlerin sorunu ne?",
-      "ActiveText": "Yine Kurt Burnu gibi!=Burada da oluler diriliyor.=@Bununla ugrasiyorum, korkma.",
+      "ActiveText": "Yine Kurtlarin Sonu gibi!=Burada da oluler diriliyor.=@Bununla ugrasiyorum, korkma.",
       "ReturnText": "Tesekkur ederim! Yardiminiz icin cok minnettariz",
       "PraiseText": "Sen degerli bir kahramansin. Yardimin icin tesekkurler"
     },
@@ -291,7 +291,7 @@
     },
     "65": {
       "OfferText": "Gnole'lar caresizlik icinde Meylour'a donuyor.",
-      "ActiveText": "Gnole'larin normalde tanrilara sevgisi yoktur.=Ama onlara ihanet ettikleri icin insanlardan nefret ediyorlar.=@Onlara kim ihanet etti?=Felbridge'in insanlari bir zamanlar onlarin muttefikiydi.=Komiser onlara ihanet etti.=Simdi intikam icin Meylour'a donuyorlar.=@Ironik. Komiser Meylour'a da tapiyordu.=Kotu tanrilar herkesi yozlastirir.",
+      "ActiveText": "Gnole'larin normalde tanrilara sevgisi yoktur.=Ama onlara ihanet ettikleri icin insanlardan nefret ediyorlar.=@Onlara kim ihanet etti?=Fel Koprusu'nun insanlari bir zamanlar onlarin muttefikiydi.=Komiser onlara ihanet etti.=Simdi intikam icin Meylour'a donuyorlar.=@Ironik. Komiser Meylour'a da tapiyordu.=Kotu tanrilar herkesi yozlastirir.",
       "ReturnText": "Meylour umursamaz tasin ozudur, tum yasamin lanetidir.",
       "PraiseText": "Meylour umursamaz tasin ozudur, tum yasamin lanetidir."
     },
@@ -314,7 +314,7 @@
       "ActiveText": "Meylour Damarlari olarak bilinen bu madenler bir zamanlar Dunya Titanina aitti.=Simdi Vezrinn'in adananlari onlari ele gecirdi=Buyulu cevher Alumite'yi ve Kalbi ariyorlar=Eseri ele gecirmek ve Meylour Kilici'ni etkinlestirmek icin hepsini yenmeniz gerekecek."
     },
     "71": {
-      "ActiveText": "Emerald Glades'e ulasmak icin buranin dogusundaki ilk yoldan ilerleyin=Doguya dogru ilerlemeye devam edin",
+      "ActiveText": "Zumrut Cayirlari'na ulasmak icin buranin dogusundaki ilk yoldan ilerleyin=Doguya dogru ilerlemeye devam edin",
       "ReturnText": "Madenlerden gectigine gore guclu bir kahraman olmalisin!",
       "PraiseText": "Halkimizi yeniden bir araya getirdiginiz icin tesekkur ederiz!"
     },
@@ -326,7 +326,7 @@
     },
     "73": {
       "OfferText": "Uthor'un Enfes Kreasyonlari",
-      "ActiveText": "Demir ocagi Stormshard Zirveleri'nde gizli kaliyor.",
+      "ActiveText": "Demir ocagi Firtina Tasi Zirveleri'nde gizli kaliyor.",
       "ReturnText": "Uthor'un Enfes Kreasyonlari=Demirhane bulundu.",
       "PraiseText": "Uthor'un Enfes Kreasyonlari=Demirhane bulundu."
     },
@@ -337,8 +337,8 @@
     },
     "75": {
       "OfferText": "Bu daglar Alurit minerali bakimindan zengindir.",
-      "ActiveText": "Tuhaf kaya yaratiklari Alurit iceriyor.=Buyulu silahlar icin kullanabiliriz...=Buyulu zirh...=Buyulu tencere...=Her seyi buyuledi!=Felbridge parlayacak.=Ve ikimiz de kâr edecegiz.",
-      "ReturnText": "Tesekkur ederim! Felbridge'deki demirci bunun icin guzel bir bedel odeyecek.",
+      "ActiveText": "Tuhaf kaya yaratiklari Alurit iceriyor.=Buyulu silahlar icin kullanabiliriz...=Buyulu zirh...=Buyulu tencere...=Her seyi buyuledi!=Fel Koprusu parlayacak.=Ve ikimiz de kâr edecegiz.",
+      "ReturnText": "Tesekkur ederim! Fel Koprusu'ndeki demirci bunun icin guzel bir bedel odeyecek.",
       "PraiseText": "Yardiminiz icin tekrar tesekkurler!"
     },
     "76": {
@@ -415,7 +415,7 @@
     },
     "93": {
       "OfferText": "Liderimiz Titus, ejderhalarla savasmanin bir yolunu bulmak icin Gozlemevi'ne gitti.",
-      "ActiveText": "O ejderhayi oldurdugun icin tesekkur ederim.=@Siz kimsiniz?=Sigismund Hocke'un kesif gezisindeydik.=@Kurt Burnu'nun insanlari gibi mi?=Evet, tamamen ayni.=Goblinlerin arasindan gecerek kaleye dogru savastik.=Sigismund kampi korumamiz icin bizi birakti.=O ve sovalyeleri asagiya indiler.=Portaldan gectiler.=@Ve o zamandan beri burada sikisip kaldin.=Bilge Titus bize yardim etti.=Ejderha lejyonu geldiginde onlari durdurmanin bir yolunu bulmaya gitti.=Onu bulmalisin.",
+      "ActiveText": "O ejderhayi oldurdugun icin tesekkur ederim.=@Siz kimsiniz?=Sigismund Hocke'un kesif gezisindeydik.=@Kurtlarin Sonu'nun insanlari gibi mi?=Evet, tamamen ayni.=Goblinlerin arasindan gecerek kaleye dogru savastik.=Sigismund kampi korumamiz icin bizi birakti.=O ve sovalyeleri asagiya indiler.=Portaldan gectiler.=@Ve o zamandan beri burada sikisip kaldin.=Bilge Titus bize yardim etti.=Ejderha lejyonu geldiginde onlari durdurmanin bir yolunu bulmaya gitti.=Onu bulmalisin.",
       "PraiseText": "Uyuyan Topraklar'da Sigismund Hocke'ye ne oldugunu hâlâ merak ediyorum."
     },
     "94": {
@@ -479,13 +479,13 @@
       "OfferText": "Yeni bir guc burada, Shazari'deki ejderha lejyonlarinin yerini almaya calisiyor.",
       "ActiveText": "Tam da normal ticarete devam edebilecegimizi dusundugum sirada.=@Goblin. Ne istiyorsun?=Insan! Arkadaslarim ve muttefiklerim ile ozgurce ticaret yapmak istiyorum.=@Peki seni durduran ne?=Erkeklerden daha uzun olan tuhaf yeni savascilar.=Onlarin Seelie Ogres olabilecegine inaniyorum.=@Selie nedir?=Buyu konusunda uzman, kadim bir peri irki.=Dokunduklari her seyi bozuyorlar.=Dogudaki duvarin otesinde kamp kurmuslar.=@Arastiracagim...=@Ama dogruyu soylesen iyi olur, goblin.=Tesekkur ederim kahraman! Iyi sanlar!",
       "ReturnText": "Demek Seelie'ydi. Kesinlikle Imparatorun yardimina ihtiyacimiz olacak!",
-      "PraiseText": "Valhaven'dan birini bul.=Seelie gibi bir dusmana karsi Imparator'un yardimina ihtiyacimiz var.=Hic sansimiz yok!"
+      "PraiseText": "Val Limani'ndan birini bul.=Seelie gibi bir dusmana karsi Imparator'un yardimina ihtiyacimiz var.=Hic sansimiz yok!"
     },
     "107": {
-      "OfferText": "Yasli goblin seni bir Valhaven elcisi bulman icin gonderdi, degil mi?",
+      "OfferText": "Yasli goblin seni bir Val Limani elcisi bulman icin gonderdi, degil mi?",
       "ActiveText": "Ben kesinlikle buyukelci degilim.=@O zaman ne isimiz var yabanci?=Seelie'nin arkasinda bizzat Imparatorun olduguna inaniyorum.=@Bu ciddi bir suclama.=Bu yuzden kanita ihtiyacim var.=@Imparator neden bu topraklari yozlastirsin?=Ejderhalarin gitmesiyle Shazari'yi imparatorluguna eklemenin yollarini arar.=Antik mezarliklar sorunun kaynagi gibi gorunuyor.=Bakalim Imparatorluk'un mudahalesine dair herhangi bir isaret bulacak misin?",
       "ReturnText": "Ben de bu kadar dusundum! Imparator her zaman acimasiz ve asagiliktir.",
-      "PraiseText": "Benimle iskelede bulus.=@Neden?=Boylece seni gizlice Valhaven'a sokabilirim elbette.=Imparatorun planlarini burada bozdunuz.=En yeni dusmaninizla savasirken yardima ihtiyaciniz olacak.=@Ve sen o yardimci misin?=Cok yetenekli arkadaslarim var.=Tekneye gelin."
+      "PraiseText": "Benimle iskelede bulus.=@Neden?=Boylece seni gizlice Val Limani'na sokabilirim elbette.=Imparatorun planlarini burada bozdunuz.=En yeni dusmaninizla savasirken yardima ihtiyaciniz olacak.=@Ve sen o yardimci misin?=Cok yetenekli arkadaslarim var.=Tekneye gelin."
     },
     "108": {
       "OfferText": "Buradaki eski piramitler ilgi cekici olabilir.",
@@ -568,7 +568,7 @@
     },
     "124": {
       "OfferText": "Olumsuzler o mahzenden yukselmeye devam ediyor.",
-      "ActiveText": "Yukaridaki eski tapinak olumsuzlerin ilk geldigi yer.=O zamandan beri geliyorlar.=Eger en kotulerinden bazilarini yok etmeme yardim edebilirsen...=Kurt Burnu'na yayilmalarini onleyebiliriz.",
+      "ActiveText": "Yukaridaki eski tapinak olumsuzlerin ilk geldigi yer.=O zamandan beri geliyorlar.=Eger en kotulerinden bazilarini yok etmeme yardim edebilirsen...=Kurtlarin Sonu'na yayilmalarini onleyebiliriz.",
       "ReturnText": "Tesekkur ederim.",
       "PraiseText": "Onlarla savasmaya devam edecegim.=Ama bunlara asla alisamayacagim.=Veya onlarin kokusu.=Ya da soyledikleri tuyler urpertici seyler.=Ama cogunlukla onlarin kokusu."
     },
@@ -618,7 +618,7 @@
     },
     "133": {
       "OfferText": "Sirada ne var #tn#?",
-      "ActiveText": "Artik Tuatara yenildigine gore...=Planin nedir?=@Castle Hocke'a gidecegim.=@Eminim artik hepsi canavarlar ve harabelerdir.=Buradan gecen Tuatara Lejyonu'ndan kimsenin sag kurtulabilecegini hayal edemiyorum.=@Ve Nephit'in bir seylerin pesinde olduguna suphe yok.=@O kaleye girmem gerekiyor...=@Eger bu canavarlarin nereden geldigine dair gercegi ogreneceksem.",
+      "ActiveText": "Artik Tuatara yenildigine gore...=Planin nedir?=@Hocke Kalesi'ne gidecegim.=@Eminim artik hepsi canavarlar ve harabelerdir.=Buradan gecen Tuatara Lejyonu'ndan kimsenin sag kurtulabilecegini hayal edemiyorum.=@Ve Nephit'in bir seylerin pesinde olduguna suphe yok.=@O kaleye girmem gerekiyor...=@Eger bu canavarlarin nereden geldigine dair gercegi ogreneceksem.",
       "ReturnText": "Dur orada, yabanci. Sen kimsin?",
       "PraiseText": "Bu kisimlarda cok buyuk degisiklikler yaptiniz."
     },
@@ -686,8 +686,8 @@
       "ReturnText": "Geri dondun mu? Yani belki sen digerleri gibi degilsin."
     },
     "145": {
-      "OfferText": "Arkadaslarini Wolf's End'den Mezarlik Tepesi'ne gonderdim. Istedikleri takdirde oraya yerlesebilirler.",
-      "ActiveText": "Siz Kurt Burnu halkina burada yer yok.=@Nereden geldin peki?=Benim halkim 40 yil once buraya yerlesti.=Kole oldugumuz cok uzak bir ulkeden geldik.=Artik ozgur ve mureffeh bir hayat yasiyoruz.=@Ama canavarlar! Goblinler, ejderhalar, olumsuzler...=Biz kendi hakkimizi koruyoruz.=Arkadaslarini Wolf's End'den Mezarlik Tepesi'ne gonderdim.=Yerlesecek yeni topraklar ariyorlarsa, onlara sahip olabilirler.=@Bir Mezarlik mi?=Dilenciler secici olamazlar.",
+      "OfferText": "Arkadaslarini Kurtlarin Sonu'ndan Mezarlik Tepesi'ne gonderdim. Istedikleri takdirde oraya yerlesebilirler.",
+      "ActiveText": "Siz Kurtlarin Sonu halkina burada yer yok.=@Nereden geldin peki?=Benim halkim 40 yil once buraya yerlesti.=Kole oldugumuz cok uzak bir ulkeden geldik.=Artik ozgur ve mureffeh bir hayat yasiyoruz.=@Ama canavarlar! Goblinler, ejderhalar, olumsuzler...=Biz kendi hakkimizi koruyoruz.=Arkadaslarini Kurtlarin Sonu'ndan Mezarlik Tepesi'ne gonderdim.=Yerlesecek yeni topraklar ariyorlarsa, onlara sahip olabilirler.=@Bir Mezarlik mi?=Dilenciler secici olamazlar.",
       "ReturnText": "Burada oldugunuz icin yildizlara tesekkur edin! Nephit'in kara buyusu geri dondu!",
       "PraiseText": "Babam halkimizi kolelikten kurtardi.=@Nereden geldin?=Asla gidemeyecegin bir yere dostum.=Kelimelerin otesinde korkunc bir yerde.=@Ejderhalardan ve goblinlerden nasil kurtuldunuz ve...=Guvenligimiz bizim endisemizdir.=Buyuk fedakarliklar yaptik.=Ama bunlar gerekliydi.=Halkimi ne pahasina olursa olsun korudum.=Belki de kendi ailen icin endiselenmelisin."
     },
@@ -712,7 +712,7 @@
     },
     "150": {
       "OfferText": "Cadi Yagarah, Nephit'le is birligi icinde olabilir!",
-      "ActiveText": "Felbridge Komiseri, Mezarlik Tepesi'ne yerlesmenin guvenli olacagini soyledi.=@Acikcasi oyle degil.=Oluler bu sabah mezarlarindan dirilmeye basladi!=@Nephit'in calismasina benziyor.=Evet oyle ama bir cadi hakkinda bilgi aldik.=Adi Yagarah ve Nephit'le calisiyor olabilir.=Buranin dogusundaki bir mozolede saklandigini dusunuyoruz.=@Nephit'in herhangi bir arkadasi benim dusmanimdir.",
+      "ActiveText": "Fel Koprusu Komiseri, Mezarlik Tepesi'ne yerlesmenin guvenli olacagini soyledi.=@Acikcasi oyle degil.=Oluler bu sabah mezarlarindan dirilmeye basladi!=@Nephit'in calismasina benziyor.=Evet oyle ama bir cadi hakkinda bilgi aldik.=Adi Yagarah ve Nephit'le calisiyor olabilir.=Buranin dogusundaki bir mozolede saklandigini dusunuyoruz.=@Nephit'in herhangi bir arkadasi benim dusmanimdir.",
       "ReturnText": "Beni kurtardigin icin tesekkur ederim",
       "PraiseText": "Gnole'lar onlarca yildir insanlardan nefret ediyor.=Yardim icin Nephit'e basvurmalari surpriz degil."
     },
@@ -736,7 +736,7 @@
     },
     "155": {
       "OfferText": "Bu topraklari halkinin adina geri almana yardim ettigim icin gurur duyuyorum.",
-      "ActiveText": "Felbridge'deki eski dostlarima burada senin adamlarinla ​​kalacagimi soyleyebilirsin.",
+      "ActiveText": "Fel Koprusu'ndeki eski dostlarima burada senin adamlarinla ​​kalacagimi soyleyebilirsin.",
       "ReturnText": "Bir kez daha geri dondun. Orada ne yaptiysan burada da bir seyler yapilmis.",
       "PraiseText": "Burada yaptiginiz her sey icin tesekkur ederiz!"
     },
@@ -764,7 +764,7 @@
     },
     "160": {
       "OfferText": "Burada da yukselen olumsuzlerin sorunu ne?",
-      "ActiveText": "Yine Kurt Burnu gibi!=Burada da oluler diriliyor.=@Bununla ugrasiyorum, korkma.",
+      "ActiveText": "Yine Kurtlarin Sonu gibi!=Burada da oluler diriliyor.=@Bununla ugrasiyorum, korkma.",
       "ReturnText": "Tesekkur ederim! Yardiminiz icin cok minnettariz",
       "PraiseText": "Sen degerli bir kahramansin. Yardimin icin tesekkurler"
     },
@@ -796,7 +796,7 @@
     },
     "175": {
       "OfferText": "Gnole'lar caresizlik icinde Meylour'a donuyor.",
-      "ActiveText": "Gnole'larin normalde tanrilara sevgisi yoktur.=Ama onlara ihanet ettikleri icin insanlardan nefret ediyorlar.=@Onlara kim ihanet etti?=Felbridge'in insanlari bir zamanlar onlarin muttefikiydi.=Komiser onlara ihanet etti.=Simdi intikam icin Meylour'a donuyorlar.=@Ironik. Komiser Meylour'a da tapiyordu.=Kotu tanrilar herkesi yozlastirir.",
+      "ActiveText": "Gnole'larin normalde tanrilara sevgisi yoktur.=Ama onlara ihanet ettikleri icin insanlardan nefret ediyorlar.=@Onlara kim ihanet etti?=Fel Koprusu'nun insanlari bir zamanlar onlarin muttefikiydi.=Komiser onlara ihanet etti.=Simdi intikam icin Meylour'a donuyorlar.=@Ironik. Komiser Meylour'a da tapiyordu.=Kotu tanrilar herkesi yozlastirir.",
       "ReturnText": "Meylour umursamaz tasin ozudur, tum yasamin lanetidir.",
       "PraiseText": "Meylour umursamaz tasin ozudur, tum yasamin lanetidir."
     },
@@ -819,7 +819,7 @@
       "ActiveText": "Meylour Damarlari olarak bilinen bu madenler bir zamanlar Dunya Titanina aitti.=Simdi Vezrinn'in adananlari onlari ele gecirdi=Buyulu cevher Alumite'yi ve Kalbi ariyorlar=Eseri ele gecirmek ve Meylour Kilici'ni etkinlestirmek icin hepsini yenmeniz gerekecek."
     },
     "181": {
-      "ActiveText": "Emerald Glades'e ulasmak icin buranin dogusundaki ilk yoldan ilerleyin=Doguya dogru ilerlemeye devam edin",
+      "ActiveText": "Zumrut Cayirlari'na ulasmak icin buranin dogusundaki ilk yoldan ilerleyin=Doguya dogru ilerlemeye devam edin",
       "ReturnText": "Madenlerden gectigine gore guclu bir kahraman olmalisin!",
       "PraiseText": "Halkimizi yeniden bir araya getirdiginiz icin tesekkur ederiz!"
     },
@@ -831,7 +831,7 @@
     },
     "183": {
       "OfferText": "Uthor'un Enfes Kreasyonlari",
-      "ActiveText": "Demir ocagi Stormshard Zirveleri'nde gizli kaliyor.",
+      "ActiveText": "Demir ocagi Firtina Tasi Zirveleri'nde gizli kaliyor.",
       "ReturnText": "Uthor'un Enfes Kreasyonlari=Demirhane bulundu.",
       "PraiseText": "Uthor'un Enfes Kreasyonlari=Demirhane bulundu."
     },
@@ -842,8 +842,8 @@
     },
     "185": {
       "OfferText": "Bu daglar Alurit minerali bakimindan zengindir.",
-      "ActiveText": "Tuhaf kaya yaratiklari Alurit iceriyor.=Buyulu silahlar icin kullanabiliriz...=Buyulu zirh...=Buyulu tencere...=Her seyi buyuledi!=Felbridge parlayacak.=Ve ikimiz de kâr edecegiz.",
-      "ReturnText": "Tesekkur ederim! Felbridge'deki demirci bunun icin guzel bir bedel odeyecek.",
+      "ActiveText": "Tuhaf kaya yaratiklari Alurit iceriyor.=Buyulu silahlar icin kullanabiliriz...=Buyulu zirh...=Buyulu tencere...=Her seyi buyuledi!=Fel Koprusu parlayacak.=Ve ikimiz de kâr edecegiz.",
+      "ReturnText": "Tesekkur ederim! Fel Koprusu'ndeki demirci bunun icin guzel bir bedel odeyecek.",
       "PraiseText": "Yardiminiz icin tekrar tesekkurler!"
     },
     "186": {
@@ -920,7 +920,7 @@
     },
     "200": {
       "OfferText": "Liderimiz Titus, ejderhalarla savasmanin bir yolunu bulmak icin Gozlemevi'ne gitti.",
-      "ActiveText": "O ejderhayi oldurdugun icin tesekkur ederim.=@Siz kimsiniz?=Sigismund Hocke'un kesif gezisindeydik.=@Kurt Burnu'nun insanlari gibi mi?=Evet, tamamen ayni.=Goblinlerin arasindan gecerek kaleye dogru savastik.=Sigismund kampi korumamiz icin bizi birakti.=O ve sovalyeleri asagiya indiler.=Portaldan gectiler.=@Ve o zamandan beri burada sikisip kaldin.=Bilge Titus bize yardim etti.=Ejderha lejyonu geldiginde onlari durdurmanin bir yolunu bulmaya gitti.=Onu bulmalisin.",
+      "ActiveText": "O ejderhayi oldurdugun icin tesekkur ederim.=@Siz kimsiniz?=Sigismund Hocke'un kesif gezisindeydik.=@Kurtlarin Sonu'nun insanlari gibi mi?=Evet, tamamen ayni.=Goblinlerin arasindan gecerek kaleye dogru savastik.=Sigismund kampi korumamiz icin bizi birakti.=O ve sovalyeleri asagiya indiler.=Portaldan gectiler.=@Ve o zamandan beri burada sikisip kaldin.=Bilge Titus bize yardim etti.=Ejderha lejyonu geldiginde onlari durdurmanin bir yolunu bulmaya gitti.=Onu bulmalisin.",
       "PraiseText": "Uyuyan Topraklar'da Sigismund Hocke'ye ne oldugunu hâlâ merak ediyorum."
     },
     "201": {
@@ -984,13 +984,13 @@
       "OfferText": "Yeni bir guc burada, Shazari'deki ejderha lejyonlarinin yerini almaya calisiyor.",
       "ActiveText": "Tam da normal ticarete devam edebilecegimizi dusundugum sirada.=@Goblin. Ne istiyorsun?=Insan! Arkadaslarim ve muttefiklerim ile ozgurce ticaret yapmak istiyorum.=@Peki seni durduran ne?=Erkeklerden daha uzun olan tuhaf yeni savascilar.=Onlarin Seelie Ogres olabilecegine inaniyorum.=@Selie nedir?=Buyu konusunda uzman, kadim bir peri irki.=Dokunduklari her seyi bozuyorlar.=Dogudaki duvarin otesinde kamp kurmuslar.=@Arastiracagim...=@Ama dogruyu soylesen iyi olur, goblin.=Tesekkur ederim kahraman! Iyi sanlar!",
       "ReturnText": "Demek Seelie'ydi. Kesinlikle Imparatorun yardimina ihtiyacimiz olacak!",
-      "PraiseText": "Valhaven'dan birini bul.=Seelie gibi bir dusmana karsi Imparator'un yardimina ihtiyacimiz var.=Hic sansimiz yok!"
+      "PraiseText": "Val Limani'ndan birini bul.=Seelie gibi bir dusmana karsi Imparator'un yardimina ihtiyacimiz var.=Hic sansimiz yok!"
     },
     "214": {
-      "OfferText": "Yasli goblin seni bir Valhaven elcisi bulman icin gonderdi, degil mi?",
+      "OfferText": "Yasli goblin seni bir Val Limani elcisi bulman icin gonderdi, degil mi?",
       "ActiveText": "Ben kesinlikle buyukelci degilim.=@O zaman ne isimiz var yabanci?=Seelie'nin arkasinda bizzat Imparatorun olduguna inaniyorum.=@Bu ciddi bir suclama.=Bu yuzden kanita ihtiyacim var.=@Imparator neden bu topraklari yozlastirsin?=Ejderhalarin gitmesiyle Shazari'yi imparatorluguna eklemenin yollarini arar.=Antik mezarliklar sorunun kaynagi gibi gorunuyor.=Bakalim Imparatorluk'un mudahalesine dair herhangi bir isaret bulacak misin?",
       "ReturnText": "Ben de bu kadar dusundum! Imparator her zaman acimasiz ve asagiliktir.",
-      "PraiseText": "Benimle iskelede bulus.=@Neden?=Boylece seni gizlice Valhaven'a sokabilirim elbette.=Imparatorun planlarini burada bozdunuz.=En yeni dusmaninizla savasirken yardima ihtiyaciniz olacak.=@Ve sen o yardimci misin?=Cok yetenekli arkadaslarim var.=Tekneye gelin."
+      "PraiseText": "Benimle iskelede bulus.=@Neden?=Boylece seni gizlice Val Limani'na sokabilirim elbette.=Imparatorun planlarini burada bozdunuz.=En yeni dusmaninizla savasirken yardima ihtiyaciniz olacak.=@Ve sen o yardimci misin?=Cok yetenekli arkadaslarim var.=Tekneye gelin."
     },
     "215": {
       "OfferText": "Buradaki eski piramitler ilgi cekici olabilir.",
@@ -1035,7 +1035,7 @@
       "PraiseText": "Vay, bu sey berbat kokuyor=Yine de bocekleri korkutup kaciracaktir, bu yuzden buna deger=Gokyuzu yolculugunuzda sizi korusun"
     },
     "223": {
-      "OfferText": "Imparatoru ve onun Seelie muttefiklerini durdurmak icin benimle Valhaven'a gelmeniz gerekecek.",
+      "OfferText": "Imparatoru ve onun Seelie muttefiklerini durdurmak icin benimle Val Limani'na gelmeniz gerekecek.",
       "ActiveText": "Imparator simdi senin pesinde olacak.=@Imparatorunuz entrikaci bir iblis gibi gorunuyor.=Bir zamanlar harika bir adamdi.=Aniden ortaya cikti ve Goblinleri kovdu.=Sonra ejderhalari durdurdu.=Ama son yillarda zalimlesti.=@Ve Seelie ile is birligi icinde gorunuyor.=Evet, bu dogru.=Bu gune kadar ne kadar kotu olduklarini bilmiyordum.=Gel, acele etmeliyiz.=Sansliysak Imparator geldigimizi bilmez."
     },
     "224": {
@@ -1061,7 +1061,7 @@
     },
     "230": {
       "OfferText": "Imparator, tahtini guvence altina almak icin ruhunu Seelie'ye satti.",
-      "ActiveText": "Uyuyan Topraklar'da ilk uyananlar Seelie'lerdi.=Bir zamanlar bilge ve comertlerdi...=Ancak zaman onlari acimasiz ve baskalarini kiskandirdi.=Guclerini Goblinlere ve Ejderhalara kaptirdilar...=Sigismund Hocke, Goblin Krallarini yenmek icin onlara basvurdu.=Ve simdi onun Valhaven'daki yonetimini destekliyorlar.=Seelie buyusune karsi koymak icin Seelie buyusu gerekir.=Kayip Dusler Tapinagi'na gidin...=Orada Imparator'un korumalarina karsi kullanabilecegim bir sey bulabilirsin.",
+      "ActiveText": "Uyuyan Topraklar'da ilk uyananlar Seelie'lerdi.=Bir zamanlar bilge ve comertlerdi...=Ancak zaman onlari acimasiz ve baskalarini kiskandirdi.=Guclerini Goblinlere ve Ejderhalara kaptirdilar...=Sigismund Hocke, Goblin Krallarini yenmek icin onlara basvurdu.=Ve simdi onun Val Limani'ndaki yonetimini destekliyorlar.=Seelie buyusune karsi koymak icin Seelie buyusu gerekir.=Kayip Dusler Tapinagi'na gidin...=Orada Imparator'un korumalarina karsi kullanabilecegim bir sey bulabilirsin.",
       "ReturnText": "Tapinak sanildigindan daha tehlikeliymis gibi gorunuyor.=Imparator sirlarini iyi koruyor olmaliydi.=Artik onun Seelie buyusu hakkinda cok daha fazla sey biliyorum.=Seni sarayinin dis muhafazalarindan gecirebilmeliyim.=Ama onunla yuzlestiginde tek basina olacaksin.=Savunmasiz ama yine de cok tehlikeli."
     },
     "231": {
@@ -1074,7 +1074,7 @@
       "OfferText": "Simdi isin zor kismina gecelim.",
       "ActiveText": "Imparator sarayinda siniyor.=Onun tum destegini aldin.=Halk ona karsi ayaklaniyor.=Imparator Sigismund'un teror saltanati bugun sona eriyor.",
       "ReturnText": "Ozgurluk!",
-      "PraiseText": "Burada ne yaptin...=sana yeterince tesekkur edemem=Valhaven yuzyillardir ilk kez ozgur.=Goblinler, Ejderhalar ve Seelie'nin hepsi yenildi.=Sonunda barisi ogrenecegiz."
+      "PraiseText": "Burada ne yaptin...=sana yeterince tesekkur edemem=Val Limani yuzyillardir ilk kez ozgur.=Goblinler, Ejderhalar ve Seelie'nin hepsi yenildi.=Sonunda barisi ogrenecegiz."
     },
     "233": {
       "OfferText": "Artik Seelie koguslarini gecebildiginize gore saldiri zamani.",
@@ -1112,12 +1112,12 @@
     },
     "243": {
       "OfferText": "Imparatorun burada yaptigi bir trajedi ama her sey kaybolmadi",
-      "ActiveText": "Sehrin kendisini lekeleyen Seelie pisliginin agirligi altindan haykirdigini hissedebiliyorum.=Zehir, panzehir yapmanin anahtari oldugundan, iblis gozyaslari da Valhaven'in aurasini temizlemenin anahtaridir.",
+      "ActiveText": "Sehrin kendisini lekeleyen Seelie pisliginin agirligi altindan haykirdigini hissedebiliyorum.=Zehir, panzehir yapmanin anahtari oldugundan, iblis gozyaslari da Val Limani'nin aurasini temizlemenin anahtaridir.",
       "ReturnText": "Cok yasa dostum.",
       "PraiseText": "Isleri yoluna koymak icin uzun bir surece baslayacagim...=Senin gibi asil bir ruhla tanismak kalbimi sevindiriyor"
     },
     "244": {
-      "OfferText": "Imparatoru ve onun Seelie muttefiklerini durdurmak icin benimle Valhaven'a gelmeniz gerekecek.",
+      "OfferText": "Imparatoru ve onun Seelie muttefiklerini durdurmak icin benimle Val Limani'na gelmeniz gerekecek.",
       "ActiveText": "Imparator simdi senin pesinde olacak.=@Imparatorunuz entrikaci bir iblis gibi gorunuyor.=Bir zamanlar harika bir adamdi.=Aniden ortaya cikti ve Goblinleri kovdu.=Sonra ejderhalari durdurdu.=Ama son yillarda zalimlesti.=@Ve Seelie ile is birligi icinde gorunuyor.=Evet, bu dogru.=Bu gune kadar ne kadar kotu olduklarini bilmiyordum.=Gel, acele etmeliyiz.=Sansliysak Imparator geldigimizi bilmez."
     },
     "245": {
@@ -1143,7 +1143,7 @@
     },
     "251": {
       "OfferText": "Imparator, tahtini guvence altina almak icin ruhunu Seelie'ye satti.",
-      "ActiveText": "Uyuyan Topraklar'da ilk uyananlar Seelie'lerdi.=Bir zamanlar bilge ve comertlerdi...=Ancak zaman onlari acimasiz ve baskalarini kiskandirdi.=Guclerini Goblinlere ve Ejderhalara kaptirdilar...=Sigismund Hocke, Goblin Krallarini yenmek icin onlara basvurdu.=Ve simdi onun Valhaven'daki yonetimini destekliyorlar.=Seelie buyusune karsi koymak icin Seelie buyusu gerekir.=Kayip Dusler Tapinagi'na gidin...=Orada Imparator'un korumalarina karsi kullanabilecegim bir sey bulabilirsin.",
+      "ActiveText": "Uyuyan Topraklar'da ilk uyananlar Seelie'lerdi.=Bir zamanlar bilge ve comertlerdi...=Ancak zaman onlari acimasiz ve baskalarini kiskandirdi.=Guclerini Goblinlere ve Ejderhalara kaptirdilar...=Sigismund Hocke, Goblin Krallarini yenmek icin onlara basvurdu.=Ve simdi onun Val Limani'ndaki yonetimini destekliyorlar.=Seelie buyusune karsi koymak icin Seelie buyusu gerekir.=Kayip Dusler Tapinagi'na gidin...=Orada Imparator'un korumalarina karsi kullanabilecegim bir sey bulabilirsin.",
       "ReturnText": "Tapinak sanildigindan daha tehlikeliymis gibi gorunuyor.=Imparator sirlarini iyi koruyor olmaliydi.=Artik onun Seelie buyusu hakkinda cok daha fazla sey biliyorum.=Seni sarayinin dis muhafazalarindan gecirebilmeliyim.=Ama onunla yuzlestiginde tek basina olacaksin.=Savunmasiz ama yine de cok tehlikeli."
     },
     "252": {
@@ -1156,7 +1156,7 @@
       "OfferText": "Simdi isin zor kismina gecelim.",
       "ActiveText": "Imparator sarayinda siniyor.=Onun tum destegini aldin.=Halk ona karsi ayaklaniyor.=Imparator Sigismund'un teror saltanati bugun sona eriyor.",
       "ReturnText": "Ozgurluk!",
-      "PraiseText": "Burada ne yaptin...=sana yeterince tesekkur edemem=Valhaven yuzyillardir ilk kez ozgur.=Goblinler, Ejderhalar ve Seelie'nin hepsi yenildi.=Sonunda barisi ogrenecegiz."
+      "PraiseText": "Burada ne yaptin...=sana yeterince tesekkur edemem=Val Limani yuzyillardir ilk kez ozgur.=Goblinler, Ejderhalar ve Seelie'nin hepsi yenildi.=Sonunda barisi ogrenecegiz."
     },
     "254": {
       "OfferText": "Artik Seelie koguslarini gecebildiginize gore saldiri zamani.",
@@ -1194,7 +1194,7 @@
     },
     "264": {
       "OfferText": "Imparatorun burada yaptigi bir trajedi ama her sey kaybolmadi",
-      "ActiveText": "Sehrin kendisini lekeleyen Seelie pisliginin agirligi altindan haykirdigini hissedebiliyorum.=Zehir, panzehir yapmanin anahtari oldugundan, iblis gozyaslari da Valhaven'in aurasini temizlemenin anahtaridir.",
+      "ActiveText": "Sehrin kendisini lekeleyen Seelie pisliginin agirligi altindan haykirdigini hissedebiliyorum.=Zehir, panzehir yapmanin anahtari oldugundan, iblis gozyaslari da Val Limani'nin aurasini temizlemenin anahtaridir.",
       "ReturnText": "Cok yasa dostum.",
       "PraiseText": "Isleri yoluna koymak icin uzun bir surece baslayacagim...=Senin gibi asil bir ruhla tanismak kalbimi sevindiriyor"
     },

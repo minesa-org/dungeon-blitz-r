@@ -177,7 +177,7 @@ function normalizeKey(value) {
 }
 
 function isLikelyAlreadyLocalized(value) {
-    return /^(Yerel|Turkce|Acemi|Yesim|Kopru|Mezarlik|Eski|Zumrut|Sazari|Kilit|Dehset|Hocke|Gorev|Zindan|Binek|Evcil|Esya|Yetenek|Saldiri|Savunma|Guc|Can|Mana|Altin|Kral|Baron|General)\b/i.test(normalizeKey(value));
+    return /^(Yerel|Turkce|Acemi|Yesim|Kopru|Mezarlik|Eski|Zumrut|Shazari|Siyah|Kurtlarin|Firtina|Fel|Val|Kilit|Dehset|Hocke|Gorev|Zindan|Binek|Evcil|Esya|Yetenek|Saldiri|Savunma|Guc|Can|Mana|Altin|Kral|Baron|General)\b/i.test(normalizeKey(value));
 }
 
 function normalizeUnsupportedTurkishGlyphs(value) {
