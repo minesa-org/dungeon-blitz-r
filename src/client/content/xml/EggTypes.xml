@@ -2,7 +2,7 @@
 <EggTypes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<EggType EggName="---Template---">
 		<EggID>0</EggID>
-		<DisplayName>yumurta Name</DisplayName>
+		<DisplayName>Yumurta Name</DisplayName>
 		<ClassType>ClassType</ClassType>
 		<Color>Color</Color>
 		<Description>Awesome yumurta Lore</Description>
@@ -11,7 +11,7 @@
 	</EggType>
 	<EggType EggName="GenericBrown">
 		<EggID>1</EggID>
-		<DisplayName>Speckled beyaz yumurta</DisplayName>
+		<DisplayName>Speckled Beyaz Yumurta</DisplayName>
 		<ClassType>Generic</ClassType>
 		<Color>Brown</Color>
 		<Description>I found this one icinde benim aunt's chicken farm.</Description>
@@ -20,7 +20,7 @@
 	</EggType>
 	<EggType EggName="CommonBrown">
 		<EggID>2</EggID>
-		<DisplayName>Elaborate beyaz yumurta</DisplayName>
+		<DisplayName>Elaborate Beyaz Yumurta</DisplayName>
 		<ClassType>Common</ClassType>
 		<Color>Brown</Color>
 		<Description>Found this one icinde some eski goblin caves.</Description>
@@ -29,7 +29,7 @@
 	</EggType>
 	<EggType EggName="OrdinaryBrown">
 		<EggID>3</EggID>
-		<DisplayName>Striped beyaz yumurta</DisplayName>
+		<DisplayName>Striped Beyaz Yumurta</DisplayName>
 		<ClassType>Ordinary</ClassType>
 		<Color>Brown</Color>
 		<Description>This was stuck up icinde trees when I came aross it.</Description>
@@ -38,7 +38,7 @@
 	</EggType>
 	<EggType EggName="PlainBrown">
 		<EggID>4</EggID>
-		<DisplayName>Shiny beyaz yumurta</DisplayName>
+		<DisplayName>Shiny Beyaz Yumurta</DisplayName>
 		<ClassType>Plain</ClassType>
 		<Color>Brown</Color>
 		<Description>Picked this yumurta up while walking beaches, looking icin driftwood.</Description>
@@ -47,7 +47,7 @@
 	</EggType>
 	<EggType EggName="GenericRed">
 		<EggID>5</EggID>
-		<DisplayName>Speckled kirmizi yumurta</DisplayName>
+		<DisplayName>Speckled Kirmizi Yumurta</DisplayName>
 		<ClassType>Generic</ClassType>
 		<Color>Red</Color>
 		<Description>Found bir whole nest these icinde bir abandoned forge icinde mountains.</Description>
@@ -56,7 +56,7 @@
 	</EggType>
 	<EggType EggName="GenericYellow">
 		<EggID>6</EggID>
-		<DisplayName>Speckled sari yumurta</DisplayName>
+		<DisplayName>Speckled Sari Yumurta</DisplayName>
 		<ClassType>Generic</ClassType>
 		<Color>Yellow</Color>
 		<Description>Found this one ile divining rod benim uncle left beni.</Description>
@@ -65,7 +65,7 @@
 	</EggType>
 	<EggType EggName="GenericBlue">
 		<EggID>7</EggID>
-		<DisplayName>Speckled mavi yumurta</DisplayName>
+		<DisplayName>Speckled Mavi Yumurta</DisplayName>
 		<ClassType>Generic</ClassType>
 		<Color>Blue</Color>
 		<Description>I have line nest ile hemlock hatch this one.</Description>
@@ -74,7 +74,7 @@
 	</EggType>
 	<EggType EggName="GenericGreen">
 		<EggID>8</EggID>
-		<DisplayName>Speckled yesil yumurta</DisplayName>
+		<DisplayName>Speckled Yesil Yumurta</DisplayName>
 		<ClassType>Generic</ClassType>
 		<Color>Green</Color>
 		<Description>sen want give it bir good sniff her day make sure it hasn't gone rotten.</Description>
@@ -83,7 +83,7 @@
 	</EggType>
 	<EggType EggName="CommonRed">
 		<EggID>9</EggID>
-		<DisplayName>Elaborate kirmizi yumurta</DisplayName>
+		<DisplayName>Elaborate Kirmizi Yumurta</DisplayName>
 		<ClassType>Common</ClassType>
 		<Color>Red</Color>
 		<Description>bir blacksmith kaynakli back West traded these beni icin some candied dates.</Description>
@@ -92,7 +92,7 @@
 	</EggType>
 	<EggType EggName="CommonYellow">
 		<EggID>10</EggID>
-		<DisplayName>Elaborate sari yumurta</DisplayName>
+		<DisplayName>Elaborate Sari Yumurta</DisplayName>
 		<ClassType>Common</ClassType>
 		<Color>Yellow</Color>
 		<Description>This was buried derin ile some pirate booty.</Description>
@@ -101,7 +101,7 @@
 	</EggType>
 	<EggType EggName="CommonBlue">
 		<EggID>11</EggID>
-		<DisplayName>Elaborate mavi yumurta</DisplayName>
+		<DisplayName>Elaborate Mavi Yumurta</DisplayName>
 		<ClassType>Common</ClassType>
 		<Color>Blue</Color>
 		<Description>benim cousin ate one these once. Broke tum his front teeth.</Description>
@@ -110,7 +110,7 @@
 	</EggType>
 	<EggType EggName="CommonGreen">
 		<EggID>12</EggID>
-		<DisplayName>Elaborate yesil yumurta</DisplayName>
+		<DisplayName>Elaborate Yesil Yumurta</DisplayName>
 		<ClassType>Common</ClassType>
 		<Color>Green</Color>
 		<Description>This one needs be rotated her sure ruzgar darbeler kaynakli East.</Description>
@@ -119,7 +119,7 @@
 	</EggType>
 	<EggType EggName="OrdinaryRed">
 		<EggID>13</EggID>
-		<DisplayName>Striped kirmizi yumurta</DisplayName>
+		<DisplayName>Striped Kirmizi Yumurta</DisplayName>
 		<ClassType>Ordinary</ClassType>
 		<Color>Red</Color>
 		<Description>hisar these icinde bir nice warm place. But degil TOO hot veya it will cook.</Description>
@@ -128,7 +128,7 @@
 	</EggType>
 	<EggType EggName="OrdinaryYellow">
 		<EggID>14</EggID>
-		<DisplayName>Striped sari yumurta</DisplayName>
+		<DisplayName>Striped Sari Yumurta</DisplayName>
 		<ClassType>Ordinary</ClassType>
 		<Color>Yellow</Color>
 		<Description>yok telling exactly how valuable beastie icinde here will be.</Description>
@@ -137,7 +137,7 @@
 	</EggType>
 	<EggType EggName="OrdinaryBlue">
 		<EggID>15</EggID>
-		<DisplayName>Striped mavi yumurta</DisplayName>
+		<DisplayName>Striped Mavi Yumurta</DisplayName>
 		<ClassType>Ordinary</ClassType>
 		<Color>Blue</Color>
 		<Description>Did sen know sen can stand this yumurta upright during equinox?</Description>
@@ -146,7 +146,7 @@
 	</EggType>
 	<EggType EggName="OrdinaryGreen">
 		<EggID>16</EggID>
-		<DisplayName>Striped yesil yumurta</DisplayName>
+		<DisplayName>Striped Yesil Yumurta</DisplayName>
 		<ClassType>Ordinary</ClassType>
 		<Color>Green</Color>
 		<Description>These need bir hour sunlight her day veya they come out depressed.</Description>
@@ -155,7 +155,7 @@
 	</EggType>
 	<EggType EggName="PlainRed">
 		<EggID>17</EggID>
-		<DisplayName>Shiny kirmizi yumurta</DisplayName>
+		<DisplayName>Shiny Kirmizi Yumurta</DisplayName>
 		<ClassType>Plain</ClassType>
 		<Color>Red</Color>
 		<Description>These have very zor shells, so sen might need bir hammer hatch it.</Description>
@@ -164,7 +164,7 @@
 	</EggType>
 	<EggType EggName="PlainYellow">
 		<EggID>18</EggID>
-		<DisplayName>Shiny sari yumurta</DisplayName>
+		<DisplayName>Shiny Sari Yumurta</DisplayName>
 		<ClassType>Plain</ClassType>
 		<Color>Yellow</Color>
 		<Description>Handle it ile special care, veya you'll make it temperamental.</Description>
@@ -173,7 +173,7 @@
 	</EggType>
 	<EggType EggName="PlainBlue">
 		<EggID>19</EggID>
-		<DisplayName>Shiny mavi yumurta</DisplayName>
+		<DisplayName>Shiny Mavi Yumurta</DisplayName>
 		<ClassType>Plain</ClassType>
 		<Color>Blue</Color>
 		<Description>These need be polished ile fine grain sandpaper veya they come out sullen.</Description>
@@ -182,7 +182,7 @@
 	</EggType>
 	<EggType EggName="PlainGreen">
 		<EggID>20</EggID>
-		<DisplayName>Shiny yesil yumurta</DisplayName>
+		<DisplayName>Shiny Yesil Yumurta</DisplayName>
 		<ClassType>Plain</ClassType>
 		<Color>Green</Color>
 		<Description>These like it if sen sing bir sweet song at sunset while they're waiting hatch.</Description>
@@ -191,7 +191,7 @@
 	</EggType>
 	<EggType EggName="DragonRed">
 		<EggID>21</EggID>
-		<DisplayName>Ruby Ejderha yumurta</DisplayName>
+		<DisplayName>Yakut Ejderha Yumurta</DisplayName>
 		<ClassType>Dragon</ClassType>
 		<Color>Red</Color>
 		<Description>Ejderha eggs like this are almost impossible bul outside uyuyan topraklar.</Description>
@@ -200,7 +200,7 @@
 	</EggType>
 	<EggType EggName="DragonYellow">
 		<EggID>22</EggID>
-		<DisplayName>Amber Ejderha yumurta</DisplayName>
+		<DisplayName>Amber Ejderha Yumurta</DisplayName>
 		<ClassType>Dragon</ClassType>
 		<Color>Yellow</Color>
 		<Description>This beauty comes tum way kaynakli top Firtina Tasi Daglari.</Description>
@@ -209,7 +209,7 @@
 	</EggType>
 	<EggType EggName="DragonBlue">
 		<EggID>23</EggID>
-		<DisplayName>Saphire Ejderha yumurta</DisplayName>
+		<DisplayName>Saphire Ejderha Yumurta</DisplayName>
 		<ClassType>Dragon</ClassType>
 		<Color>Blue</Color>
 		<Description>Almost lost benim left leg snatching this prize ejderha yumurta kaynakli its hidey-hole.</Description>
@@ -218,7 +218,7 @@
 	</EggType>
 	<EggType EggName="DragonGreen">
 		<EggID>24</EggID>
-		<DisplayName>Emerald Ejderha yumurta</DisplayName>
+		<DisplayName>Zumrut Ejderha Yumurta</DisplayName>
 		<ClassType>Dragon</ClassType>
 		<Color>Green</Color>
 		<Description>This one was sunk derin icinde Siyah Gul Batakligi, where ejderhalar thought I couldn't bul it.</Description>
@@ -227,7 +227,7 @@
 	</EggType>
 	<EggType EggName="BirdRed">
 		<EggID>25</EggID>
-		<DisplayName>Ruddy Avian yumurta</DisplayName>
+		<DisplayName>Ruddy Avian Yumurta</DisplayName>
 		<ClassType>Bird</ClassType>
 		<Color>Red</Color>
 		<Description>This avian beauty come kaynakli bir species everyone else thought was extinct.</Description>
@@ -236,7 +236,7 @@
 	</EggType>
 	<EggType EggName="BirdYellow">
 		<EggID>26</EggID>
-		<DisplayName>Saffron Avian yumurta</DisplayName>
+		<DisplayName>Saffron Avian Yumurta</DisplayName>
 		<ClassType>Bird</ClassType>
 		<Color>Yellow</Color>
 		<Description>Can sen believe that icinde Val Limani, they cooked these nadir birds icin imparator?</Description>
@@ -245,7 +245,7 @@
 	</EggType>
 	<EggType EggName="BirdBlue">
 		<EggID>27</EggID>
-		<DisplayName>kraliyet Avian yumurta</DisplayName>
+		<DisplayName>Kraliyet Avian Yumurta</DisplayName>
 		<ClassType>Bird</ClassType>
 		<Color>Blue</Color>
 		<Description>feathers these birds used crown kadim queens Ellyria.</Description>
@@ -254,16 +254,16 @@
 	</EggType>
 	<EggType EggName="BirdGreen">
 		<EggID>28</EggID>
-		<DisplayName>Verdant Avian yumurta</DisplayName>
+		<DisplayName>Verdant Avian Yumurta</DisplayName>
 		<ClassType>Bird</ClassType>
 		<Color>Green</Color>
-		<Description>Finding one these beautiful eggs is said augur bir lucky yeni year.</Description>
+		<Description>bulma sansi one these beautiful eggs is said augur bir lucky yeni year.</Description>
 		<EggRank>2</EggRank>
 		<Art>a_EggArt_GreenBird</Art>
 	</EggType>
 	<EggType EggName="AncientRed">
 		<EggID>29</EggID>
-		<DisplayName>Bloodshot Antediluvian yumurta</DisplayName>
+		<DisplayName>Bloodshot Antediluvian Yumurta</DisplayName>
 		<ClassType>Ancient</ClassType>
 		<Color>Red</Color>
 		<Description>sen need hisar this nadir yumurta as hot as possible, veya it will go soguk ve perish.</Description>
@@ -272,7 +272,7 @@
 	</EggType>
 	<EggType EggName="AncientYellow">
 		<EggID>30</EggID>
-		<DisplayName>Xanthous Antediluvian yumurta</DisplayName>
+		<DisplayName>Xanthous Antediluvian Yumurta</DisplayName>
 		<ClassType>Ancient</ClassType>
 		<Color>Yellow</Color>
 		<Description>This yumurta dates back First Empire, over bir thousand years ago.</Description>
@@ -281,7 +281,7 @@
 	</EggType>
 	<EggType EggName="AncientBlue">
 		<EggID>31</EggID>
-		<DisplayName>Azure Antediluvian yumurta</DisplayName>
+		<DisplayName>Azure Antediluvian Yumurta</DisplayName>
 		<ClassType>Ancient</ClassType>
 		<Color>Blue</Color>
 		<Description>Even I didn't believe these mavi beauties were anything daha than folk legends.</Description>
@@ -290,7 +290,7 @@
 	</EggType>
 	<EggType EggName="AncientGreen">
 		<EggID>32</EggID>
-		<DisplayName>Verdigris Antediluvian yumurta</DisplayName>
+		<DisplayName>Verdigris Antediluvian Yumurta</DisplayName>
 		<ClassType>Ancient</ClassType>
 		<Color>Green</Color>
 		<Description>rest world thinks these don't exist. I won't tell sen where I got it.</Description>
@@ -299,7 +299,7 @@
 	</EggType>
 	<EggType EggName="GhostRed">
 		<EggID>33</EggID>
-		<DisplayName>Sanguine Netherworld yumurta</DisplayName>
+		<DisplayName>Sanguine Netherworld Yumurta</DisplayName>
 		<ClassType>Ghost</ClassType>
 		<Color>Red</Color>
 		<Description>course eggs have hayaletler! Well, these eggs do anyway. Angry, angry hayaletler...</Description>
@@ -308,7 +308,7 @@
 	</EggType>
 	<EggType EggName="GhostYellow">
 		<EggID>34</EggID>
-		<DisplayName>Tawny Netherworld yumurta</DisplayName>
+		<DisplayName>Tawny Netherworld Yumurta</DisplayName>
 		<ClassType>Ghost</ClassType>
 		<Color>Yellow</Color>
 		<Description>sen can only get these beauties during bir Harvest Moon icinde accursed graveyards</Description>
@@ -317,7 +317,7 @@
 	</EggType>
 	<EggType EggName="GhostBlue">
 		<EggID>35</EggID>
-		<DisplayName>Cerulean Netherworld yumurta</DisplayName>
+		<DisplayName>Cerulean Netherworld Yumurta</DisplayName>
 		<ClassType>Ghost</ClassType>
 		<Color>Blue</Color>
 		<Description>These were buried ile warlocks serve them icinde afterlife.</Description>
@@ -326,7 +326,7 @@
 	</EggType>
 	<EggType EggName="GhostGreen">
 		<EggID>36</EggID>
-		<DisplayName>Sage Netherworld yumurta</DisplayName>
+		<DisplayName>Sage Netherworld Yumurta</DisplayName>
 		<ClassType>Ghost</ClassType>
 		<Color>Green</Color>
 		<Description>When bir dying god has bir final wish, it's stored icinde one these eggs.</Description>

@@ -2,7 +2,7 @@
 <StatueTypes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<Statue StatueName="Template">
 		<StatueID>0</StatueID>
-		<DisplayName>----</DisplayName>
+		<DisplayName>Sablon</DisplayName>
 		<Class>----</Class>
 		<Gender>----</Gender>
 		<Headset>----</Headset>
@@ -24,7 +24,7 @@
 	</Statue>
 	<Statue StatueName="Clintt">
 		<StatueID>1</StatueID>
-		<DisplayName>Yerel Ad 04146A</DisplayName>
+		<DisplayName>Clintt Heykeli</DisplayName>
 		<Class>Mage</Class>
 		<Gender>Female</Gender>
 		<Headset>Head01</Headset>
@@ -41,7 +41,7 @@
 		<AnimationFrame>26</AnimationFrame>
 		<FlipAnimation>false</FlipAnimation>
 		<YOffset>5</YOffset>
-		<FlavorText>First Place, Clintt=Her ustalik buyu...=ve prowess ile bir asa.=Shamed yesil Knight...=ve gave her son laugh.</FlavorText>
+		<FlavorText>First Place, Clintt Heykeli Heykeli=Her ustalik buyu...=ve prowess ile bir asa.=Shamed yesil Knight...=ve gave her son laugh.</FlavorText>
 	</Statue>
 	<Statue StatueName="PurpleRed">
 		<StatueID>2</StatueID>

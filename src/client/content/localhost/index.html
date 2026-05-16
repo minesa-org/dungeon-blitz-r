@@ -77,21 +77,11 @@
       return normalized === "en" || normalized === "tr" ? normalized : "";
     }
 
-    function getCookieValue(name) {
-      const prefix = `${name}=`;
-      return document.cookie
-        .split(";")
-        .map((part) => part.trim())
-        .find((part) => part.startsWith(prefix))
-        ?.slice(prefix.length) || "";
-    }
-
     const urlLanguage = normalizeGameLanguage(new URLSearchParams(window.location.search).get("lang"));
-    const cookieLanguage = normalizeGameLanguage(getCookieValue("db_lang"));
-    const gameLanguage = urlLanguage || cookieLanguage || "tr";
-    document.cookie = `db_lang=${gameLanguage}; path=/; max-age=31536000; SameSite=Lax`;
+    document.cookie = "db_lang=; path=/; max-age=0; SameSite=Lax";
 
-    const swfUrl = `p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp&lang=${gameLanguage}&rv=20260515b`;
+    const languageParam = urlLanguage ? `&lang=${urlLanguage}` : "";
+    const swfUrl = `p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp${languageParam}&rv=20260515b`;
     const localBridgeBaseUrl = "http://127.0.0.1:47631";
     const selfPresenceUrl = "/api/presence/self";
     const discordJoinUrl = "/api/presence/discord-join";

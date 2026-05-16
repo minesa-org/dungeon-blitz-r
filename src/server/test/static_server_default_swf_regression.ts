@@ -1,6 +1,7 @@
 import { strict as assert } from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
+import { GlobalState } from '../core/GlobalState';
 import { StaticServer } from '../core/StaticServer';
 
 function testStaticServerServesSingleSwfByDefault(): void {
@@ -27,13 +28,13 @@ function testStaticServerSelectsLocalizedGameSwz(): void {
 function testStaticServerResolvesGameSwzLocaleFromRequest(): void {
     const server = new StaticServer();
     const queryRequest = {
-        query: { lang: 'en' },
+        query: { lang: 'tr' },
         headers: {},
         socket: { remoteAddress: '127.0.0.1' }
     };
-    const cookieRequest = {
+    const sessionRequest = {
         query: {},
-        headers: { cookie: 'db_lang=en' },
+        headers: {},
         socket: { remoteAddress: '127.0.0.1' }
     };
     const defaultRequest = {
@@ -42,9 +43,19 @@ function testStaticServerResolvesGameSwzLocaleFromRequest(): void {
         socket: { remoteAddress: '127.0.0.1' }
     };
 
-    assert.equal((server as any).resolveGameSwzLocale(queryRequest), 'en');
-    assert.equal((server as any).resolveGameSwzLocale(cookieRequest), 'en');
-    assert.equal((server as any).resolveGameSwzLocale(defaultRequest), 'tr');
+    assert.equal((server as any).resolveGameSwzLocale(queryRequest), 'tr');
+    assert.equal((server as any).resolveGameSwzLocale(defaultRequest), 'en');
+
+    GlobalState.sessionsByToken.set(1, {
+        socket: { remoteAddress: '127.0.0.1' },
+        playerSpawned: true,
+        character: { dialogueLanguage: 'tr' }
+    } as never);
+    try {
+        assert.equal((server as any).resolveGameSwzLocale(sessionRequest), 'tr');
+    } finally {
+        GlobalState.sessionsByToken.delete(1);
+    }
 }
 
 function main(): void {

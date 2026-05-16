@@ -81,22 +81,6 @@ export class StaticServer {
         return normalized === 'en' || normalized === 'tr' ? normalized : null;
     }
 
-    private parseCookies(header: string | string[] | undefined): Record<string, string> {
-        const source = Array.isArray(header) ? header.join(';') : String(header ?? '');
-        const cookies: Record<string, string> = {};
-
-        for (const part of source.split(';')) {
-            const [name, ...valueParts] = part.trim().split('=');
-            if (!name || valueParts.length === 0) {
-                continue;
-            }
-
-            cookies[name] = decodeURIComponent(valueParts.join('='));
-        }
-
-        return cookies;
-    }
-
     private normalizeRemoteAddress(value: string | null | undefined): string {
         const address = String(value ?? '').trim();
         if (!address) {
@@ -131,9 +115,8 @@ export class StaticServer {
     private resolveGameSwzLocale(req: Request): 'en' | 'tr' {
         return (
             this.normalizeLocale(req.query.lang) ??
-            this.normalizeLocale(this.parseCookies(req.headers.cookie).db_lang) ??
             this.resolveSessionLocale(req) ??
-            'tr'
+            'en'
         );
     }
 

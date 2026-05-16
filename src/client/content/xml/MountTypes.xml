@@ -4,7 +4,7 @@
 		<MountID>0</MountID>
 		<MountLevel>0</MountLevel>
 		<IdolCost>0</IdolCost>
-		<DisplayName>Yerel Yoldas 709A23</DisplayName>
+		<DisplayName>Sablon</DisplayName>
 		<Description>This Evcil Is</Description>
 		<DisplayRarity>Rarity</DisplayRarity>
 	</MountType>
@@ -12,7 +12,7 @@
 		<MountID>1</MountID>
 		<MountLevel>20</MountLevel>
 		<IdolCost>100</IdolCost>
-		<DisplayName>Yerel Yoldas 9E5B55</DisplayName>
+		<DisplayName>Kosum At</DisplayName>
 		<Description>Buckskin Pony regards sen patiently. He knows trail, won't wear down, ve never misses his sans eat.</Description>
 		<DisplayRarity>M</DisplayRarity>
 	</MountType>
@@ -20,7 +20,7 @@
 		<MountID>2</MountID>
 		<MountLevel>40</MountLevel>
 		<IdolCost>150</IdolCost>
-		<DisplayName>Yerel Yoldas 30858A</DisplayName>
+		<DisplayName>Savas Ati</DisplayName>
 		<Description>Proud bearing, immaculate coat, rich barding. Destrier is bir steed icin kings ve kings at heart.</Description>
 		<DisplayRarity>M</DisplayRarity>
 	</MountType>
@@ -52,7 +52,7 @@
 		<MountID>6</MountID>
 		<MountLevel>40</MountLevel>
 		<IdolCost>150</IdolCost>
-		<DisplayName>Yerel Yoldas 657E2E</DisplayName>
+		<DisplayName>Kirin Binegi</DisplayName>
 		<Description>This elegant creature roams plain topraklar ve has become very popular ve domesticated.</Description>
 		<DisplayRarity>M</DisplayRarity>
 	</MountType>
@@ -60,15 +60,15 @@
 		<MountID>7</MountID>
 		<MountLevel>40</MountLevel>
 		<IdolCost>999999999</IdolCost>
-		<DisplayName>Yerel Yoldas DE81C0</DisplayName>
+		<DisplayName>Longma Binegi</DisplayName>
 		<DisplayRarity>M</DisplayRarity>
 	</MountType>
 	<MountType MountName="MountMojack">
 		<MountID>8</MountID>
 		<MountLevel>40</MountLevel>
 		<IdolCost>340</IdolCost>
-		<DisplayName>Yerel Yoldas C61EA2</DisplayName>
-		<Description>This best-icinde-show breed is stalwart ve wise. Due its rarity if sen have mo money sen can get Mojack.</Description>
+		<DisplayName>Mojack Binegi</DisplayName>
+		<Description>This best-icinde-show breed is stalwart ve wise. Due its rarity if sen have mo money sen can get Mojack Binegi Binegi.</Description>
 		<DisplayRarity>M</DisplayRarity>
 	</MountType>
 	<MountType MountName="MountDrakon">
@@ -100,14 +100,14 @@
 		<MountLevel>40</MountLevel>
 		<IdolCost>150</IdolCost>
 		<DisplayName>kutup Megalynx</DisplayName>
-		<Description>degil quite man's best friend, but if well fed Megalynx purr heavily.</Description>
+		<Description>degil quite man's best dost, but if well fed Megalynx purr heavily.</Description>
 		<DisplayRarity>M</DisplayRarity>
 	</MountType>
 	<MountType MountName="MountDrake">
 		<MountID>13</MountID>
 		<MountLevel>40</MountLevel>
 		<IdolCost>150</IdolCost>
-		<DisplayName>Yerel Yoldas 65C4E7</DisplayName>
+		<DisplayName>Ejder</DisplayName>
 		<Description>smell sulfur ve ash hang agir around this brooding canavar. Fangrasaur eyes sen warily.</Description>
 		<DisplayRarity>M</DisplayRarity>
 	</MountType>
@@ -115,7 +115,7 @@
 		<MountID>14</MountID>
 		<MountLevel>40</MountLevel>
 		<IdolCost>150</IdolCost>
-		<DisplayName>Yerel Yoldas 66D1F7</DisplayName>
+		<DisplayName>Canavar</DisplayName>
 		<Description>sen can see this beast was once ridden by col Orcs. How it came this land is anyone's guess.</Description>
 		<DisplayRarity>M</DisplayRarity>
 	</MountType>
@@ -131,7 +131,7 @@
 		<MountID>16</MountID>
 		<MountLevel>40</MountLevel>
 		<IdolCost>999999999</IdolCost>
-		<DisplayName>Yerel Yoldas 5B6A5F</DisplayName>
+		<DisplayName>Olum Maske</DisplayName>
 		<DisplayRarity>M</DisplayRarity>
 	</MountType>
 	<MountType MountName="MountInfernal">
@@ -858,7 +858,7 @@
 		<MountID>107</MountID>
 		<MountLevel>40</MountLevel>
 		<IdolCost>999999999</IdolCost>
-		<DisplayName>Yerel Yoldas 667707</DisplayName>
+		<DisplayName>Efsanevi Binek Sandigi</DisplayName>
 		<Description>These baneful creatures stampede land between living ve dead, feasting uzerinde wandering souls.</Description>
 		<DisplayRarity>L</DisplayRarity>
 	</MountType>
@@ -866,7 +866,7 @@
 		<MountID>108</MountID>
 		<MountLevel>40</MountLevel>
 		<IdolCost>999999999</IdolCost>
-		<DisplayName>Yerel Yoldas 19EBEC</DisplayName>
+		<DisplayName>Nadir Binek Sandigi</DisplayName>
 		<Description>These elven-trained warhorses can gallop faster than bir Eastern ruzgar ve are just as temperamental.</Description>
 		<DisplayRarity>R</DisplayRarity>
 	</MountType>

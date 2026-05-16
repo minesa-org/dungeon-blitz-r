@@ -2,7 +2,7 @@
 <RoyalStoreTypes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<RoyalStoreType RoyalStoreName="---Template---">
 		<RoyalStoreID>0</RoyalStoreID>
-		<DisplayName>Yerel Esya 3EC1AE</DisplayName>
+		<DisplayName>Sablon</DisplayName>
 		<IconName>text</IconName>
 		<Quantity>10</Quantity>
 		<SigilCost>10</SigilCost>
@@ -14,7 +14,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="MountLockbox01L02">
 		<RoyalStoreID>1</RoyalStoreID>
-		<DisplayName>Yerel Esya 667707</DisplayName>
+		<DisplayName>Efsanevi Binek Sandigi</DisplayName>
 		<IconName>a_royalsigil_item1_icon</IconName>
 		<Quantity>1</Quantity>
 		<SigilCost>3200</SigilCost>
@@ -25,7 +25,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="MountLockbox01R01">
 		<RoyalStoreID>2</RoyalStoreID>
-		<DisplayName>Yerel Esya 19EBEC</DisplayName>
+		<DisplayName>Nadir Binek Sandigi</DisplayName>
 		<IconName>a_royalsigil_item2_icon</IconName>
 		<Quantity>1</Quantity>
 		<SigilCost>640</SigilCost>
@@ -36,7 +36,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="Lockbox01L02">
 		<RoyalStoreID>3</RoyalStoreID>
-		<DisplayName>Yerel Esya BEF7A9</DisplayName>
+		<DisplayName>Efsanevi Evcil Sandigi</DisplayName>
 		<IconName>a_royalsigil_item3_icon</IconName>
 		<Quantity>1</Quantity>
 		<SigilCost>2400</SigilCost>
@@ -47,7 +47,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="Lockbox01RRed">
 		<RoyalStoreID>4</RoyalStoreID>
-		<DisplayName>Yerel Esya 82EB5B</DisplayName>
+		<DisplayName>Kirmizi Nadir Evcil Sandigi</DisplayName>
 		<IconName>a_royalsigil_item4_icon</IconName>
 		<Quantity>1</Quantity>
 		<SigilCost>320</SigilCost>
@@ -58,7 +58,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="Lockbox01RYellow">
 		<RoyalStoreID>5</RoyalStoreID>
-		<DisplayName>Yerel Esya 1EA220</DisplayName>
+		<DisplayName>Sari Nadir Evcil Sandigi</DisplayName>
 		<IconName>a_royalsigil_item5_icon</IconName>
 		<Quantity>1</Quantity>
 		<SigilCost>320</SigilCost>
@@ -69,7 +69,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="Lockbox01RBlue">
 		<RoyalStoreID>6</RoyalStoreID>
-		<DisplayName>Yerel Esya 369F54</DisplayName>
+		<DisplayName>Mavi Nadir Evcil Sandigi</DisplayName>
 		<IconName>a_royalsigil_item6_icon</IconName>
 		<Quantity>1</Quantity>
 		<SigilCost>320</SigilCost>
@@ -80,7 +80,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="Lockbox01RGreen">
 		<RoyalStoreID>7</RoyalStoreID>
-		<DisplayName>Yerel Esya F7DA59</DisplayName>
+		<DisplayName>Yesil Nadir Evcil Sandigi</DisplayName>
 		<IconName>a_royalsigil_item6_icon</IconName>
 		<Quantity>1</Quantity>
 		<SigilCost>320</SigilCost>
@@ -91,7 +91,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="RespecStone">
 		<RoyalStoreID>8</RoyalStoreID>
-		<DisplayName>Respec tas</DisplayName>
+		<DisplayName>Yetenek Sifirlama Tasi</DisplayName>
 		<IconName>a_Icon_RespecStone</IconName>
 		<Quantity>1</Quantity>
 		<SigilCost>320</SigilCost>
@@ -102,7 +102,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="XPFindRegular">
 		<RoyalStoreID>9</RoyalStoreID>
-		<DisplayName>Potion XP artis x3</DisplayName>
+		<DisplayName>Potion XP Artis X3</DisplayName>
 		<IconName>a_Icon_PotionXP</IconName>
 		<Quantity>15000</Quantity>
 		<SigilCost>16</SigilCost>
@@ -113,7 +113,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="MaterialFindRegular">
 		<RoyalStoreID>10</RoyalStoreID>
-		<DisplayName>Potion malzeme bul x3</DisplayName>
+		<DisplayName>Potion Malzeme Bul X3</DisplayName>
 		<IconName>a_Icon_PotionMaterial</IconName>
 		<Quantity>15000</Quantity>
 		<SigilCost>16</SigilCost>
@@ -124,7 +124,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="GoldFindRegular">
 		<RoyalStoreID>11</RoyalStoreID>
-		<DisplayName>Potion altin bul x3</DisplayName>
+		<DisplayName>Potion Altin Bul X3</DisplayName>
 		<IconName>a_Icon_PotionGoldFind</IconName>
 		<Quantity>15000</Quantity>
 		<SigilCost>16</SigilCost>
@@ -135,7 +135,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="GearFindRegular">
 		<RoyalStoreID>12</RoyalStoreID>
-		<DisplayName>Potion Ekipman bul x3</DisplayName>
+		<DisplayName>Potion Ekipman Bul X3</DisplayName>
 		<IconName>a_Icon_PotionGearFind</IconName>
 		<Quantity>15000</Quantity>
 		<SigilCost>16</SigilCost>
@@ -146,7 +146,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="Resurrection">
 		<RoyalStoreID>13</RoyalStoreID>
-		<DisplayName>Yerel Esya CDFD20</DisplayName>
+		<DisplayName>Dirilis Iksiri</DisplayName>
 		<IconName>a_Icon_PotionVeng</IconName>
 		<Quantity>5</Quantity>
 		<SigilCost>32</SigilCost>
@@ -157,7 +157,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="ForgeXP">
 		<RoyalStoreID>14</RoyalStoreID>
-		<DisplayName>Tinkerer's ruh</DisplayName>
+		<DisplayName>Tinkerer's Ruh</DisplayName>
 		<IconName>a_Icon_Anvil</IconName>
 		<Quantity>1</Quantity>
 		<SigilCost>112</SigilCost>
@@ -168,7 +168,7 @@
 	</RoyalStoreType>
 	<RoyalStoreType RoyalStoreName="CharmRemover">
 		<RoyalStoreID>15</RoyalStoreID>
-		<DisplayName>tilsim Remover</DisplayName>
+		<DisplayName>Tilsim Sokucu</DisplayName>
 		<IconName>a_Icon_CharmRemover</IconName>
 		<Quantity>1</Quantity>
 		<SigilCost>80</SigilCost>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <MissionGroups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<MissionGroup GroupName="Slaying">
-		<DisplayName>Yerel Ad 3BA9D5</DisplayName>
+		<DisplayName>Sablon</DisplayName>
 		<ProgressReward>GeneralReward</ProgressReward>
 		<Mission1>AvoidDamage100000,AvoidDamage10000000,AvoidDamage100000000</Mission1>
 		<Mission2>ProcKillTrog1000,ProcKillTrog5000,ProcKillTrog10000</Mission2>
@@ -72,7 +72,7 @@
 		<Mission11>MasterType</Mission11>
 	</MissionGroup>
 	<MissionGroup GroupName="Exploration">
-		<DisplayName>Yerel Ad 558281</DisplayName>
+		<DisplayName>Sablon</DisplayName>
 		<ProgressReward>GeneralReward</ProgressReward>
 		<Mission1>OhThePlacesYouWillGo</Mission1>
 		<Mission2>CompleteQuestWolfsEnd</Mission2>
@@ -252,7 +252,7 @@
 		<Mission9>EnhanceTotalItems25</Mission9>
 	</MissionGroup>
 	<MissionGroup GroupName="Blitzing">
-		<DisplayName>Yerel Ad 24A15F</DisplayName>
+		<DisplayName>Sablon</DisplayName>
 		<ProgressReward>GeneralReward</ProgressReward>
 		<Mission2>FallInToAPit</Mission2>
 		<Mission3>CompletePvP</Mission3>

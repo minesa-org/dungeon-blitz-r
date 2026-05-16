@@ -2,7 +2,7 @@
 <ConsumableTypes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<ConsumableType ConsumableName="---Template---">
 		<ConsumableID>0</ConsumableID>
-		<DisplayName>Yerel Esya 3EC1AE</DisplayName>
+		<DisplayName>Sablon</DisplayName>
 		<IconName>a_Icon_PotionGearFind</IconName>
 		<RareBoost>0</RareBoost>
 		<LegendaryBoost>0</LegendaryBoost>
@@ -18,7 +18,7 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="MinorRareCatalyst">
 		<ConsumableID>1</ConsumableID>
-		<DisplayName>Yerel Esya 3E62B8</DisplayName>
+		<DisplayName>Kucuk Nadir Katalizor</DisplayName>
 		<IconName>a_Icon_PrimordialHeart</IconName>
 		<RareBoost>100</RareBoost>
 		<LegendaryBoost>0</LegendaryBoost>
@@ -28,7 +28,7 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="MinorLegendaryCatalyst">
 		<ConsumableID>2</ConsumableID>
-		<DisplayName>Yerel Esya AD8410</DisplayName>
+		<DisplayName>Kucuk Efsanevi Katalizor</DisplayName>
 		<IconName>a_Icon_PrimordialHeart</IconName>
 		<RareBoost>0</RareBoost>
 		<LegendaryBoost>0</LegendaryBoost>
@@ -38,7 +38,7 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="MajorRareCatalyst">
 		<ConsumableID>3</ConsumableID>
-		<DisplayName>Yerel Esya BB03F2</DisplayName>
+		<DisplayName>Buyuk Nadir Katalizor</DisplayName>
 		<IconName>a_Icon_DragonfireTalisman</IconName>
 		<RareBoost>100</RareBoost>
 		<LegendaryBoost>50</LegendaryBoost>
@@ -58,16 +58,16 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="ForgeXP">
 		<ConsumableID>5</ConsumableID>
-		<DisplayName>Tinker's ruh</DisplayName>
+		<DisplayName>Tinker's Ruh</DisplayName>
 		<IconName>a_Icon_Anvil</IconName>
 		<ArtisanXP>4000</ArtisanXP>
-		<Description>Immediately kazan 4000 Artisan XP</Description>
+		<Description>Immediately kazan 4000 Zanaatkar XP</Description>
 		<Type>ForgeXP</Type>
 		<Rarity>M</Rarity>
 	</ConsumableType>
 	<ConsumableType ConsumableName="GoldFindRegular">
 		<ConsumableID>6</ConsumableID>
-		<DisplayName>Potion altin bul</DisplayName>
+		<DisplayName>Potion Altin Bul</DisplayName>
 		<IconName>a_Icon_PotionGoldFind</IconName>
 		<GoldFind>0.5</GoldFind>
 		<Description>Adds 50% senin altin bul icin 1-2 zindanlar</Description>
@@ -76,7 +76,7 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="MaterialFindRegular">
 		<ConsumableID>7</ConsumableID>
-		<DisplayName>Potion malzeme bul</DisplayName>
+		<DisplayName>Potion Malzeme Bul</DisplayName>
 		<IconName>a_Icon_PotionMaterial</IconName>
 		<MaterialFind>0.5</MaterialFind>
 		<Description>Adds 50% senin malzeme bul icin 1-2 zindanlar</Description>
@@ -85,7 +85,7 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="XPFindRegular">
 		<ConsumableID>8</ConsumableID>
-		<DisplayName>Potion XP artis</DisplayName>
+		<DisplayName>Potion XP Artis</DisplayName>
 		<IconName>a_Icon_PotionXP</IconName>
 		<XP>0.5</XP>
 		<Description>Adds 50% senin XP artis icin 1-2 zindanlar</Description>
@@ -94,7 +94,7 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="Resurrection">
 		<ConsumableID>9</ConsumableID>
-		<DisplayName>Yerel Esya 3FB520</DisplayName>
+		<DisplayName>Dirilis Iksiri</DisplayName>
 		<IconName>a_Icon_PotionVeng</IconName>
 		<Description>Instantly revive ile bir guc dalga; bir buff granting user full mana ve bir artis icinde hasar icin bir short period sure</Description>
 		<Type>ResPotion</Type>
@@ -102,7 +102,7 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="RarePetFood">
 		<ConsumableID>10</ConsumableID>
-		<DisplayName>Arcane Chew kemik</DisplayName>
+		<DisplayName>Arcane Chew Kemik</DisplayName>
 		<IconName>a_Icon_LegendaryPetFood</IconName>
 		<Magnitude>60000</Magnitude>
 		<Description>Gives senin evcil 60,000 XP ve verir senin evcil bir seviye.</Description>
@@ -111,7 +111,7 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="PetFood">
 		<ConsumableID>11</ConsumableID>
-		<DisplayName>Yerel Esya 98113D</DisplayName>
+		<DisplayName>Evcil Yemi</DisplayName>
 		<IconName>a_Icon_Petfood</IconName>
 		<Magnitude>30000</Magnitude>
 		<Description>Gives senin evcil 30,000 XP</Description>
@@ -120,7 +120,7 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="AwesomeCashShopBoost">
 		<ConsumableID>12</ConsumableID>
-		<DisplayName>Potion uclu bul</DisplayName>
+		<DisplayName>Potion Uclu Bul</DisplayName>
 		<IconName>a_Icon_PotionGearFind</IconName>
 		<GoldFind>0.75</GoldFind>
 		<MaterialFind>0.75</MaterialFind>
@@ -131,7 +131,7 @@
 	</ConsumableType>
 	<ConsumableType ConsumableName="GearFindRegular">
 		<ConsumableID>13</ConsumableID>
-		<DisplayName>Potion Ekipman bul</DisplayName>
+		<DisplayName>Potion Ekipman Bul</DisplayName>
 		<IconName>a_Icon_PotionGearFind</IconName>
 		<GearFind>0.5</GearFind>
 		<Description>Adds 50% senin Ekipman bul icin 1-2 zindanlar</Description>

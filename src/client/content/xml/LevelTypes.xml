@@ -9,7 +9,7 @@
 	</LevelType>
 	<LevelType LevelName="TutorialBoat">
 		<ZoneSet>NewbieRoad</ZoneSet>
-		<DisplayName>Yerel Bolge ADCA29</DisplayName>
+		<DisplayName>Egitim Tekne</DisplayName>
 		<RankingsURL>assault</RankingsURL>
 		<MusicLoop>OminousDungeonLongLoopFunky_26.mp3</MusicLoop>
 	</LevelType>
@@ -103,7 +103,7 @@
 	</LevelType>
 	<LevelType LevelName="BT_Mission1">
 		<ZoneSet>BridgeTown</ZoneSet>
-		<DisplayName>Yerel Bolge BABC01</DisplayName>
+		<DisplayName>BT Mission 1</DisplayName>
 		<RankingsURL>bandit</RankingsURL>
 		<MusicLoop>D04_DramaLoop_SpookyForest.mp3</MusicLoop>
 	</LevelType>
@@ -843,7 +843,7 @@
 	</LevelType>
 	<LevelType LevelName="AC_Mission2Hard">
 		<ZoneSet>CastleHard</ZoneSet>
-		<DisplayName>dehset Emerald Throne</DisplayName>
+		<DisplayName>dehset zumrut Throne</DisplayName>
 		<RankingsURL>dread/throne</RankingsURL>
 		<MusicLoop>LongLoopWithHornsAndSomeDrama_12.mp3</MusicLoop>
 	</LevelType>

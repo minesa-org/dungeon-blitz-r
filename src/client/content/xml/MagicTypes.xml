@@ -12,112 +12,112 @@
 	</MagicType>
 	<MagicType MagicName="Speed">
 		<MagicID>1</MagicID>
-		<DisplayName>Yerel Esya B5AC00</DisplayName>
+		<DisplayName>Ceviklik</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeSpeed</RuneIcon>
-		<Description>Turkce aciklama 468295.</Description>
+		<Description>+%2.3 hareket hizi</Description>
 		<Speed>0.25</Speed>
 	</MagicType>
 	<MagicType MagicName="ItemDrop">
 		<MagicID>2</MagicID>
-		<DisplayName>Yerel Esya FB4E9D</DisplayName>
+		<DisplayName>Kutsal Kalinti Avciligi</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeItemDrop</RuneIcon>
-		<Description>+10% Ekipman Finding</Description>
+		<Description>+%10 ekipman bulma sansi</Description>
 		<ItemDrop>0.1</ItemDrop>
 	</MagicType>
 	<MagicType MagicName="GoldDrop">
 		<MagicID>3</MagicID>
-		<DisplayName>altin Seeker</DisplayName>
+		<DisplayName>Altin Avcisi</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeGoldDrop</RuneIcon>
-		<Description>+10% altin Finding</Description>
+		<Description>+%10 altin bulma sansi</Description>
 		<GoldDrop>0.1</GoldDrop>
 	</MagicType>
 	<MagicType MagicName="CraftDrop">
 		<MagicID>4</MagicID>
-		<DisplayName>Yerel Esya E61CEF</DisplayName>
+		<DisplayName>Toplayicilik</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeCraftDrop</RuneIcon>
-		<Description>+10% malzeme Finding</Description>
+		<Description>+%10 malzeme bulma sansi</Description>
 		<CraftDrop>0.1</CraftDrop>
 	</MagicType>
 	<MagicType MagicName="Speed+ItemDrop">
 		<MagicID>5</MagicID>
-		<DisplayName>Yerel Esya 04052D</DisplayName>
+		<DisplayName>Cevik Kalinti Avi</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeSpeed_ItemDrop</RuneIcon>
-		<Description>+2.3% Movement Speed, +10% Ekipman Finding</Description>
+		<Description>+%2.3 hareket hizi, +%10 ekipman bulma sansi</Description>
 		<Speed>0.25</Speed>
 		<ItemDrop>0.1</ItemDrop>
 	</MagicType>
 	<MagicType MagicName="Speed+GoldDrop">
 		<MagicID>6</MagicID>
-		<DisplayName>Swift altin Seek</DisplayName>
+		<DisplayName>Cevik Altin Avi</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeSpeed_GoldDrop</RuneIcon>
-		<Description>+2.3% Movement Speed, +10% altin Finding</Description>
+		<Description>+%2.3 hareket hizi, +%10 altin bulma sansi</Description>
 		<Speed>0.25</Speed>
 		<GoldDrop>0.1</GoldDrop>
 	</MagicType>
 	<MagicType MagicName="Speed+CraftDrop">
 		<MagicID>7</MagicID>
-		<DisplayName>Yerel Esya 00BFBD</DisplayName>
+		<DisplayName>Cevik Toplayicilik</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeSpeed_CraftDrop</RuneIcon>
-		<Description>+2.3% Movement Speed, +10% malzeme Finding</Description>
+		<Description>+%2.3 hareket hizi, +%10 malzeme bulma sansi</Description>
 		<Speed>0.25</Speed>
 		<CraftDrop>0.1</CraftDrop>
 	</MagicType>
 	<MagicType MagicName="ItemDrop+GoldDrop">
 		<MagicID>8</MagicID>
-		<DisplayName>Yerel Esya 831004</DisplayName>
+		<DisplayName>Toplayici</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeItemDrop_GoldDrop</RuneIcon>
-		<Description>+10% Ekipman Finding, +10% altin Finding</Description>
+		<Description>+%10 ekipman bulma sansi, +%10 altin bulma sansi</Description>
 		<GoldDrop>0.1</GoldDrop>
 		<ItemDrop>0.1</ItemDrop>
 	</MagicType>
 	<MagicType MagicName="ItemDrop+CraftDrop">
 		<MagicID>9</MagicID>
-		<DisplayName>Yerel Esya 8C5FC0</DisplayName>
+		<DisplayName>Avcilik</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeItemDrop_CraftDrop</RuneIcon>
-		<Description>+10% Ekipman Finding, +10% malzeme Finding</Description>
+		<Description>+%10 ekipman bulma sansi, +%10 malzeme bulma sansi</Description>
 		<ItemDrop>0.1</ItemDrop>
 		<CraftDrop>0.1</CraftDrop>
 	</MagicType>
 	<MagicType MagicName="GoldDrop+CraftDrop">
 		<MagicID>10</MagicID>
-		<DisplayName>Yerel Esya FD2F8E</DisplayName>
+		<DisplayName>Zanaatkar</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeGoldDrop_CraftDrop</RuneIcon>
-		<Description>+10% altin Finding, +10% malzeme Finding</Description>
+		<Description>+%10 altin bulma sansi, +%10 malzeme bulma sansi</Description>
 		<GoldDrop>0.1</GoldDrop>
 		<CraftDrop>0.1</CraftDrop>
 	</MagicType>
 	<MagicType MagicName="Speed+ItemDrop+GoldDrop">
 		<MagicID>11</MagicID>
-		<DisplayName>Yerel Esya A1199B</DisplayName>
+		<DisplayName>Cevik Toplayici</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeSpeed_ItemDrop_GoldDrop</RuneIcon>
-		<Description>+2.3% Movement Speed, +10% Ekipman Finding, +10% altin Finding</Description>
+		<Description>+%2.3 hareket hizi, +%10 ekipman bulma sansi, +%10 altin bulma sansi</Description>
 		<Speed>0.25</Speed>
 		<GoldDrop>0.1</GoldDrop>
 		<ItemDrop>0.1</ItemDrop>
 	</MagicType>
 	<MagicType MagicName="Speed+ItemDrop+CraftDrop">
 		<MagicID>12</MagicID>
-		<DisplayName>Yerel Esya CAA9D5</DisplayName>
+		<DisplayName>Cevik Avci</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeSpeed_ItemDrop_CraftDrop</RuneIcon>
-		<Description>+2.3% Movement Speed, +10% Ekipman Finding, +10% malzeme Finding</Description>
+		<Description>+%2.3 hareket hizi, +%10 ekipman bulma sansi, +%10 malzeme bulma sansi</Description>
 		<Speed>0.25</Speed>
 		<ItemDrop>0.1</ItemDrop>
 		<CraftDrop>0.1</CraftDrop>
 	</MagicType>
 	<MagicType MagicName="Speed+GoldDrop+CraftDrop">
 		<MagicID>13</MagicID>
-		<DisplayName>Yerel Esya B303FC</DisplayName>
+		<DisplayName>Cevik Zanaatkar</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeSpeed_GoldDrop_CraftFind</RuneIcon>
-		<Description>+2.3% Movement Speed, +10% altin Finding, +10% malzeme Finding</Description>
+		<Description>+%2.3 hareket hizi, +%10 altin bulma sansi, +%10 malzeme bulma sansi</Description>
 		<Speed>0.25</Speed>
 		<GoldDrop>0.1</GoldDrop>
 		<CraftDrop>0.1</CraftDrop>
 	</MagicType>
 	<MagicType MagicName="ItemDrop+GoldDrop+CraftDrop">
 		<MagicID>14</MagicID>
-		<DisplayName>Yerel Esya 87962B</DisplayName>
+		<DisplayName>Hazine Avcisi</DisplayName>
 		<RuneIcon>a_RuneIcon_MagicTypeItemDrop_GoldDrop_CraftDrop</RuneIcon>
-		<Description>+10% Ekipman Finding, +10% altin Finding, +10% malzeme Finding</Description>
+		<Description>+%10 ekipman bulma sansi, +%10 altin bulma sansi, +%10 malzeme bulma sansi</Description>
 		<GoldDrop>0.1</GoldDrop>
 		<ItemDrop>0.1</ItemDrop>
 		<CraftDrop>0.1</CraftDrop>

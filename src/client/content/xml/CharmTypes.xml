@@ -2,7 +2,7 @@
 <CharmTypes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<CharmType CharmName="---Template---">
 		<CharmID>0</CharmID>
-		<DisplayName>Yerel Esya 3EC1AE</DisplayName>
+		<DisplayName>Sablon</DisplayName>
 		<CharmLevel>0</CharmLevel>
 		<UpgradeCharm>NextCharm</UpgradeCharm>
 		<PrimaryType>Realm</PrimaryType>
@@ -23,7 +23,7 @@
 	</CharmType>
 	<CharmType CharmName="Trog01">
 		<CharmID>1</CharmID>
-		<DisplayName>Yerel Esya 99BB81</DisplayName>
+		<DisplayName>Yontuk Elmas</DisplayName>
 		<CharmLevel>1</CharmLevel>
 		<UpgradeCharm>Trog02</UpgradeCharm>
 		<PrimaryType>Trog</PrimaryType>
@@ -31,11 +31,11 @@
 		<CharmSize>1</CharmSize>
 		<ItemDrop>0.01</ItemDrop>
 		<IconName>a_CharmIcon_Diamond1</IconName>
-		<Description>+1% Ekipman Finding</Description>
+		<Description>+1% Ekipman bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Infernal01">
 		<CharmID>2</CharmID>
-		<DisplayName>Yerel Esya D0DA23</DisplayName>
+		<DisplayName>Yontuk Ametist</DisplayName>
 		<CharmLevel>1</CharmLevel>
 		<UpgradeCharm>Infernal02</UpgradeCharm>
 		<PrimaryType>Infernal</PrimaryType>
@@ -47,7 +47,7 @@
 	</CharmType>
 	<CharmType CharmName="Undead01">
 		<CharmID>3</CharmID>
-		<DisplayName>Yerel Esya E3B799</DisplayName>
+		<DisplayName>Yontuk Topaz</DisplayName>
 		<CharmLevel>1</CharmLevel>
 		<UpgradeCharm>Undead02</UpgradeCharm>
 		<PrimaryType>Undead</PrimaryType>
@@ -59,7 +59,7 @@
 	</CharmType>
 	<CharmType CharmName="Mythic01">
 		<CharmID>4</CharmID>
-		<DisplayName>Yerel Esya 98779F</DisplayName>
+		<DisplayName>Yontuk Zirkon</DisplayName>
 		<CharmLevel>1</CharmLevel>
 		<UpgradeCharm>Mythic02</UpgradeCharm>
 		<PrimaryType>Mythic</PrimaryType>
@@ -67,11 +67,11 @@
 		<CharmSize>1</CharmSize>
 		<CraftDrop>0.01</CraftDrop>
 		<IconName>a_CharmIcon_Sapphire1</IconName>
-		<Description>+1% malzeme Finding</Description>
+		<Description>+1% malzeme bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Draconic01">
 		<CharmID>5</CharmID>
-		<DisplayName>Yerel Esya 5665A0</DisplayName>
+		<DisplayName>Yontuk Yakut</DisplayName>
 		<CharmLevel>1</CharmLevel>
 		<UpgradeCharm>Draconic02</UpgradeCharm>
 		<PrimaryType>Draconic</PrimaryType>
@@ -79,11 +79,11 @@
 		<CharmSize>1</CharmSize>
 		<PowerBonus>0.005</PowerBonus>
 		<IconName>a_CharmIcon_Ruby1</IconName>
-		<Description>+0.5% kritik Bonus</Description>
+		<Description>+0.5% kritik bonus</Description>
 	</CharmType>
 	<CharmType CharmName="Sylvan01">
 		<CharmID>6</CharmID>
-		<DisplayName>Yerel Esya 927C33</DisplayName>
+		<DisplayName>Yontuk Zumrut</DisplayName>
 		<CharmLevel>1</CharmLevel>
 		<UpgradeCharm>Sylvan02</UpgradeCharm>
 		<PrimaryType>Sylvan</PrimaryType>
@@ -95,7 +95,7 @@
 	</CharmType>
 	<CharmType CharmName="Trog02">
 		<CharmID>7</CharmID>
-		<DisplayName>Yerel Esya 393F80</DisplayName>
+		<DisplayName>Soluk Elmas</DisplayName>
 		<CharmLevel>2</CharmLevel>
 		<UpgradeCharm>Trog03</UpgradeCharm>
 		<PrimaryType>Trog</PrimaryType>
@@ -103,11 +103,11 @@
 		<CharmSize>2</CharmSize>
 		<ItemDrop>0.02</ItemDrop>
 		<IconName>a_CharmIcon_Diamond2</IconName>
-		<Description>+2% Ekipman Finding</Description>
+		<Description>+2% Ekipman bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Infernal02">
 		<CharmID>8</CharmID>
-		<DisplayName>Yerel Esya BC0788</DisplayName>
+		<DisplayName>Soluk Ametist</DisplayName>
 		<CharmLevel>3</CharmLevel>
 		<UpgradeCharm>Infernal03</UpgradeCharm>
 		<PrimaryType>Infernal</PrimaryType>
@@ -119,7 +119,7 @@
 	</CharmType>
 	<CharmType CharmName="Undead02">
 		<CharmID>9</CharmID>
-		<DisplayName>Yerel Esya CC2685</DisplayName>
+		<DisplayName>Soluk Topaz</DisplayName>
 		<CharmLevel>4</CharmLevel>
 		<UpgradeCharm>Undead03</UpgradeCharm>
 		<PrimaryType>Undead</PrimaryType>
@@ -131,7 +131,7 @@
 	</CharmType>
 	<CharmType CharmName="Mythic02">
 		<CharmID>10</CharmID>
-		<DisplayName>Yerel Esya D0C7A5</DisplayName>
+		<DisplayName>Soluk Zirkon</DisplayName>
 		<CharmLevel>5</CharmLevel>
 		<UpgradeCharm>Mythic03</UpgradeCharm>
 		<PrimaryType>Mythic</PrimaryType>
@@ -139,11 +139,11 @@
 		<CharmSize>2</CharmSize>
 		<CraftDrop>0.02</CraftDrop>
 		<IconName>a_CharmIcon_Sapphire2</IconName>
-		<Description>+2% malzeme Finding</Description>
+		<Description>+2% malzeme bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Draconic02">
 		<CharmID>11</CharmID>
-		<DisplayName>Yerel Esya A17669</DisplayName>
+		<DisplayName>Soluk Yakut</DisplayName>
 		<CharmLevel>6</CharmLevel>
 		<UpgradeCharm>Draconic03</UpgradeCharm>
 		<PrimaryType>Draconic</PrimaryType>
@@ -151,11 +151,11 @@
 		<CharmSize>2</CharmSize>
 		<PowerBonus>0.01</PowerBonus>
 		<IconName>a_CharmIcon_Ruby2</IconName>
-		<Description>+1% kritik Bonus</Description>
+		<Description>+1% kritik bonus</Description>
 	</CharmType>
 	<CharmType CharmName="Sylvan02">
 		<CharmID>12</CharmID>
-		<DisplayName>Yerel Esya C3C20B</DisplayName>
+		<DisplayName>Soluk Zumrut</DisplayName>
 		<CharmLevel>7</CharmLevel>
 		<UpgradeCharm>Sylvan03</UpgradeCharm>
 		<PrimaryType>Sylvan</PrimaryType>
@@ -167,7 +167,7 @@
 	</CharmType>
 	<CharmType CharmName="Trog03">
 		<CharmID>13</CharmID>
-		<DisplayName>Yerel Esya 74AC15</DisplayName>
+		<DisplayName>Cizgili Elmas</DisplayName>
 		<CharmLevel>8</CharmLevel>
 		<UpgradeCharm>Trog04</UpgradeCharm>
 		<PrimaryType>Trog</PrimaryType>
@@ -175,11 +175,11 @@
 		<CharmSize>3</CharmSize>
 		<ItemDrop>0.03</ItemDrop>
 		<IconName>a_CharmIcon_Diamond3</IconName>
-		<Description>+3% Ekipman Finding</Description>
+		<Description>+3% Ekipman bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Infernal03">
 		<CharmID>14</CharmID>
-		<DisplayName>Yerel Esya 3CA6CF</DisplayName>
+		<DisplayName>Cizgili Ametist</DisplayName>
 		<CharmLevel>9</CharmLevel>
 		<UpgradeCharm>Infernal04</UpgradeCharm>
 		<PrimaryType>Infernal</PrimaryType>
@@ -191,7 +191,7 @@
 	</CharmType>
 	<CharmType CharmName="Undead03">
 		<CharmID>15</CharmID>
-		<DisplayName>Yerel Esya 738EA0</DisplayName>
+		<DisplayName>Cizgili Topaz</DisplayName>
 		<CharmLevel>10</CharmLevel>
 		<UpgradeCharm>Undead04</UpgradeCharm>
 		<PrimaryType>Undead</PrimaryType>
@@ -203,7 +203,7 @@
 	</CharmType>
 	<CharmType CharmName="Mythic03">
 		<CharmID>16</CharmID>
-		<DisplayName>Yerel Esya 11A4C5</DisplayName>
+		<DisplayName>Cizgili Zirkon</DisplayName>
 		<CharmLevel>11</CharmLevel>
 		<UpgradeCharm>Mythic04</UpgradeCharm>
 		<PrimaryType>Mythic</PrimaryType>
@@ -211,11 +211,11 @@
 		<CharmSize>3</CharmSize>
 		<CraftDrop>0.03</CraftDrop>
 		<IconName>a_CharmIcon_Sapphire3</IconName>
-		<Description>+3% malzeme Finding</Description>
+		<Description>+3% malzeme bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Draconic03">
 		<CharmID>17</CharmID>
-		<DisplayName>Yerel Esya 429482</DisplayName>
+		<DisplayName>Cizgili Yakut</DisplayName>
 		<CharmLevel>12</CharmLevel>
 		<UpgradeCharm>Draconic04</UpgradeCharm>
 		<PrimaryType>Draconic</PrimaryType>
@@ -223,11 +223,11 @@
 		<CharmSize>3</CharmSize>
 		<PowerBonus>0.015</PowerBonus>
 		<IconName>a_CharmIcon_Ruby3</IconName>
-		<Description>+1.5% kritik Bonus</Description>
+		<Description>+1.5% kritik bonus</Description>
 	</CharmType>
 	<CharmType CharmName="Sylvan03">
 		<CharmID>18</CharmID>
-		<DisplayName>Yerel Esya 0E77D9</DisplayName>
+		<DisplayName>Cizgili Zumrut</DisplayName>
 		<CharmLevel>13</CharmLevel>
 		<UpgradeCharm>Sylvan04</UpgradeCharm>
 		<PrimaryType>Sylvan</PrimaryType>
@@ -239,7 +239,7 @@
 	</CharmType>
 	<CharmType CharmName="Trog04">
 		<CharmID>19</CharmID>
-		<DisplayName>Yerel Esya 6BCAAB</DisplayName>
+		<DisplayName>Kusursuz Elmas</DisplayName>
 		<CharmLevel>14</CharmLevel>
 		<UpgradeCharm>Trog05</UpgradeCharm>
 		<PrimaryType>Trog</PrimaryType>
@@ -247,11 +247,11 @@
 		<CharmSize>4</CharmSize>
 		<ItemDrop>0.04</ItemDrop>
 		<IconName>a_CharmIcon_Diamond4</IconName>
-		<Description>+4% Ekipman Finding</Description>
+		<Description>+4% Ekipman bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Infernal04">
 		<CharmID>20</CharmID>
-		<DisplayName>Yerel Esya 58DCD5</DisplayName>
+		<DisplayName>Kusursuz Ametist</DisplayName>
 		<CharmLevel>15</CharmLevel>
 		<UpgradeCharm>Infernal05</UpgradeCharm>
 		<PrimaryType>Infernal</PrimaryType>
@@ -263,7 +263,7 @@
 	</CharmType>
 	<CharmType CharmName="Undead04">
 		<CharmID>21</CharmID>
-		<DisplayName>Yerel Esya A0D160</DisplayName>
+		<DisplayName>Kusursuz Topaz</DisplayName>
 		<CharmLevel>16</CharmLevel>
 		<UpgradeCharm>Undead05</UpgradeCharm>
 		<PrimaryType>Undead</PrimaryType>
@@ -275,7 +275,7 @@
 	</CharmType>
 	<CharmType CharmName="Mythic04">
 		<CharmID>22</CharmID>
-		<DisplayName>Yerel Esya E6FE96</DisplayName>
+		<DisplayName>Kusursuz Zirkon</DisplayName>
 		<CharmLevel>17</CharmLevel>
 		<UpgradeCharm>Mythic05</UpgradeCharm>
 		<PrimaryType>Mythic</PrimaryType>
@@ -283,11 +283,11 @@
 		<CharmSize>4</CharmSize>
 		<CraftDrop>0.04</CraftDrop>
 		<IconName>a_CharmIcon_Sapphire4</IconName>
-		<Description>+4% malzeme Finding</Description>
+		<Description>+4% malzeme bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Draconic04">
 		<CharmID>23</CharmID>
-		<DisplayName>Yerel Esya 444D92</DisplayName>
+		<DisplayName>Kusursuz Yakut</DisplayName>
 		<CharmLevel>18</CharmLevel>
 		<UpgradeCharm>Draconic05</UpgradeCharm>
 		<PrimaryType>Draconic</PrimaryType>
@@ -295,11 +295,11 @@
 		<CharmSize>4</CharmSize>
 		<PowerBonus>0.02</PowerBonus>
 		<IconName>a_CharmIcon_Ruby4</IconName>
-		<Description>+2% kritik Bonus</Description>
+		<Description>+2% kritik bonus</Description>
 	</CharmType>
 	<CharmType CharmName="Sylvan04">
 		<CharmID>24</CharmID>
-		<DisplayName>Yerel Esya D565A6</DisplayName>
+		<DisplayName>Kusursuz Zumrut</DisplayName>
 		<CharmLevel>19</CharmLevel>
 		<UpgradeCharm>Sylvan05</UpgradeCharm>
 		<PrimaryType>Sylvan</PrimaryType>
@@ -311,7 +311,7 @@
 	</CharmType>
 	<CharmType CharmName="Trog05">
 		<CharmID>25</CharmID>
-		<DisplayName>Yerel Esya 6CF008</DisplayName>
+		<DisplayName>Muhtesem Elmas</DisplayName>
 		<CharmLevel>20</CharmLevel>
 		<UpgradeCharm>Trog06</UpgradeCharm>
 		<PrimaryType>Trog</PrimaryType>
@@ -319,11 +319,11 @@
 		<CharmSize>5</CharmSize>
 		<ItemDrop>0.05</ItemDrop>
 		<IconName>a_CharmIcon_Diamond5</IconName>
-		<Description>+5% Ekipman Finding</Description>
+		<Description>+5% Ekipman bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Infernal05">
 		<CharmID>26</CharmID>
-		<DisplayName>Yerel Esya 59925C</DisplayName>
+		<DisplayName>Muhtesem Ametist</DisplayName>
 		<CharmLevel>21</CharmLevel>
 		<UpgradeCharm>Infernal06</UpgradeCharm>
 		<PrimaryType>Infernal</PrimaryType>
@@ -335,7 +335,7 @@
 	</CharmType>
 	<CharmType CharmName="Undead05">
 		<CharmID>27</CharmID>
-		<DisplayName>Yerel Esya 77EAAE</DisplayName>
+		<DisplayName>Muhtesem Topaz</DisplayName>
 		<CharmLevel>22</CharmLevel>
 		<UpgradeCharm>Undead06</UpgradeCharm>
 		<PrimaryType>Undead</PrimaryType>
@@ -347,7 +347,7 @@
 	</CharmType>
 	<CharmType CharmName="Mythic05">
 		<CharmID>28</CharmID>
-		<DisplayName>Yerel Esya 468255</DisplayName>
+		<DisplayName>Muhtesem Zirkon</DisplayName>
 		<CharmLevel>23</CharmLevel>
 		<UpgradeCharm>Mythic06</UpgradeCharm>
 		<PrimaryType>Mythic</PrimaryType>
@@ -355,11 +355,11 @@
 		<CharmSize>5</CharmSize>
 		<CraftDrop>0.05</CraftDrop>
 		<IconName>a_CharmIcon_Sapphire5</IconName>
-		<Description>+5% malzeme Finding</Description>
+		<Description>+5% malzeme bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Draconic05">
 		<CharmID>29</CharmID>
-		<DisplayName>Yerel Esya 30478D</DisplayName>
+		<DisplayName>Muhtesem Yakut</DisplayName>
 		<CharmLevel>24</CharmLevel>
 		<UpgradeCharm>Draconic06</UpgradeCharm>
 		<PrimaryType>Draconic</PrimaryType>
@@ -367,11 +367,11 @@
 		<CharmSize>5</CharmSize>
 		<PowerBonus>0.025</PowerBonus>
 		<IconName>a_CharmIcon_Ruby5</IconName>
-		<Description>+2.5% kritik Bonus</Description>
+		<Description>+2.5% kritik bonus</Description>
 	</CharmType>
 	<CharmType CharmName="Sylvan05">
 		<CharmID>30</CharmID>
-		<DisplayName>Yerel Esya 1CA822</DisplayName>
+		<DisplayName>Muhtesem Zumrut</DisplayName>
 		<CharmLevel>25</CharmLevel>
 		<UpgradeCharm>Sylvan06</UpgradeCharm>
 		<PrimaryType>Sylvan</PrimaryType>
@@ -383,7 +383,7 @@
 	</CharmType>
 	<CharmType CharmName="Trog06">
 		<CharmID>31</CharmID>
-		<DisplayName>Yerel Esya 7B2AD5</DisplayName>
+		<DisplayName>Goz Alici Elmas</DisplayName>
 		<CharmLevel>26</CharmLevel>
 		<UpgradeCharm>Trog07</UpgradeCharm>
 		<PrimaryType>Trog</PrimaryType>
@@ -391,11 +391,11 @@
 		<CharmSize>6</CharmSize>
 		<ItemDrop>0.06</ItemDrop>
 		<IconName>a_CharmIcon_Diamond6</IconName>
-		<Description>+6% Ekipman Finding</Description>
+		<Description>+6% Ekipman bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Infernal06">
 		<CharmID>32</CharmID>
-		<DisplayName>Yerel Esya F6A81D</DisplayName>
+		<DisplayName>Goz Alici Ametist</DisplayName>
 		<CharmLevel>27</CharmLevel>
 		<UpgradeCharm>Infernal07</UpgradeCharm>
 		<PrimaryType>Infernal</PrimaryType>
@@ -407,7 +407,7 @@
 	</CharmType>
 	<CharmType CharmName="Undead06">
 		<CharmID>33</CharmID>
-		<DisplayName>Yerel Esya 6322B1</DisplayName>
+		<DisplayName>Goz Alici Topaz</DisplayName>
 		<CharmLevel>28</CharmLevel>
 		<UpgradeCharm>Undead07</UpgradeCharm>
 		<PrimaryType>Undead</PrimaryType>
@@ -419,7 +419,7 @@
 	</CharmType>
 	<CharmType CharmName="Mythic06">
 		<CharmID>34</CharmID>
-		<DisplayName>Yerel Esya 53680B</DisplayName>
+		<DisplayName>Goz Alici Zirkon</DisplayName>
 		<CharmLevel>29</CharmLevel>
 		<UpgradeCharm>Mythic07</UpgradeCharm>
 		<PrimaryType>Mythic</PrimaryType>
@@ -427,11 +427,11 @@
 		<CharmSize>6</CharmSize>
 		<CraftDrop>0.06</CraftDrop>
 		<IconName>a_CharmIcon_Sapphire6</IconName>
-		<Description>+6% malzeme Finding</Description>
+		<Description>+6% malzeme bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Draconic06">
 		<CharmID>35</CharmID>
-		<DisplayName>Yerel Esya 43456C</DisplayName>
+		<DisplayName>Goz Alici Yakut</DisplayName>
 		<CharmLevel>30</CharmLevel>
 		<UpgradeCharm>Draconic07</UpgradeCharm>
 		<PrimaryType>Draconic</PrimaryType>
@@ -439,11 +439,11 @@
 		<CharmSize>6</CharmSize>
 		<PowerBonus>0.03</PowerBonus>
 		<IconName>a_CharmIcon_Ruby6</IconName>
-		<Description>+3% kritik Bonus</Description>
+		<Description>+3% kritik bonus</Description>
 	</CharmType>
 	<CharmType CharmName="Sylvan06">
 		<CharmID>36</CharmID>
-		<DisplayName>Yerel Esya AECCE0</DisplayName>
+		<DisplayName>Goz Alici Zumrut</DisplayName>
 		<CharmLevel>31</CharmLevel>
 		<UpgradeCharm>Sylvan07</UpgradeCharm>
 		<PrimaryType>Sylvan</PrimaryType>
@@ -455,7 +455,7 @@
 	</CharmType>
 	<CharmType CharmName="Trog07">
 		<CharmID>37</CharmID>
-		<DisplayName>Yerel Esya 4AC54B</DisplayName>
+		<DisplayName>Isik Sacan Elmas</DisplayName>
 		<CharmLevel>32</CharmLevel>
 		<UpgradeCharm>Trog08</UpgradeCharm>
 		<PrimaryType>Trog</PrimaryType>
@@ -463,11 +463,11 @@
 		<CharmSize>7</CharmSize>
 		<ItemDrop>0.07</ItemDrop>
 		<IconName>a_CharmIcon_Diamond7</IconName>
-		<Description>+7% Ekipman Finding</Description>
+		<Description>+7% Ekipman bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Infernal07">
 		<CharmID>38</CharmID>
-		<DisplayName>Yerel Esya 62E56B</DisplayName>
+		<DisplayName>Isik Sacan Ametist</DisplayName>
 		<CharmLevel>33</CharmLevel>
 		<UpgradeCharm>Infernal08</UpgradeCharm>
 		<PrimaryType>Infernal</PrimaryType>
@@ -479,7 +479,7 @@
 	</CharmType>
 	<CharmType CharmName="Undead07">
 		<CharmID>39</CharmID>
-		<DisplayName>Yerel Esya 2A3DE6</DisplayName>
+		<DisplayName>Isik Sacan Topaz</DisplayName>
 		<CharmLevel>34</CharmLevel>
 		<UpgradeCharm>Undead08</UpgradeCharm>
 		<PrimaryType>Undead</PrimaryType>
@@ -491,7 +491,7 @@
 	</CharmType>
 	<CharmType CharmName="Mythic07">
 		<CharmID>40</CharmID>
-		<DisplayName>Yerel Esya 12C9E4</DisplayName>
+		<DisplayName>Isik Sacan Zirkon</DisplayName>
 		<CharmLevel>35</CharmLevel>
 		<UpgradeCharm>Mythic08</UpgradeCharm>
 		<PrimaryType>Mythic</PrimaryType>
@@ -499,11 +499,11 @@
 		<CharmSize>7</CharmSize>
 		<CraftDrop>0.07</CraftDrop>
 		<IconName>a_CharmIcon_Sapphire7</IconName>
-		<Description>+7% malzeme Finding</Description>
+		<Description>+7% malzeme bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Draconic07">
 		<CharmID>41</CharmID>
-		<DisplayName>Yerel Esya AEF9D0</DisplayName>
+		<DisplayName>Isik Sacan Yakut</DisplayName>
 		<CharmLevel>36</CharmLevel>
 		<UpgradeCharm>Draconic08</UpgradeCharm>
 		<PrimaryType>Draconic</PrimaryType>
@@ -511,11 +511,11 @@
 		<CharmSize>7</CharmSize>
 		<PowerBonus>0.035</PowerBonus>
 		<IconName>a_CharmIcon_Ruby7</IconName>
-		<Description>+3.5% kritik Bonus</Description>
+		<Description>+3.5% kritik bonus</Description>
 	</CharmType>
 	<CharmType CharmName="Sylvan07">
 		<CharmID>42</CharmID>
-		<DisplayName>Yerel Esya C8E9E1</DisplayName>
+		<DisplayName>Isik Sacan Zumrut</DisplayName>
 		<CharmLevel>37</CharmLevel>
 		<UpgradeCharm>Sylvan08</UpgradeCharm>
 		<PrimaryType>Sylvan</PrimaryType>
@@ -527,7 +527,7 @@
 	</CharmType>
 	<CharmType CharmName="Trog08">
 		<CharmID>43</CharmID>
-		<DisplayName>goksel Diamond</DisplayName>
+		<DisplayName>Goksel Elmas</DisplayName>
 		<CharmLevel>38</CharmLevel>
 		<UpgradeCharm>Trog09</UpgradeCharm>
 		<PrimaryType>Trog</PrimaryType>
@@ -535,11 +535,11 @@
 		<CharmSize>8</CharmSize>
 		<ItemDrop>0.08</ItemDrop>
 		<IconName>a_CharmIcon_Diamond8</IconName>
-		<Description>+8% Ekipman Finding</Description>
+		<Description>+%8 ekipman bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Infernal08">
 		<CharmID>44</CharmID>
-		<DisplayName>goksel Amethyst</DisplayName>
+		<DisplayName>Goksel Ametist</DisplayName>
 		<CharmLevel>39</CharmLevel>
 		<UpgradeCharm>Infernal09</UpgradeCharm>
 		<PrimaryType>Infernal</PrimaryType>
@@ -551,7 +551,7 @@
 	</CharmType>
 	<CharmType CharmName="Undead08">
 		<CharmID>45</CharmID>
-		<DisplayName>goksel Topaz</DisplayName>
+		<DisplayName>Goksel Topaz</DisplayName>
 		<CharmLevel>40</CharmLevel>
 		<UpgradeCharm>Undead09</UpgradeCharm>
 		<PrimaryType>Undead</PrimaryType>
@@ -563,7 +563,7 @@
 	</CharmType>
 	<CharmType CharmName="Mythic08">
 		<CharmID>46</CharmID>
-		<DisplayName>goksel Zircon</DisplayName>
+		<DisplayName>Goksel Zirkon</DisplayName>
 		<CharmLevel>41</CharmLevel>
 		<UpgradeCharm>Mythic09</UpgradeCharm>
 		<PrimaryType>Mythic</PrimaryType>
@@ -571,11 +571,11 @@
 		<CharmSize>8</CharmSize>
 		<CraftDrop>0.08</CraftDrop>
 		<IconName>a_CharmIcon_Sapphire8</IconName>
-		<Description>+8% malzeme Finding</Description>
+		<Description>+8% malzeme bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Draconic08">
 		<CharmID>47</CharmID>
-		<DisplayName>goksel Ruby</DisplayName>
+		<DisplayName>Goksel Yakut</DisplayName>
 		<CharmLevel>42</CharmLevel>
 		<UpgradeCharm>Draconic09</UpgradeCharm>
 		<PrimaryType>Draconic</PrimaryType>
@@ -583,11 +583,11 @@
 		<CharmSize>8</CharmSize>
 		<PowerBonus>0.04</PowerBonus>
 		<IconName>a_CharmIcon_Ruby8</IconName>
-		<Description>+4% kritik Bonus</Description>
+		<Description>+4% kritik bonus</Description>
 	</CharmType>
 	<CharmType CharmName="Sylvan08">
 		<CharmID>48</CharmID>
-		<DisplayName>goksel Emerald</DisplayName>
+		<DisplayName>Goksel Zumrut</DisplayName>
 		<CharmLevel>43</CharmLevel>
 		<UpgradeCharm>Sylvan09</UpgradeCharm>
 		<PrimaryType>Sylvan</PrimaryType>
@@ -599,7 +599,7 @@
 	</CharmType>
 	<CharmType CharmName="Trog09">
 		<CharmID>49</CharmID>
-		<DisplayName>Yerel Esya FBB61E</DisplayName>
+		<DisplayName>Tanrica Elmas</DisplayName>
 		<CharmLevel>44</CharmLevel>
 		<UpgradeCharm>Trog10</UpgradeCharm>
 		<PrimaryType>Trog</PrimaryType>
@@ -607,11 +607,11 @@
 		<CharmSize>9</CharmSize>
 		<ItemDrop>0.09</ItemDrop>
 		<IconName>a_CharmIcon_Diamond9</IconName>
-		<Description>+9% Ekipman Finding</Description>
+		<Description>+9% Ekipman bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Infernal09">
 		<CharmID>50</CharmID>
-		<DisplayName>Yerel Esya 195D23</DisplayName>
+		<DisplayName>Tanrica Ametist</DisplayName>
 		<CharmLevel>45</CharmLevel>
 		<UpgradeCharm>Infernal10</UpgradeCharm>
 		<PrimaryType>Infernal</PrimaryType>
@@ -623,7 +623,7 @@
 	</CharmType>
 	<CharmType CharmName="Undead09">
 		<CharmID>51</CharmID>
-		<DisplayName>Yerel Esya A63867</DisplayName>
+		<DisplayName>Tanrica Topaz</DisplayName>
 		<CharmLevel>46</CharmLevel>
 		<UpgradeCharm>Undead10</UpgradeCharm>
 		<PrimaryType>Undead</PrimaryType>
@@ -635,7 +635,7 @@
 	</CharmType>
 	<CharmType CharmName="Mythic09">
 		<CharmID>52</CharmID>
-		<DisplayName>Yerel Esya 79DB72</DisplayName>
+		<DisplayName>Tanrica Zirkon</DisplayName>
 		<CharmLevel>47</CharmLevel>
 		<UpgradeCharm>Mythic10</UpgradeCharm>
 		<PrimaryType>Mythic</PrimaryType>
@@ -643,11 +643,11 @@
 		<CharmSize>9</CharmSize>
 		<CraftDrop>0.09</CraftDrop>
 		<IconName>a_CharmIcon_Sapphire9</IconName>
-		<Description>+9% malzeme Finding</Description>
+		<Description>+9% malzeme bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Draconic09">
 		<CharmID>53</CharmID>
-		<DisplayName>Yerel Esya 62AA09</DisplayName>
+		<DisplayName>Tanrica Yakut</DisplayName>
 		<CharmLevel>48</CharmLevel>
 		<UpgradeCharm>Draconic10</UpgradeCharm>
 		<PrimaryType>Draconic</PrimaryType>
@@ -655,11 +655,11 @@
 		<CharmSize>9</CharmSize>
 		<PowerBonus>0.045</PowerBonus>
 		<IconName>a_CharmIcon_Ruby9</IconName>
-		<Description>+4.5% kritik Bonus</Description>
+		<Description>+4.5% kritik bonus</Description>
 	</CharmType>
 	<CharmType CharmName="Sylvan09">
 		<CharmID>54</CharmID>
-		<DisplayName>Yerel Esya 3730E1</DisplayName>
+		<DisplayName>Tanrica Zumrut</DisplayName>
 		<CharmLevel>49</CharmLevel>
 		<UpgradeCharm>Sylvan10</UpgradeCharm>
 		<PrimaryType>Sylvan</PrimaryType>
@@ -671,18 +671,18 @@
 	</CharmType>
 	<CharmType CharmName="Trog10">
 		<CharmID>55</CharmID>
-		<DisplayName>Yerel Esya 7A8F4D</DisplayName>
+		<DisplayName>Sonsuz Elmas</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Trog</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
 		<CharmSize>10</CharmSize>
 		<ItemDrop>0.1</ItemDrop>
 		<IconName>a_CharmIcon_Diamond10</IconName>
-		<Description>+10% Ekipman Finding</Description>
+		<Description>+%10 ekipman bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Infernal10">
 		<CharmID>56</CharmID>
-		<DisplayName>Yerel Esya F29C2D</DisplayName>
+		<DisplayName>Sonsuz Ametist</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Infernal</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
@@ -693,7 +693,7 @@
 	</CharmType>
 	<CharmType CharmName="Undead10">
 		<CharmID>57</CharmID>
-		<DisplayName>Yerel Esya 703E0D</DisplayName>
+		<DisplayName>Sonsuz Topaz</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Undead</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
@@ -704,29 +704,29 @@
 	</CharmType>
 	<CharmType CharmName="Mythic10">
 		<CharmID>58</CharmID>
-		<DisplayName>Yerel Esya BE386B</DisplayName>
+		<DisplayName>Sonsuz Zirkon</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Mythic</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
 		<CharmSize>10</CharmSize>
 		<CraftDrop>0.1</CraftDrop>
 		<IconName>a_CharmIcon_Sapphire10</IconName>
-		<Description>+10% malzeme Finding</Description>
+		<Description>+%10 malzeme bulma sansi</Description>
 	</CharmType>
 	<CharmType CharmName="Draconic10">
 		<CharmID>59</CharmID>
-		<DisplayName>Yerel Esya E7F7E3</DisplayName>
+		<DisplayName>Sonsuz Yakut</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Draconic</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
 		<CharmSize>10</CharmSize>
 		<PowerBonus>0.05</PowerBonus>
 		<IconName>a_CharmIcon_Ruby10</IconName>
-		<Description>+5% kritik Bonus</Description>
+		<Description>+5% kritik bonus</Description>
 	</CharmType>
 	<CharmType CharmName="Sylvan10">
 		<CharmID>60</CharmID>
-		<DisplayName>Yerel Esya 16C71E</DisplayName>
+		<DisplayName>Sonsuz Zumrut</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Sylvan</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
@@ -737,7 +737,7 @@
 	</CharmType>
 	<CharmType CharmName="Melee01">
 		<CharmID>61</CharmID>
-		<DisplayName>Yerel Esya B22B06</DisplayName>
+		<DisplayName>Yontuk Sitrin</DisplayName>
 		<CharmLevel>1</CharmLevel>
 		<UpgradeCharm>Melee02</UpgradeCharm>
 		<PrimaryType>Melee</PrimaryType>
@@ -749,7 +749,7 @@
 	</CharmType>
 	<CharmType CharmName="Melee02">
 		<CharmID>62</CharmID>
-		<DisplayName>Yerel Esya 1F4D13</DisplayName>
+		<DisplayName>Soluk Sitrin</DisplayName>
 		<CharmLevel>2</CharmLevel>
 		<UpgradeCharm>Melee03</UpgradeCharm>
 		<PrimaryType>Melee</PrimaryType>
@@ -761,7 +761,7 @@
 	</CharmType>
 	<CharmType CharmName="Melee03">
 		<CharmID>63</CharmID>
-		<DisplayName>Yerel Esya 8628D1</DisplayName>
+		<DisplayName>Cizgili Sitrin</DisplayName>
 		<CharmLevel>8</CharmLevel>
 		<UpgradeCharm>Melee04</UpgradeCharm>
 		<PrimaryType>Melee</PrimaryType>
@@ -773,7 +773,7 @@
 	</CharmType>
 	<CharmType CharmName="Melee04">
 		<CharmID>64</CharmID>
-		<DisplayName>Yerel Esya 366964</DisplayName>
+		<DisplayName>Kusursuz Sitrin</DisplayName>
 		<CharmLevel>14</CharmLevel>
 		<UpgradeCharm>Melee05</UpgradeCharm>
 		<PrimaryType>Melee</PrimaryType>
@@ -785,7 +785,7 @@
 	</CharmType>
 	<CharmType CharmName="Melee05">
 		<CharmID>65</CharmID>
-		<DisplayName>Yerel Esya 3B0569</DisplayName>
+		<DisplayName>Muhtesem Sitrin</DisplayName>
 		<CharmLevel>20</CharmLevel>
 		<UpgradeCharm>Melee06</UpgradeCharm>
 		<PrimaryType>Melee</PrimaryType>
@@ -797,7 +797,7 @@
 	</CharmType>
 	<CharmType CharmName="Melee06">
 		<CharmID>66</CharmID>
-		<DisplayName>Yerel Esya 6C4077</DisplayName>
+		<DisplayName>Goz Alici Sitrin</DisplayName>
 		<CharmLevel>26</CharmLevel>
 		<UpgradeCharm>Melee07</UpgradeCharm>
 		<PrimaryType>Melee</PrimaryType>
@@ -809,7 +809,7 @@
 	</CharmType>
 	<CharmType CharmName="Melee07">
 		<CharmID>67</CharmID>
-		<DisplayName>Yerel Esya 284E47</DisplayName>
+		<DisplayName>Isik Sacan Sitrin</DisplayName>
 		<CharmLevel>32</CharmLevel>
 		<UpgradeCharm>Melee08</UpgradeCharm>
 		<PrimaryType>Melee</PrimaryType>
@@ -821,7 +821,7 @@
 	</CharmType>
 	<CharmType CharmName="Melee08">
 		<CharmID>68</CharmID>
-		<DisplayName>goksel Citrine</DisplayName>
+		<DisplayName>Goksel Sitrin</DisplayName>
 		<CharmLevel>38</CharmLevel>
 		<UpgradeCharm>Melee09</UpgradeCharm>
 		<PrimaryType>Melee</PrimaryType>
@@ -833,7 +833,7 @@
 	</CharmType>
 	<CharmType CharmName="Melee09">
 		<CharmID>69</CharmID>
-		<DisplayName>Yerel Esya EA5AD8</DisplayName>
+		<DisplayName>Tanrica Sitrin</DisplayName>
 		<CharmLevel>44</CharmLevel>
 		<UpgradeCharm>Melee10</UpgradeCharm>
 		<PrimaryType>Melee</PrimaryType>
@@ -845,7 +845,7 @@
 	</CharmType>
 	<CharmType CharmName="Melee10">
 		<CharmID>70</CharmID>
-		<DisplayName>Yerel Esya BEDA7E</DisplayName>
+		<DisplayName>Sonsuz Sitrin</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Melee</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
@@ -856,7 +856,7 @@
 	</CharmType>
 	<CharmType CharmName="Magic01">
 		<CharmID>71</CharmID>
-		<DisplayName>Yerel Esya A89A08</DisplayName>
+		<DisplayName>Yontuk Safir</DisplayName>
 		<CharmLevel>1</CharmLevel>
 		<UpgradeCharm>Magic02</UpgradeCharm>
 		<PrimaryType>Magic</PrimaryType>
@@ -868,7 +868,7 @@
 	</CharmType>
 	<CharmType CharmName="Magic02">
 		<CharmID>72</CharmID>
-		<DisplayName>Yerel Esya 7C33A0</DisplayName>
+		<DisplayName>Soluk Safir</DisplayName>
 		<CharmLevel>2</CharmLevel>
 		<UpgradeCharm>Magic03</UpgradeCharm>
 		<PrimaryType>Magic</PrimaryType>
@@ -880,7 +880,7 @@
 	</CharmType>
 	<CharmType CharmName="Magic03">
 		<CharmID>73</CharmID>
-		<DisplayName>Yerel Esya 2D1017</DisplayName>
+		<DisplayName>Cizgili Safir</DisplayName>
 		<CharmLevel>8</CharmLevel>
 		<UpgradeCharm>Magic04</UpgradeCharm>
 		<PrimaryType>Magic</PrimaryType>
@@ -892,7 +892,7 @@
 	</CharmType>
 	<CharmType CharmName="Magic04">
 		<CharmID>74</CharmID>
-		<DisplayName>Yerel Esya 173104</DisplayName>
+		<DisplayName>Kusursuz Safir</DisplayName>
 		<CharmLevel>14</CharmLevel>
 		<UpgradeCharm>Magic05</UpgradeCharm>
 		<PrimaryType>Magic</PrimaryType>
@@ -904,7 +904,7 @@
 	</CharmType>
 	<CharmType CharmName="Magic05">
 		<CharmID>75</CharmID>
-		<DisplayName>Yerel Esya FB05E5</DisplayName>
+		<DisplayName>Muhtesem Safir</DisplayName>
 		<CharmLevel>20</CharmLevel>
 		<UpgradeCharm>Magic06</UpgradeCharm>
 		<PrimaryType>Magic</PrimaryType>
@@ -916,7 +916,7 @@
 	</CharmType>
 	<CharmType CharmName="Magic06">
 		<CharmID>76</CharmID>
-		<DisplayName>Yerel Esya 6EF4CD</DisplayName>
+		<DisplayName>Goz Alici Safir</DisplayName>
 		<CharmLevel>26</CharmLevel>
 		<UpgradeCharm>Magic07</UpgradeCharm>
 		<PrimaryType>Magic</PrimaryType>
@@ -928,7 +928,7 @@
 	</CharmType>
 	<CharmType CharmName="Magic07">
 		<CharmID>77</CharmID>
-		<DisplayName>Yerel Esya D99F82</DisplayName>
+		<DisplayName>Isik Sacan Safir</DisplayName>
 		<CharmLevel>32</CharmLevel>
 		<UpgradeCharm>Magic08</UpgradeCharm>
 		<PrimaryType>Magic</PrimaryType>
@@ -940,7 +940,7 @@
 	</CharmType>
 	<CharmType CharmName="Magic08">
 		<CharmID>78</CharmID>
-		<DisplayName>goksel Sapphire</DisplayName>
+		<DisplayName>Goksel Safir</DisplayName>
 		<CharmLevel>38</CharmLevel>
 		<UpgradeCharm>Magic09</UpgradeCharm>
 		<PrimaryType>Magic</PrimaryType>
@@ -952,7 +952,7 @@
 	</CharmType>
 	<CharmType CharmName="Magic09">
 		<CharmID>79</CharmID>
-		<DisplayName>Yerel Esya 9601A3</DisplayName>
+		<DisplayName>Tanrica Safir</DisplayName>
 		<CharmLevel>44</CharmLevel>
 		<UpgradeCharm>Magic10</UpgradeCharm>
 		<PrimaryType>Magic</PrimaryType>
@@ -964,7 +964,7 @@
 	</CharmType>
 	<CharmType CharmName="Magic10">
 		<CharmID>80</CharmID>
-		<DisplayName>Yerel Esya 2B0E23</DisplayName>
+		<DisplayName>Sonsuz Safir</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Magic</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
@@ -975,7 +975,7 @@
 	</CharmType>
 	<CharmType CharmName="Armor01">
 		<CharmID>81</CharmID>
-		<DisplayName>Yerel Esya B8C461</DisplayName>
+		<DisplayName>Yontuk Oniks</DisplayName>
 		<CharmLevel>1</CharmLevel>
 		<UpgradeCharm>Armor02</UpgradeCharm>
 		<PrimaryType>Armor</PrimaryType>
@@ -987,7 +987,7 @@
 	</CharmType>
 	<CharmType CharmName="Armor02">
 		<CharmID>82</CharmID>
-		<DisplayName>Yerel Esya 053CAC</DisplayName>
+		<DisplayName>Soluk Oniks</DisplayName>
 		<CharmLevel>2</CharmLevel>
 		<UpgradeCharm>Armor03</UpgradeCharm>
 		<PrimaryType>Armor</PrimaryType>
@@ -999,7 +999,7 @@
 	</CharmType>
 	<CharmType CharmName="Armor03">
 		<CharmID>83</CharmID>
-		<DisplayName>Yerel Esya 596D62</DisplayName>
+		<DisplayName>Cizgili Oniks</DisplayName>
 		<CharmLevel>8</CharmLevel>
 		<UpgradeCharm>Armor04</UpgradeCharm>
 		<PrimaryType>Armor</PrimaryType>
@@ -1011,7 +1011,7 @@
 	</CharmType>
 	<CharmType CharmName="Armor04">
 		<CharmID>84</CharmID>
-		<DisplayName>Yerel Esya D1B423</DisplayName>
+		<DisplayName>Kusursuz Oniks</DisplayName>
 		<CharmLevel>14</CharmLevel>
 		<UpgradeCharm>Armor05</UpgradeCharm>
 		<PrimaryType>Armor</PrimaryType>
@@ -1023,7 +1023,7 @@
 	</CharmType>
 	<CharmType CharmName="Armor05">
 		<CharmID>85</CharmID>
-		<DisplayName>Yerel Esya 2F54E1</DisplayName>
+		<DisplayName>Muhtesem Oniks</DisplayName>
 		<CharmLevel>20</CharmLevel>
 		<UpgradeCharm>Armor06</UpgradeCharm>
 		<PrimaryType>Armor</PrimaryType>
@@ -1035,7 +1035,7 @@
 	</CharmType>
 	<CharmType CharmName="Armor06">
 		<CharmID>86</CharmID>
-		<DisplayName>Yerel Esya F953F2</DisplayName>
+		<DisplayName>Goz Alici Oniks</DisplayName>
 		<CharmLevel>26</CharmLevel>
 		<UpgradeCharm>Armor07</UpgradeCharm>
 		<PrimaryType>Armor</PrimaryType>
@@ -1047,7 +1047,7 @@
 	</CharmType>
 	<CharmType CharmName="Armor07">
 		<CharmID>87</CharmID>
-		<DisplayName>Yerel Esya ACE99B</DisplayName>
+		<DisplayName>Isik Sacan Oniks</DisplayName>
 		<CharmLevel>32</CharmLevel>
 		<UpgradeCharm>Armor08</UpgradeCharm>
 		<PrimaryType>Armor</PrimaryType>
@@ -1059,7 +1059,7 @@
 	</CharmType>
 	<CharmType CharmName="Armor08">
 		<CharmID>88</CharmID>
-		<DisplayName>goksel Onyx</DisplayName>
+		<DisplayName>Goksel Oniks</DisplayName>
 		<CharmLevel>38</CharmLevel>
 		<UpgradeCharm>Armor09</UpgradeCharm>
 		<PrimaryType>Armor</PrimaryType>
@@ -1071,7 +1071,7 @@
 	</CharmType>
 	<CharmType CharmName="Armor09">
 		<CharmID>89</CharmID>
-		<DisplayName>Yerel Esya 59214B</DisplayName>
+		<DisplayName>Tanrica Oniks</DisplayName>
 		<CharmLevel>44</CharmLevel>
 		<UpgradeCharm>Armor10</UpgradeCharm>
 		<PrimaryType>Armor</PrimaryType>
@@ -1083,7 +1083,7 @@
 	</CharmType>
 	<CharmType CharmName="Armor10">
 		<CharmID>90</CharmID>
-		<DisplayName>Yerel Esya 8A6C76</DisplayName>
+		<DisplayName>Sonsuz Oniks</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Armor</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
@@ -1094,17 +1094,17 @@
 	</CharmType>
 	<CharmType CharmName="RespecStone">
 		<CharmID>91</CharmID>
-		<DisplayName>Respec tas</DisplayName>
+		<DisplayName>Yetenek Sifirlama Tasi</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>RespecStone</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
 		<CharmSize>10</CharmSize>
 		<IconName>a_RespecStone</IconName>
-		<Description>Resets senin yetenek stones.</Description>
+		<Description>Yetenek taslarini sifirlar.</Description>
 	</CharmType>
 	<CharmType CharmName="TripleFind">
 		<CharmID>92</CharmID>
-		<DisplayName>Eye Discovery</DisplayName>
+		<DisplayName>Kesif Gozu</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Undead;Trog;Infernal</PrimaryType>
 		<CharmSize>8</CharmSize>
@@ -1112,53 +1112,53 @@
 		<ItemDrop>0.08</ItemDrop>
 		<ProcChanceUp>0.04</ProcChanceUp>
 		<IconName>a_RewardTypeIcon_EyeOfDiscovery</IconName>
-		<Description>+8% altin Finding;+8% Ekipman bul;+4% kritik sans</Description>
+		<Description>+%8 altin bulma sansi;+%8 ekipman bulma sansi;+%4 kritik sans</Description>
 		<DisallowCrafting>True</DisallowCrafting>
 	</CharmType>
 	<CharmType CharmName="DoubleFind1">
 		<CharmID>93</CharmID>
-		<DisplayName>Yerel Esya BAB641</DisplayName>
+		<DisplayName>Parildayan Parca</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Undead;Trog</PrimaryType>
 		<CharmSize>8</CharmSize>
 		<GoldDrop>0.08</GoldDrop>
 		<ItemDrop>0.08</ItemDrop>
 		<IconName>a_RewardTypeIcon_GleamingShard</IconName>
-		<Description>+8% altin Finding;+8% Ekipman bul</Description>
+		<Description>+%8 altin bulma sansi;+%8 ekipman bulma sansi</Description>
 		<DisallowCrafting>True</DisallowCrafting>
 	</CharmType>
 	<CharmType CharmName="DoubleFind2">
 		<CharmID>94</CharmID>
-		<DisplayName>Yerel Esya 5C2C5F</DisplayName>
+		<DisplayName>Isildayan Kirinti</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Undead;Infernal</PrimaryType>
 		<CharmSize>8</CharmSize>
 		<GoldDrop>0.08</GoldDrop>
 		<ProcChanceUp>0.04</ProcChanceUp>
 		<IconName>a_RewardTypeIcon_ShimmeringFragment</IconName>
-		<Description>+8% altin Finding;+4% kritik sans</Description>
+		<Description>+%8 altin bulma sansi;+%4 kritik sans</Description>
 		<DisallowCrafting>True</DisallowCrafting>
 	</CharmType>
 	<CharmType CharmName="DoubleFind3">
 		<CharmID>95</CharmID>
-		<DisplayName>Yerel Esya 727C1D</DisplayName>
+		<DisplayName>Alacakaranlik Kiyimi</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>Trog;Infernal</PrimaryType>
 		<CharmSize>8</CharmSize>
 		<ItemDrop>0.08</ItemDrop>
 		<ProcChanceUp>0.04</ProcChanceUp>
 		<IconName>a_RewardTypeIcon_TwilightSliver</IconName>
-		<Description>+8% Ekipman bul;+4% kritik sans</Description>
+		<Description>+%8 ekipman bulma sansi;+%4 kritik sans</Description>
 		<DisallowCrafting>True</DisallowCrafting>
 	</CharmType>
 	<CharmType CharmName="CharmRemover">
 		<CharmID>96</CharmID>
-		<DisplayName>tilsim Remover</DisplayName>
+		<DisplayName>Tilsim Sokucu</DisplayName>
 		<CharmLevel>50</CharmLevel>
 		<PrimaryType>CharmRemover</PrimaryType>
 		<PrimaryCost>400</PrimaryCost>
 		<CharmSize>10</CharmSize>
 		<IconName>a_Icon_CharmRemover</IconName>
-		<Description>Removes bir tilsim kaynakli bir esya.</Description>
+		<Description>Bir esyadan tilsimi sokar.</Description>
 	</CharmType>
 </CharmTypes>

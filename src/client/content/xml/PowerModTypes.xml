@@ -24,7 +24,7 @@
 		<ModName>RecoverA1</ModName>
 		<ModID>1</ModID>
 		<DisplayName>Kucuk Toparlanma</DisplayName>
-		<Description>Toparlanma artar@Toparlanma:, +.1%, +.3%, +.8%, +1.8%, +3.0%</Description>
+		<Description>Toparlanma artar.@Toparlanma:, +.1%, +.3%, +.8%, +1.8%, +3.0%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Recovery01</IconName>
 		<StatProperty>Recovery</StatProperty>
@@ -70,7 +70,7 @@
 		<ModName>RecoverB1</ModName>
 		<ModID>6</ModID>
 		<DisplayName>Buyuk Toparlanma</DisplayName>
-		<Description>Toparlanma artar@Toparlanma:, +.2%, +.6%, +1.4%, +2.9%, +5.3%</Description>
+		<Description>Toparlanma artar.@Toparlanma:, +.2%, +.6%, +1.4%, +2.9%, +5.3%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Recovery02</IconName>
 		<StatProperty>Recovery</StatProperty>
@@ -116,7 +116,7 @@
 		<ModName>RecoverC1</ModName>
 		<ModID>11</ModID>
 		<DisplayName>Usta Toparlanma</DisplayName>
-		<Description>Toparlanma artar@Toparlanma:, +.5%, +1.3%, +2.4%, +4.4%, +7.5%</Description>
+		<Description>Toparlanma artar.@Toparlanma:, +.5%, +1.3%, +2.4%, +4.4%, +7.5%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Recovery03</IconName>
 		<StatProperty>Recovery</StatProperty>
@@ -161,8 +161,8 @@
 	<PowerModType>
 		<ModName>BleedDmg1</ModName>
 		<ModID>16</ModID>
-		<DisplayName>Atardamar Darbe</DisplayName>
-		<Description>Kanama Hasar artar@Kanama Hasar:, +5%, +10%, +15%, +20%, +25%</Description>
+		<DisplayName>Atardamar Darbesi</DisplayName>
+		<Description>Kanama Hasari artar.@Kanama Hasari:, +5%, +10%, +15%, +20%, +25%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Bleeding</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -172,7 +172,7 @@
 	<PowerModType>
 		<ModName>BleedDmg2</ModName>
 		<ModID>17</ModID>
-		<DisplayName>Atardamar Darbe</DisplayName>
+		<DisplayName>Atardamar Darbesi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Bleeding</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -182,7 +182,7 @@
 	<PowerModType>
 		<ModName>BleedDmg3</ModName>
 		<ModID>18</ModID>
-		<DisplayName>Atardamar Darbe</DisplayName>
+		<DisplayName>Atardamar Darbesi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Bleeding</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -192,7 +192,7 @@
 	<PowerModType>
 		<ModName>BleedDmg4</ModName>
 		<ModID>19</ModID>
-		<DisplayName>Atardamar Darbe</DisplayName>
+		<DisplayName>Atardamar Darbesi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Bleeding</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -202,7 +202,7 @@
 	<PowerModType>
 		<ModName>BleedDmg5</ModName>
 		<ModID>20</ModID>
-		<DisplayName>Atardamar Darbe</DisplayName>
+		<DisplayName>Atardamar Darbesi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Bleeding</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -213,7 +213,7 @@
 		<ModName>BleedMax1</ModName>
 		<ModID>21</ModID>
 		<DisplayName>Derin Kesikler</DisplayName>
-		<Description>Azami Sayi Kanama Yukler artar@Kanama Yukler:, +1, +2, +3, +4, +5</Description>
+		<Description>Azami kanama yuku sayisi artar.@Kanama Yukleri:, +1, +2, +3, +4, +5</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Bleeding</BuffName>
 		<BuffProperty>StackCount</BuffProperty>
@@ -264,7 +264,7 @@
 		<ModName>PoisonDmg1</ModName>
 		<ModID>26</ModID>
 		<DisplayName>Yogun Zehir</DisplayName>
-		<Description>Zehir Hasar artar@Zehir Hasar:, +1%, +2%, +5%, +8%, +13%</Description>
+		<Description>Zehir Hasari artar.@Zehir Hasari:, +1%, +2%, +5%, +8%, +13%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -314,8 +314,8 @@
 	<PowerModType>
 		<ModName>ContactPoison1</ModName>
 		<ModID>31</ModID>
-		<DisplayName>Temas Zehir</DisplayName>
-		<Description>Zehir Hasar Vs. Kanayan Hedefler artar@Zehir Vs Kanayan:, +2%, +4%, +8%, +12%, +18%</Description>
+		<DisplayName>Temas Zehri</DisplayName>
+		<Description>Kanayan hedeflere karsi zehir hasari artar.@Kanayan Hedeflere Zehir:, +2%, +4%, +8%, +12%, +18%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike</BuffName>
 		<BuffProperty>BleedMultiplier</BuffProperty>
@@ -325,7 +325,7 @@
 	<PowerModType>
 		<ModName>ContactPoison2</ModName>
 		<ModID>32</ModID>
-		<DisplayName>Temas Zehir</DisplayName>
+		<DisplayName>Temas Zehri</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike</BuffName>
 		<BuffProperty>BleedMultiplier</BuffProperty>
@@ -335,7 +335,7 @@
 	<PowerModType>
 		<ModName>ContactPoison3</ModName>
 		<ModID>33</ModID>
-		<DisplayName>Temas Zehir</DisplayName>
+		<DisplayName>Temas Zehri</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike</BuffName>
 		<BuffProperty>BleedMultiplier</BuffProperty>
@@ -345,7 +345,7 @@
 	<PowerModType>
 		<ModName>ContactPoison4</ModName>
 		<ModID>34</ModID>
-		<DisplayName>Temas Zehir</DisplayName>
+		<DisplayName>Temas Zehri</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike</BuffName>
 		<BuffProperty>BleedMultiplier</BuffProperty>
@@ -355,7 +355,7 @@
 	<PowerModType>
 		<ModName>ContactPoison5</ModName>
 		<ModID>35</ModID>
-		<DisplayName>Temas Zehir</DisplayName>
+		<DisplayName>Temas Zehri</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike</BuffName>
 		<BuffProperty>BleedMultiplier</BuffProperty>
@@ -366,7 +366,7 @@
 		<ModName>ArmorDmgTime1</ModName>
 		<ModID>36</ModID>
 		<DisplayName>Asindirici Darbeler</DisplayName>
-		<Description>Zirh Kirici Ve Zirh Break Durations artar@Sure (saniye):, +.1, +.3, +.6, +1.1, +1.8</Description>
+		<Description>Zirh Kirici ve zirh kirma sureleri artar.@Sure (saniye):, +.1, +.3, +.6, +1.1, +1.8</Description>
 		<ModType>Buff</ModType>
 		<BuffName>ArmorBane,ReduceArmor,ReduceArmor20,ReduceArmor35,ReduceArmor50,ShadowReduce20,ShadowReduce35,ShadowReduce50</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -416,8 +416,8 @@
 	<PowerModType>
 		<ModName>ArmorDmg1</ModName>
 		<ModID>41</ModID>
-		<DisplayName>Asit Kenar</DisplayName>
-		<Description>Etki Zirh Kirici Ve Zirh Break artar@Etki:, +2%, +4%, +6%, +8%, +10%</Description>
+		<DisplayName>Asitli Keskinlik</DisplayName>
+		<Description>Zirh Kirici ve zirh kirma etkisi artar.@Etki:, +2%, +4%, +6%, +8%, +10%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>ArmorBane,ReduceArmor,ReduceArmor20,ReduceArmor35,ReduceArmor50,ShadowReduce20,ShadowReduce35,ShadowReduce50</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -427,7 +427,7 @@
 	<PowerModType>
 		<ModName>ArmorDmg2</ModName>
 		<ModID>42</ModID>
-		<DisplayName>Asit Kenar</DisplayName>
+		<DisplayName>Asitli Keskinlik</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>ArmorBane,ReduceArmor,ReduceArmor20,ReduceArmor35,ReduceArmor50,ShadowReduce20,ShadowReduce35,ShadowReduce50</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -437,7 +437,7 @@
 	<PowerModType>
 		<ModName>ArmorDmg3</ModName>
 		<ModID>43</ModID>
-		<DisplayName>Asit Kenar</DisplayName>
+		<DisplayName>Asitli Keskinlik</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>ArmorBane,ReduceArmor,ReduceArmor20,ReduceArmor35,ReduceArmor50,ShadowReduce20,ShadowReduce35,ShadowReduce50</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -447,7 +447,7 @@
 	<PowerModType>
 		<ModName>ArmorDmg4</ModName>
 		<ModID>44</ModID>
-		<DisplayName>Asit Kenar</DisplayName>
+		<DisplayName>Asitli Keskinlik</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>ArmorBane,ReduceArmor,ReduceArmor20,ReduceArmor35,ReduceArmor50,ShadowReduce20,ShadowReduce35,ShadowReduce50</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -457,7 +457,7 @@
 	<PowerModType>
 		<ModName>ArmorDmg5</ModName>
 		<ModID>45</ModID>
-		<DisplayName>Asit Kenar</DisplayName>
+		<DisplayName>Asitli Keskinlik</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>ArmorBane,ReduceArmor,ReduceArmor20,ReduceArmor35,ReduceArmor50,ShadowReduce20,ShadowReduce35,ShadowReduce50</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -468,7 +468,7 @@
 		<ModName>CritChance1</ModName>
 		<ModID>46</ModID>
 		<DisplayName>Denge</DisplayName>
-		<Description>Kritik Sans artar@Kritik Sans:, +2%, +4%, +6%, +8%, +10%</Description>
+		<Description>Kritik Sans artar.@Kritik Sans:, +2%, +4%, +6%, +8%, +10%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Critical01</IconName>
 		<StatProperty>ProcChance</StatProperty>
@@ -514,7 +514,7 @@
 		<ModName>Hemorrhage1</ModName>
 		<ModID>51</ModID>
 		<DisplayName>Kanama</DisplayName>
-		<Description>Kanama Kritik Etki artar@Kanama Hasar:, +1%, +3%, +6%, 10%, 15%</Description>
+		<Description>Kanama kritik etkisi artar.@Kanama Kritik Hasari:, +1%, +3%, +6%, 10%, 15%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>ProcMassiveTimeBuff</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -564,8 +564,8 @@
 	<PowerModType>
 		<ModName>ElemMastery1</ModName>
 		<ModID>56</ModID>
-		<DisplayName>Element Ustalik</DisplayName>
-		<Description>Element Kritik Effects artar@Element Hasar:, +1%, +2%, +4%, +7%, +10%</Description>
+		<DisplayName>Element Ustaligi</DisplayName>
+		<Description>Elemental kritik etkiler artar.@Element Hasari:, +1%, +2%, +4%, +7%, +10%</Description>
 		<ModType>Power</ModType>
 		<PowerName>ProcAir,ProcEarth,ProcLife,ProcDeath,ProcFire,ProcIce</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -575,7 +575,7 @@
 	<PowerModType>
 		<ModName>ElemMastery2</ModName>
 		<ModID>57</ModID>
-		<DisplayName>Element Ustalik</DisplayName>
+		<DisplayName>Element Ustaligi</DisplayName>
 		<ModType>Power</ModType>
 		<PowerName>ProcAir,ProcEarth,ProcLife,ProcDeath,ProcFire,ProcIce</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -585,7 +585,7 @@
 	<PowerModType>
 		<ModName>ElemMastery3</ModName>
 		<ModID>58</ModID>
-		<DisplayName>Element Ustalik</DisplayName>
+		<DisplayName>Element Ustaligi</DisplayName>
 		<ModType>Power</ModType>
 		<PowerName>ProcAir,ProcEarth,ProcLife,ProcDeath,ProcFire,ProcIce</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -595,7 +595,7 @@
 	<PowerModType>
 		<ModName>ElemMastery4</ModName>
 		<ModID>59</ModID>
-		<DisplayName>Element Ustalik</DisplayName>
+		<DisplayName>Element Ustaligi</DisplayName>
 		<ModType>Power</ModType>
 		<PowerName>ProcAir,ProcEarth,ProcLife,ProcDeath,ProcFire,ProcIce</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -605,7 +605,7 @@
 	<PowerModType>
 		<ModName>ElemMastery5</ModName>
 		<ModID>60</ModID>
-		<DisplayName>Element Ustalik</DisplayName>
+		<DisplayName>Element Ustaligi</DisplayName>
 		<ModType>Power</ModType>
 		<PowerName>ProcAir,ProcEarth,ProcLife,ProcDeath,ProcFire,ProcIce</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -616,7 +616,7 @@
 		<ModName>HeavyBlow1</ModName>
 		<ModID>61</ModID>
 		<DisplayName>Agir Darbeler</DisplayName>
-		<Description>Agir Darbe Kritik Etki artar@Agir Darbe Hasar:, +1%, +2%, +4%, +7%, +10%</Description>
+		<Description>Agir Darbe kritik etkisi artar.@Agir Darbe Hasari:, +1%, +2%, +4%, +7%, +10%</Description>
 		<ModType>Power</ModType>
 		<PowerName>ProcMassive</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -666,8 +666,8 @@
 	<PowerModType>
 		<ModName>StrengthDmgTime1</ModName>
 		<ModID>66</ModID>
-		<DisplayName>Sinir Darbe</DisplayName>
-		<Description>Gucsuzlestirme Ve Weaken Durations artar@Sure (saniye):, +.25, +.5, +75, +1.25, +1.75</Description>
+		<DisplayName>Sinir Darbesi</DisplayName>
+		<Description>Gucsuzlestirme ve zayiflatma sureleri artar.@Sure (saniye):, +.25, +.5, +75, +1.25, +1.75</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Enfeeble,Weakened,Enfeeble30,Enfeeble45,Enfeeble60,ChaosWeaken</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -677,7 +677,7 @@
 	<PowerModType>
 		<ModName>StrengthDmgTime2</ModName>
 		<ModID>67</ModID>
-		<DisplayName>Sinir Darbe</DisplayName>
+		<DisplayName>Sinir Darbesi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Enfeeble,Weakened,Enfeeble30,Enfeeble45,Enfeeble60,ChaosWeaken</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -687,7 +687,7 @@
 	<PowerModType>
 		<ModName>StrengthDmgTime3</ModName>
 		<ModID>68</ModID>
-		<DisplayName>Sinir Darbe</DisplayName>
+		<DisplayName>Sinir Darbesi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Enfeeble,Weakened,Enfeeble30,Enfeeble45,Enfeeble60,ChaosWeaken</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -697,7 +697,7 @@
 	<PowerModType>
 		<ModName>StrengthDmgTime4</ModName>
 		<ModID>69</ModID>
-		<DisplayName>Sinir Darbe</DisplayName>
+		<DisplayName>Sinir Darbesi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Enfeeble,Weakened,Enfeeble30,Enfeeble45,Enfeeble60,ChaosWeaken</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -707,7 +707,7 @@
 	<PowerModType>
 		<ModName>StrengthDmgTime5</ModName>
 		<ModID>70</ModID>
-		<DisplayName>Sinir Darbe</DisplayName>
+		<DisplayName>Sinir Darbesi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Enfeeble,Weakened,Enfeeble30,Enfeeble45,Enfeeble60,ChaosWeaken</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -717,8 +717,8 @@
 	<PowerModType>
 		<ModName>StrengthDmg1</ModName>
 		<ModID>71</ModID>
-		<DisplayName>Baglama Guc</DisplayName>
-		<Description>Gucsuzlestirme Ve Weaken Etki artar@Etki:, +1%, +2%, +5%, +10%, +15%</Description>
+		<DisplayName>Gucu Bagla</DisplayName>
+		<Description>Gucsuzlestirme ve zayiflatma etkisi artar.@Etki:, +1%, +2%, +5%, +10%, +15%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Enfeeble,Weakened,Enfeeble30,Enfeeble45,Enfeeble60,ChaosWeaken</BuffName>
 		<BuffProperty>MeleeDamage,MagicDamage</BuffProperty>
@@ -728,7 +728,7 @@
 	<PowerModType>
 		<ModName>StrengthDmg2</ModName>
 		<ModID>72</ModID>
-		<DisplayName>Baglama Guc</DisplayName>
+		<DisplayName>Gucu Bagla</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Enfeeble,Weakened,Enfeeble30,Enfeeble45,Enfeeble60,ChaosWeaken</BuffName>
 		<BuffProperty>MeleeDamage,MagicDamage</BuffProperty>
@@ -738,7 +738,7 @@
 	<PowerModType>
 		<ModName>StrengthDmg3</ModName>
 		<ModID>73</ModID>
-		<DisplayName>Baglama Guc</DisplayName>
+		<DisplayName>Gucu Bagla</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Enfeeble,Weakened,Enfeeble30,Enfeeble45,Enfeeble60,ChaosWeaken</BuffName>
 		<BuffProperty>MeleeDamage,MagicDamage</BuffProperty>
@@ -748,7 +748,7 @@
 	<PowerModType>
 		<ModName>StrengthDmg4</ModName>
 		<ModID>74</ModID>
-		<DisplayName>Baglama Guc</DisplayName>
+		<DisplayName>Gucu Bagla</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Enfeeble,Weakened,Enfeeble30,Enfeeble45,Enfeeble60,ChaosWeaken</BuffName>
 		<BuffProperty>MeleeDamage,MagicDamage</BuffProperty>
@@ -758,7 +758,7 @@
 	<PowerModType>
 		<ModName>StrengthDmg5</ModName>
 		<ModID>75</ModID>
-		<DisplayName>Baglama Guc</DisplayName>
+		<DisplayName>Gucu Bagla</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Enfeeble,Weakened,Enfeeble30,Enfeeble45,Enfeeble60,ChaosWeaken</BuffName>
 		<BuffProperty>MeleeDamage,MagicDamage</BuffProperty>
@@ -769,7 +769,7 @@
 		<ModName>SpeedDmgTime1</ModName>
 		<ModID>76</ModID>
 		<DisplayName>Topallatma</DisplayName>
-		<Description>Sakatla Sure artar@Sure (saniye):, +.5, +1, +1.5, +2, +3</Description>
+		<Description>Sakatlama suresi artar.@Sure (saniye):, +.5, +1, +1.5, +2, +3</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Crippled</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -820,7 +820,7 @@
 		<ModName>SpeedDmg1</ModName>
 		<ModID>81</ModID>
 		<DisplayName>Kemik Kiran</DisplayName>
-		<Description>Sakatla Etki artar@Etki:, +10%, +20%, +30%, +40%, +50%</Description>
+		<Description>Sakatlama etkisi artar.@Etki:, +10%, +20%, +30%, +40%, +50%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Crippled</BuffName>
 		<BuffProperty>SpeedChange</BuffProperty>
@@ -870,8 +870,8 @@
 	<PowerModType>
 		<ModName>Pounce1</ModName>
 		<ModID>86</ModID>
-		<DisplayName>Sicrayis</DisplayName>
-		<Description>ver ek hasar yavaslamis ve hareketsiz dusmanlar@Bonus Hasar:, 1%, 2%, 3%, 5%, 7%</Description>
+		<DisplayName>Atlama</DisplayName>
+		<Description>Yavaslamis ve hareketsiz dusmanlara karsi ek hasar verir.@Bonus Hasar:, 1%, 2%, 3%, 5%, 7%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.01</SelfValue>
 		<IconName>a_Signet_Pounce</IconName>
@@ -879,7 +879,7 @@
 	<PowerModType>
 		<ModName>Pounce2</ModName>
 		<ModID>87</ModID>
-		<DisplayName>Sicrayis</DisplayName>
+		<DisplayName>Atlama</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.02</SelfValue>
 		<IconName>a_Signet_Pounce</IconName>
@@ -887,7 +887,7 @@
 	<PowerModType>
 		<ModName>Pounce3</ModName>
 		<ModID>88</ModID>
-		<DisplayName>Sicrayis</DisplayName>
+		<DisplayName>Atlama</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.03</SelfValue>
 		<IconName>a_Signet_Pounce</IconName>
@@ -895,7 +895,7 @@
 	<PowerModType>
 		<ModName>Pounce4</ModName>
 		<ModID>89</ModID>
-		<DisplayName>Sicrayis</DisplayName>
+		<DisplayName>Atlama</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.05</SelfValue>
 		<IconName>a_Signet_Pounce</IconName>
@@ -903,7 +903,7 @@
 	<PowerModType>
 		<ModName>Pounce5</ModName>
 		<ModID>90</ModID>
-		<DisplayName>Sicrayis</DisplayName>
+		<DisplayName>Atlama</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.07</SelfValue>
 		<IconName>a_Signet_Pounce</IconName>
@@ -912,7 +912,7 @@
 		<ModName>Ethereal1</ModName>
 		<ModID>91</ModID>
 		<DisplayName>Ruhani</DisplayName>
-		<Description>kazan bir savunma bonus while icinde Stealth@Savunma Bonus:, 1%, 2%, 3%, 5%, 8%</Description>
+		<Description>Gizlilikteyken savunma bonusu kazanir.@Savunma Bonusu:, 1%, 2%, 3%, 5%, 8%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>ShadowArmor1,ShadowArmor2,ShadowArmor3,ShadowArmor4,ShadowArmor5,ShadowArmor6,ShadowArmor7,ShadowArmor8,ShadowArmor9,ShadowArmor10</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -963,7 +963,7 @@
 		<ModName>Opportunist1</ModName>
 		<ModID>96</ModID>
 		<DisplayName>Firsatci</DisplayName>
-		<Description>kazan bir kritik sans bonus while icinde Stealth@Kritik Sans Bonus:, 1%, 2%, 4%, 7%, 10%</Description>
+		<Description>Gizlilikteyken kritik sans bonusu kazanir.@Kritik Sans Bonusu:, 1%, 2%, 4%, 7%, 10%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>ShadowArmor1,ShadowArmor2,ShadowArmor3,ShadowArmor4,ShadowArmor5,ShadowArmor6,ShadowArmor7,ShadowArmor8,ShadowArmor9,ShadowArmor10</BuffName>
 		<BuffProperty>ProcChance</BuffProperty>
@@ -1013,8 +1013,8 @@
 	<PowerModType>
 		<ModName>ShadowRefuge1</ModName>
 		<ModID>101</ModID>
-		<DisplayName>Golge Siginak</DisplayName>
-		<Description>iyilestir icin bir yuzde senin uzmanlik when giris Stealth@Iyilestirme (% Uzmanlik):, 5%, 10%, 20%, 35%, 60%</Description>
+		<DisplayName>Golge Siginagi</DisplayName>
+		<Description>Gizlilige girerken uzmanliginin belirli bir yuzdesi kadar iyilesir.@Sifa (% Uzmanlik):, 5%, 10%, 20%, 35%, 60%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.05</SelfValue>
 		<IconName>a_Signet_Stealth03</IconName>
@@ -1022,7 +1022,7 @@
 	<PowerModType>
 		<ModName>ShadowRefuge2</ModName>
 		<ModID>102</ModID>
-		<DisplayName>Golge Siginak</DisplayName>
+		<DisplayName>Golge Siginagi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.10</SelfValue>
 		<IconName>a_Signet_Stealth03</IconName>
@@ -1030,7 +1030,7 @@
 	<PowerModType>
 		<ModName>ShadowRefuge3</ModName>
 		<ModID>103</ModID>
-		<DisplayName>Golge Siginak</DisplayName>
+		<DisplayName>Golge Siginagi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.2</SelfValue>
 		<IconName>a_Signet_Stealth03</IconName>
@@ -1038,7 +1038,7 @@
 	<PowerModType>
 		<ModName>ShadowRefuge4</ModName>
 		<ModID>104</ModID>
-		<DisplayName>Golge Siginak</DisplayName>
+		<DisplayName>Golge Siginagi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.35</SelfValue>
 		<IconName>a_Signet_Stealth03</IconName>
@@ -1046,7 +1046,7 @@
 	<PowerModType>
 		<ModName>ShadowRefuge5</ModName>
 		<ModID>105</ModID>
-		<DisplayName>Golge Siginak</DisplayName>
+		<DisplayName>Golge Siginagi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.6</SelfValue>
 		<IconName>a_Signet_Stealth03</IconName>
@@ -1054,8 +1054,8 @@
 	<PowerModType>
 		<ModName>IgniteDmg1</ModName>
 		<ModID>106</ModID>
-		<DisplayName>Immolation</DisplayName>
-		<Description>Tutustur Hasar artar@Tutustur Hasar:, +2%, +4%, +6%, +10%, +16%</Description>
+		<DisplayName>Yakma</DisplayName>
+		<Description>Tutusturma Hasari artar.@Tutusturma Hasari:, +2%, +4%, +6%, +10%, +16%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Ignite</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -1065,7 +1065,7 @@
 	<PowerModType>
 		<ModName>IgniteDmg2</ModName>
 		<ModID>107</ModID>
-		<DisplayName>Immolation</DisplayName>
+		<DisplayName>Yakma</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Ignite</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -1075,7 +1075,7 @@
 	<PowerModType>
 		<ModName>IgniteDmg3</ModName>
 		<ModID>108</ModID>
-		<DisplayName>Immolation</DisplayName>
+		<DisplayName>Yakma</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Ignite</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -1085,7 +1085,7 @@
 	<PowerModType>
 		<ModName>IgniteDmg4</ModName>
 		<ModID>109</ModID>
-		<DisplayName>Immolation</DisplayName>
+		<DisplayName>Yakma</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Ignite</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -1095,7 +1095,7 @@
 	<PowerModType>
 		<ModName>IgniteDmg5</ModName>
 		<ModID>110</ModID>
-		<DisplayName>Immolation</DisplayName>
+		<DisplayName>Yakma</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Ignite</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -1105,8 +1105,8 @@
 	<PowerModType>
 		<ModName>IgniteCrit1</ModName>
 		<ModID>111</ModID>
-		<DisplayName>Ucucu</DisplayName>
-		<Description>kazan bir kritik sans bonus vs. tutusmus hedefler@Kritik Sans Bonus:, 1%, 2%, 3%, 5%, 8%</Description>
+		<DisplayName>Uctucu</DisplayName>
+		<Description>Tutusmus hedeflere karsi kritik sans bonusu kazanir.@Kritik Sans Bonusu:, 1%, 2%, 3%, 5%, 8%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>0.01</SelfValue>
 		<IconName>a_Signet_Critical03</IconName>
@@ -1114,7 +1114,7 @@
 	<PowerModType>
 		<ModName>IgniteCrit2</ModName>
 		<ModID>112</ModID>
-		<DisplayName>Ucucu</DisplayName>
+		<DisplayName>Uctucu</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>0.02</SelfValue>
 		<IconName>a_Signet_Critical03</IconName>
@@ -1122,7 +1122,7 @@
 	<PowerModType>
 		<ModName>IgniteCrit3</ModName>
 		<ModID>113</ModID>
-		<DisplayName>Ucucu</DisplayName>
+		<DisplayName>Uctucu</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>0.03</SelfValue>
 		<IconName>a_Signet_Critical03</IconName>
@@ -1130,7 +1130,7 @@
 	<PowerModType>
 		<ModName>IgniteCrit4</ModName>
 		<ModID>114</ModID>
-		<DisplayName>Ucucu</DisplayName>
+		<DisplayName>Uctucu</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>0.05</SelfValue>
 		<IconName>a_Signet_Critical03</IconName>
@@ -1138,7 +1138,7 @@
 	<PowerModType>
 		<ModName>IgniteCrit5</ModName>
 		<ModID>115</ModID>
-		<DisplayName>Ucucu</DisplayName>
+		<DisplayName>Uctucu</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>0.08</SelfValue>
 		<IconName>a_Signet_Critical03</IconName>
@@ -1147,7 +1147,7 @@
 		<ModName>Fury1</ModName>
 		<ModID>116</ModID>
 		<DisplayName>Hiddet</DisplayName>
-		<Description>kazan bir hasar Bonus icin 3 saniye when sen azalt bir hedef 0 can. 10 saniye bekleme.@Hasar Bonus:, 1%, 2%, 4%, 6%, 10%</Description>
+		<Description>Bir hedefin canini 0 yaptiginda 3 saniye hasar bonusu kazanir. 10 saniye bekleme suresi vardir.@Hasar Bonus:, 1%, 2%, 4%, 6%, 10%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>1</SelfValue>
 		<IconName>a_Signet_Fury</IconName>
@@ -1193,7 +1193,7 @@
 		<ModName>PainEater1</ModName>
 		<ModID>121</ModID>
 		<DisplayName>Aci Yiyen</DisplayName>
-		<Description>kazan bir saldiri Speed bonus icin 5 saniye when sen dus below 20% can. 15 saniye bekleme.@Saldiri Speed Bonus:, 1%, 2%, 4%, 7%, 10%</Description>
+		<Description>Canin %20 altina dustugunde 5 saniye saldiri hizi bonusu kazanir. 15 saniye bekleme suresi vardir.@Saldiri Hizi Bonusu:, 1%, 2%, 4%, 7%, 10%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>1</SelfValue>
 		<IconName>a_Signet_PainEater</IconName>
@@ -1234,7 +1234,7 @@
 		<ModName>FireShield1</ModName>
 		<ModID>126</ModID>
 		<DisplayName>Ates Kalkani</DisplayName>
-		<Description>hasar yakindaki dusmanlar when yakin dovus attacked by bir tutusmus dusman@Bekleme (saniye):, 15, 13, 10, 8, 6</Description>
+		<Description>Tutusan bir dusman yakin dovusla saldirdiginda yakindaki dusmanlara hasar verir.@Bekleme (saniye):, 15, 13, 10, 8, 6</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>1</SelfValue>
 		<IconName>a_Signet_FireShield</IconName>
@@ -1275,7 +1275,7 @@
 		<ModName>Heroism1</ModName>
 		<ModID>131</ModID>
 		<DisplayName>Kahramanlik</DisplayName>
-		<Description>kazan toparlanma icin 5 saniye when sen dus below 20% can@Toparlanma Bonusu:, 2%, 5%, 9%, 14%, 20%@Bekleme (saniye):, 30, 30, 30, 25, 20</Description>
+		<Description>Canin %20 altina dustugunde 5 saniye Toparlanma kazanir.@Toparlanma Bonusu:, 2%, 5%, 9%, 14%, 20%@Bekleme (saniye):, 30, 30, 30, 25, 20</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>1</SelfValue>
 		<IconName>a_Signet_Heroism</IconName>
@@ -1316,7 +1316,7 @@
 		<ModName>Vigor1</ModName>
 		<ModID>136</ModID>
 		<DisplayName>Dinclik</DisplayName>
-		<Description>iyilestir icin bir yuzde senin uzmanlik whenever sen kullan bir Combat yetenek@ Iyilestirme (% Uzmanlik):, 2%, 5%, 11%, 20%, 30%</Description>
+		<Description>Bir savas yetenegi kullandiginda uzmanliginin belirli bir yuzdesi kadar iyilesir.@ Sifa (% Uzmanlik):, 2%, 5%, 11%, 20%, 30%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.02</SelfValue>
 		<IconName>a_Signet_Vigor</IconName>
@@ -1356,8 +1356,8 @@
 	<PowerModType>
 		<ModName>Taunt1</ModName>
 		<ModID>141</ModID>
-		<DisplayName>Kiskirt</DisplayName>
-		<Description>Nefret Uretimi artar@Nefret:, +10%, +20%, +35%, +50%, +75%</Description>
+		<DisplayName>Kiskirtma</DisplayName>
+		<Description>Nefret Uretimi artar.@Nefret:, +10%, +20%, +35%, +50%, +75%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.1</SelfValue>
 		<IconName>a_Signet_Taunt</IconName>
@@ -1365,7 +1365,7 @@
 	<PowerModType>
 		<ModName>Taunt2</ModName>
 		<ModID>142</ModID>
-		<DisplayName>Kiskirt</DisplayName>
+		<DisplayName>Kiskirtma</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.2</SelfValue>
 		<IconName>a_Signet_Taunt</IconName>
@@ -1373,7 +1373,7 @@
 	<PowerModType>
 		<ModName>Taunt3</ModName>
 		<ModID>143</ModID>
-		<DisplayName>Kiskirt</DisplayName>
+		<DisplayName>Kiskirtma</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.35</SelfValue>
 		<IconName>a_Signet_Taunt</IconName>
@@ -1381,7 +1381,7 @@
 	<PowerModType>
 		<ModName>Taunt4</ModName>
 		<ModID>144</ModID>
-		<DisplayName>Kiskirt</DisplayName>
+		<DisplayName>Kiskirtma</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.50</SelfValue>
 		<IconName>a_Signet_Taunt</IconName>
@@ -1389,7 +1389,7 @@
 	<PowerModType>
 		<ModName>Taunt5</ModName>
 		<ModID>145</ModID>
-		<DisplayName>Kiskirt</DisplayName>
+		<DisplayName>Kiskirtma</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.75</SelfValue>
 		<IconName>a_Signet_Taunt</IconName>
@@ -1398,7 +1398,7 @@
 		<ModName>Blessed1</ModName>
 		<ModID>146</ModID>
 		<DisplayName>Kutsanmis</DisplayName>
-		<Description>azalt amount hasar sen receive kaynakli hasar Over sure effects@Do T Reduction:, 1%, 3%, 6%, 10%, 15%</Description>
+		<Description>Zamanla hasar etkilerinden aldigin hasari azaltir.@Zamanla Hasar Azaltma:, 1%, 3%, 6%, 10%, 15%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Blessed</IconName>
 		<StatProperty>DoTResist</StatProperty>
@@ -1444,7 +1444,7 @@
 		<ModName>Zeal1</ModName>
 		<ModID>151</ModID>
 		<DisplayName>Cosku</DisplayName>
-		<Description>Bir Yuzde Senin Uzmanlik Senin Saldiri etkisi ekler.@Saldiri (% Uzmanlik):, +.5%, +1%, +2%, +3%, +5%</Description>
+		<Description>Uzmanliginin belirli bir yuzdesini saldiri degerine ekler.@Saldiri (% Uzmanlik):, +.5%, +1%, +2%, +3%, +5%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Zeal</IconName>
 		<StatProperty>MeleeFromWis</StatProperty>
@@ -1489,8 +1489,8 @@
 	<PowerModType>
 		<ModName>Conviction1</ModName>
 		<ModID>156</ModID>
-		<DisplayName>Conviction</DisplayName>
-		<Description>Bir Yuzde Senin Uzmanlik Senin Savunma etkisi ekler.@Savunma (% Uzmanlik):, +.1%, +.3%, +.6%, +1%, +1.5%</Description>
+		<DisplayName>Inanc</DisplayName>
+		<Description>Uzmanliginin belirli bir yuzdesini savunma degerine ekler.@Savunma (% Uzmanlik):, +.1%, +.3%, +.6%, +1%, +1.5%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Conviction</IconName>
 		<StatProperty>ArmorFromWis</StatProperty>
@@ -1499,7 +1499,7 @@
 	<PowerModType>
 		<ModName>Conviction2</ModName>
 		<ModID>157</ModID>
-		<DisplayName>Conviction</DisplayName>
+		<DisplayName>Inanc</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Conviction</IconName>
 		<StatProperty>ArmorFromWis</StatProperty>
@@ -1508,7 +1508,7 @@
 	<PowerModType>
 		<ModName>Conviction3</ModName>
 		<ModID>158</ModID>
-		<DisplayName>Conviction</DisplayName>
+		<DisplayName>Inanc</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Conviction</IconName>
 		<StatProperty>ArmorFromWis</StatProperty>
@@ -1517,7 +1517,7 @@
 	<PowerModType>
 		<ModName>Conviction4</ModName>
 		<ModID>159</ModID>
-		<DisplayName>Conviction</DisplayName>
+		<DisplayName>Inanc</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Conviction</IconName>
 		<StatProperty>ArmorFromWis</StatProperty>
@@ -1526,7 +1526,7 @@
 	<PowerModType>
 		<ModName>Conviction5</ModName>
 		<ModID>160</ModID>
-		<DisplayName>Conviction</DisplayName>
+		<DisplayName>Inanc</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Conviction</IconName>
 		<StatProperty>ArmorFromWis</StatProperty>
@@ -1535,8 +1535,8 @@
 	<PowerModType>
 		<ModName>Fervor1</ModName>
 		<ModID>161</ModID>
-		<DisplayName>Cosku</DisplayName>
-		<Description>Bir Yuzde Senin Uzmanlik Senin Max Can etkisi ekler.@Can (% Uzmanlik):, +3%, +8%, +16%, +28%, +45%</Description>
+		<DisplayName>Atesli Cosku</DisplayName>
+		<Description>Uzmanliginin belirli bir yuzdesini azami canina ekler.@Can (% Uzmanlik):, +3%, +8%, +16%, +28%, +45%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Fervor</IconName>
 		<StatProperty>HPFromWis</StatProperty>
@@ -1545,7 +1545,7 @@
 	<PowerModType>
 		<ModName>Fervor2</ModName>
 		<ModID>162</ModID>
-		<DisplayName>Cosku</DisplayName>
+		<DisplayName>Atesli Cosku</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Fervor</IconName>
 		<StatProperty>HPFromWis</StatProperty>
@@ -1554,7 +1554,7 @@
 	<PowerModType>
 		<ModName>Fervor3</ModName>
 		<ModID>163</ModID>
-		<DisplayName>Cosku</DisplayName>
+		<DisplayName>Atesli Cosku</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Fervor</IconName>
 		<StatProperty>HPFromWis</StatProperty>
@@ -1563,7 +1563,7 @@
 	<PowerModType>
 		<ModName>Fervor4</ModName>
 		<ModID>164</ModID>
-		<DisplayName>Cosku</DisplayName>
+		<DisplayName>Atesli Cosku</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Fervor</IconName>
 		<StatProperty>HPFromWis</StatProperty>
@@ -1572,7 +1572,7 @@
 	<PowerModType>
 		<ModName>Fervor5</ModName>
 		<ModID>165</ModID>
-		<DisplayName>Cosku</DisplayName>
+		<DisplayName>Atesli Cosku</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Fervor</IconName>
 		<StatProperty>HPFromWis</StatProperty>
@@ -1581,8 +1581,8 @@
 	<PowerModType>
 		<ModName>Dominate1</ModName>
 		<ModID>166</ModID>
-		<DisplayName>Dominate</DisplayName>
-		<Description>kazan bir kritik sans bonus vs. sarsilmis ve sersemlemis hedefler@Kritik Sans Bonus:, 1%, 2%, 3%, 5%, 8%</Description>
+		<DisplayName>Hukumranlik</DisplayName>
+		<Description>Sarsilmis ve sersemlemis hedeflere karsi kritik sans bonusu kazanir.@Kritik Sans Bonusu:, 1%, 2%, 3%, 5%, 8%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.01</SelfValue>
 		<IconName>a_Signet_Critical05</IconName>
@@ -1590,7 +1590,7 @@
 	<PowerModType>
 		<ModName>Dominate2</ModName>
 		<ModID>167</ModID>
-		<DisplayName>Dominate</DisplayName>
+		<DisplayName>Hukumranlik</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.02</SelfValue>
 		<IconName>a_Signet_Critical05</IconName>
@@ -1598,7 +1598,7 @@
 	<PowerModType>
 		<ModName>Dominate3</ModName>
 		<ModID>168</ModID>
-		<DisplayName>Dominate</DisplayName>
+		<DisplayName>Hukumranlik</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.03</SelfValue>
 		<IconName>a_Signet_Critical05</IconName>
@@ -1606,7 +1606,7 @@
 	<PowerModType>
 		<ModName>Dominate4</ModName>
 		<ModID>169</ModID>
-		<DisplayName>Dominate</DisplayName>
+		<DisplayName>Hukumranlik</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.05</SelfValue>
 		<IconName>a_Signet_Critical05</IconName>
@@ -1614,7 +1614,7 @@
 	<PowerModType>
 		<ModName>Dominate5</ModName>
 		<ModID>170</ModID>
-		<DisplayName>Dominate</DisplayName>
+		<DisplayName>Hukumranlik</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.08</SelfValue>
 		<IconName>a_Signet_Critical05</IconName>
@@ -1623,7 +1623,7 @@
 		<ModName>RapidRecovery1</ModName>
 		<ModID>171</ModID>
 		<DisplayName>Hizli Toparlanma</DisplayName>
-		<Description>Metanet artar@Metanet:, +1%, +2%, +4%, +7%, 10%</Description>
+		<Description>Metanet artar.@Metanet:, +1%, +2%, +4%, +7%, 10%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_RapidRecover</IconName>
 		<StatProperty>CCReduction</StatProperty>
@@ -1669,7 +1669,7 @@
 		<ModName>Resilience1</ModName>
 		<ModID>176</ModID>
 		<DisplayName>Dayaniklilik</DisplayName>
-		<Description>azalt etki zayiflatmalar that azalt senin istatistikler@Zayiflatma Reduction:, 1%, 2%, 4%, 7%, 10%</Description>
+		<Description>Istatistiklerini azaltan zayiflatmalarin etkisini dusurur.@Zayiflatma Azaltma:, 1%, 2%, 4%, 7%, 10%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Resilience</IconName>
 		<StatProperty>DebuffResist</StatProperty>
@@ -1714,8 +1714,8 @@
 	<PowerModType>
 		<ModName>SentinelArmor1</ModName>
 		<ModID>181</ModID>
-		<DisplayName>Nobetci Zirh</DisplayName>
-		<Description>kazan Bonus savunma while nobetci form is degil uzerinde bekleme@Savunma:, +1%, +2%, +3%, +4%, +5%</Description>
+		<DisplayName>Gozcu Zirhi</DisplayName>
+		<Description>Gozcu Formu bekleme suresinde degilken bonus savunma kazanir.@Savunma:, +1%, +2%, +3%, +4%, +5%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.01</SelfValue>
 		<IconName>a_Signet_SentinelArmor</IconName>
@@ -1723,7 +1723,7 @@
 	<PowerModType>
 		<ModName>SentinelArmor2</ModName>
 		<ModID>182</ModID>
-		<DisplayName>Nobetci Zirh</DisplayName>
+		<DisplayName>Gozcu Zirhi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.02</SelfValue>
 		<IconName>a_Signet_SentinelArmor</IconName>
@@ -1731,7 +1731,7 @@
 	<PowerModType>
 		<ModName>SentinelArmor3</ModName>
 		<ModID>183</ModID>
-		<DisplayName>Nobetci Zirh</DisplayName>
+		<DisplayName>Gozcu Zirhi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.03</SelfValue>
 		<IconName>a_Signet_SentinelArmor</IconName>
@@ -1739,7 +1739,7 @@
 	<PowerModType>
 		<ModName>SentinelArmor4</ModName>
 		<ModID>184</ModID>
-		<DisplayName>Nobetci Zirh</DisplayName>
+		<DisplayName>Gozcu Zirhi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.04</SelfValue>
 		<IconName>a_Signet_SentinelArmor</IconName>
@@ -1747,7 +1747,7 @@
 	<PowerModType>
 		<ModName>SentinelArmor5</ModName>
 		<ModID>185</ModID>
-		<DisplayName>Nobetci Zirh</DisplayName>
+		<DisplayName>Gozcu Zirhi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.05</SelfValue>
 		<IconName>a_Signet_SentinelArmor</IconName>
@@ -1756,7 +1756,7 @@
 		<ModName>BurnDmg1</ModName>
 		<ModID>186</ModID>
 		<DisplayName>Hizlandirici</DisplayName>
-		<Description>Yanma Hasar artar@Yanma Hasar:, +3%, +7%, +10%, +17%, +25%</Description>
+		<Description>Yanma Hasari artar.@Yanma Hasari:, +3%, +7%, +10%, +17%, +25%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Burned</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -1807,7 +1807,7 @@
 		<ModName>BurnMax1</ModName>
 		<ModID>191</ModID>
 		<DisplayName>Napalm</DisplayName>
-		<Description>Azami Sayi Yanma Yukler artar@Yanma Yukler:, +1, +2, +3, +4, +5</Description>
+		<Description>Azami yanma yuku sayisi artar.@Yanma Yukleri:, +1, +2, +3, +4, +5</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Burned</BuffName>
 		<BuffProperty>StackCount</BuffProperty>
@@ -1857,8 +1857,8 @@
 	<PowerModType>
 		<ModName>Blaze1</ModName>
 		<ModID>196</ModID>
-		<DisplayName>Alev</DisplayName>
-		<Description>Set off bir Ao E patlama when sen saldiri bir yanan dusman ile ates hasar@Bekleme (saniye):, 15, 14, 13, 12, 10</Description>
+		<DisplayName>Alevlenme</DisplayName>
+		<Description>Yanan bir dusmana ates hasariyla saldirdiginda alan patlamasi tetikler.@Bekleme (saniye):, 15, 14, 13, 12, 10</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>1</SelfValue>
 		<IconName>a_Signet_Blaze</IconName>
@@ -1866,7 +1866,7 @@
 	<PowerModType>
 		<ModName>Blaze2</ModName>
 		<ModID>197</ModID>
-		<DisplayName>Alev</DisplayName>
+		<DisplayName>Alevlenme</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>2</SelfValue>
 		<IconName>a_Signet_Blaze</IconName>
@@ -1874,7 +1874,7 @@
 	<PowerModType>
 		<ModName>Blaze3</ModName>
 		<ModID>198</ModID>
-		<DisplayName>Alev</DisplayName>
+		<DisplayName>Alevlenme</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>3</SelfValue>
 		<IconName>a_Signet_Blaze</IconName>
@@ -1882,7 +1882,7 @@
 	<PowerModType>
 		<ModName>Blaze4</ModName>
 		<ModID>199</ModID>
-		<DisplayName>Alev</DisplayName>
+		<DisplayName>Alevlenme</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>4</SelfValue>
 		<IconName>a_Signet_Blaze</IconName>
@@ -1890,7 +1890,7 @@
 	<PowerModType>
 		<ModName>Blaze5</ModName>
 		<ModID>200</ModID>
-		<DisplayName>Alev</DisplayName>
+		<DisplayName>Alevlenme</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>5</SelfValue>
 		<IconName>a_Signet_Blaze</IconName>
@@ -1899,7 +1899,7 @@
 		<ModName>ScorchTime1</ModName>
 		<ModID>201</ModID>
 		<DisplayName>Yogunluk</DisplayName>
-		<Description>Kavurma Sure artar@Sure (saniye):,.5, 1, 1.5, 2, 3</Description>
+		<Description>Kavurma suresi artar.@Sure (saniye):,.5, 1, 1.5, 2, 3</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Scorched</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -1950,7 +1950,7 @@
 		<ModName>ScorchMax1</ModName>
 		<ModID>206</ModID>
 		<DisplayName>Piromani</DisplayName>
-		<Description>Azami Sayi Kavurma Yukler artar@Kavurma Yukler:, +1, +2, +3, +4, +5</Description>
+		<Description>Azami kavurma yuku sayisi artar.@Kavurma Yukleri:, +1, +2, +3, +4, +5</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Scorched</BuffName>
 		<BuffProperty>StackCount</BuffProperty>
@@ -2000,8 +2000,8 @@
 	<PowerModType>
 		<ModName>ChillSpdTime1</ModName>
 		<ModID>211</ModID>
-		<DisplayName>Kalici Sogutma</DisplayName>
-		<Description>Sogutma Sure artar@Sure (saniye):, +.25, +.5, +.75, +1.25, +2</Description>
+		<DisplayName>Kalici Usume</DisplayName>
+		<Description>Sogutma suresi artar.@Sure (saniye):, +.25, +.5, +.75, +1.25, +2</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Chilled42</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -2011,7 +2011,7 @@
 	<PowerModType>
 		<ModName>ChillSpdTime2</ModName>
 		<ModID>212</ModID>
-		<DisplayName>Kalici Sogutma</DisplayName>
+		<DisplayName>Kalici Usume</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilled42</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -2021,7 +2021,7 @@
 	<PowerModType>
 		<ModName>ChillSpdTime3</ModName>
 		<ModID>213</ModID>
-		<DisplayName>Kalici Sogutma</DisplayName>
+		<DisplayName>Kalici Usume</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilled42</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -2031,7 +2031,7 @@
 	<PowerModType>
 		<ModName>ChillSpdTime4</ModName>
 		<ModID>214</ModID>
-		<DisplayName>Kalici Sogutma</DisplayName>
+		<DisplayName>Kalici Usume</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilled42</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -2041,7 +2041,7 @@
 	<PowerModType>
 		<ModName>ChillSpdTime5</ModName>
 		<ModID>215</ModID>
-		<DisplayName>Kalici Sogutma</DisplayName>
+		<DisplayName>Kalici Usume</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilled42</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -2051,8 +2051,8 @@
 	<PowerModType>
 		<ModName>ChillSpdDmg1</ModName>
 		<ModID>216</ModID>
-		<DisplayName>Kemik Sogutma</DisplayName>
-		<Description>Sogutma Etki artar@Etki:, +3%, +5%, +10%, +18%, +30%</Description>
+		<DisplayName>Kemik Usuten Soguk</DisplayName>
+		<Description>Sogutma etkisi artar.@Etki:, +3%, +5%, +10%, +18%, +30%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Chilled42</BuffName>
 		<BuffProperty>SpeedChange</BuffProperty>
@@ -2062,7 +2062,7 @@
 	<PowerModType>
 		<ModName>ChillSpdDmg2</ModName>
 		<ModID>217</ModID>
-		<DisplayName>Kemik Sogutma</DisplayName>
+		<DisplayName>Kemik Usuten Soguk</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilled42</BuffName>
 		<BuffProperty>SpeedChange</BuffProperty>
@@ -2072,7 +2072,7 @@
 	<PowerModType>
 		<ModName>ChillSpdDmg3</ModName>
 		<ModID>218</ModID>
-		<DisplayName>Kemik Sogutma</DisplayName>
+		<DisplayName>Kemik Usuten Soguk</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilled42</BuffName>
 		<BuffProperty>SpeedChange</BuffProperty>
@@ -2082,7 +2082,7 @@
 	<PowerModType>
 		<ModName>ChillSpdDmg4</ModName>
 		<ModID>219</ModID>
-		<DisplayName>Kemik Sogutma</DisplayName>
+		<DisplayName>Kemik Usuten Soguk</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilled42</BuffName>
 		<BuffProperty>SpeedChange</BuffProperty>
@@ -2092,7 +2092,7 @@
 	<PowerModType>
 		<ModName>ChillSpdDmg5</ModName>
 		<ModID>220</ModID>
-		<DisplayName>Kemik Sogutma</DisplayName>
+		<DisplayName>Kemik Usuten Soguk</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilled42</BuffName>
 		<BuffProperty>SpeedChange</BuffProperty>
@@ -2102,8 +2102,8 @@
 	<PowerModType>
 		<ModName>ChilblainsMax1</ModName>
 		<ModID>221</ModID>
-		<DisplayName>Buz Isirik</DisplayName>
-		<Description>Azami Sayi Soguk Yaralari Yukler artar@Soguk Yaralari Yukler:, +1, +2, +3, +4, +5</Description>
+		<DisplayName>Don Isirigi</DisplayName>
+		<Description>Azami soguk yaralari yuku sayisi artar.@Soguk Yaralari Yukleri:, +1, +2, +3, +4, +5</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Chilblains</BuffName>
 		<BuffProperty>StackCount</BuffProperty>
@@ -2113,7 +2113,7 @@
 	<PowerModType>
 		<ModName>ChilblainsMax2</ModName>
 		<ModID>222</ModID>
-		<DisplayName>Buz Isirik</DisplayName>
+		<DisplayName>Don Isirigi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilblains</BuffName>
 		<BuffProperty>StackCount</BuffProperty>
@@ -2123,7 +2123,7 @@
 	<PowerModType>
 		<ModName>ChilblainsMax3</ModName>
 		<ModID>223</ModID>
-		<DisplayName>Buz Isirik</DisplayName>
+		<DisplayName>Don Isirigi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilblains</BuffName>
 		<BuffProperty>StackCount</BuffProperty>
@@ -2133,7 +2133,7 @@
 	<PowerModType>
 		<ModName>ChilblainsMax4</ModName>
 		<ModID>224</ModID>
-		<DisplayName>Buz Isirik</DisplayName>
+		<DisplayName>Don Isirigi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilblains</BuffName>
 		<BuffProperty>StackCount</BuffProperty>
@@ -2143,7 +2143,7 @@
 	<PowerModType>
 		<ModName>ChilblainsMax5</ModName>
 		<ModID>225</ModID>
-		<DisplayName>Buz Isirik</DisplayName>
+		<DisplayName>Don Isirigi</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Chilblains</BuffName>
 		<BuffProperty>StackCount</BuffProperty>
@@ -2154,7 +2154,7 @@
 		<ModName>DryIce1</ModName>
 		<ModID>226</ModID>
 		<DisplayName>Kuru Buz</DisplayName>
-		<Description>buz kok takes bir yuzde senin uzmanlik before kirilma@Hasar (%uzmanlik):, 50%, 110%, 180%, 260%, 350%</Description>
+		<Description>Buz koklemesi kirilmadan once uzmanliginin belirli bir yuzdesi kadar hasar sogurur.@Hasar (% Uzmanlik):, 50%, 110%, 180%, 260%, 350%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>NovaRank1,HailstoneRoot,RootSpire5,RootSpire8</BuffName>
 		<BuffProperty>Durability</BuffProperty>
@@ -2204,8 +2204,8 @@
 	<PowerModType>
 		<ModName>IceCasket1</ModName>
 		<ModID>231</ModID>
-		<DisplayName>Buz Tabut</DisplayName>
-		<Description>dondurma takes bir yuzde senin uzmanlik before kirilma@Hasar (%uzmanlik):, 50%, 100%, 150%, 200%, 250%</Description>
+		<DisplayName>Buz Tabutu</DisplayName>
+		<Description>Dondurma etkisi kirilmadan once uzmanliginin belirli bir yuzdesi kadar hasar sogurur.@Hasar (% Uzmanlik):, 50%, 100%, 150%, 200%, 250%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Freeze2500,FreezeWard8,FreezeWard10,FreezeSpire10</BuffName>
 		<BuffProperty>Durability</BuffProperty>
@@ -2215,7 +2215,7 @@
 	<PowerModType>
 		<ModName>IceCasket2</ModName>
 		<ModID>232</ModID>
-		<DisplayName>Buz Tabut</DisplayName>
+		<DisplayName>Buz Tabutu</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Freeze2500,FreezeWard8,FreezeWard10,FreezeSpire10</BuffName>
 		<BuffProperty>Durability</BuffProperty>
@@ -2225,7 +2225,7 @@
 	<PowerModType>
 		<ModName>IceCasket3</ModName>
 		<ModID>233</ModID>
-		<DisplayName>Buz Tabut</DisplayName>
+		<DisplayName>Buz Tabutu</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Freeze2500,FreezeWard8,FreezeWard10,FreezeSpire10</BuffName>
 		<BuffProperty>Durability</BuffProperty>
@@ -2235,7 +2235,7 @@
 	<PowerModType>
 		<ModName>IceCasket4</ModName>
 		<ModID>234</ModID>
-		<DisplayName>Buz Tabut</DisplayName>
+		<DisplayName>Buz Tabutu</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Freeze2500,FreezeWard8,FreezeWard10,FreezeSpire10</BuffName>
 		<BuffProperty>Durability</BuffProperty>
@@ -2245,7 +2245,7 @@
 	<PowerModType>
 		<ModName>IceCasket5</ModName>
 		<ModID>235</ModID>
-		<DisplayName>Buz Tabut</DisplayName>
+		<DisplayName>Buz Tabutu</DisplayName>
 		<ModType>Buff</ModType>
 		<BuffName>Freeze2500,FreezeWard8,FreezeWard10,FreezeSpire10</BuffName>
 		<BuffProperty>Durability</BuffProperty>
@@ -2256,7 +2256,7 @@
 		<ModName>ChilblainsDmg1</ModName>
 		<ModID>236</ModID>
 		<DisplayName>Soguk Yaralari</DisplayName>
-		<Description>Soguk Yaralari Hasar artar@Soguk Yaralari Hasar:, +2%, +6%, +12%, +20%, +30%</Description>
+		<Description>Soguk Yaralari Hasari artar.@Soguk Yaralari Hasari:, +2%, +6%, +12%, +20%, +30%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Chilblains</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -2307,7 +2307,7 @@
 		<ModName>PiercingCold1</ModName>
 		<ModID>241</ModID>
 		<DisplayName>Delici Soguk</DisplayName>
-		<Description>dondurma azaltir hedef savunma@Savunma Reduction:, 1%, 2%, 4%, 7%, 10%</Description>
+		<Description>Dondurma hedefin savunmasini azaltir.@Savunma Azaltma:, 1%, 2%, 4%, 7%, 10%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Freeze2500</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -2358,7 +2358,7 @@
 		<ModName>Harmony1</ModName>
 		<ModID>246</ModID>
 		<DisplayName>Uyum</DisplayName>
-		<Description>kazan Bonus hasar next Combat yetenek kullanim icindeki 3 saniye bir usta yetenek@Bonus Hasar:, 1%, 2%, 4%, 7%, 10%</Description>
+		<Description>Usta yetenekten sonraki 3 saniye icinde kullanilan savas yetenegine bonus hasar verir.@Bonus Hasar:, 1%, 2%, 4%, 7%, 10%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.01</SelfValue>
 		<IconName>a_Signet_Harmony</IconName>
@@ -2398,8 +2398,8 @@
 	<PowerModType>
 		<ModName>Conserve1</ModName>
 		<ModID>251</ModID>
-		<DisplayName>Koru</DisplayName>
-		<Description>kullanmak bir Combat yetenek duraklatir usta mana tuketim kisa sure@Tuketim Duraklama (saniye):,.1,.25,.45,.7, 1</Description>
+		<DisplayName>Tasarruf</DisplayName>
+		<Description>Savas yetenegi kullanmak Usta Mana tuketimini kisa sure duraklatir.@Tuketim Duraklamasi (saniye):,.1,.25,.45,.7, 1</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>100</SelfValue>
 		<IconName>a_Signet_Conserve</IconName>
@@ -2407,7 +2407,7 @@
 	<PowerModType>
 		<ModName>Conserve2</ModName>
 		<ModID>252</ModID>
-		<DisplayName>Koru</DisplayName>
+		<DisplayName>Tasarruf</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>250</SelfValue>
 		<IconName>a_Signet_Conserve</IconName>
@@ -2415,7 +2415,7 @@
 	<PowerModType>
 		<ModName>Conserve3</ModName>
 		<ModID>253</ModID>
-		<DisplayName>Koru</DisplayName>
+		<DisplayName>Tasarruf</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>450</SelfValue>
 		<IconName>a_Signet_Conserve</IconName>
@@ -2423,7 +2423,7 @@
 	<PowerModType>
 		<ModName>Conserve4</ModName>
 		<ModID>254</ModID>
-		<DisplayName>Koru</DisplayName>
+		<DisplayName>Tasarruf</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>700</SelfValue>
 		<IconName>a_Signet_Conserve</IconName>
@@ -2431,7 +2431,7 @@
 	<PowerModType>
 		<ModName>Conserve5</ModName>
 		<ModID>255</ModID>
-		<DisplayName>Koru</DisplayName>
+		<DisplayName>Tasarruf</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>1000</SelfValue>
 		<IconName>a_Signet_Conserve</IconName>
@@ -2439,8 +2439,8 @@
 	<PowerModType>
 		<ModName>ColdHeart1</ModName>
 		<ModID>256</ModID>
-		<DisplayName>Soguk Hearted</DisplayName>
-		<Description>azaltir buz Shock ceza@Ceza:, -2%, -5%, -15%, -30%, -50%</Description>
+		<DisplayName>Soguk Kalpli</DisplayName>
+		<Description>Buz Soku cezasini azaltir.@Ceza:, -2%, -5%, -15%, -30%, -50%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_ColdHeart</IconName>
 		<StatProperty>masterDangerRegenInterval</StatProperty>
@@ -2449,7 +2449,7 @@
 	<PowerModType>
 		<ModName>ColdHeart2</ModName>
 		<ModID>257</ModID>
-		<DisplayName>Soguk Hearted</DisplayName>
+		<DisplayName>Soguk Kalpli</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_ColdHeart</IconName>
 		<StatProperty>masterDangerRegenInterval</StatProperty>
@@ -2458,7 +2458,7 @@
 	<PowerModType>
 		<ModName>ColdHeart3</ModName>
 		<ModID>258</ModID>
-		<DisplayName>Soguk Hearted</DisplayName>
+		<DisplayName>Soguk Kalpli</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_ColdHeart</IconName>
 		<StatProperty>masterDangerRegenInterval</StatProperty>
@@ -2467,7 +2467,7 @@
 	<PowerModType>
 		<ModName>ColdHeart4</ModName>
 		<ModID>259</ModID>
-		<DisplayName>Soguk Hearted</DisplayName>
+		<DisplayName>Soguk Kalpli</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_ColdHeart</IconName>
 		<StatProperty>masterDangerRegenInterval</StatProperty>
@@ -2476,7 +2476,7 @@
 	<PowerModType>
 		<ModName>ColdHeart5</ModName>
 		<ModID>260</ModID>
-		<DisplayName>Soguk Hearted</DisplayName>
+		<DisplayName>Soguk Kalpli</DisplayName>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_ColdHeart</IconName>
 		<StatProperty>masterDangerRegenInterval</StatProperty>
@@ -2486,7 +2486,7 @@
 		<ModName>TwistHex1</ModName>
 		<ModID>261</ModID>
 		<DisplayName>Carpik Lanet</DisplayName>
-		<Description>ver ek hasar Bound hedefler@Bonus Hasar:, 1%, 2%, 3%, 5%, 7%</Description>
+		<Description>Bagli hedeflere karsi ek hasar verir.@Bonus Hasar:, 1%, 2%, 3%, 5%, 7%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.01</SelfValue>
 		<IconName>a_Signet_TwistHex</IconName>
@@ -2527,7 +2527,7 @@
 		<ModName>SteelHex1</ModName>
 		<ModID>266</ModID>
 		<DisplayName>Inatci Lanet</DisplayName>
-		<Description>Baglama Guc Hasar artar@Etki:, +1%, +2%, +3%, +4%, +5%</Description>
+		<Description>Baglama gucu hasari artar.@Etki:, +1%, +2%, +3%, +4%, +5%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Bound</BuffName>
 		<BuffProperty>MeleeDamage</BuffProperty>
@@ -2578,7 +2578,7 @@
 		<ModName>HexDmg1</ModName>
 		<ModID>271</ModID>
 		<DisplayName>Kiyamet</DisplayName>
-		<Description>Baglama Hasar artar@Baglama Hasar:, +2%, +6%, +12%, +21%, +34%</Description>
+		<Description>Baglama hasari artar.@Baglama Hasar:, +2%, +6%, +12%, +21%, +34%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Bound</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -2629,7 +2629,7 @@
 		<ModName>InsidiousPoison1</ModName>
 		<ModID>276</ModID>
 		<DisplayName>Sinsi Zehir</DisplayName>
-		<Description>Zehir Hasar Vs. Bound Hedefler artar@Zehir Vs Bound:, +2%, +6%, +13%, +23%, +35%</Description>
+		<Description>Bagli hedeflere karsi zehir hasari artar.@Bagli Hedeflere Zehir:, +2%, +6%, +13%, +23%, +35%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4</BuffName>
 		<BuffProperty>BoundMultiplier</BuffProperty>
@@ -2679,8 +2679,8 @@
 	<PowerModType>
 		<ModName>WindCloak1</ModName>
 		<ModID>281</ModID>
-		<DisplayName>Ruzgar Pelerin</DisplayName>
-		<Description>kazan Bonus savunma vs mermiler@Savunma:, +1%, +2%, +3%, +5%, +7%</Description>
+		<DisplayName>Ruzgar Pelerini</DisplayName>
+		<Description>Mermilere karsi bonus savunma kazanir.@Savunma:, +1%, +2%, +3%, +5%, +7%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.01</SelfValue>
 		<IconName>a_Signet_WindCloak</IconName>
@@ -2688,7 +2688,7 @@
 	<PowerModType>
 		<ModName>WindCloak2</ModName>
 		<ModID>282</ModID>
-		<DisplayName>Ruzgar Pelerin</DisplayName>
+		<DisplayName>Ruzgar Pelerini</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.02</SelfValue>
 		<IconName>a_Signet_WindCloak</IconName>
@@ -2696,7 +2696,7 @@
 	<PowerModType>
 		<ModName>WindCloak3</ModName>
 		<ModID>283</ModID>
-		<DisplayName>Ruzgar Pelerin</DisplayName>
+		<DisplayName>Ruzgar Pelerini</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.03</SelfValue>
 		<IconName>a_Signet_WindCloak</IconName>
@@ -2704,7 +2704,7 @@
 	<PowerModType>
 		<ModName>WindCloak4</ModName>
 		<ModID>284</ModID>
-		<DisplayName>Ruzgar Pelerin</DisplayName>
+		<DisplayName>Ruzgar Pelerini</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.05</SelfValue>
 		<IconName>a_Signet_WindCloak</IconName>
@@ -2712,7 +2712,7 @@
 	<PowerModType>
 		<ModName>WindCloak5</ModName>
 		<ModID>285</ModID>
-		<DisplayName>Ruzgar Pelerin</DisplayName>
+		<DisplayName>Ruzgar Pelerini</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.07</SelfValue>
 		<IconName>a_Signet_WindCloak</IconName>
@@ -2720,36 +2720,36 @@
 	<PowerModType>
 		<ModName>LifeShield1</ModName>
 		<ModID>286</ModID>
-		<DisplayName>Yasam Kalkan</DisplayName>
-		<Description>kazan yenilenme icin 5 saniye when sen dus below 25% can@Can Regen (uzmanlik):, 500%, 515%, 535%, 565%, 600%@Bekleme (saniye):, 30, 28, 26, 23, 20</Description>
+		<DisplayName>Can Kalkani</DisplayName>
+		<Description>Canin %25 altina dustugunde 5 saniye can yenilenmesi kazanir.@Can Yenilenmesi (Uzmanlik):, 500%, 515%, 535%, 565%, 600%@Bekleme (saniye):, 30, 28, 26, 23, 20</Description>
 		<ModType>WTF</ModType>
 		<IconName>a_Signet_Stealth03</IconName>
 	</PowerModType>
 	<PowerModType>
 		<ModName>LifeShield2</ModName>
 		<ModID>287</ModID>
-		<DisplayName>Yasam Kalkan</DisplayName>
+		<DisplayName>Can Kalkani</DisplayName>
 		<ModType>WTF</ModType>
 		<IconName>a_Signet_Stealth03</IconName>
 	</PowerModType>
 	<PowerModType>
 		<ModName>LifeShield3</ModName>
 		<ModID>288</ModID>
-		<DisplayName>Yasam Kalkan</DisplayName>
+		<DisplayName>Can Kalkani</DisplayName>
 		<ModType>WTF</ModType>
 		<IconName>a_Signet_Stealth03</IconName>
 	</PowerModType>
 	<PowerModType>
 		<ModName>LifeShield4</ModName>
 		<ModID>289</ModID>
-		<DisplayName>Yasam Kalkan</DisplayName>
+		<DisplayName>Can Kalkani</DisplayName>
 		<ModType>WTF</ModType>
 		<IconName>a_Signet_Stealth03</IconName>
 	</PowerModType>
 	<PowerModType>
 		<ModName>LifeShield5</ModName>
 		<ModID>290</ModID>
-		<DisplayName>Yasam Kalkan</DisplayName>
+		<DisplayName>Can Kalkani</DisplayName>
 		<ModType>WTF</ModType>
 		<IconName>a_Signet_Stealth03</IconName>
 	</PowerModType>
@@ -2757,7 +2757,7 @@
 		<ModName>CurseSword1</ModName>
 		<ModID>291</ModID>
 		<DisplayName>Lanetli Kilic</DisplayName>
-		<Description>kazan Bonus savunma vs lanetli dusmanlar@Savunma:, +1%, +2%, +4%, +6%, +10%</Description>
+		<Description>Lanetli dusmanlara karsi bonus savunma kazanir.@Savunma:, +1%, +2%, +4%, +6%, +10%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.01</SelfValue>
 		<IconName>a_Signet_CurseSword</IconName>
@@ -2797,8 +2797,8 @@
 	<PowerModType>
 		<ModName>BloodBond1</ModName>
 		<ModID>296</ModID>
-		<DisplayName>Kan Bond</DisplayName>
-		<Description>kazan iyilestirme kaynakli Olumsuz hizmetkar hasar@Aktarimred:, 1%, 2%, 3%, 4%, 5%</Description>
+		<DisplayName>Kan Bagi</DisplayName>
+		<Description>Olumsuz hizmetkarlarin verdigi hasardan sifa kazanir.@Aktarilan:, 1%, 2%, 3%, 4%, 5%</Description>
 		<ModType>Power</ModType>
 		<PowerName>ProcHealSummoner</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -2808,7 +2808,7 @@
 	<PowerModType>
 		<ModName>BloodBond2</ModName>
 		<ModID>297</ModID>
-		<DisplayName>Kan Bond</DisplayName>
+		<DisplayName>Kan Bagi</DisplayName>
 		<ModType>Power</ModType>
 		<PowerName>ProcHealSummoner</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -2818,7 +2818,7 @@
 	<PowerModType>
 		<ModName>BloodBond3</ModName>
 		<ModID>298</ModID>
-		<DisplayName>Kan Bond</DisplayName>
+		<DisplayName>Kan Bagi</DisplayName>
 		<ModType>Power</ModType>
 		<PowerName>ProcHealSummoner</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -2828,7 +2828,7 @@
 	<PowerModType>
 		<ModName>BloodBond4</ModName>
 		<ModID>299</ModID>
-		<DisplayName>Kan Bond</DisplayName>
+		<DisplayName>Kan Bagi</DisplayName>
 		<ModType>Power</ModType>
 		<PowerName>ProcHealSummoner</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -2838,7 +2838,7 @@
 	<PowerModType>
 		<ModName>BloodBond5</ModName>
 		<ModID>300</ModID>
-		<DisplayName>Kan Bond</DisplayName>
+		<DisplayName>Kan Bagi</DisplayName>
 		<ModType>Power</ModType>
 		<PowerName>ProcHealSummoner</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -2857,7 +2857,7 @@
 		<ModName>CurseTime1</ModName>
 		<ModID>301</ModID>
 		<DisplayName>Kalici Lanet</DisplayName>
-		<Description>Lanet Sure artar@Sure (saniye):, +.1, +.3, +.6, +1, +1.5</Description>
+		<Description>Lanet suresi artar.@Sure (saniye):, +.1, +.3, +.6, +1, +1.5</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Cursed,MinorCurse</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -2908,7 +2908,7 @@
 		<ModName>CurseCrit1</ModName>
 		<ModID>306</ModID>
 		<DisplayName>Sakatlayan Lanet</DisplayName>
-		<Description>kazan bir kritik sans bonus vs. lanetli hedefler@Kritik Sans Bonus:, 1%, 2%, 3%, 4%, 5%</Description>
+		<Description>Lanetli hedeflere karsi kritik sans bonusu kazanir.@Kritik Sans Bonusu:, 1%, 2%, 3%, 4%, 5%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>0.01</SelfValue>
 		<IconName>a_Signet_CurseCrit</IconName>
@@ -2949,7 +2949,7 @@
 		<ModName>CurseArmor1</ModName>
 		<ModID>311</ModID>
 		<DisplayName>Lanetli Zirh</DisplayName>
-		<Description>kazan Bonus hasar vs lanetli dusmanlar@Savunma:, +1%, +2%, +3%, +4%, +5%</Description>
+		<Description>Lanetli dusmanlara karsi bonus hasar kazanir.@Bonus Hasar:, +1%, +2%, +3%, +4%, +5%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>0.01</SelfValue>
 		<IconName>a_Signet_CurseArmor</IconName>
@@ -2989,8 +2989,8 @@
 	<PowerModType>
 		<ModName>MinionMaster1</ModName>
 		<ModID>316</ModID>
-		<DisplayName>Hizmetkar Usta</DisplayName>
-		<Description>Uzmanlik Icin 2.5 Sec Whenever Sen Cagir Bir Olumsuz Hizmetkar artar@Uzmanlik Bonus:, 1%, 2%, 3%, 4%, 5%</Description>
+		<DisplayName>Hizmetkar Ustasi</DisplayName>
+		<Description>Olumsuz hizmetkar cagirdiginda 2.5 saniye uzmanlik artisi kazanir.@Uzmanlik Bonusu:, 1%, 2%, 3%, 4%, 5%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>MinionMaster1</SelfValue>
 		<IconName>a_Signet_MinionMaster</IconName>
@@ -2998,7 +2998,7 @@
 	<PowerModType>
 		<ModName>MinionMaster2</ModName>
 		<ModID>317</ModID>
-		<DisplayName>Hizmetkar Usta</DisplayName>
+		<DisplayName>Hizmetkar Ustasi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>MinionMaster2</SelfValue>
 		<IconName>a_Signet_MinionMaster</IconName>
@@ -3006,7 +3006,7 @@
 	<PowerModType>
 		<ModName>MinionMaster3</ModName>
 		<ModID>318</ModID>
-		<DisplayName>Hizmetkar Usta</DisplayName>
+		<DisplayName>Hizmetkar Ustasi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>MinionMaster3</SelfValue>
 		<IconName>a_Signet_MinionMaster</IconName>
@@ -3014,7 +3014,7 @@
 	<PowerModType>
 		<ModName>MinionMaster4</ModName>
 		<ModID>319</ModID>
-		<DisplayName>Hizmetkar Usta</DisplayName>
+		<DisplayName>Hizmetkar Ustasi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>MinionMaster4</SelfValue>
 		<IconName>a_Signet_MinionMaster</IconName>
@@ -3022,7 +3022,7 @@
 	<PowerModType>
 		<ModName>MinionMaster5</ModName>
 		<ModID>320</ModID>
-		<DisplayName>Hizmetkar Usta</DisplayName>
+		<DisplayName>Hizmetkar Ustasi</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>MinionMaster5</SelfValue>
 		<IconName>a_Signet_MinionMaster</IconName>
@@ -3031,7 +3031,7 @@
 		<ModName>BlindTime1</ModName>
 		<ModID>321</ModID>
 		<DisplayName>Safak</DisplayName>
-		<Description>Kor Sure artar@Sure (saniye):, +.1, +.2, +.3, +.5, +.75</Description>
+		<Description>Kor suresi artar.@Sure (saniye):, +.1, +.2, +.3, +.5, +.75</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Blinded</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -3082,7 +3082,7 @@
 		<ModName>Fortify1</ModName>
 		<ModID>326</ModID>
 		<DisplayName>Guclendir</DisplayName>
-		<Description>iyilestir hedefler kazan savunma Bonus icin 1 sec@Savunma Bonus:,.5%, 1%, 2%, 3%, 6%</Description>
+		<Description>Iyilestirilen hedefler 1 saniye savunma bonusu kazanir.@Savunma Bonusu:,.5%, 1%, 2%, 3%, 6%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Fortify</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -3141,7 +3141,7 @@
 		<ModName>Sanctify1</ModName>
 		<ModID>331</ModID>
 		<DisplayName>Kutsalla</DisplayName>
-		<Description>kutsal gives savunma Bonus@Savunma Bonus:,.5%, 1%, 1.75%, 2.5%, 4%</Description>
+		<Description>Kutsal etki savunma bonusu verir.@Savunma Bonusu:,.5%, 1%, 1.75%, 2.5%, 4%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Sacred</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -3192,7 +3192,7 @@
 		<ModName>BlindPct1</ModName>
 		<ModID>336</ModID>
 		<DisplayName>Kor Eden Isik</DisplayName>
-		<Description>Kor Miss Sans artar@Miss Sans:, +1%, +2%, +3%, +4%, +5%</Description>
+		<Description>Kor edilen hedeflerin iskalama sansi artar.@Iskalama Sansi:, +1%, +2%, +3%, +4%, +5%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Blinded</BuffName>
 		<BuffProperty>TargetDodgeChance</BuffProperty>
@@ -3242,8 +3242,8 @@
 	<PowerModType>
 		<ModName>ClutchHeal1</ModName>
 		<ModID>341</ModID>
-		<DisplayName>Son Anda Iyilestir</DisplayName>
-		<Description>Iyilestirme Uzerinde Hedefler Ile Daha Az Than 20% Can artar@Iyilestirme Artis:, 1%, 2%, 3%, 4%, 5%</Description>
+		<DisplayName>Son Anda Sifa</DisplayName>
+		<Description>Cani %20 altindaki hedeflerde sifa artar.@Sifa Artisi:, 1%, 2%, 3%, 4%, 5%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.01</SelfValue>
 		<IconName>a_Signet_ClutchHeal</IconName>
@@ -3251,7 +3251,7 @@
 	<PowerModType>
 		<ModName>ClutchHeal2</ModName>
 		<ModID>342</ModID>
-		<DisplayName>Son Anda Iyilestir</DisplayName>
+		<DisplayName>Son Anda Sifa</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.02</SelfValue>
 		<IconName>a_Signet_ClutchHeal</IconName>
@@ -3259,7 +3259,7 @@
 	<PowerModType>
 		<ModName>ClutchHeal3</ModName>
 		<ModID>343</ModID>
-		<DisplayName>Son Anda Iyilestir</DisplayName>
+		<DisplayName>Son Anda Sifa</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.03</SelfValue>
 		<IconName>a_Signet_ClutchHeal</IconName>
@@ -3267,7 +3267,7 @@
 	<PowerModType>
 		<ModName>ClutchHeal4</ModName>
 		<ModID>344</ModID>
-		<DisplayName>Son Anda Iyilestir</DisplayName>
+		<DisplayName>Son Anda Sifa</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.04</SelfValue>
 		<IconName>a_Signet_ClutchHeal</IconName>
@@ -3275,7 +3275,7 @@
 	<PowerModType>
 		<ModName>ClutchHeal5</ModName>
 		<ModID>345</ModID>
-		<DisplayName>Son Anda Iyilestir</DisplayName>
+		<DisplayName>Son Anda Sifa</DisplayName>
 		<ModType>WTF</ModType>
 		<SelfValue>.05</SelfValue>
 		<IconName>a_Signet_ClutchHeal</IconName>
@@ -3284,7 +3284,7 @@
 		<ModName>RuneSwordMelee</ModName>
 		<ModID>894</ModID>
 		<DisplayName>Temel Saldiri</DisplayName>
-		<Description>Temel Saldiri hasari +2.5%</Description>
+		<Description>Temel Saldiri hasari %2.5 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>PunchMelee,MaceMelee,SwordMelee,AxeMelee,LightningBall,DivineBolt,AxeFlurry,StaffMelee,ScepterMelee,RapierMelee,SaberMelee,Energyball,PoisonDagger,HeavyDagger,Fireball,Iceball,Poisonball,FrostBolt,CrimsonShot,LichShot,CorrosiveDagger</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3295,7 +3295,7 @@
 		<ModName>RuneSmash</ModName>
 		<ModID>346</ModID>
 		<DisplayName>Ezici Darbe</DisplayName>
-		<Description>Ezici Darbe hasari +15%</Description>
+		<Description>Ezici Darbe hasari %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>Smash</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3306,7 +3306,7 @@
 		<ModName>RuneSkewer</ModName>
 		<ModID>347</ModID>
 		<DisplayName>Saplama</DisplayName>
-		<Description>Saplama hasari +15%</Description>
+		<Description>Saplama hasari %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>Skewer</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3317,7 +3317,7 @@
 		<ModName>RuneCleave</ModName>
 		<ModID>348</ModID>
 		<DisplayName>Yarici Darbe</DisplayName>
-		<Description>Yarici Darbe hasari +15%</Description>
+		<Description>Yarici Darbe hasari %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>Cleave</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3328,7 +3328,7 @@
 		<ModName>RuneWarcry</ModName>
 		<ModID>349</ModID>
 		<DisplayName>Savas Cigligi</DisplayName>
-		<Description>Warcry Etki +10%</Description>
+		<Description>Savas Cigligi etkisi %10 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>Warcry</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3339,7 +3339,7 @@
 		<ModName>RuneShieldStun</ModName>
 		<ModID>350</ModID>
 		<DisplayName>Kalkan Sersemletmesi</DisplayName>
-		<Description>kalkan sersemlet adds bir yuk tutustur</Description>
+		<Description>Kalkan Sersemletmesi 1 tutusturma yuku ekler.</Description>
 		<ModType>Power</ModType>
 		<PowerName>ShieldStun</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3350,7 +3350,7 @@
 		<ModName>RuneToughShout</ModName>
 		<ModID>351</ModID>
 		<DisplayName>Muhafiz Kalkani</DisplayName>
-		<Description>Muhafiz Kalkani hasari +40%</Description>
+		<Description>Muhafiz Kalkani hasari %40 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>ToughShout</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3361,7 +3361,7 @@
 		<ModName>RuneJumpSlam</ModName>
 		<ModID>352</ModID>
 		<DisplayName>Sicrama Darbesi</DisplayName>
-		<Description>Sicrama Darbesi hasari +20%</Description>
+		<Description>Sicrama Darbesi hasari %20 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>JumpSlam</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3372,7 +3372,7 @@
 		<ModName>RuneTouchHeal</ModName>
 		<ModID>353</ModID>
 		<DisplayName>Sifa Dokunusu</DisplayName>
-		<Description>Sifa Dokunusu iyilestirmesi +15%</Description>
+		<Description>Sifa Dokunusu iyilestirmesi %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>TouchHeal</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3383,7 +3383,7 @@
 		<ModName>RuneGroupHoT</ModName>
 		<ModID>354</ModID>
 		<DisplayName>Kutsama Aurasi</DisplayName>
-		<Description>Kutsama Aurasi iyilestirmesi +15%</Description>
+		<Description>Kutsama Aurasi iyilestirmesi %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>GroupHoT</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3394,7 +3394,7 @@
 		<ModName>RuneFireBlast</ModName>
 		<ModID>355</ModID>
 		<DisplayName>Ates Patlamasi</DisplayName>
-		<Description>2 Yukler Yanma Ates Patlama etkisi ekler.</Description>
+		<Description>Ates Patlamasi icin 2 yanma yuku ekler.</Description>
 		<ModType>Power</ModType>
 		<PowerName>FireBlast</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3405,7 +3405,7 @@
 		<ModName>RuneVineLance</ModName>
 		<ModID>356</ModID>
 		<DisplayName>Sarmasik Mizragi</DisplayName>
-		<Description>Sarmasik Mizragi hasari 15%</Description>
+		<Description>Sarmasik Mizragi hasari %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>VineLance</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3416,7 +3416,7 @@
 		<ModName>RuneIceSpike</ModName>
 		<ModID>357</ModID>
 		<DisplayName>Buz Mizragi</DisplayName>
-		<Description>Savunma During Buz Mizrak artar</Description>
+		<Description>Buz Mizragi sirasinda savunmayi artirir.</Description>
 		<ModType>Power</ModType>
 		<PowerName>IceSpike</PowerName>
 		<PowerProperty>AddSelfBuff</PowerProperty>
@@ -3427,7 +3427,7 @@
 		<ModName>RunePoisonCloud</ModName>
 		<ModID>358</ModID>
 		<DisplayName>Zehir Bulutu</DisplayName>
-		<Description>Zehir Cloud Do T +50%</Description>
+		<Description>Zehir Bulutu hasari %50 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>PoisonCloud</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3438,7 +3438,7 @@
 		<ModName>RuneFirePillar</ModName>
 		<ModID>359</ModID>
 		<DisplayName>Alev Dalgasi</DisplayName>
-		<Description>Alev Dalgasi hasari +15%</Description>
+		<Description>Alev Dalgasi hasari %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>FirePillar</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3449,7 +3449,7 @@
 		<ModName>RuneIceNova</ModName>
 		<ModID>360</ModID>
 		<DisplayName>Buz Novasi</DisplayName>
-		<Description>buz nova Weakens hedefler</Description>
+		<Description>Buz Novasi hedefleri zayiflatir.</Description>
 		<ModType>Power</ModType>
 		<PowerName>IceNova</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3460,7 +3460,7 @@
 		<ModName>RuneMeteor</ModName>
 		<ModID>361</ModID>
 		<DisplayName>Meteor Odaklamasi</DisplayName>
-		<Description>Saniye Meteor suresi +1</Description>
+		<Description>Goktasi suresi 1 saniye artar.</Description>
 		<ModType>Buff</ModType>
 		<BuffName>MeteorROR1,MeteorROR2,MeteorROR3,MeteorROR4,MeteorROR5,MeteorROR6,MeteorROR7,MeteorROR8,MeteorROR9,MeteorROR10</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -3471,7 +3471,7 @@
 		<ModName>RuneIceStorm</ModName>
 		<ModID>362</ModID>
 		<DisplayName>Dolu Firtinasi</DisplayName>
-		<Description>Dolu Firtinasi hasari +15%</Description>
+		<Description>Dolu Firtinasi hasari %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>IceStorm</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3482,7 +3482,7 @@
 		<ModName>RuneSummonGuard</ModName>
 		<ModID>363</ModID>
 		<DisplayName>Muhafiz Cagir</DisplayName>
-		<Description>Saniye Cagir Muhafiz suresi +5</Description>
+		<Description>Muhafiz Cagir suresi 5 saniye artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>SummonGuard</PowerName>
 		<PowerProperty>SpawnDuration</PowerProperty>
@@ -3493,7 +3493,7 @@
 		<ModName>RuneStunStrike</ModName>
 		<ModID>364</ModID>
 		<DisplayName>Sersemletme Darbesi</DisplayName>
-		<Description>Saniye Sersemlet Darbe suresi +1</Description>
+		<Description>Sersemletme Darbesi suresi 1 saniye artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>StunStrike</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3504,7 +3504,7 @@
 		<ModName>RunePoisonStrike</ModName>
 		<ModID>365</ModID>
 		<DisplayName>Zehir Darbesi</DisplayName>
-		<Description>Zehir Darbe Do T +25%</Description>
+		<Description>Zehir Darbesi hasari %25 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>PoisonStrike</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3515,7 +3515,7 @@
 		<ModName>RuneQuickStrike</ModName>
 		<ModID>366</ModID>
 		<DisplayName>Hizli Darbe</DisplayName>
-		<Description>Uclu Darbe hasari +15%</Description>
+		<Description>Uclu Darbe hasari %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>QuickStrike</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3526,7 +3526,7 @@
 		<ModName>RuneSteelCyclone</ModName>
 		<ModID>367</ModID>
 		<DisplayName>Celik Kasirga</DisplayName>
-		<Description>Celik Kasirga hasari +10%</Description>
+		<Description>Celik Kasirga hasari %10 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>SteelCyclone</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3537,7 +3537,7 @@
 		<ModName>RuneEnfeeble</ModName>
 		<ModID>368</ModID>
 		<DisplayName>Zayiflat</DisplayName>
-		<Description>Saldiri Speed Reduction +15%</Description>
+		<Description>Saldiri hizi azaltmasi %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>Enfeeble</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3548,7 +3548,7 @@
 		<ModName>RuneRootStrike</ModName>
 		<ModID>369</ModID>
 		<DisplayName>Kok Darbe</DisplayName>
-		<Description>Entanglement Base hasari +25%</Description>
+		<Description>Dolanma hasari %25 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>RootStrike</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3559,7 +3559,7 @@
 		<ModName>RuneHawkStrike</ModName>
 		<ModID>370</ModID>
 		<DisplayName>Sahin Darbesi</DisplayName>
-		<Description>Sahin Darbesi hasari +10%</Description>
+		<Description>Sahin Darbesi hasari %10 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>HawkStrike</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3570,7 +3570,7 @@
 		<ModName>RuneReduceArmor</ModName>
 		<ModID>371</ModID>
 		<DisplayName>Zirhi Azalt</DisplayName>
-		<Description>zirh kiran azaltir speed</Description>
+		<Description>Zirh Kiran hedefleri yavaslatir.</Description>
 		<ModType>Power</ModType>
 		<PowerName>ReduceArmor</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3581,7 +3581,7 @@
 		<ModName>RuneDecoy</ModName>
 		<ModID>372</ModID>
 		<DisplayName>Sahte Hedef</DisplayName>
-		<Description>Sahte Hedef Zehir hasari +10%</Description>
+		<Description>Sahte Hedef hasari %10 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>DecoyExplode</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3591,8 +3591,8 @@
 	<PowerModType>
 		<ModName>RunePermafrostClone</ModName>
 		<ModID>373</ModID>
-		<DisplayName>Don Klonu</DisplayName>
-		<Description>kalici don klon dash Chills</Description>
+		<DisplayName>Kalici Buz Klonu</DisplayName>
+		<Description>Kalici Buz Klonu atilmasi hedefleri usutur.</Description>
 		<ModType>Power</ModType>
 		<PowerName>PermafrostClone</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3603,7 +3603,7 @@
 		<ModName>RuneHailstoneEmbrace</ModName>
 		<ModID>374</ModID>
 		<DisplayName>Dolu Sarmali</DisplayName>
-		<Description>Dolu Sarmali hasari +5%</Description>
+		<Description>Dolu Sarmali hasari %5 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>FrostArmorIce,FrostArmorIceWall</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3614,7 +3614,7 @@
 		<ModName>RunePolarSentry</ModName>
 		<ModID>375</ModID>
 		<DisplayName>Tundra Ejderi</DisplayName>
-		<Description>Saniye Tundra Ejder suresi +1</Description>
+		<Description>Tundra Ejderi suresi 1 saniye artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>PolarSentry</PowerName>
 		<PowerProperty>SpawnDuration</PowerProperty>
@@ -3625,7 +3625,7 @@
 		<ModName>RuneDefiance</ModName>
 		<ModID>376</ModID>
 		<DisplayName>Meydan Okuma</DisplayName>
-		<Description>Meydan Okuma hasari +10%</Description>
+		<Description>Meydan Okuma hasari %10 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>Defiance</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3636,15 +3636,15 @@
 		<ModName>RuneBarrier</ModName>
 		<ModID>377</ModID>
 		<DisplayName>Dengesiz Bariyer</DisplayName>
-		<Description>Dengesiz Bariyer Durability +20%</Description>
+		<Description>Dengesiz Bariyer dayanikliligi %20 artar.</Description>
 		<ModType>WTF</ModType>
 		<IconName>a_Signet_Empty</IconName>
 	</PowerModType>
 	<PowerModType>
 		<ModName>RuneSentinelForm</ModName>
 		<ModID>378</ModID>
-		<DisplayName>Nobetci Formu</DisplayName>
-		<Description>Nobetci Form Yakin Dovus hasari +5%</Description>
+		<DisplayName>Gozcu Formu</DisplayName>
+		<Description>Gozcu Formu hasari %5 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>SFMelee,SFMeleeCombo</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3655,7 +3655,7 @@
 		<ModName>RuneSeekingBlades</ModName>
 		<ModID>379</ModID>
 		<DisplayName>Charon Bicaklari</DisplayName>
-		<Description>Charon Bicak hasari +50%</Description>
+		<Description>Charon Bicak hasari %50 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>SeekingBladesAttack</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3666,7 +3666,7 @@
 		<ModName>RuneShadowBlade</ModName>
 		<ModID>380</ModID>
 		<DisplayName>Kizil Kelebek</DisplayName>
-		<Description>Kizil Kelebek hasari +15%</Description>
+		<Description>Kizil Kelebek hasari %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>ShadowBlade</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3677,7 +3677,7 @@
 		<ModName>RuneMistWalk</ModName>
 		<ModID>381</ModID>
 		<DisplayName>Sis Yuruyusu</DisplayName>
-		<Description>sis yuruyus adds 3 yukler kanama</Description>
+		<Description>Sis Yuruyusu 3 kanama yuku ekler.</Description>
 		<ModType>Power</ModType>
 		<PowerName>MistWalkClose</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3688,7 +3688,7 @@
 		<ModName>RunePyromania</ModName>
 		<ModID>382</ModID>
 		<DisplayName>Piromani</DisplayName>
-		<Description>Piromani hasari +5%</Description>
+		<Description>Piromani hasari %5 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>FlamethrowerROR</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3699,7 +3699,7 @@
 		<ModName>RuneSummonDragonSoul</ModName>
 		<ModID>383</ModID>
 		<DisplayName>Ejderha Ruh</DisplayName>
-		<Description>+.7 saniye ejderha ruh sure</Description>
+		<Description>Ejderha Ruh suresi 0.7 saniye artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>SummonDragonSoul</PowerName>
 		<PowerProperty>SpawnDuration</PowerProperty>
@@ -3710,7 +3710,7 @@
 		<ModName>RuneLeapStrike</ModName>
 		<ModID>384</ModID>
 		<DisplayName>Meteor Darbesi</DisplayName>
-		<Description>Bonus hasar per yuk tutustur</Description>
+		<Description>Her tutusturma yuku basina bonus hasar verir.</Description>
 		<ModType>WTF</ModType>
 		<IconName>a_Signet_Empty</IconName>
 	</PowerModType>
@@ -3718,7 +3718,7 @@
 		<ModName>RuneBerserker</ModName>
 		<ModID>385</ModID>
 		<DisplayName>Cengaver</DisplayName>
-		<Description>Cengaver Can Regen +15%</Description>
+		<Description>Cengaver can yenilenmesi %15 artar.</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Berserker1,Berserker2,Berserker3,Berserker4,Berserker5,Berserker6,Berserker7,Berserker8,Berserker9,Berserker10</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -3729,7 +3729,7 @@
 		<ModName>RuneLightningBomb</ModName>
 		<ModID>386</ModID>
 		<DisplayName>Simsek Bombasi</DisplayName>
-		<Description>Simsek Bombasi hasari +25%</Description>
+		<Description>Simsek Bombasi hasari %25 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>LightningBombExplodeTwo</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3740,7 +3740,7 @@
 		<ModName>RuneShadowArmor</ModName>
 		<ModID>387</ModID>
 		<DisplayName>Golge Zirh</DisplayName>
-		<Description>Golge Zirh Savunma 10%</Description>
+		<Description>Golge Zirh savunmasi %10 artar.</Description>
 		<ModType>Buff</ModType>
 		<BuffName>ShadowArmor1,ShadowArmor2,ShadowArmor3,ShadowArmor4,ShadowArmor5,ShadowArmor6,ShadowArmor7,ShadowArmor8,ShadowArmor9,ShadowArmor10</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -3751,7 +3751,7 @@
 		<ModName>RuneShadowLegion</ModName>
 		<ModID>388</ModID>
 		<DisplayName>Golge Lejyonu</DisplayName>
-		<Description>Saniye Golge Legion suresi +2</Description>
+		<Description>Golge Lejyonu suresi 2 saniye artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>ShadowLegion</PowerName>
 		<PowerProperty>SpawnDuration</PowerProperty>
@@ -3762,7 +3762,7 @@
 		<ModName>RuneShadowStep</ModName>
 		<ModID>389</ModID>
 		<DisplayName>Golge Adimi</DisplayName>
-		<Description>Golge Adimi hasari +15%</Description>
+		<Description>Golge Adimi hasari %15 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>ShadowStepClose</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3773,7 +3773,7 @@
 		<ModName>RuneSoulReaver</ModName>
 		<ModID>390</ModID>
 		<DisplayName>Ruh Bicici</DisplayName>
-		<Description>Ruh Bicici Yasam Emme +7%</Description>
+		<Description>Ruh Bicici can emmesi %7 artar.</Description>
 		<ModType>Buff</ModType>
 		<BuffName>SoulReaver1,SoulReaver2,SoulReaver3,SoulReaver4,SoulReaver5,SoulReaver6,SoulReaver7,SoulReaver8,SoulReaver9,SoulReaver10</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -3792,7 +3792,7 @@
 		<ModName>RuneGhostBlade</ModName>
 		<ModID>391</ModID>
 		<DisplayName>Hayalet Bicak</DisplayName>
-		<Description>Hayalet Bicak Saldiri Leech +5%</Description>
+		<Description>Hayalet Bicak saldiri somurusu %5 artar.</Description>
 		<ModType>Buff</ModType>
 		<BuffName>GhostBladeTarget1,GhostBladeTarget4,GhostBladeTarget6,GhostBladeTarget7,GhostBladeTarget9,GhostBladeTarget10</BuffName>
 		<BuffProperty>MeleeDamage</BuffProperty>
@@ -3811,7 +3811,7 @@
 		<ModName>RuneSoulShatter</ModName>
 		<ModID>392</ModID>
 		<DisplayName>Ruh Parcala</DisplayName>
-		<Description>Cellat hasari +7%</Description>
+		<Description>Cellat hasari %7 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>SoulShatter</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3822,7 +3822,7 @@
 		<ModName>RunePlagueBattalion</ModName>
 		<ModID>393</ModID>
 		<DisplayName>Veba Taburu</DisplayName>
-		<Description>Veba Taburu hasari +6%</Description>
+		<Description>Veba Taburu hasari %6 artar.</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
@@ -3833,7 +3833,7 @@
 		<ModName>RuneSummonGhoul</ModName>
 		<ModID>394</ModID>
 		<DisplayName>Suruyu Cagir</DisplayName>
-		<Description>Cagir Suru Ghoul Saldiri +4%</Description>
+		<Description>Suruyu Cagir gulyabani saldirisi %4 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>GhoulMelee</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3844,7 +3844,7 @@
 		<ModName>RuneSummonRangedGhoul</ModName>
 		<ModID>395</ModID>
 		<DisplayName>Suruyu Guclendir</DisplayName>
-		<Description>guclendir ghoul atislar add 1% weaken</Description>
+		<Description>Guclendirilmis gulyabani atislari %1 zayiflatma ekler.</Description>
 		<ModType>Power</ModType>
 		<PowerName>Ghoul2Melee,Ghoul2Fireball</PowerName>
 		<PowerProperty>AddTargetBuff</PowerProperty>
@@ -3854,8 +3854,8 @@
 	<PowerModType>
 		<ModName>RuneSanctum</ModName>
 		<ModID>396</ModID>
-		<DisplayName>Siginak</DisplayName>
-		<Description>Siginak iyilestirmesi +7%</Description>
+		<DisplayName>Kutsal Alan</DisplayName>
+		<Description>Kutsal Alan iyilestirmesi %7 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>Sanctum</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3866,7 +3866,7 @@
 		<ModName>RuneCleansingLight</ModName>
 		<ModID>397</ModID>
 		<DisplayName>Arindirici Isik</DisplayName>
-		<Description>Kutsal Isik suresi +10%</Description>
+		<Description>Kutsal Isik suresi %10 artar.</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Sacred</BuffName>
 		<BuffProperty>Duration</BuffProperty>
@@ -3877,7 +3877,7 @@
 		<ModName>RuneLeoneanAura</ModName>
 		<ModID>398</ModID>
 		<DisplayName>Goksel Aura</DisplayName>
-		<Description>Empyrean Aura Savunma Artis 5%</Description>
+		<Description>Goksel Aura savunmasi %5 artar.</Description>
 		<ModType>Buff</ModType>
 		<BuffName>LeoneanAura1,LeoneanAura2,LeoneanAura3,LeoneanAura4,LeoneanAura5,LeoneanAura6,LeoneanAura7,LeoneanAura8,LeoneanAura9,LeoneanAura10</BuffName>
 		<BuffProperty>MeleeDefense,MagicDefense</BuffProperty>
@@ -3887,8 +3887,8 @@
 	<PowerModType>
 		<ModName>RuneWildFire</ModName>
 		<ModID>399</ModID>
-		<DisplayName>Kontrolsuz Ates</DisplayName>
-		<Description>Kontrolsuz Ates hasari +10%</Description>
+		<DisplayName>Yaban Alevi</DisplayName>
+		<Description>Yaban Alevi hasari %10 artar.</Description>
 		<ModType>Power</ModType>
 		<PowerName>WildFire</PowerName>
 		<PowerProperty>BaseDamageMult</PowerProperty>
@@ -3899,7 +3899,7 @@
 		<ModName>AttackI1</ModName>
 		<ModID>400</ModID>
 		<DisplayName>Saldiri I</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +8, +24, +40, +56, +81</Description>
+		<Description>Saldiri artar.@Saldiri:, +8, +24, +40, +56, +81</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength01</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -3945,7 +3945,7 @@
 		<ModName>AttackII1</ModName>
 		<ModID>405</ModID>
 		<DisplayName>Saldiri II</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +8, +25, +42, +59, +84</Description>
+		<Description>Saldiri artar.@Saldiri:, +8, +25, +42, +59, +84</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength01</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -3991,7 +3991,7 @@
 		<ModName>AttackIII1</ModName>
 		<ModID>410</ModID>
 		<DisplayName>Saldiri III</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +9, +28, +46, +65, +93</Description>
+		<Description>Saldiri artar.@Saldiri:, +9, +28, +46, +65, +93</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength01</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4037,7 +4037,7 @@
 		<ModName>AttackIV1</ModName>
 		<ModID>415</ModID>
 		<DisplayName>Saldiri IV</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +10, +29, +49, +68, +97</Description>
+		<Description>Saldiri artar.@Saldiri:, +10, +29, +49, +68, +97</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength01</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4083,7 +4083,7 @@
 		<ModName>AttackV1</ModName>
 		<ModID>420</ModID>
 		<DisplayName>Saldiri V</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +11, +34, +56, +78, +112</Description>
+		<Description>Saldiri artar.@Saldiri:, +11, +34, +56, +78, +112</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength01</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4129,7 +4129,7 @@
 		<ModName>AttackVI1</ModName>
 		<ModID>425</ModID>
 		<DisplayName>Saldiri VI</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +12, +37, +61, +86, +123</Description>
+		<Description>Saldiri artar.@Saldiri:, +12, +37, +61, +86, +123</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength02</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4175,7 +4175,7 @@
 		<ModName>AttackVII1</ModName>
 		<ModID>430</ModID>
 		<DisplayName>Saldiri VII</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +14, +42, +71, +99, +142</Description>
+		<Description>Saldiri artar.@Saldiri:, +14, +42, +71, +99, +142</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength02</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4221,7 +4221,7 @@
 		<ModName>AttackVIII1</ModName>
 		<ModID>435</ModID>
 		<DisplayName>Saldiri VIII</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +16, +45, +78, +109, +155</Description>
+		<Description>Saldiri artar.@Saldiri:, +16, +45, +78, +109, +155</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength02</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4267,7 +4267,7 @@
 		<ModName>AttackIX1</ModName>
 		<ModID>440</ModID>
 		<DisplayName>Saldiri IX</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +18, +54, +90, +125, +179</Description>
+		<Description>Saldiri artar.@Saldiri:, +18, +54, +90, +125, +179</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength02</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4313,7 +4313,7 @@
 		<ModName>AttackX1</ModName>
 		<ModID>445</ModID>
 		<DisplayName>Saldiri X</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +20, +59, +98, +138, +197</Description>
+		<Description>Saldiri artar.@Saldiri:, +20, +59, +98, +138, +197</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength02</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4359,7 +4359,7 @@
 		<ModName>AttackXI1</ModName>
 		<ModID>450</ModID>
 		<DisplayName>Saldiri XI</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +23, +68, +113, +158, +226</Description>
+		<Description>Saldiri artar.@Saldiri:, +23, +68, +113, +158, +226</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength03</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4405,7 +4405,7 @@
 		<ModName>AttackXII1</ModName>
 		<ModID>455</ModID>
 		<DisplayName>Saldiri XII</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +25, +75, +124, +174, +249</Description>
+		<Description>Saldiri artar.@Saldiri:, +25, +75, +124, +174, +249</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength03</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4451,7 +4451,7 @@
 		<ModName>AttackXIII1</ModName>
 		<ModID>460</ModID>
 		<DisplayName>Saldiri XIII</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +29, +86, +143, +200, +286</Description>
+		<Description>Saldiri artar.@Saldiri:, +29, +86, +143, +200, +286</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength03</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4497,7 +4497,7 @@
 		<ModName>AttackXIV1</ModName>
 		<ModID>465</ModID>
 		<DisplayName>Saldiri XIV</DisplayName>
-		<Description>Saldiri artar@Saldiri:, +31, +94, +157, +220, +315</Description>
+		<Description>Saldiri artar.@Saldiri:, +31, +94, +157, +220, +315</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Strength03</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4543,7 +4543,7 @@
 		<ModName>MagicI1</ModName>
 		<ModID>470</ModID>
 		<DisplayName>Buyu I</DisplayName>
-		<Description>Buyu artar@Buyu:, +8, +24, +40, +56, +81</Description>
+		<Description>Buyu artar.@Buyu:, +8, +24, +40, +56, +81</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic01</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4589,7 +4589,7 @@
 		<ModName>MagicII1</ModName>
 		<ModID>475</ModID>
 		<DisplayName>Buyu II</DisplayName>
-		<Description>Buyu artar@Buyu:, +8, +25, +42, +59, +84</Description>
+		<Description>Buyu artar.@Buyu:, +8, +25, +42, +59, +84</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic01</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4635,7 +4635,7 @@
 		<ModName>MagicIII1</ModName>
 		<ModID>480</ModID>
 		<DisplayName>Buyu III</DisplayName>
-		<Description>Buyu artar@Buyu:, +9, +28, +46, +65, +93</Description>
+		<Description>Buyu artar.@Buyu:, +9, +28, +46, +65, +93</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic01</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4681,7 +4681,7 @@
 		<ModName>MagicIV1</ModName>
 		<ModID>485</ModID>
 		<DisplayName>Buyu IV</DisplayName>
-		<Description>Buyu artar@Buyu:, +10, +29, +49, +68, +97</Description>
+		<Description>Buyu artar.@Buyu:, +10, +29, +49, +68, +97</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic01</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4727,7 +4727,7 @@
 		<ModName>MagicV1</ModName>
 		<ModID>490</ModID>
 		<DisplayName>Buyu V</DisplayName>
-		<Description>Buyu artar@Buyu:, +11, +34, +56, +78, +112</Description>
+		<Description>Buyu artar.@Buyu:, +11, +34, +56, +78, +112</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic01</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4773,7 +4773,7 @@
 		<ModName>MagicVI1</ModName>
 		<ModID>495</ModID>
 		<DisplayName>Buyu VI</DisplayName>
-		<Description>Buyu artar@Buyu:, +12, +37, +61, +86, +123</Description>
+		<Description>Buyu artar.@Buyu:, +12, +37, +61, +86, +123</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic02</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4819,7 +4819,7 @@
 		<ModName>MagicVII1</ModName>
 		<ModID>500</ModID>
 		<DisplayName>Buyu VII</DisplayName>
-		<Description>Buyu artar@Buyu:, +14, +42, +71, +99, +142</Description>
+		<Description>Buyu artar.@Buyu:, +14, +42, +71, +99, +142</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic02</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4865,7 +4865,7 @@
 		<ModName>MagicVIII1</ModName>
 		<ModID>505</ModID>
 		<DisplayName>Buyu VIII</DisplayName>
-		<Description>Buyu artar@Buyu:, +16, +45, +78, +109, +155</Description>
+		<Description>Buyu artar.@Buyu:, +16, +45, +78, +109, +155</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic02</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4911,7 +4911,7 @@
 		<ModName>MagicIX1</ModName>
 		<ModID>510</ModID>
 		<DisplayName>Buyu IX</DisplayName>
-		<Description>Buyu artar@Buyu:, +18, +54, +90, +125, +179</Description>
+		<Description>Buyu artar.@Buyu:, +18, +54, +90, +125, +179</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic02</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -4957,7 +4957,7 @@
 		<ModName>MagicX1</ModName>
 		<ModID>515</ModID>
 		<DisplayName>Buyu X</DisplayName>
-		<Description>Buyu artar@Buyu:, +20, +59, +98, +138, +197</Description>
+		<Description>Buyu artar.@Buyu:, +20, +59, +98, +138, +197</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic02</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -5003,7 +5003,7 @@
 		<ModName>MagicXI1</ModName>
 		<ModID>520</ModID>
 		<DisplayName>Buyu XI</DisplayName>
-		<Description>Buyu artar@Buyu:, +23, +68, +113, +158, +226</Description>
+		<Description>Buyu artar.@Buyu:, +23, +68, +113, +158, +226</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic03</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -5049,7 +5049,7 @@
 		<ModName>MagicXII1</ModName>
 		<ModID>525</ModID>
 		<DisplayName>Buyu XII</DisplayName>
-		<Description>Buyu artar@Buyu:, +25, +75, +124, +174, +249</Description>
+		<Description>Buyu artar.@Buyu:, +25, +75, +124, +174, +249</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic03</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -5095,7 +5095,7 @@
 		<ModName>MagicXIII1</ModName>
 		<ModID>530</ModID>
 		<DisplayName>Buyu XIII</DisplayName>
-		<Description>Buyu artar@Buyu:, +29, +86, +143, +200, +286</Description>
+		<Description>Buyu artar.@Buyu:, +29, +86, +143, +200, +286</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic03</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -5141,7 +5141,7 @@
 		<ModName>MagicXIV1</ModName>
 		<ModID>535</ModID>
 		<DisplayName>Buyu XIV</DisplayName>
-		<Description>Buyu artar@Buyu:, +31, +94, +157, +220, +315</Description>
+		<Description>Buyu artar.@Buyu:, +31, +94, +157, +220, +315</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Magic03</IconName>
 		<StatProperty>Melee</StatProperty>
@@ -5187,7 +5187,7 @@
 		<ModName>DefensePaladinI1</ModName>
 		<ModID>540</ModID>
 		<DisplayName>Savunma I</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +8, +13, +19, +27</Description>
+		<Description>Savunma artar.@Savunma:, +3, +8, +13, +19, +27</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5233,7 +5233,7 @@
 		<ModName>DefensePaladinII1</ModName>
 		<ModID>545</ModID>
 		<DisplayName>Savunma II</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +8, +14, +20, +28</Description>
+		<Description>Savunma artar.@Savunma:, +3, +8, +14, +20, +28</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5279,7 +5279,7 @@
 		<ModName>DefensePaladinIII1</ModName>
 		<ModID>550</ModID>
 		<DisplayName>Savunma III</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +9, +15, +22, +31</Description>
+		<Description>Savunma artar.@Savunma:, +3, +9, +15, +22, +31</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5325,7 +5325,7 @@
 		<ModName>DefensePaladinIV1</ModName>
 		<ModID>555</ModID>
 		<DisplayName>Savunma IV</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +10, +16, +23, +32</Description>
+		<Description>Savunma artar.@Savunma:, +3, +10, +16, +23, +32</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5371,7 +5371,7 @@
 		<ModName>DefensePaladinV1</ModName>
 		<ModID>560</ModID>
 		<DisplayName>Savunma V</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +10, +17, +24, +34</Description>
+		<Description>Savunma artar.@Savunma:, +3, +10, +17, +24, +34</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5417,7 +5417,7 @@
 		<ModName>DefensePaladinVI1</ModName>
 		<ModID>565</ModID>
 		<DisplayName>Savunma VI</DisplayName>
-		<Description>Savunma artar@Savunma:, +4, +12, +21, +29, +41</Description>
+		<Description>Savunma artar.@Savunma:, +4, +12, +21, +29, +41</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5463,7 +5463,7 @@
 		<ModName>DefensePaladinVII1</ModName>
 		<ModID>570</ModID>
 		<DisplayName>Savunma VII</DisplayName>
-		<Description>Savunma artar@Savunma:, +5, +14, +24, +33, +47</Description>
+		<Description>Savunma artar.@Savunma:, +5, +14, +24, +33, +47</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5509,7 +5509,7 @@
 		<ModName>DefensePaladinVIII1</ModName>
 		<ModID>575</ModID>
 		<DisplayName>Savunma VIII</DisplayName>
-		<Description>Savunma artar@Savunma:, +5, +16, +26, +36, +52</Description>
+		<Description>Savunma artar.@Savunma:, +5, +16, +26, +36, +52</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5555,7 +5555,7 @@
 		<ModName>DefensePaladinIX1</ModName>
 		<ModID>580</ModID>
 		<DisplayName>Savunma IX</DisplayName>
-		<Description>Savunma artar@Savunma:, +6, +18, +30, +42, +60</Description>
+		<Description>Savunma artar.@Savunma:, +6, +18, +30, +42, +60</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5601,7 +5601,7 @@
 		<ModName>DefensePaladinX1</ModName>
 		<ModID>585</ModID>
 		<DisplayName>Savunma X</DisplayName>
-		<Description>Savunma artar@Savunma:, +7, +20, +33, +46, +66</Description>
+		<Description>Savunma artar.@Savunma:, +7, +20, +33, +46, +66</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5647,7 +5647,7 @@
 		<ModName>DefensePaladinXI1</ModName>
 		<ModID>590</ModID>
 		<DisplayName>Savunma XI</DisplayName>
-		<Description>Savunma artar@Savunma:, +8, +23, +38, +53, +76</Description>
+		<Description>Savunma artar.@Savunma:, +8, +23, +38, +53, +76</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5693,7 +5693,7 @@
 		<ModName>DefensePaladinXII1</ModName>
 		<ModID>595</ModID>
 		<DisplayName>Savunma XII</DisplayName>
-		<Description>Savunma artar@Savunma:, +8, +25, +41, +58, +83</Description>
+		<Description>Savunma artar.@Savunma:, +8, +25, +41, +58, +83</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5739,7 +5739,7 @@
 		<ModName>DefensePaladinXIII1</ModName>
 		<ModID>600</ModID>
 		<DisplayName>Savunma XIII</DisplayName>
-		<Description>Savunma artar@Savunma:, +10, +29, +48, +67, +95</Description>
+		<Description>Savunma artar.@Savunma:, +10, +29, +48, +67, +95</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5785,7 +5785,7 @@
 		<ModName>DefensePaladinXIV1</ModName>
 		<ModID>605</ModID>
 		<DisplayName>Savunma XIV</DisplayName>
-		<Description>Savunma artar@Savunma:, +10, +31, +52, +73, +105</Description>
+		<Description>Savunma artar.@Savunma:, +10, +31, +52, +73, +105</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5831,7 +5831,7 @@
 		<ModName>DefenseRogueI1</ModName>
 		<ModID>610</ModID>
 		<DisplayName>Savunma I</DisplayName>
-		<Description>Savunma artar@Savunma:, +2, +6, +11, +19, +28</Description>
+		<Description>Savunma artar.@Savunma:, +2, +6, +11, +19, +28</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5877,7 +5877,7 @@
 		<ModName>DefenseRogueII1</ModName>
 		<ModID>615</ModID>
 		<DisplayName>Savunma II</DisplayName>
-		<Description>Savunma artar@Savunma:, +2, +7, +13, +21, +31</Description>
+		<Description>Savunma artar.@Savunma:, +2, +7, +13, +21, +31</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5923,7 +5923,7 @@
 		<ModName>DefenseRogueIII1</ModName>
 		<ModID>620</ModID>
 		<DisplayName>Savunma III</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +8, +13, +23, +34</Description>
+		<Description>Savunma artar.@Savunma:, +3, +8, +13, +23, +34</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -5969,7 +5969,7 @@
 		<ModName>DefenseRogueIV1</ModName>
 		<ModID>625</ModID>
 		<DisplayName>Savunma IV</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +9, +14, +26, +37</Description>
+		<Description>Savunma artar.@Savunma:, +3, +9, +14, +26, +37</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6015,7 +6015,7 @@
 		<ModName>DefenseRogueV1</ModName>
 		<ModID>630</ModID>
 		<DisplayName>Savunma V</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +10, +16, +30, +43</Description>
+		<Description>Savunma artar.@Savunma:, +3, +10, +16, +30, +43</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6061,7 +6061,7 @@
 		<ModName>DefenseRogueVI1</ModName>
 		<ModID>635</ModID>
 		<DisplayName>Savunma VI</DisplayName>
-		<Description>Savunma artar@Savunma:, +4, +11, +18, +32, +47</Description>
+		<Description>Savunma artar.@Savunma:, +4, +11, +18, +32, +47</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6107,7 +6107,7 @@
 		<ModName>DefenseRogueVII1</ModName>
 		<ModID>640</ModID>
 		<DisplayName>Savunma VII</DisplayName>
-		<Description>Savunma artar@Savunma:, +4, +12, +21, +37, +54</Description>
+		<Description>Savunma artar.@Savunma:, +4, +12, +21, +37, +54</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6153,7 +6153,7 @@
 		<ModName>DefenseRogueVIII1</ModName>
 		<ModID>645</ModID>
 		<DisplayName>Savunma VIII</DisplayName>
-		<Description>Savunma artar@Savunma:, +5, +14, +23, +41, +59</Description>
+		<Description>Savunma artar.@Savunma:, +5, +14, +23, +41, +59</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6199,7 +6199,7 @@
 		<ModName>DefenseRogueIX1</ModName>
 		<ModID>650</ModID>
 		<DisplayName>Savunma IX</DisplayName>
-		<Description>Savunma artar@Savunma:, +5, +16, +26, +47, +68</Description>
+		<Description>Savunma artar.@Savunma:, +5, +16, +26, +47, +68</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6245,7 +6245,7 @@
 		<ModName>DefenseRogueX1</ModName>
 		<ModID>655</ModID>
 		<DisplayName>Savunma X</DisplayName>
-		<Description>Savunma artar@Savunma:, +6, +17, +29, +52, +75</Description>
+		<Description>Savunma artar.@Savunma:, +6, +17, +29, +52, +75</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6291,7 +6291,7 @@
 		<ModName>DefenseRogueXI1</ModName>
 		<ModID>660</ModID>
 		<DisplayName>Savunma XI</DisplayName>
-		<Description>Savunma artar@Savunma:, +7, +20, +33, +60, +86</Description>
+		<Description>Savunma artar.@Savunma:, +7, +20, +33, +60, +86</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6337,7 +6337,7 @@
 		<ModName>DefenseRogueXII1</ModName>
 		<ModID>665</ModID>
 		<DisplayName>Savunma XII</DisplayName>
-		<Description>Savunma artar@Savunma:, +7, +22, +36, +66, +95</Description>
+		<Description>Savunma artar.@Savunma:, +7, +22, +36, +66, +95</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6383,7 +6383,7 @@
 		<ModName>DefenseRogueXIII1</ModName>
 		<ModID>670</ModID>
 		<DisplayName>Savunma XIII</DisplayName>
-		<Description>Savunma artar@Savunma:, +8, +25, +42, +76, +109</Description>
+		<Description>Savunma artar.@Savunma:, +8, +25, +42, +76, +109</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6429,7 +6429,7 @@
 		<ModName>DefenseRogueXIV1</ModName>
 		<ModID>675</ModID>
 		<DisplayName>Savunma XIV</DisplayName>
-		<Description>Savunma artar@Savunma:, +9, +28, +46, +83, +120</Description>
+		<Description>Savunma artar.@Savunma:, +9, +28, +46, +83, +120</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6475,7 +6475,7 @@
 		<ModName>DefenseMageI1</ModName>
 		<ModID>680</ModID>
 		<DisplayName>Savunma I</DisplayName>
-		<Description>Savunma artar@Savunma:, +2, +5, +8, +14, +21</Description>
+		<Description>Savunma artar.@Savunma:, +2, +5, +8, +14, +21</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6521,7 +6521,7 @@
 		<ModName>DefenseMageII1</ModName>
 		<ModID>685</ModID>
 		<DisplayName>Savunma II</DisplayName>
-		<Description>Savunma artar@Savunma:, +2, +5, +9, +16, +23</Description>
+		<Description>Savunma artar.@Savunma:, +2, +5, +9, +16, +23</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6567,7 +6567,7 @@
 		<ModName>DefenseMageIII1</ModName>
 		<ModID>690</ModID>
 		<DisplayName>Savunma III</DisplayName>
-		<Description>Savunma artar@Savunma:, +2, +6, +10, +17, +25</Description>
+		<Description>Savunma artar.@Savunma:, +2, +6, +10, +17, +25</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6613,7 +6613,7 @@
 		<ModName>DefenseMageIV1</ModName>
 		<ModID>695</ModID>
 		<DisplayName>Savunma IV</DisplayName>
-		<Description>Savunma artar@Savunma:, +2, +6, +11, +19, +28</Description>
+		<Description>Savunma artar.@Savunma:, +2, +6, +11, +19, +28</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6659,7 +6659,7 @@
 		<ModName>DefenseMageV1</ModName>
 		<ModID>700</ModID>
 		<DisplayName>Savunma V</DisplayName>
-		<Description>Savunma artar@Savunma:, +2, +7, +12, +22, +32</Description>
+		<Description>Savunma artar.@Savunma:, +2, +7, +12, +22, +32</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor01</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6705,7 +6705,7 @@
 		<ModName>DefenseMageVI1</ModName>
 		<ModID>705</ModID>
 		<DisplayName>Savunma VI</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +8, +14, +24, +35</Description>
+		<Description>Savunma artar.@Savunma:, +3, +8, +14, +24, +35</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6751,7 +6751,7 @@
 		<ModName>DefenseMageVII1</ModName>
 		<ModID>710</ModID>
 		<DisplayName>Savunma VII</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +9, +16, +28, +40</Description>
+		<Description>Savunma artar.@Savunma:, +3, +9, +16, +28, +40</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6797,7 +6797,7 @@
 		<ModName>DefenseMageVIII1</ModName>
 		<ModID>715</ModID>
 		<DisplayName>Savunma VIII</DisplayName>
-		<Description>Savunma artar@Savunma:, +3, +10, +17, +31, +44</Description>
+		<Description>Savunma artar.@Savunma:, +3, +10, +17, +31, +44</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6843,7 +6843,7 @@
 		<ModName>DefenseMageIX1</ModName>
 		<ModID>720</ModID>
 		<DisplayName>Savunma IX</DisplayName>
-		<Description>Savunma artar@Savunma:, +4, +12, +20, +35, +51</Description>
+		<Description>Savunma artar.@Savunma:, +4, +12, +20, +35, +51</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6889,7 +6889,7 @@
 		<ModName>DefenseMageX1</ModName>
 		<ModID>725</ModID>
 		<DisplayName>Savunma X</DisplayName>
-		<Description>Savunma artar@Savunma:, +4, +13, +22, +39, +56</Description>
+		<Description>Savunma artar.@Savunma:, +4, +13, +22, +39, +56</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor02</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6935,7 +6935,7 @@
 		<ModName>DefenseMageXI1</ModName>
 		<ModID>730</ModID>
 		<DisplayName>Savunma XI</DisplayName>
-		<Description>Savunma artar@Savunma:, +4, +15, +25, +45, +65</Description>
+		<Description>Savunma artar.@Savunma:, +4, +15, +25, +45, +65</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -6981,7 +6981,7 @@
 		<ModName>DefenseMageXII1</ModName>
 		<ModID>735</ModID>
 		<DisplayName>Savunma XII</DisplayName>
-		<Description>Savunma artar@Savunma:, +5, +16, +27, +49, +71</Description>
+		<Description>Savunma artar.@Savunma:, +5, +16, +27, +49, +71</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -7027,7 +7027,7 @@
 		<ModName>DefenseMageXIII1</ModName>
 		<ModID>740</ModID>
 		<DisplayName>Savunma XIII</DisplayName>
-		<Description>Savunma artar@Savunma:, +6, +19, +31, +57, +82</Description>
+		<Description>Savunma artar.@Savunma:, +6, +19, +31, +57, +82</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -7073,7 +7073,7 @@
 		<ModName>DefenseMageXIV1</ModName>
 		<ModID>745</ModID>
 		<DisplayName>Savunma XIV</DisplayName>
-		<Description>Savunma artar@Savunma:, +7, +21, +35, +62, +90</Description>
+		<Description>Savunma artar.@Savunma:, +7, +21, +35, +62, +90</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Armor03</IconName>
 		<StatProperty>Armor</StatProperty>
@@ -7119,7 +7119,7 @@
 		<ModName>HealthI1</ModName>
 		<ModID>750</ModID>
 		<DisplayName>Can I</DisplayName>
-		<Description>Can artar@Can:, +235, +469, +821, +1173, +1760</Description>
+		<Description>Can artar.@Can:, +235, +469, +821, +1173, +1760</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health01</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7165,7 +7165,7 @@
 		<ModName>HealthII1</ModName>
 		<ModID>755</ModID>
 		<DisplayName>Can II</DisplayName>
-		<Description>Can artar@Can:, +245, +490, +857, +1225, +1837</Description>
+		<Description>Can artar.@Can:, +245, +490, +857, +1225, +1837</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health01</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7211,7 +7211,7 @@
 		<ModName>HealthIII1</ModName>
 		<ModID>760</ModID>
 		<DisplayName>Can III</DisplayName>
-		<Description>Can artar@Can:, +267, +534, +935, +1336, +2004</Description>
+		<Description>Can artar.@Can:, +267, +534, +935, +1336, +2004</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health01</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7257,7 +7257,7 @@
 		<ModName>HealthIV1</ModName>
 		<ModID>765</ModID>
 		<DisplayName>Can IV</DisplayName>
-		<Description>Can artar@Can:, +279, +558, +977, +1395, +2093</Description>
+		<Description>Can artar.@Can:, +279, +558, +977, +1395, +2093</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health01</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7303,7 +7303,7 @@
 		<ModName>HealthV1</ModName>
 		<ModID>770</ModID>
 		<DisplayName>Can V</DisplayName>
-		<Description>Can artar@Can:, +318, +637, +1114, +1591, +2387</Description>
+		<Description>Can artar.@Can:, +318, +637, +1114, +1591, +2387</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health02</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7349,7 +7349,7 @@
 		<ModName>HealthVI1</ModName>
 		<ModID>775</ModID>
 		<DisplayName>Can VI</DisplayName>
-		<Description>Can artar@Can:, +348, +695, +1217, +1738, +2608</Description>
+		<Description>Can artar.@Can:, +348, +695, +1217, +1738, +2608</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health02</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7395,7 +7395,7 @@
 		<ModName>HealthVII1</ModName>
 		<ModID>780</ModID>
 		<DisplayName>Can VII</DisplayName>
-		<Description>Can artar@Can:, +397, +795, +1391, +1987, +2980</Description>
+		<Description>Can artar.@Can:, +397, +795, +1391, +1987, +2980</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health02</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7441,7 +7441,7 @@
 		<ModName>HealthVIII1</ModName>
 		<ModID>785</ModID>
 		<DisplayName>Can VIII</DisplayName>
-		<Description>Can artar@Can:, +434, +869, +1521, +2172, +3259</Description>
+		<Description>Can artar.@Can:, +434, +869, +1521, +2172, +3259</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health02</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7487,7 +7487,7 @@
 		<ModName>HealthIX1</ModName>
 		<ModID>790</ModID>
 		<DisplayName>Can IX</DisplayName>
-		<Description>Can artar@Can:, +497, +994, +1740, +2486, +3729</Description>
+		<Description>Can artar.@Can:, +497, +994, +1740, +2486, +3729</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health02</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7533,7 +7533,7 @@
 		<ModName>HealthX1</ModName>
 		<ModID>795</ModID>
 		<DisplayName>Can X</DisplayName>
-		<Description>Can artar@Can:, +520, +1040, +1821, +2601, +3902</Description>
+		<Description>Can artar.@Can:, +520, +1040, +1821, +2601, +3902</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health02</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7579,7 +7579,7 @@
 		<ModName>HealthXI1</ModName>
 		<ModID>800</ModID>
 		<DisplayName>Can XI</DisplayName>
-		<Description>Can artar@Can:, +624, +1247, +2183, +3118, +4678</Description>
+		<Description>Can artar.@Can:, +624, +1247, +2183, +3118, +4678</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health03</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7625,7 +7625,7 @@
 		<ModName>HealthXII1</ModName>
 		<ModID>805</ModID>
 		<DisplayName>Can XII</DisplayName>
-		<Description>Can artar@Can:, +683, +1366, +2391, +3416, +5124</Description>
+		<Description>Can artar.@Can:, +683, +1366, +2391, +3416, +5124</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health03</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7671,7 +7671,7 @@
 		<ModName>HealthXIII1</ModName>
 		<ModID>810</ModID>
 		<DisplayName>Can XIII</DisplayName>
-		<Description>Can artar@Can:, +784, +1567, +2743, +3918, +5877</Description>
+		<Description>Can artar.@Can:, +784, +1567, +2743, +3918, +5877</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health03</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7717,7 +7717,7 @@
 		<ModName>HealthXIV1</ModName>
 		<ModID>815</ModID>
 		<DisplayName>Can XIV</DisplayName>
-		<Description>Can artar@Can:, +859, +1718, +3006, +4294, +6441</Description>
+		<Description>Can artar.@Can:, +859, +1718, +3006, +4294, +6441</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Health03</IconName>
 		<StatProperty>Health</StatProperty>
@@ -7763,7 +7763,7 @@
 		<ModName>ExpertiseI1</ModName>
 		<ModID>820</ModID>
 		<DisplayName>Uzmanlik I</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +8, +24, +40, +56, +81</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +8, +24, +40, +56, +81</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise01</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -7809,7 +7809,7 @@
 		<ModName>ExpertiseII1</ModName>
 		<ModID>825</ModID>
 		<DisplayName>Uzmanlik II</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +8, +25, +42, +59, +84</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +8, +25, +42, +59, +84</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise01</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -7855,7 +7855,7 @@
 		<ModName>ExpertiseIII1</ModName>
 		<ModID>830</ModID>
 		<DisplayName>Uzmanlik III</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +9, +28, +46, +65, +93</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +9, +28, +46, +65, +93</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise01</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -7901,7 +7901,7 @@
 		<ModName>ExpertiseIV1</ModName>
 		<ModID>835</ModID>
 		<DisplayName>Uzmanlik IV</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +10, +29, +49, +68, +97</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +10, +29, +49, +68, +97</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise01</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -7947,7 +7947,7 @@
 		<ModName>ExpertiseV1</ModName>
 		<ModID>840</ModID>
 		<DisplayName>Uzmanlik V</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +11, +34, +56, +78, +112</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +11, +34, +56, +78, +112</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise01</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -7993,7 +7993,7 @@
 		<ModName>ExpertiseVI1</ModName>
 		<ModID>845</ModID>
 		<DisplayName>Uzmanlik VI</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +12, +37, +61, +86, +123</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +12, +37, +61, +86, +123</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise02</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -8039,7 +8039,7 @@
 		<ModName>ExpertiseVII1</ModName>
 		<ModID>850</ModID>
 		<DisplayName>Uzmanlik VII</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +14, +42, +71, +99, +142</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +14, +42, +71, +99, +142</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise02</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -8085,7 +8085,7 @@
 		<ModName>ExpertiseVIII1</ModName>
 		<ModID>855</ModID>
 		<DisplayName>Uzmanlik VIII</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +16, +45, +78, +109, +155</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +16, +45, +78, +109, +155</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise02</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -8131,7 +8131,7 @@
 		<ModName>ExpertiseIX1</ModName>
 		<ModID>860</ModID>
 		<DisplayName>Uzmanlik IX</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +18, +54, +90, +125, +179</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +18, +54, +90, +125, +179</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise02</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -8177,7 +8177,7 @@
 		<ModName>ExpertiseX1</ModName>
 		<ModID>865</ModID>
 		<DisplayName>Uzmanlik X</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +20, +59, +98, +138, +197</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +20, +59, +98, +138, +197</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise02</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -8223,7 +8223,7 @@
 		<ModName>ExpertiseXI1</ModName>
 		<ModID>870</ModID>
 		<DisplayName>Uzmanlik XI</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +23, +68, +113, +158, +226</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +23, +68, +113, +158, +226</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise03</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -8269,7 +8269,7 @@
 		<ModName>ExpertiseXII1</ModName>
 		<ModID>875</ModID>
 		<DisplayName>Uzmanlik XII</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +25, +75, +124, +174, +249</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +25, +75, +124, +174, +249</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise03</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -8315,7 +8315,7 @@
 		<ModName>ExpertiseXIII1</ModName>
 		<ModID>880</ModID>
 		<DisplayName>Uzmanlik XIII</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +29, +86, +143, +200, +286</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +29, +86, +143, +200, +286</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise03</IconName>
 		<StatProperty>Magic</StatProperty>
@@ -8361,7 +8361,7 @@
 		<ModName>ExpertiseXIV1</ModName>
 		<ModID>885</ModID>
 		<DisplayName>Uzmanlik XIV</DisplayName>
-		<Description>Uzmanlik artar@Uzmanlik:, +31, +94, +157, +220, +315</Description>
+		<Description>Uzmanlik artar.@Uzmanlik:, +31, +94, +157, +220, +315</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Expertise03</IconName>
 		<StatProperty>Magic</StatProperty>

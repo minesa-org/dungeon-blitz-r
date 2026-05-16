@@ -2,7 +2,7 @@
 <LockboxTypes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<LockboxType LockboxName="---Template---">
 		<LockboxID>0</LockboxID>
-		<DisplayName>Yerel Esya 3EC1AE</DisplayName>
+		<DisplayName>Sablon</DisplayName>
 		<CustomArt>text</CustomArt>
 		<IconName>text</IconName>
 		<Droppable>false</Droppable>
@@ -11,7 +11,7 @@
 	</LockboxType>
 	<LockboxType LockboxName="Lockbox01">
 		<LockboxID>1</LockboxID>
-		<DisplayName>Yerel Esya 10DF1F</DisplayName>
+		<DisplayName>Sandik 01</DisplayName>
 		<CustomArt>a_Lockbox01art</CustomArt>
 		<IconName>a_Lockbox01icon</IconName>
 		<Droppable>true</Droppable>

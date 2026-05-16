@@ -78,7 +78,7 @@
 		<TargetMapName>SRN_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>StopCastout</RequiredMissions>
-		<LockedMessage>^t Someone has fortified this kule.=^t I should check icinde ile soldiers kaynakli Kurtlarin Sonu.=^t They've had sure scout area.</LockedMessage>
+		<LockedMessage>^t Someone has fortified this kule.=^t I should check icinde ile soldiers kaynakli Kurtlarin Sonu.=^t They've had sure scout alan.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -94,7 +94,7 @@
 		<TargetMapName>SRN_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlaySvar</RequiredMissions>
-		<LockedMessage>^t bir Tuatara fort.=^t I should see if benim allies know daha about it.=^t So I know what I'm getting into.</LockedMessage>
+		<LockedMessage>^t bir Tuatara fort.=^t I should see if benim muttefikler know daha about it.=^t So I know what I'm getting into.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorth</MapName>
@@ -254,7 +254,7 @@
 		<TargetMapName>CH_Mission1</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RescueYagaga</RequiredMissions>
-		<LockedMessage>^t bir closed mausoleum.=^t It looks like someone lives here.=^t I'll check ile benim friend kaynakli Kurtlarin Sonu andfind outpost west ve ask them.</LockedMessage>
+		<LockedMessage>^t bir closed mausoleum.=^t It looks like someone lives here.=^t I'll check ile benim dost kaynakli Kurtlarin Sonu andfind outpost west ve ask them.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHill</MapName>
@@ -544,7 +544,7 @@
 		<TargetMapName>EG_Mission3</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RottenToTheRoots</RequiredMissions>
-		<LockedMessage>^t bir hole icinde roots.=^t These dryads might know where it leads.</LockedMessage>
+		<LockedMessage>^t bir hole icinde kok salar.=^t These dryads might know where it leads.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGlades</MapName>
@@ -884,7 +884,7 @@
 		<TargetMapName>SRN_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>StopCastoutHard</RequiredMissions>
-		<LockedMessage>^t Someone has fortified this kule.=^t I should check icinde ile soldiers kaynakli Kurtlarin Sonu.=^t They've had sure scout area.</LockedMessage>
+		<LockedMessage>^t Someone has fortified this kule.=^t I should check icinde ile soldiers kaynakli Kurtlarin Sonu.=^t They've had sure scout alan.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -900,7 +900,7 @@
 		<TargetMapName>SRN_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>SlaySvarHard</RequiredMissions>
-		<LockedMessage>^t bir Tuatara fort.=^t I should see if benim allies know daha about it.=^t So I know what I'm getting into.</LockedMessage>
+		<LockedMessage>^t bir Tuatara fort.=^t I should see if benim muttefikler know daha about it.=^t So I know what I'm getting into.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>SwampRoadNorthHard</MapName>
@@ -1060,7 +1060,7 @@
 		<TargetMapName>CH_Mission1Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RescueYagagaHard</RequiredMissions>
-		<LockedMessage>^t bir closed mausoleum.=^t It looks like someone lives here.=^t I'll check ile benim friend kaynakli Kurtlarin Sonu andfind outpost west ve ask them.</LockedMessage>
+		<LockedMessage>^t bir closed mausoleum.=^t It looks like someone lives here.=^t I'll check ile benim dost kaynakli Kurtlarin Sonu andfind outpost west ve ask them.</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>CemeteryHillHard</MapName>
@@ -1350,7 +1350,7 @@
 		<TargetMapName>EG_Mission3Hard</TargetMapName>
 		<TargetDoorID>1</TargetDoorID>
 		<RequiredMissions>RottenToTheRootsHard</RequiredMissions>
-		<LockedMessage>^t bir hole icinde roots=^t These dryads might know where it leads</LockedMessage>
+		<LockedMessage>^t bir hole icinde kok salar=^t These dryads might know where it leads</LockedMessage>
 	</DoorType>
 	<DoorType>
 		<MapName>EmeraldGladesHard</MapName>

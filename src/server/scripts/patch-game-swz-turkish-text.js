@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const { localizeText, normalizeAscii } = require('./turkish-localization-utils');
+const { localizeText, normalizeAscii, titleCaseAscii } = require('./turkish-localization-utils');
 
 const DEFAULT_SWZ = path.join('src', 'client', 'content', 'localhost', 'p', 'cbq', 'Game.swz');
 const DEFAULT_EN_SWZ = path.join('src', 'client', 'content', 'localhost', 'p', 'cbq', 'Game.en.swz');
@@ -294,12 +294,408 @@ function patchGenericXml(xml, rootName, translations, stats, options = {}) {
     });
 }
 
+function getAttr(entry, name) {
+    return entry.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1] || '';
+}
+
+function getTag(entry, name) {
+    return decodeEntities(entry.match(new RegExp(`<${name}>([\\s\\S]*?)<\\/${name}>`))?.[1] || '');
+}
+
+function splitIdentifier(value) {
+    return String(value || '')
+        .replace(/^---?Template---?$/i, 'Template')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+        .replace(/[_-]+/g, ' ')
+        .replace(/\b([A-Za-z]+)(\d+)\b/g, '$1 $2')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+const SIMPLE_NAME_PARTS = new Map(Object.entries({
+    Abomination: 'Hilkat Garibesi',
+    Ancient: 'Kadim',
+    Angel: 'Melek',
+    Armor: 'Zirh',
+    Axe: 'Balta',
+    Beast: 'Canavar',
+    Bear: 'Ayi',
+    Bearcat: 'Megavaksak',
+    Bird: 'Kus',
+    Black: 'Siyah',
+    Blue: 'Mavi',
+    Bone: 'Kemik',
+    Boat: 'Tekne',
+    Bow: 'Yay',
+    Bracer: 'Bileklik',
+    Bracers: 'Bileklik',
+    Brown: 'Kahverengi',
+    Boots: 'Cizme',
+    Bunnybear: 'Kurt Tavsani',
+    Cat: 'Kedi',
+    Chain: 'Zincir',
+    Cloth: 'Kumas',
+    Construct: 'Yapi',
+    Crow: 'Karga',
+    Dagger: 'Hancer',
+    Death: 'Olum',
+    Deathmask: 'Olum Maskesi',
+    Demon: 'Iblis',
+    Destrier: 'Savas Ati',
+    Djinn: 'Cin',
+    Draconic: 'Ejderha',
+    Dragon: 'Ejderha',
+    Dragonette: 'Kucuk Ejder',
+    Drake: 'Ejder',
+    Drakon: 'Drakon',
+    Draft: 'Kosum',
+    Earth: 'Toprak',
+    Egg: 'Yumurta',
+    Fairy: 'Peri',
+    Falcon: 'Sahin',
+    Fangrasaur: 'Disli Kerten',
+    Fire: 'Ates',
+    Focus: 'Odak',
+    Ghost: 'Hayalet',
+    Ghoul: 'Gulyabani',
+    Glove: 'Eldiven',
+    Gloves: 'Eldiven',
+    Gold: 'Altin',
+    Green: 'Yesil',
+    Grey: 'Gri',
+    Hammer: 'Cekic',
+    Hat: 'Baslik',
+    Helm: 'Migfer',
+    Horse: 'At',
+    Human: 'Insan',
+    Imperial: 'Imparatorluk',
+    Infernal: 'Cehennem',
+    Iron: 'Demir',
+    Kirin: 'Kirin',
+    L: 'Efsanevi',
+    Legendary: 'Efsanevi',
+    Leather: 'Deri',
+    Light: 'Isik',
+    Lizard: 'Kertenkele',
+    Lockbox: 'Sandik',
+    Longma: 'Longma',
+    Mace: 'Gurz',
+    Mage: 'Buyucu',
+    Magic: 'Buyu',
+    Mare: 'Kisrak',
+    Mask: 'Maske',
+    Material: 'Malzeme',
+    Minor: 'Kucuk',
+    Major: 'Buyuk',
+    Monkey: 'Maymun',
+    Mount: '',
+    Mythic: 'Efsanevi',
+    Nightmare: 'Kabus',
+    Non: '',
+    Owl: 'Baykus',
+    Orange: 'Turuncu',
+    Paladin: 'Sovalyeci',
+    Pet: 'Evcil',
+    Phoenix: 'Anka',
+    Pony: 'Midilli',
+    Purple: 'Mor',
+    R: 'Nadir',
+    Rabbit: 'Tavsan',
+    Raptor: 'Yirtici',
+    Red: 'Kirmizi',
+    Rogue: 'Haydut',
+    Robe: 'Cubbe',
+    Serpent: 'Yilan',
+    Shield: 'Kalkan',
+    Silver: 'Gumus',
+    Skeleton: 'Iskelet',
+    Spear: 'Mizrak',
+    Spider: 'Orumcek',
+    Sprite: 'Pericik',
+    Stallion: 'Aygir',
+    Staff: 'Asa',
+    Starter: 'Baslangic',
+    Steel: 'Celik',
+    Statue: 'Heykel',
+    Store: 'Magaza',
+    Sword: 'Kilic',
+    Sylvan: 'Orman',
+    Trog: 'Trog',
+    Tutorial: 'Egitim',
+    Undead: 'Olumsuz',
+    Water: 'Su',
+    White: 'Beyaz',
+    Wolf: 'Kurt',
+    Wolfbear: 'Kurt Ayi',
+    Wyrm: 'Ejder',
+    Yellow: 'Sari'
+}));
+
+const COLOR_SUFFIXES = new Map(Object.entries({
+    Black: 'Siyah',
+    Blue: 'Mavi',
+    Brown: 'Kahverengi',
+    Gold: 'Altin',
+    Green: 'Yesil',
+    Grey: 'Gri',
+    Orange: 'Turuncu',
+    Purple: 'Mor',
+    Red: 'Kirmizi',
+    Silver: 'Gumus',
+    White: 'Beyaz',
+    Yellow: 'Sari'
+}));
+
+function localizeIdentifier(value, rootName = '') {
+    const cleaned = splitIdentifier(value)
+        .replace(/\bMount\b/g, '')
+        .replace(/\bPet\b/g, '')
+        .replace(/\bType\b/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!cleaned || /^Template$/i.test(cleaned)) {
+        return 'Sablon';
+    }
+
+    const parts = cleaned.split(/\s+/).filter(Boolean);
+    const translated = parts
+        .map((part) => SIMPLE_NAME_PARTS.get(part) ?? part)
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\b(\w+)\s+\1\b/gi, '$1')
+        .trim();
+
+    return titleCaseAscii(translated || cleaned);
+}
+
+function colorizedIdentifier(value, rootName) {
+    const raw = String(value || '');
+    for (const [suffix, color] of COLOR_SUFFIXES.entries()) {
+        if (raw.endsWith(suffix) && raw.length > suffix.length) {
+            const base = raw.slice(0, -suffix.length);
+            return titleCaseAscii(`${color} ${localizeIdentifier(base, rootName)}`);
+        }
+    }
+    return localizeIdentifier(raw, rootName);
+}
+
+function rarityLabel(value) {
+    return value === 'L' ? 'Efsanevi' : value === 'R' ? 'Nadir' : '';
+}
+
+function deriveLockboxName(name, type, rootName) {
+    const raw = String(name || '');
+    const rarity = raw.match(/Lockbox\d+([RL])/i)?.[1] || '';
+    const color = [...COLOR_SUFFIXES.entries()].find(([suffix]) => raw.endsWith(suffix))?.[1] || '';
+    const category = type === 'Mount' || /^MountLockbox/i.test(raw) ? 'Binek' : 'Evcil';
+    const parts = [color, rarityLabel(rarity), category, 'Sandigi'].filter(Boolean);
+    if (parts.length > 2) {
+        return titleCaseAscii(parts.join(' '));
+    }
+    return colorizedIdentifier(raw, rootName);
+}
+
+function deriveDisplayName(rootName, entry) {
+    if (rootName === 'MaterialTypes') {
+        const rarity = getTag(entry, 'Rarity');
+        const realm = getTag(entry, 'DropRealm') || getAttr(entry, 'MaterialName');
+        if (/Template/i.test(getAttr(entry, 'MaterialName'))) {
+            return 'Malzeme Sablonu';
+        }
+        const prefix = rarity === 'L' ? 'Efsanevi ' : rarity === 'R' ? 'Nadir ' : '';
+        return titleCaseAscii(`${prefix}${localizeIdentifier(realm, rootName)} Parcasi`);
+    }
+
+    if (rootName === 'PetTypes') {
+        const petName = getAttr(entry, 'PetName');
+        if (/Lockbox/i.test(petName)) {
+            return deriveLockboxName(petName, 'Pet', rootName);
+        }
+        return colorizedIdentifier(getAttr(entry, 'PetName'), rootName);
+    }
+
+    if (rootName === 'MountTypes') {
+        const mountName = getAttr(entry, 'MountName');
+        if (/Lockbox/i.test(mountName)) {
+            return deriveLockboxName(mountName, 'Mount', rootName);
+        }
+        return colorizedIdentifier(mountName, rootName);
+    }
+
+    if (rootName === 'GearTypes') {
+        const gearName = getAttr(entry, 'GearName');
+        if (/^No(.+?)(Sword|Shield|Armor|Boots|Gloves|Hat)$/i.test(gearName)) {
+            const [, klass, slot] = gearName.match(/^No(.+?)(Sword|Shield|Armor|Boots|Gloves|Hat)$/i);
+            return titleCaseAscii(`${localizeIdentifier(klass, rootName)} ${localizeIdentifier(slot, rootName)} Yok`);
+        }
+        return localizeIdentifier(gearName || getAttr(entry, 'Type'), rootName);
+    }
+
+    if (rootName === 'ConsumableTypes') {
+        const name = getAttr(entry, 'ConsumableName');
+        const exact = new Map(Object.entries({
+            MinorRareCatalyst: 'Kucuk Nadir Katalizor',
+            MinorLegendaryCatalyst: 'Kucuk Efsanevi Katalizor',
+            MajorRareCatalyst: 'Buyuk Nadir Katalizor',
+            MajorLegendaryCatalyst: 'Buyuk Efsanevi Katalizor',
+            Resurrection: 'Dirilis Iksiri',
+            PetFood: 'Evcil Yemi',
+            RarePetFood: 'Efsanevi Evcil Yemi'
+        }));
+        return exact.get(name) || localizeIdentifier(name, rootName);
+    }
+
+    if (rootName === 'DyeTypes') {
+        return colorizedIdentifier(getTag(entry, 'DyeName') || getAttr(entry, 'DyeName'), rootName);
+    }
+
+    if (rootName === 'RoyalStoreTypes') {
+        const name = getAttr(entry, 'RoyalStoreName');
+        const exact = new Map(Object.entries({
+            RespecStone: 'Yetenek Sifirlama Tasi',
+            Resurrection: 'Dirilis Iksiri',
+            ForgeXP: 'Zanaatkar Ruhu',
+            CharmRemover: 'Tilsim Sokucu',
+            XPFindRegular: 'XP Artis Iksiri X3',
+            MaterialFindRegular: 'Malzeme Bulma Iksiri X3',
+            GoldFindRegular: 'Altin Bulma Iksiri X3',
+            GearFindRegular: 'Ekipman Bulma Iksiri X3'
+        }));
+        if (/Lockbox/i.test(name)) {
+            return deriveLockboxName(name, getTag(entry, 'Type'), rootName);
+        }
+        return exact.get(name) || localizeIdentifier(getAttr(entry, 'ItemName') || name || getTag(entry, 'Type'), rootName);
+    }
+
+    if (rootName === 'LockboxTypes') {
+        return localizeIdentifier(getAttr(entry, 'LockboxName'), rootName);
+    }
+
+    if (rootName === 'LevelTypes') {
+        return localizeIdentifier(getAttr(entry, 'LevelName'), rootName);
+    }
+
+    if (rootName === 'BuildingTypes') {
+        return localizeIdentifier(getAttr(entry, 'BuildingName') || getTag(entry, 'Type'), rootName);
+    }
+
+    if (rootName === 'MissionGroups') {
+        return localizeIdentifier(getAttr(entry, 'MissionGroupName'), rootName);
+    }
+
+    if (rootName === 'EntTypes') {
+        return localizeIdentifier(getAttr(entry, 'EntName'), rootName);
+    }
+
+    if (rootName === 'StatueTypes') {
+        return localizeIdentifier(getAttr(entry, 'StatueName'), rootName);
+    }
+
+    if (rootName === 'CharmTypes') {
+        return localizeIdentifier(getAttr(entry, 'CharmName'), rootName);
+    }
+
+    return '';
+}
+
+function fallbackDerivedName(rootName, entry) {
+    if (rootName === 'PetTypes') {
+        return titleCaseAscii(`Evcil ${getTag(entry, 'PetID') || getAttr(entry, 'PetName') || 'Sablon'}`);
+    }
+    if (rootName === 'MountTypes') {
+        return titleCaseAscii(`Binek ${getTag(entry, 'MountID') || getAttr(entry, 'MountName') || 'Sablon'}`);
+    }
+    if (rootName === 'GearTypes') {
+        const type = localizeIdentifier(getAttr(entry, 'Type') || 'Esya', rootName);
+        const level = getTag(entry, 'Level');
+        const gearId = getAttr(entry, 'GearID');
+        return titleCaseAscii(`${type} ${level || gearId || ''}`.trim());
+    }
+    if (rootName === 'MaterialTypes') {
+        return titleCaseAscii(`Malzeme ${getTag(entry, 'MaterialID') || getAttr(entry, 'MaterialName') || ''}`.trim());
+    }
+    if (rootName === 'DyeTypes') {
+        return titleCaseAscii(`Boya ${getTag(entry, 'DyeID') || getTag(entry, 'DyeName') || ''}`.trim());
+    }
+    if (rootName === 'RoyalStoreTypes') {
+        return titleCaseAscii(`Magaza Esyasi ${getTag(entry, 'RoyalStoreID') || getAttr(entry, 'RoyalStoreName') || ''}`.trim());
+    }
+    if (rootName === 'BuildingTypes') {
+        return titleCaseAscii(`Bina ${getTag(entry, 'BuildingID') || getAttr(entry, 'BuildingName') || ''}`.trim());
+    }
+    if (rootName === 'EntTypes') {
+        const level = getTag(entry, 'Level');
+        return titleCaseAscii(`Varlik ${level || getAttr(entry, 'EntName') || ''}`.trim());
+    }
+    if (rootName === 'StatueTypes') {
+        return titleCaseAscii(`Heykel ${getTag(entry, 'StatueID') || getAttr(entry, 'StatueName') || ''}`.trim());
+    }
+    if (rootName === 'LevelTypes') {
+        return titleCaseAscii(`Bolge ${getAttr(entry, 'LevelName') || getTag(entry, 'ZoneSet') || ''}`.trim());
+    }
+    return '';
+}
+
+function safeDerivedName(rootName, entry) {
+    const candidate = normalizeUnsupportedTurkishGlyphs(deriveDisplayName(rootName, entry) || '');
+    if (candidate && !/\bYerel\b/i.test(candidate) && !/^[\s,.-]*$/.test(candidate)) {
+        return candidate;
+    }
+    return normalizeUnsupportedTurkishGlyphs(fallbackDerivedName(rootName, entry));
+}
+
+function shouldReplaceDisplayName(value) {
+    return /\bYerel\b/i.test(value) || /^[\s,.-]*$/.test(normalizeKey(value));
+}
+
+const ENTRY_TAGS_BY_ROOT = new Map(Object.entries({
+    BuildingTypes: 'Building',
+    CharmTypes: 'CharmType',
+    ConsumableTypes: 'ConsumableType',
+    DyeTypes: 'DyeType',
+    EntTypes: 'EntType',
+    GearTypes: 'Gear',
+    LevelTypes: 'LevelType',
+    LockboxTypes: 'LockboxType',
+    MaterialTypes: 'MaterialType',
+    MissionGroups: 'MissionGroup',
+    MountTypes: 'MountType',
+    PetTypes: 'PetType',
+    RoyalStoreTypes: 'RoyalStoreType',
+    StatueTypes: 'Statue'
+}));
+
+function patchDerivedDisplayNames(xml, rootName, stats) {
+    const entryTag = ENTRY_TAGS_BY_ROOT.get(rootName);
+    if (!entryTag) {
+        return xml;
+    }
+
+    const entryRegex = new RegExp(`<${entryTag}\\b[\\s\\S]*?<\\/${entryTag}>`, 'g');
+    return xml.replace(entryRegex, (entry) => {
+        const current = getTag(entry, 'DisplayName');
+        if (!shouldReplaceDisplayName(current)) {
+            return entry;
+        }
+
+        const derived = safeDerivedName(rootName, entry);
+        if (!derived || /\bYerel\b/i.test(derived) || normalizeKey(derived) === normalizeKey(current)) {
+            return entry;
+        }
+
+        stats.updated += 1;
+        stats.byTag.DisplayName = (stats.byTag.DisplayName || 0) + 1;
+        return entry.replace(/<DisplayName>[\s\S]*?<\/DisplayName>/, `<DisplayName>${escapeXmlText(derived)}</DisplayName>`);
+    });
+}
+
 function patchXmlResource(xml, rootName, translations, missions, stats) {
     if (rootName === 'MissionTypes') {
         return patchMissionTypes(xml, translations, missions, stats);
     }
 
-    return patchGenericXml(xml, rootName, translations, stats);
+    return patchDerivedDisplayNames(patchGenericXml(xml, rootName, translations, stats), rootName, stats);
 }
 
 function patchSwz(sourceSwzPath, targetSwzPath, translations, missions, verifyOnly) {
@@ -359,7 +755,11 @@ function patchStaticXml(xmlRoot, entries, translations, missions, verifyOnly, in
         const filePath = path.join(xmlRoot, file);
         const current = fs.readFileSync(filePath, 'utf8');
         const before = stats.updated;
-        const patched = patchGenericXml(current, rootName, translations, stats, { allowAlreadyLocalizedSkip: true });
+        const patched = patchDerivedDisplayNames(
+            patchGenericXml(current, rootName, translations, stats, { allowAlreadyLocalizedSkip: true }),
+            rootName,
+            stats
+        );
         if (!verifyOnly && stats.updated !== before) {
             fs.writeFileSync(filePath, patched);
         }

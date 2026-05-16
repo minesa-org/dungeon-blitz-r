@@ -2,7 +2,7 @@
 <BuildingTypes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<Building BuildingName="---Template---">
 		<BuildingID>0</BuildingID>
-		<DisplayName>Yerel Ad 3EC1AE</DisplayName>
+		<DisplayName>Sablon</DisplayName>
 		<Type>Template</Type>
 		<Rank>0</Rank>
 		<PlayerLevel>0</PlayerLevel>
@@ -241,7 +241,7 @@
 	</Building>
 	<Building BuildingName="JusticarTower">
 		<BuildingID>3</BuildingID>
-		<DisplayName>Yerel Ad 1E671C</DisplayName>
+		<DisplayName>Justicar Tower</DisplayName>
 		<Type>Tower</Type>
 		<Rank>0</Rank>
 		<PlayerLevel>0</PlayerLevel>
@@ -467,7 +467,7 @@
 	</Building>
 	<Building BuildingName="TemplarTower">
 		<BuildingID>5</BuildingID>
-		<DisplayName>Yerel Ad 0628BE</DisplayName>
+		<DisplayName>Templar Tower</DisplayName>
 		<Type>Tower</Type>
 		<Rank>0</Rank>
 		<PlayerLevel>0</PlayerLevel>
@@ -579,7 +579,7 @@
 	</Building>
 	<Building BuildingName="FrostwardenTower">
 		<BuildingID>6</BuildingID>
-		<DisplayName>Yerel Ad C90E12</DisplayName>
+		<DisplayName>Frostwarden Tower</DisplayName>
 		<Type>Tower</Type>
 		<Rank>0</Rank>
 		<PlayerLevel>0</PlayerLevel>
@@ -691,7 +691,7 @@
 	</Building>
 	<Building BuildingName="FlameseerTower">
 		<BuildingID>7</BuildingID>
-		<DisplayName>Yerel Ad 45BC5A</DisplayName>
+		<DisplayName>Flameseer Tower</DisplayName>
 		<Type>Tower</Type>
 		<Rank>0</Rank>
 		<PlayerLevel>0</PlayerLevel>
@@ -915,7 +915,7 @@
 	</Building>
 	<Building BuildingName="ExecutionerTower">
 		<BuildingID>9</BuildingID>
-		<DisplayName>Yerel Ad CED34E</DisplayName>
+		<DisplayName>Executioner Tower</DisplayName>
 		<Type>Tower</Type>
 		<Rank>0</Rank>
 		<PlayerLevel>0</PlayerLevel>
@@ -1139,7 +1139,7 @@
 	</Building>
 	<Building BuildingName="SoulthiefTower">
 		<BuildingID>11</BuildingID>
-		<DisplayName>Yerel Ad A00D13</DisplayName>
+		<DisplayName>Soulthief Tower</DisplayName>
 		<Type>Tower</Type>
 		<Rank>0</Rank>
 		<PlayerLevel>0</PlayerLevel>
@@ -1264,7 +1264,7 @@
 	</Building>
 	<Building BuildingName="Barn">
 		<BuildingID>13</BuildingID>
-		<DisplayName>Yerel Ad E2C89F</DisplayName>
+		<DisplayName>Barn</DisplayName>
 		<Type>Barn</Type>
 		<Rank>0</Rank>
 		<PlayerLevel>0</PlayerLevel>
