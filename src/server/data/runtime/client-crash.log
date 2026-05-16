@@ -1,0 +1,24 @@
+[2026-05-15T19:10:28.941Z] User 10: 9ArgumentError: Error #2015: Invalid BitmapData.
+	at flash.display::BitmapData/ctor()
+	at flash.display::BitmapData()
+	at class_82/method_193()
+	at class_123/method_1740()
+	at class_123/method_1604()
+	at Level/method_1195()
+	at Game/method_1445()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+
+[2026-05-15T19:10:35.468Z] User 10: 9ArgumentError: Error #2015: Invalid BitmapData.
+	at flash.display::BitmapData/ctor()
+	at flash.display::BitmapData()
+	at class_82/method_193()
+	at class_123/method_1740()
+	at class_123/method_1604()
+	at Level/method_1195()
+	at Game/method_1445()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+
