@@ -87,6 +87,14 @@ export class CombatHandler {
     private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS = 500;
     private static readonly PLAYER_REGEN_RATE = 0.1;
     private static readonly HOSTILE_REGEN_RATE = 0.01;
+    private static readonly POWER_HIT_CLIENT_AUTHORITY_BOSS_LEVELS = new Set([
+        'JC_Mission1',
+        'JC_Mission1Hard'
+    ]);
+    private static readonly POWER_HIT_CLIENT_AUTHORITY_BOSS_NAMES = new Set([
+        'ImperialChampion',
+        'ImperialChampionHard'
+    ]);
     private static readonly HOSTILE_BASE_HITPOINTS = [
         100, 4920, 5580, 6020, 6520, 7040, 7580, 8180, 8800, 9480, 10180, 10960, 11740, 12640, 13540, 14540,
         15560, 16660, 17860, 19120, 20440, 21860, 23360, 24960, 26680, 28460, 30380, 32420, 34580, 36900, 39320,
@@ -260,7 +268,7 @@ export class CombatHandler {
         return Math.max(1, baseMaxHp, bestKnownCurrentHp);
     }
 
-    private static ensureFreshPlayerCombatStats(client: Client, nowMs: number): boolean {
+    private static shouldDeferPlayerRegenForCombatStats(client: Client, nowMs: number): boolean {
         if (!client.combatStatsDirty) {
             return false;
         }
@@ -269,7 +277,7 @@ export class CombatHandler {
             client.lastCombatStatsRefreshRequestAt = nowMs;
             CharacterSync.requestCombatStatsRefresh(client);
         }
-        return true;
+        return !client.allowDirtyCombatStatsRegen;
     }
 
     private static buildCharRegenPayload(entityId: number, amount: number): Buffer {
@@ -459,6 +467,20 @@ export class CombatHandler {
         return normalizedHp;
     }
 
+    private static shouldDeferPowerHitKillToClient(levelScope: string, entity: any): boolean {
+        const levelName = getScopeLevelName(levelScope);
+        if (
+            !levelName ||
+            !CombatHandler.POWER_HIT_CLIENT_AUTHORITY_BOSS_LEVELS.has(levelName) ||
+            !Boolean(entity?.clientSpawned)
+        ) {
+            return false;
+        }
+
+        const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
+        return CombatHandler.POWER_HIT_CLIENT_AUTHORITY_BOSS_NAMES.has(entityName);
+    }
+
     private static noteCombatInteraction(levelScope: string, sourceId: number, targetId: number, fallbackClient: Client, atMs: number = Date.now()): void {
         if (!levelScope || sourceId <= 0 || targetId <= 0) {
             return;
@@ -498,7 +520,7 @@ export class CombatHandler {
         if (!levelScope) {
             return;
         }
-        if (CombatHandler.ensureFreshPlayerCombatStats(client, nowMs)) {
+        if (CombatHandler.shouldDeferPlayerRegenForCombatStats(client, nowMs)) {
             return;
         }
 
@@ -783,6 +805,15 @@ export class CombatHandler {
         }
 
         return GlobalState.levelEntities.get(levelName)?.get(entityId) ?? null;
+    }
+
+    private static shouldSuppressCutsceneHostileCombat(client: Client, levelScope: string, sourceId: number): boolean {
+        if (!LevelHandler.isDungeonCutsceneCombatLocked(client) || !levelScope || sourceId <= 0) {
+            return false;
+        }
+
+        const sourceEntity = CombatHandler.resolveLevelEntity(levelScope, sourceId) ?? client.entities.get(sourceId);
+        return Boolean(sourceEntity && !sourceEntity.isPlayer && Number(sourceEntity.team ?? 0) === EntityTeam.ENEMY);
     }
 
     private static shouldMirrorClientSpawnEntityToParty(levelName: string, entity: any): boolean {
@@ -1326,12 +1357,15 @@ export class CombatHandler {
         const wasAlive = !Boolean(entity.dead) &&
             Number(entity.entState ?? EntityState.ACTIVE) !== EntityState.DEAD &&
             healthState.currentHp > 0;
+        const authoritativeKill =
+            healthState.authoritativeKill &&
+            !CombatHandler.shouldDeferPowerHitKillToClient(levelName, entity);
         const requestedDamage = Math.max(0, Math.round(damage));
-        const minHpAfterHit = healthState.authoritativeKill ? 0 : 1;
+        const minHpAfterHit = authoritativeKill ? 0 : 1;
         const appliedDamage = Math.max(0, Math.min(requestedDamage, healthState.currentHp - minHpAfterHit));
         const nextHp = Math.max(minHpAfterHit, healthState.currentHp - appliedDamage);
 
-        CombatHandler.applyNpcHealthState(entity, healthState.maxHp, nextHp, healthState.authoritativeKill);
+        CombatHandler.applyNpcHealthState(entity, healthState.maxHp, nextHp, authoritativeKill);
 
         if (usesSharedDungeonProgress(getScopeLevelName(levelName))) {
             noteSharedDungeonHostileState(levelName, targetId, entity);
@@ -1340,7 +1374,7 @@ export class CombatHandler {
 
         return {
             entity,
-            killed: healthState.authoritativeKill &&
+            killed: authoritativeKill &&
                 wasAlive &&
                 (Boolean(entity.dead) || Number(entity.entState ?? EntityState.ACTIVE) === EntityState.DEAD)
         };
@@ -1497,8 +1531,12 @@ export class CombatHandler {
         if (!info) {
             return;
         }
+        const levelScope = getClientLevelScope(client);
+        if (CombatHandler.shouldSuppressCutsceneHostileCombat(client, levelScope, info.sourceId)) {
+            return;
+        }
 
-        const sourceSession = CombatHandler.resolveCombatSourceSession(getClientLevelScope(client), info.sourceId, client);
+        const sourceSession = CombatHandler.resolveCombatSourceSession(levelScope, info.sourceId, client);
         if (sourceSession) {
             noteDungeonRunCast(sourceSession, {
                 sourceId: info.sourceId,
@@ -1533,6 +1571,9 @@ export class CombatHandler {
         const { targetId, sourceId, damage } = info;
         const currentLevel = client.currentLevel;
         const levelScope = getClientLevelScope(client);
+        if (CombatHandler.shouldSuppressCutsceneHostileCombat(client, levelScope, sourceId)) {
+            return;
+        }
         const targetEntity = CombatHandler.resolveLevelEntity(levelScope, targetId);
         const sourceEntity = CombatHandler.resolveLevelEntity(levelScope, sourceId);
         const isHostileNpcSource = Boolean(
@@ -1615,6 +1656,9 @@ export class CombatHandler {
 
     static async handleProjectileExplode(client: Client, data: Buffer): Promise<void> {
         if (LevelHandler.isGoblinRiverBossIntroLocked(client)) {
+            return;
+        }
+        if (LevelHandler.isDungeonCutsceneCombatLocked(client)) {
             return;
         }
         CombatHandler.broadcastCombatPacket(client, 0x0E, data, {

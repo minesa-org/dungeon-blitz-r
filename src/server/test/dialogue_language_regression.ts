@@ -1,6 +1,12 @@
 import { strict as assert } from 'assert';
+import fs from 'fs';
+import path from 'path';
 import { Character } from '../database/Database';
+import { DialogueTranslationLoader } from '../data/DialogueTranslationLoader';
+import { GlobalState } from '../core/GlobalState';
+import { EntityTeam } from '../core/Entity';
 import { SocialHandler } from '../handlers/SocialHandler';
+import { LevelHandler } from '../handlers/LevelHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 
@@ -14,6 +20,11 @@ type FakeClient = {
     character: Character;
     characters: Character[];
     sentPackets: SentPacket[];
+    token?: number;
+    currentLevel?: string;
+    levelInstanceId?: string;
+    playerSpawned?: boolean;
+    entities: Map<number, any>;
     send: (id: number, payload: Buffer) => void;
     sendBitBuffer: (id: number, bb: BitBuffer) => void;
 };
@@ -33,6 +44,7 @@ function createFakeClient(): FakeClient {
         character,
         characters: [character],
         sentPackets,
+        entities: new Map(),
         send(id: number, payload: Buffer) {
             sentPackets.push({ id, payload: Buffer.from(payload) });
         },
@@ -54,10 +66,33 @@ function decodeChatStatus(payload: Buffer): string {
     return br.readMethod13();
 }
 
+function createRoomThoughtPacket(entityId: number, text: string): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(entityId);
+    bb.writeMethod13(text);
+    return bb.toBuffer();
+}
+
+function createStartSkitPacket(entityId: number, text: string): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod9(entityId);
+    bb.writeMethod15(false);
+    bb.writeMethod26(text);
+    return bb.toBuffer();
+}
+
+function decodeRoomThought(payload: Buffer): { entityId: number; text: string } {
+    const br = new BitReader(payload);
+    return {
+        entityId: br.readMethod4(),
+        text: br.readMethod13()
+    };
+}
+
 async function testLanguageCommandSwitchesToTurkishWithoutBroadcasting(): Promise<void> {
     const client = createFakeClient();
 
-    await SocialHandler.handlePublicChat(client as never, createPublicChatPacket('/lang:tr'));
+    await SocialHandler.handlePublicChat(client as never, createPublicChatPacket('/lang: tr'));
 
     assert.equal(client.character.dialogueLanguage, 'tr');
     assert.equal(client.sentPackets.some((packet) => packet.id === 0x2c), false);
@@ -86,9 +121,801 @@ async function testLanguageCommandSwitchesBackToEnglish(): Promise<void> {
     );
 }
 
+function testTurkishDialogueFilesCoverAllSourceDialogue(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const missions = JSON.parse(fs.readFileSync(path.join(dataDir, 'MissionTypes.json'), 'utf8')) as Array<Record<string, unknown>>;
+    const missionTr = JSON.parse(fs.readFileSync(path.join(dataDir, 'MissionDialogues.tr.json'), 'utf8')) as {
+        missions?: Record<string, Record<string, unknown>>;
+    };
+    const npcSource = JSON.parse(fs.readFileSync(path.join(dataDir, 'NpcDialogues.json'), 'utf8')) as {
+        levels?: Record<string, Record<string, unknown>>;
+    };
+    const npcTr = JSON.parse(fs.readFileSync(path.join(dataDir, 'NpcDialogues.tr.json'), 'utf8')) as {
+        levels?: Record<string, Record<string, { defaultLines?: unknown[]; conditionalLines?: unknown[] }>>;
+    };
+
+    const dialogueFields = ['OfferText', 'ActiveText', 'ReturnText', 'PraiseText'] as const;
+    const missingMissionFields: string[] = [];
+    for (const mission of missions) {
+        const missionId = String(mission.MissionID ?? '').trim();
+        if (!missionId) {
+            continue;
+        }
+
+        for (const field of dialogueFields) {
+            if (!String(mission[field] ?? '').trim()) {
+                continue;
+            }
+
+            if (!String(missionTr.missions?.[missionId]?.[field] ?? '').trim()) {
+                missingMissionFields.push(`${missionId}.${field}`);
+            }
+        }
+    }
+
+    const missingNpcEntries: string[] = [];
+    for (const [levelName, npcs] of Object.entries(npcSource.levels ?? {})) {
+        for (const npcKey of Object.keys(npcs ?? {})) {
+            const translated = npcTr.levels?.[levelName]?.[npcKey];
+            if (!translated?.defaultLines?.length && !translated?.conditionalLines?.length) {
+                missingNpcEntries.push(`${levelName}.${npcKey}`);
+            }
+        }
+    }
+
+    assert.deepEqual(missingMissionFields, [], 'Turkish mission dialogue should cover every source dialogue field');
+    assert.deepEqual(missingNpcEntries, [], 'Turkish NPC dialogue should cover every source NPC entry');
+}
+
+function testTurkishRoomThoughtUsesTranslationTable(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51001;
+    client.currentLevel = 'CraftTownTutorial';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        SocialHandler.handleRoomThought(
+            client as never,
+            createRoomThoughtPacket(77, 'To me! Protect your home!')
+        );
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const packet = client.sentPackets.find((entry) => entry.id === 0x76);
+    assert.ok(packet, 'Turkish room thought should be relayed as an NPC bubble');
+    assert.deepEqual(decodeRoomThought(packet!.payload), {
+        entityId: 77,
+        text: 'Bana gelin! Yuvanizi koruyun!'
+    });
+}
+
+function testTurkishRoomThoughtFallbackPreventsEnemyEnglish(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51002;
+    client.currentLevel = 'CraftTownTutorial';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+    client.entities.set(88, {
+        id: 88,
+        name: 'FallbackEnemy',
+        team: EntityTeam.ENEMY
+    });
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        SocialHandler.handleRoomThought(
+            client as never,
+            createRoomThoughtPacket(88, 'Untranslated enemy sentence!')
+        );
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const packet = client.sentPackets.find((entry) => entry.id === 0x76);
+    assert.ok(packet, 'enemy room thought should still be relayed');
+    assert.equal(decodeRoomThought(packet!.payload).text, 'Bunu odetecegiz!');
+}
+
+function testTurkishEnemyFallbackKeepsLineVariety(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const first = DialogueTranslationLoader.translateText(
+        'I will crush you!',
+        'tr',
+        { fallbackToGeneric: true }
+    );
+    const second = DialogueTranslationLoader.translateText(
+        'Attack now!',
+        'tr',
+        { fallbackToGeneric: true }
+    );
+
+    assert.equal(first, 'Sana izin vermeyecegiz!');
+    assert.equal(second, 'Hucum edin!');
+    assert.notEqual(first, second, 'unknown enemy fallback should not collapse every line to one taunt');
+    assert.notEqual(first, 'Geber!');
+    assert.notEqual(second, 'Saldirin!');
+}
+
+function testMeylourFallbackKeepsLineVarietyLikeScarab(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const first = DialogueTranslationLoader.translateText(
+        'Meylour will burn everything!',
+        'tr',
+        { fallbackToGeneric: true }
+    );
+    const second = DialogueTranslationLoader.translateText(
+        'Meylour will kill you!',
+        'tr',
+        { fallbackToGeneric: true }
+    );
+
+    assert.notEqual(first, 'Meylour icin!');
+    assert.notEqual(second, 'Meylour icin!');
+    assert.notEqual(first, second, 'unknown Meylour fallback should keep Scarab-style line variety');
+}
+
+function testSpecificDungeonRoomThoughtTranslation(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51004;
+    client.currentLevel = 'SD_Mission2';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        SocialHandler.handleRoomThought(
+            client as never,
+            createRoomThoughtPacket(79, 'This temple is ancient. I wonder who built that')
+        );
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const packet = client.sentPackets.find((entry) => entry.id === 0x76);
+    assert.ok(packet, 'specific dungeon room thought should be relayed');
+    assert.deepEqual(decodeRoomThought(packet!.payload), {
+        entityId: 79,
+        text: 'Bu tapinak cok eski. Acaba bunu kim yapti'
+    });
+}
+
+function testSplitDungeonRoomThoughtTranslation(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51005;
+    client.currentLevel = 'SD_Mission2';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        SocialHandler.handleRoomThought(
+            client as never,
+            createRoomThoughtPacket(80, 'I wonder who built it?')
+        );
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const packet = client.sentPackets.find((entry) => entry.id === 0x76);
+    assert.ok(packet, 'split dungeon room thought should be relayed');
+    assert.deepEqual(decodeRoomThought(packet!.payload), {
+        entityId: 80,
+        text: 'Acaba bunu kim yapti?'
+    });
+}
+
+function testLevelHandlerRoomThoughtUsesRecipientLanguage(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51003;
+    client.currentLevel = 'CraftTownTutorial';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set('CraftTownTutorial', new Map([
+        [99, { id: 99, name: 'TutorialBoss', team: EntityTeam.ENEMY }]
+    ]));
+
+    try {
+        (LevelHandler as any).sendRoomThought(
+            'CraftTownTutorial',
+            99,
+            'I will not fall! To me, brothers!',
+            ''
+        );
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+        GlobalState.levelEntities.delete('CraftTownTutorial');
+    }
+
+    const packet = client.sentPackets.find((entry) => entry.id === 0x76);
+    assert.ok(packet, 'server-authored room thought should be sent');
+    assert.deepEqual(decodeRoomThought(packet!.payload), {
+        entityId: 99,
+        text: 'Dusmeyecegim! Bana gelin kardesler!'
+    });
+}
+
+function testCapstoneBossDialogueTranslatesEnemyAndPlayerLines(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51006;
+    client.currentLevel = 'AC_Mission6';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+    client.entities.set(670, {
+        id: 670,
+        name: 'GreatNephit',
+        team: EntityTeam.ENEMY
+    });
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        SocialHandler.handleStartSkit(
+            client as never,
+            createStartSkitPacket(670, 'Ahhh, you finished off the dragon generals.')
+        );
+        SocialHandler.handleStartSkit(
+            client as never,
+            createStartSkitPacket(1, 'Prepare for another disappointment, Nephit.')
+        );
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const thoughts = client.sentPackets
+        .filter((entry) => entry.id === 0x76)
+        .map((entry) => decodeRoomThought(entry.payload));
+
+    assert.deepEqual(thoughts, [
+        {
+            entityId: 670,
+            text: 'Ahhh, ejderha generallerini bitirmissin.'
+        },
+        {
+            entityId: 1,
+            text: 'Nephit, bir hayal kirikligina daha hazirlan.'
+        }
+    ]);
+}
+
+function testFelbridgeMeylourRoomDialogueUsesExactTranslations(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51007;
+    client.currentLevel = 'BT_Mission4';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+    client.entities.set(701, {
+        id: 701,
+        name: 'StewardOfFelbridge',
+        team: EntityTeam.ENEMY
+    });
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        SocialHandler.handleStartSkit(
+            client as never,
+            createStartSkitPacket(701, 'Meylour is our only savior!:The Living Mountain preserve me!')
+        );
+        SocialHandler.handleStartSkit(
+            client as never,
+            createStartSkitPacket(701, 'Meylour demands his sacrifices, #tn#!')
+        );
+        SocialHandler.handleStartSkit(
+            client as never,
+            createStartSkitPacket(701, '<Goto Red 1>And I will continue to give Meylour more!')
+        );
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const thoughts = client.sentPackets
+        .filter((entry) => entry.id === 0x76)
+        .map((entry) => decodeRoomThought(entry.payload));
+
+    assert.deepEqual(thoughts, [
+        {
+            entityId: 701,
+            text: 'Meylour tek kurtaricimiz!:Yasayan Dag beni korusun!'
+        },
+        {
+            entityId: 701,
+            text: 'Meylour kurbanlarini ister, #tn#!'
+        },
+        {
+            entityId: 701,
+            text: "<Goto Red 1>Ve Meylour'a daha fazlasini vermeye devam edecegim!"
+        }
+    ]);
+}
+
+function testFelbridgeMeylourLiveSkitSegmentsUseTranslations(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51008;
+    client.currentLevel = 'BT_Mission4';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+    client.entities.set(702, {
+        id: 702,
+        name: 'StewardOfFelbridge',
+        team: EntityTeam.ENEMY
+    });
+
+    const liveSkitSegments: Array<[string, string]> = [
+        ['Meylour is our only savior!', 'Meylour tek kurtaricimiz!'],
+        ['The Living Mountain preserve me!', 'Yasayan Dag beni korusun!'],
+        ['Meylour demands his sacrifices, LanguageTester!', 'Meylour kurbanlarini ister, LanguageTester!'],
+        ['This temple is sacred Paladin.', 'Bu tapinak kutsaldir Paladin.'],
+        ['Your doom is sealed, LanguageTester!', 'Sonun muhurlendi, LanguageTester!'],
+        ['They belong to Meylour now!', "Artik Meylour'a aitler!"],
+        ['Meylour grant me your strength!', 'Meylour, bana gucunu ver!'],
+        ['You will die on the peak, LanguageTester...', 'Zirvede oleceksin, LanguageTester...']
+    ];
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        for (const [source] of liveSkitSegments) {
+            SocialHandler.handleStartSkit(
+                client as never,
+                createStartSkitPacket(702, source)
+            );
+        }
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const thoughts = client.sentPackets
+        .filter((entry) => entry.id === 0x76)
+        .map((entry) => decodeRoomThought(entry.payload));
+
+    assert.deepEqual(thoughts.map((thought) => thought.text), liveSkitSegments.map(([, expected]) => expected));
+    assert.equal(
+        thoughts.some((thought) => thought.text === 'Meylour icin!'),
+        false,
+        'live Felbridge skit segments should not fall through to the old Meylour placeholder'
+    );
+}
+
+function testBridgeTownMissionsLiveSkitSegmentsUseTranslations(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51009;
+    client.currentLevel = 'BT_Mission1';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+    client.entities.set(703, {
+        id: 703,
+        name: 'BridgeTownMissionEnemy',
+        team: EntityTeam.ENEMY
+    });
+
+    const liveSkitSegments: Array<[string, string]> = [
+        ["LanguageTester, you should've stayed back across the sea.", 'LanguageTester, denizin ote yakasinda kalmaliydin.'],
+        ['You always were a servile lapdog, LanguageTester.', 'Her zaman yalaka bir kopektin, LanguageTester.'],
+        ["He's from the King!", 'Kral tarafindan gelmis!'],
+        ['Come to take us back in chains!', 'Bizi zincire vurup geri goturmeye gelmis!'],
+        ['I got one last trick for you, LanguageTester!', 'Senin icin son bir numaram var, LanguageTester!'],
+        ['Wrath, avenge me!', 'Gazap, intikamimi al!'],
+        ['Goblin magick lets us master these woods.', 'Goblin buyusu bu ormanlara hukmetmemizi sagliyor.'],
+        ['Care to meet them?', 'Onlarla tanismak ister misin?'],
+        ['We shall send you to the mountain\'s heart.', 'Seni dagin kalbine gonderecegiz.'],
+        ['Hurt him! You fool, he is our leader!', 'Ona zarar mi vermek! Aptal, o bizim liderimiz!'],
+        ['Rage of the stone, up!', 'Tasin ofkesi, ayaga kalk!'],
+        ['To me, rocklings!', 'Bana gelin, kaya yaratiklari!']
+    ];
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        for (const [source] of liveSkitSegments) {
+            SocialHandler.handleStartSkit(
+                client as never,
+                createStartSkitPacket(703, source)
+            );
+        }
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const thoughts = client.sentPackets
+        .filter((entry) => entry.id === 0x76)
+        .map((entry) => decodeRoomThought(entry.payload));
+
+    assert.deepEqual(thoughts.map((thought) => thought.text), liveSkitSegments.map(([, expected]) => expected));
+    assert.equal(
+        thoughts.some((thought) => thought.text === 'Meylour icin!'),
+        false,
+        'BridgeTown mission skit segments should not fall through to old placeholder lines'
+    );
+}
+
+function testBlackRoseMireLiveSkitSegmentsUseTranslations(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51010;
+    client.currentLevel = 'SRN_Mission4';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+    client.entities.set(704, {
+        id: 704,
+        name: 'BlackRoseMireEnemy',
+        team: EntityTeam.ENEMY
+    });
+
+    const liveSkitSegments: Array<[string, string]> = [
+        ['You humans will be slaves once again...', 'Siz insanlar yine kole olacaksiniz...'],
+        ['She will make a nice snack for the herd.', 'Suru icin guzel bir atistirmalik olacak.'],
+        ['Kill her !', 'Oldurun onu!'],
+        ["She's here to steal the Legions wages!", 'Lejyonun maaslarini calmaya gelmis!'],
+        ['You shall not disturb the Vizier further Paladin.', 'Veziri daha fazla rahatsiz etmeyeceksin Paladin.'],
+        ['Protect the Seedlings!', 'Fideleri koruyun!'],
+        ['Tuatara! To Arms!', 'Tuatara! Silah basina!'],
+        ['The road\'s clear, now soldiers from Wolf\'s End can join me...', "Yol acildi, artik Kurtlarin Sonu'ndan askerler bana katilabilir..."]
+    ];
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        for (const [source] of liveSkitSegments) {
+            SocialHandler.handleStartSkit(
+                client as never,
+                createStartSkitPacket(704, source)
+            );
+        }
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const thoughts = client.sentPackets
+        .filter((entry) => entry.id === 0x76)
+        .map((entry) => decodeRoomThought(entry.payload));
+
+    assert.deepEqual(thoughts.map((thought) => thought.text), liveSkitSegments.map(([, expected]) => expected));
+}
+
+function testCapstoneRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+
+    const capstoneLines = [
+        "There's a strange light coming from that tunnel...",
+        'More of those blue crytals.',
+        'Is this where they come from?',
+        'These ghosts are different.',
+        "Nephit's summoning spirits from everwhere now!",
+        'Where am I?',
+        'What is this place?',
+        'Ghosts of all my former foes.',
+        "Nephit's throwing everything at me.",
+        "I've never heard of a place like this!",
+        'I feel caught between two worlds.',
+        "Hopefully there's some stable ground ahead.",
+        'RAAAAAAWWWRRR!',
+        'uugggugugu.....',
+        'Ahhh, you finished off the dragon generals.',
+        "I'd hoped you would kill each other.",
+        'Prepare for another disappointment, Nephit.',
+        'You know, I helped Baron Hocke create this Capstone.',
+        'Then you know how dangerous it would be to disrupt it.',
+        'Dangerous to you. Empowering for me.',
+        'Once I drain its powers, I shall live again...',
+        'And every ancient secret shall be revealed unto me!',
+        'You should know by now, #tn#...',
+        'This body is a mere placeholder',
+        "Now let me show you Capstone's true potential!"
+    ];
+
+    const missing = capstoneLines.filter((line) => !String(translations.translations?.[line] ?? '').trim());
+    assert.deepEqual(missing, [], 'Capstone dungeon dialogue should have Turkish translations');
+}
+
+function testFelbridgeMeylourRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+
+    const felbridgeMeylourLines = [
+        "You cannot stop the Harvest Ritual!:You'll doom us all!",
+        'You cannot stop the Harvest Ritual!',
+        "You'll doom us all!",
+        "@Looks like the Meylour's servants have gone wild.:@The Steward's house is being ruined.",
+        "Looks like the Meylour's servants have gone wild.",
+        "The Steward's house is being ruined.",
+        'We shall carry you to the dire peak, sacrifice!',
+        "Meylour's wrath will claim you!",
+        'This temple is sacred #tc#.',
+        "The Steward's ritual is complete...:Your doom is sealed, #tn#!",
+        "The Steward's ritual is complete...",
+        'Your doom is sealed, #tn#!',
+        'Meylour will devour you all...',
+        'For the Glory of Meylour, I give my life!',
+        "He's|She's here for The Steward!:Cut him|her down!",
+        "He's here for The Steward!",
+        "She's here for The Steward!",
+        'Cut him down!',
+        'Cut her down!',
+        'The Steward brought these.:They belong to Meylour now!',
+        'The Steward brought these.',
+        'They belong to Meylour now!',
+        'These caves are holy ground, intruder.:Begone!',
+        'These caves are holy ground, intruder.',
+        'Begone!',
+        'These offerings are for Meylour!:Begone, heretic!',
+        'These offerings are for Meylour!',
+        'Begone, heretic!',
+        'Meylour The Living Mountain codemns thee!',
+        'Meylour, I pray, devour my bones!',
+        "::Felbridge didn't need your meddling!",
+        "Felbridge didn't need your meddling!",
+        "Meylour's Eternal Avalanche will crush you!",
+        "You snivelling worm!:You dare to defile Meylour's temple?",
+        'You snivelling worm!',
+        "You dare to defile Meylour's temple?",
+        'Meylour, my blood runs for thee!',
+        'More sacrifices for the Living Mountain::Meylour grant me your strength!',
+        'More sacrifices for the Living Mountain',
+        'Meylour grant me your strength!',
+        'Oh that I shall be reborn as rock, Mighty Meylour!',
+        'Oh, you from Felbridge?:Come to the woods for some payback, have ye?',
+        'Oh, you from Felbridge?',
+        'Come to the woods for some payback, have ye?',
+        'No wonder the people of Felbridge are so wary of strangers.',
+        'So, #tn#. The Steward was right about you.',
+        'Where is he? If you lot have hurt the Steward...',
+        'Every Harvest Ritual we sacrifice to Meylour.',
+        'Meylour demands blood. And this year he shall have yours!',
+        'The Steward and his evil cult have sacrificed innocents...',
+        'Time to put an end to the Steward and whoever is in league with him',
+        'Meylour is our only savior!:The Living Mountain preserve me!',
+        'Meylour is our only savior!',
+        'The Living Mountain preserve me!',
+        'Meylour demands his sacrifices, #tn#!',
+        "You've sacrificed scores of people to your dark god.",
+        '<Goto Red 1>And I will continue to give Meylour more!',
+        'And I will continue to give Meylour more!',
+        'Only The Living Mountain can protect us from the Sleeping Lands.',
+        'We will never go back there!',
+        'NEVER!',
+        'You will die on the peak, #tn#...',
+        'Your cult is finished, Steward.',
+        "I need to let the Warden know he's in charge now."
+    ];
+
+    const missing = felbridgeMeylourLines.filter((line) => !String(translations.translations?.[line] ?? '').trim());
+    assert.deepEqual(missing, [], 'Felbridge Meylour room dialogue should have exact Turkish translations');
+}
+
+function testBridgeTownMissionsRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+
+    const bridgeTownMissionLines = [
+        'You cursed fool!',
+        'We had a good thing going here...:You coulda joined us!',
+        'We had a good thing going here...',
+        'You coulda joined us!',
+        'I remember you two. You were heroes once.',
+        "#tn#, you should've stayed back across the sea.",
+        'You always were a servile lapdog, #tn#.',
+        'Let me remind you of your duty, scum.',
+        'All these wretched deserters...',
+        'I got one last trick for you, #tn#!',
+        'Wrath, avenge me!:Urghhhhh...',
+        'Wrath, avenge me!',
+        'Urghhhhh...',
+        'I heard you were dead, Svagg.',
+        "Not me. I'm a survivor.",
+        'You sold your soul for Goblin Magic.',
+        'It was worth the price. Goblins used it, why not me?',
+        'My followers respect power, Goblin or Human. Let us show you!',
+        'Rawk!',
+        'A Wargryph. Wow.',
+        "Svagg's deserter tricks didn't save him though.",
+        'I recognize you too, deserter!',
+        '10 WaveBoss Not a deserter, just smarter then you.',
+        'Not a deserter, just smarter then you.',
+        '10 WaveBoss This land is ripe for the robbing!',
+        'This land is ripe for the robbing!',
+        "You're scum and a coward. I'll enjoy this!",
+        'Imps, destroy this idiot!',
+        'The forest is ours, bridge-scum.:That was the deal!',
+        'The forest is ours, bridge-scum.',
+        'That was the deal!',
+        "These woods ain't for you no more, bridger-scum!",
+        'Back in the homeland, I ate your kind for breakfast.',
+        'You scum look familiar.',
+        'I fought at the Battle of Querrel Hill.',
+        'You deserted the King and turned bandit!',
+        "If you'd been smart, you woulda too.",
+        "Now it's too late!",
+        "He's|She's from the King!:Come to take us back in chains!",
+        "He's|She's from the King!",
+        "He's from the King!",
+        "She's from the King!",
+        'Come to take us back in chains!',
+        "Ellyrian scum! We won't go back!",
+        'You shoulda died a hero in the war.',
+        "Come to claim these woods for the King?:We won't bend knee again!",
+        'Come to claim these woods for the King?',
+        "We won't bend knee again!",
+        'We should never have fought the goblins.:Their magic serves us now!',
+        'We should never have fought the goblins.',
+        'Their magic serves us now!',
+        "Goblin magick lets us master these woods.:You'll die here without their power.",
+        'Goblin magick lets us master these woods.',
+        "You'll die here without their power.",
+        'How did you get past the spider?',
+        "Without the goblin's spells, you'll die here.:This forest is ours!",
+        "Without the goblin's spells, you'll die here.",
+        'This forest is ours!',
+        "A goblin's skull can enchant 100 spiders.:Care to meet them?",
+        "A goblin's skull can enchant 100 spiders.",
+        'Care to meet them?',
+        '@What have these bandits done?',
+        'What have these bandits done?',
+        '@Back in your hole, beast!',
+        'Back in your hole, beast!',
+        '@How can these bandits stand those things?',
+        'How can these bandits stand those things?',
+        "Svagg's imps, protect me!",
+        'They said goblin magicks would protect us...',
+        'You fought goblins, sure.:But not goblin magic under human command!',
+        'You fought goblins, sure.',
+        'But not goblin magic under human command!',
+        'Death to your King!: And you too!',
+        'Death to your King!',
+        'And you too!',
+        'Your flesh is not of ours.',
+        "We shall send you to the mountain's heart.:There you shall join the others.",
+        "We shall send you to the mountain's heart.",
+        'There you shall join the others.',
+        'Minions rise!',
+        'The mountaintop will be your doom.',
+        'Servants, heed my call!',
+        'You should not be here.',
+        'We told you to leave, stranger!',
+        "He's|She's here for The Steward!",
+        'Cut him|her down!',
+        'Hurt him! You fool, he is our leader!',
+        "Unless I'm wrong, the village is right above me.",
+        'Rage of the stone, up!',
+        'To me, rocklings!'
+    ];
+
+    const missing = bridgeTownMissionLines.filter((line) => !String(translations.translations?.[line] ?? '').trim());
+    assert.deepEqual(missing, [], 'BridgeTown mission 1-3 room dialogue should have Turkish translations');
+}
+
+function testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+
+    const wolfsEndEnemyLines = [
+        'Mwahahaha!',
+        'No fair!',
+        '@Back to the deep with you, trog scum!',
+        'These seas are ours!',
+        'This ship is going down!',
+        'Humans! What are humans doing here!?!',
+        "Sink them! We can't be followed!",
+        'CHARGE!',
+        "The human from that boat!:He|she followed us!",
+        'You killed our Kraken!',
+        'He was only 120 years old!',
+        'What did that Kraken ever do to you?',
+        'The human from across the sea!',
+        'You were a fool to follow us!',
+        "You're gonna die in these caves, human!",
+        'The Kraken shoulda killed you!',
+        'Curse of Thrung upon ye!',
+        'My soul goes to the Sleeping Lands...',
+        'Who goes...oh!:The Kraken Slayer!',
+        "We're doomed!",
+        ':Have you come to serve Nephit too, human?',
+        "Don't let him|her cross the bridge!",
+        'Kill him|her and we can go home!',
+        "We'll never see the Sleeping Lands again...",
+        'Goblins! This is our final stand!',
+        ':We\'re coming, boss',
+        'Turn back, mortal.:Or join us.',
+        'This war isn\'t over!',
+        'We goblins never give up, human!',
+        'Dead, rise to my defense!:The Ur-Sage demands it!:Kill him|her!',
+        "Why do you fight so?:I conquered Death itself:You're nothing.",
+        'No! This is for us!: We have to get back to the Sleeping Lands.',
+        'Nephit is Goblin-kind\'s salvation!:He can open the passage!',
+        'For Nephit! Our one true hope!',
+        "Get out!: You'll ruin everything!",
+        'Nephit, protect me!',
+        "Nephit knows the path!: You can't stop him from leading us!",
+        'Nephit will raise me to fight you again!',
+        'The Karaken Slayer!: To Arms!',
+        'Death is a small price to pay for knowledge.:So sayeth Nephit',
+        "Master's wisdom is supreme.:Bow down to your fate.",
+        'The goblins failed us.',
+        'The Sleepers stir...',
+        '"Help! Help!"...:A child cries out in the night.',
+        'In the Sleeping Lands, dreams come true.',
+        'Where all sleep, none may die.',
+        'Lay down your sweet head...:That I might chop it off!',
+        'Beware human...:You disturb Sythokahn\'s dream...',
+        'All the treasure in the waking world...:Can\'t buy your way into the Sleeping Lands.',
+        'Why do I torment myself with these fantasies?:Come forth my fellow dreamers.'
+    ];
+
+    const missing = wolfsEndEnemyLines.filter((line) => !String(translations.translations?.[line] ?? '').trim());
+    assert.deepEqual(missing, [], "Wolf's End enemy room dialogue should have Turkish translations");
+}
+
 async function main(): Promise<void> {
     await testLanguageCommandSwitchesToTurkishWithoutBroadcasting();
     await testLanguageCommandSwitchesBackToEnglish();
+    testTurkishDialogueFilesCoverAllSourceDialogue();
+    testTurkishRoomThoughtUsesTranslationTable();
+    testTurkishRoomThoughtFallbackPreventsEnemyEnglish();
+    testTurkishEnemyFallbackKeepsLineVariety();
+    testMeylourFallbackKeepsLineVarietyLikeScarab();
+    testSpecificDungeonRoomThoughtTranslation();
+    testSplitDungeonRoomThoughtTranslation();
+    testLevelHandlerRoomThoughtUsesRecipientLanguage();
+    testCapstoneBossDialogueTranslatesEnemyAndPlayerLines();
+    testFelbridgeMeylourRoomDialogueUsesExactTranslations();
+    testFelbridgeMeylourLiveSkitSegmentsUseTranslations();
+    testBridgeTownMissionsLiveSkitSegmentsUseTranslations();
+    testBlackRoseMireLiveSkitSegmentsUseTranslations();
+    testCapstoneRoomDialogueTranslationsCoverExtractedSource();
+    testFelbridgeMeylourRoomDialogueTranslationsCoverExtractedSource();
+    testBridgeTownMissionsRoomDialogueTranslationsCoverExtractedSource();
+    testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource();
     console.log('dialogue_language_regression: ok');
 }
 

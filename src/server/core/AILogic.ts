@@ -39,9 +39,16 @@ export class AILogic {
         const nowMs = Date.now();
 
         const players: Client[] = [];
+        const activeCutsceneRoomIds = new Set<number>();
         for (const session of GlobalState.sessionsByToken.values()) {
             if (session.playerSpawned && getClientLevelScope(session) === levelScope && session.character) {
                 players.push(session);
+                if (String(session.activeDungeonCutsceneScope ?? '').trim() === levelScope) {
+                    const roomId = Number(session.activeDungeonCutsceneRoomId ?? -1);
+                    if (Number.isFinite(roomId) && roomId >= 0) {
+                        activeCutsceneRoomIds.add(Math.round(roomId));
+                    }
+                }
             }
         }
 
@@ -54,6 +61,8 @@ export class AILogic {
             if (npc.clientSpawned) continue; // Client-owned monsters should not receive server AI movement.
             // Simple dead check (if no hp prop, assume 100)
             if ((npc.hp !== undefined && npc.hp <= 0)) continue;
+            const npcRoomId = Number.isFinite(Number(npc?.roomId)) ? Math.round(Number(npc.roomId)) : -1;
+            if (npcRoomId >= 0 && activeCutsceneRoomIds.has(npcRoomId)) continue;
 
             AILogic.updateNpc(npc, players, levelScope);
         }

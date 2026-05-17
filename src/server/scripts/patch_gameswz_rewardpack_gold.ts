@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as path from "path";
 import { ensureBackup, parseSwz, SwzPatchError, writeSwz } from "./swzPatchUtils";
 
@@ -12,24 +13,22 @@ type RewardpackGoldPatchStats = {
   replacements: number;
 };
 
-function defaultGameSwzPath(): string {
-  return path.resolve(
-    __dirname,
-    "..",
-    "..",
-    "client",
-    "content",
-    "localhost",
-    "p",
-    "cbq",
-    "Game.swz",
-  );
+function defaultGameSwzDir(): string {
+  return path.resolve(__dirname, "..", "..", "client", "content", "localhost", "p", "cbq");
 }
 
-function resolveArgPath(args: string[], flag: string, fallback: string): string {
+function defaultGameSwzPaths(): string[] {
+  const cbqDir = defaultGameSwzDir();
+  const candidates = ["Game.swz", "Game.en.swz", "Game.tr.swz"].map((name) => path.join(cbqDir, name));
+  const existing = candidates.filter((candidate) => fs.existsSync(candidate));
+
+  return existing.length > 0 ? existing : [path.join(cbqDir, "Game.swz")];
+}
+
+function resolveArgPaths(args: string[], flag: string, fallback: string[]): string[] {
   const idx = args.indexOf(flag);
   if (idx !== -1 && idx + 1 < args.length) {
-    return path.resolve(args[idx + 1]);
+    return [path.resolve(args[idx + 1])];
   }
   return fallback;
 }
@@ -80,15 +79,19 @@ function patchGameSwz(swzPath: string, verifyOnly: boolean): RewardpackGoldPatch
 
 function main(): void {
   const args = process.argv.slice(2);
-  const swzPath = resolveArgPath(args, "--swz-path", defaultGameSwzPath());
+  const swzPaths = resolveArgPaths(args, "--swz-path", defaultGameSwzPaths());
   const verifyOnly = hasFlag(args, "--verify");
-  const stats = patchGameSwz(swzPath, verifyOnly);
+  const results = swzPaths.map((swzPath) => {
+    const stats = patchGameSwz(swzPath, verifyOnly);
 
-  console.log(`SWZ: ${swzPath}`);
-  console.log(`RewardpackTypes found: ${stats.rewardpackChunkFound}`);
-  console.log(`Gold values updated: ${stats.replacements}`);
+    console.log(`SWZ: ${swzPath}`);
+    console.log(`RewardpackTypes found: ${stats.rewardpackChunkFound}`);
+    console.log(`Gold values updated: ${stats.replacements}`);
 
-  if (verifyOnly && stats.replacements > 0) {
+    return stats;
+  });
+
+  if (verifyOnly && results.some((stats) => stats.replacements > 0)) {
     throw new SwzPatchError("Game.swz verification failed");
   }
 }

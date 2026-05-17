@@ -10,8 +10,11 @@ function sourceRewardpackTypesPath(): string {
   return path.resolve(__dirname, "..", "..", "client", "content", "xml", "RewardpackTypes.xml");
 }
 
-function gameSwzPath(): string {
-  return path.resolve(__dirname, "..", "..", "client", "content", "localhost", "p", "cbq", "Game.swz");
+function gameSwzPaths(): string[] {
+  const cbqDir = path.resolve(__dirname, "..", "..", "client", "content", "localhost", "p", "cbq");
+  return ["Game.swz", "Game.en.swz", "Game.tr.swz"]
+    .map((name) => path.join(cbqDir, name))
+    .filter((candidate) => fs.existsSync(candidate));
 }
 
 function extractGoldValues(xml: string): string[] {
@@ -27,16 +30,20 @@ function assertCorrectGoldValues(xml: string, label: string): void {
   );
 }
 
-function getGameSwzRewardpackTypes(): string {
-  const ctx = parseSwz(gameSwzPath());
+function getGameSwzRewardpackTypes(swzPath: string): string {
+  const ctx = parseSwz(swzPath);
   const chunk = ctx.chunks.find((entry) => entry.xml.includes("<RewardpackTypes"));
-  assert.ok(chunk, "Game.swz should contain RewardpackTypes");
+  assert.ok(chunk, `${path.basename(swzPath)} should contain RewardpackTypes`);
   return chunk.xml;
 }
 
 function main(): void {
   assertCorrectGoldValues(fs.readFileSync(sourceRewardpackTypesPath(), "utf8"), "source XML");
-  assertCorrectGoldValues(getGameSwzRewardpackTypes(), "Game.swz");
+  const swzFiles = gameSwzPaths();
+  assert.ok(swzFiles.length > 0, "at least one Game SWZ should exist");
+  for (const swzPath of swzFiles) {
+    assertCorrectGoldValues(getGameSwzRewardpackTypes(swzPath), path.basename(swzPath));
+  }
   console.log("rewardpack_gold_regression: ok");
 }
 

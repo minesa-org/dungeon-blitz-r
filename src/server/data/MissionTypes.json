@@ -1971,7 +1971,7 @@
     {
         "MissionName": "TempleOfShadows",
         "MissionID": "101",
-        "PreReqMissions": "ScarabInvasion",
+        "PreReqMissions": "Capstone",
         "ZoneSet": "ShazariDesert",
         "Priority": "Dungeon",
         "ContactName": "SD_Sage01",
@@ -2024,8 +2024,8 @@
         "CompleteCount": "1",
         "Dungeon": "SD_Mission2",
         "MissionLevel": "23",
-        "ExpReward": "M",
-        "GoldReward": "M",
+        "ExpReward": "1747",
+        "GoldReward": "1416",
         "DisplayName": "Scarab Invasion",
         "TrackerText": "Help Kovah reclaim its temple",
         "TrackerReturn": "Let the Elder know the temple is safe again",
@@ -4098,7 +4098,7 @@
     {
         "MissionName": "TempleOfShadowsHard",
         "MissionID": "208",
-        "PreReqMissions": "ScarabInvasionHard",
+        "PreReqMissions": "CapstoneHard",
         "ZoneSet": "ShazariDesertHard",
         "Priority": "Dungeon",
         "ContactName": "SD_Sage01Hard",

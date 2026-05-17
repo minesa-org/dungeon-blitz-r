@@ -119,12 +119,49 @@ function testLockedDungeonMissionIsNotSerializedForMap(): void {
     );
 }
 
+function testShazariUnearthingThePastRequiresNpcAcceptanceAfterCapstone(): void {
+    const character: any = {
+        missions: {
+            [String(MissionID.DeliverToSwamp)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.Capstone)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.IntoTheDepths)]: {
+                state: 2,
+                currCount: 0
+            }
+        }
+    };
+
+    const serializable = (WorldEnter as any).buildSerializableMissionsState(character);
+
+    assert.equal(
+        serializable[String(MissionID.TempleOfShadows)],
+        undefined,
+        'Unearthing the Past should stay closed until Siggin assigns the mission'
+    );
+    assert.equal(
+        serializable[String(MissionID.ScarabInvasion)],
+        undefined,
+        'Unearthing the Past must not require Scarab Invasion before its dungeon marker can track stars'
+    );
+}
+
 function main(): void {
     ensureDataLoaded();
     testReadyToTurnInEncodesAsNotClaimed();
     testClaimedEncodesAsClaimed();
     testUnlockedDungeonMissionIsSerializedForMapWithoutPersisting();
     testLockedDungeonMissionIsNotSerializedForMap();
+    testShazariUnearthingThePastRequiresNpcAcceptanceAfterCapstone();
     console.log('world_enter_mission_state_regression: ok');
 }
 

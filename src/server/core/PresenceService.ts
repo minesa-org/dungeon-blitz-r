@@ -63,6 +63,7 @@ export class PresenceService {
         BridgeTown: 'Felbridge',
         Castle: 'Castle Hocke',
         EmeraldGlades: 'Emerald Glades',
+        JadeCity: 'Valhaven',
         ShazariDesert: 'Shazari Desert',
         OldMineMountain: 'Stormshard Mountain',
         CemeteryHill: 'Cemetery Hill'
@@ -75,6 +76,8 @@ export class PresenceService {
         BridgeTown: 'fellbridge',
         Castle: 'castlehocke',
         EmeraldGlades: 'emeraldglades',
+        JadeCity: 'valhaven',
+        JadeCityHard: 'valhaven',
         ShazariDesert: 'shazaridesert',
         OldMineMountain: 'stormshardmountain',
         CemeteryHill: 'cemeteryhill',
@@ -99,7 +102,7 @@ export class PresenceService {
         BT: 'Bridge Town',
         CH: 'Cemetery Hill',
         EG: 'Emerald Glades',
-        JC: 'Jade City',
+        JC: 'Valhaven',
         OMM: 'Old Mine Mountain',
         SD: 'Shazari Desert',
         SRN: 'Swamp Road North'

@@ -1224,6 +1224,63 @@ function testUnlockedForgottenForgeDoorOpensWithoutPersistedMission(): void {
     );
 }
 
+function testUnearthingThePastDoorRequiresAcceptedSigginMission(): void {
+    const client = createClient();
+    client.currentLevel = 'ShazariDesert';
+    client.character = createCharacter('SigginRunner');
+    client.character.missions = {
+        [String(MissionID.DeliverToSwamp)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        [String(MissionID.Capstone)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        [String(MissionID.IntoTheDepths)]: {
+            state: 2,
+            currCount: 0
+        }
+    };
+
+    LevelHandler.handleRequestDoorState(client as never, createDoorStateRequestPacket(101));
+
+    let doorStatePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x42);
+    assert.ok(doorStatePacket);
+    assert.deepEqual(parseDoorStatePacket(doorStatePacket.payload), {
+        doorId: 101,
+        state: 4,
+        target: 'SD_Mission1'
+    });
+
+    client.sentPackets.length = 0;
+    LevelHandler.handleOpenDoor(client as never, createOpenDoorPacket(101));
+
+    assert.equal(client.lastDoorId, -1, 'Shazari first dungeon door should not transfer before Siggin assigns it');
+    assert.equal(client.lastDoorTargetLevel, '');
+    assert.equal(client.sentPackets.some((packet: { id: number }) => packet.id === 0x2E), false);
+
+    client.character.missions[String(MissionID.TempleOfShadows)] = {
+        state: 1,
+        currCount: 0
+    };
+
+    client.sentPackets.length = 0;
+    LevelHandler.handleRequestDoorState(client as never, createDoorStateRequestPacket(101));
+
+    doorStatePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x42);
+    assert.ok(doorStatePacket);
+    assert.deepEqual(parseDoorStatePacket(doorStatePacket.payload), {
+        doorId: 101,
+        state: 1,
+        target: 'SD_Mission1'
+    });
+}
+
 function testDisconnectRecoverySnapshotRepairsCraftTownEntryLoop(): void {
     const client = new Client(
         new net.Socket(),
@@ -2015,6 +2072,7 @@ async function main(): Promise<void> {
         testFelbridgeDreadGateOpensAfterCapstoneClaimedWithoutLevelRequirement();
         testCompletedDungeonDoorShowsRepeatWithoutSavedTier();
         testUnlockedForgottenForgeDoorOpensWithoutPersistedMission();
+        testUnearthingThePastDoorRequiresAcceptedSigginMission();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();

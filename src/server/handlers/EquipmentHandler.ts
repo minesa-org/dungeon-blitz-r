@@ -471,6 +471,7 @@ export class EquipmentHandler {
         EquipmentHandler.broadcastEquipmentUpdate(client, entityId, changedSlots);
         EntityHandler.refreshPlayerSnapshot(client);
         client.combatStatsDirty = true;
+        client.allowDirtyCombatStatsRegen = true;
         client.lastCombatStatsRefreshRequestAt = Date.now();
         CharacterSync.requestCombatStatsRefresh(client);
     }

@@ -4,6 +4,7 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { CombatHandler } from '../handlers/CombatHandler';
 import { CommandHandler } from '../handlers/CommandHandler';
+import { EquipmentHandler } from '../handlers/EquipmentHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
 import { Entity, EntityState } from '../core/Entity';
 import { getClientLevelScope } from '../core/LevelScope';
@@ -16,6 +17,7 @@ type SentPacket = {
 
 type FakeClient = {
     token: number;
+    characters: any[];
     currentLevel: string;
     levelInstanceId: string;
     currentRoomId: number;
@@ -26,6 +28,7 @@ type FakeClient = {
     authoritativeMaxHp: number;
     authoritativeCurrentHp: number;
     combatStatsDirty: boolean;
+    allowDirtyCombatStatsRegen: boolean;
     lastCombatStatsRefreshRequestAt: number;
     lastCombatActivityAt: number;
     lastCombatRegenTickAt: number;
@@ -55,6 +58,7 @@ function createFakeClient(token: number, name: string, roomId: number): FakeClie
 
     return {
         token,
+        characters: [],
         currentLevel: 'BridgeTown',
         levelInstanceId: '',
         currentRoomId: roomId,
@@ -71,6 +75,7 @@ function createFakeClient(token: number, name: string, roomId: number): FakeClie
         authoritativeMaxHp: 1000,
         authoritativeCurrentHp: 1000,
         combatStatsDirty: false,
+        allowDirtyCombatStatsRegen: false,
         lastCombatStatsRefreshRequestAt: 0,
         lastCombatActivityAt: 0,
         lastCombatRegenTickAt: 0,
@@ -148,6 +153,14 @@ function buildCombatStatsPayload(meleeDamage: number, magicDamage: number, maxHp
     bb.writeMethod9(maxHp);
     bb.writeMethod20(4, scale);
     bb.writeMethod9(revision);
+    return bb.toBuffer();
+}
+
+function buildUpdateSingleGearPayload(entityId: number, slot: number, gearId: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod9(entityId);
+    bb.writeMethod91(slot);
+    bb.writeMethod20(11, gearId);
     return bb.toBuffer();
 }
 
@@ -376,6 +389,60 @@ function testDirtyCombatStatsBlockRegenUntilFreshSync(): void {
     }
 }
 
+async function testGearChangeDirtyStatsStillAllowPlayerRegen(): Promise<void> {
+    resetState();
+
+    const player = createFakeClient(12, 'Mu', 25);
+    player.userId = null;
+    player.character!.level = 2;
+    player.authoritativeMaxHp = 8031;
+    player.authoritativeCurrentHp = 6306;
+    player.lastCombatActivityAt = 4_000;
+    (player.character as any).equippedGears = [];
+    (player.character as any).inventoryGears = [
+        { gearID: 1177, tier: 2, runes: [0, 0, 0], colors: [0, 0] }
+    ];
+    player.characters = [player.character];
+
+    attachPlayerEntity(player);
+    const playerEntity = player.entities.get(player.clientEntID)!;
+    playerEntity.hp = 6306;
+    playerEntity.maxHp = 8031;
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    const originalDateNow = Date.now;
+    try {
+        Date.now = () => 10_000;
+        await EquipmentHandler.handleUpdateSingleGear(
+            player as never,
+            buildUpdateSingleGearPayload(player.clientEntID, 5, 1177)
+        );
+
+        assert.equal(player.combatStatsDirty, true, 'gear changes should still request a fresh combat stat sync');
+        assert.equal(player.allowDirtyCombatStatsRegen, true, 'gear stat refreshes should not starve HP regen');
+        assert.equal(
+            player.sentPackets.some((packet) => packet.id === 0xFB),
+            true,
+            'gear changes should request combat stats immediately'
+        );
+
+        player.sentPackets.length = 0;
+        AILogic.updateLevel(levelScope);
+
+        assert.equal(player.authoritativeCurrentHp, 7109, 'player regen should continue after changing gear');
+        const regenPacket = player.sentPackets.find((packet) => packet.id === 0x3B);
+        assert.ok(regenPacket, 'gear change should not prevent the regen packet');
+        assert.deepEqual(parseRegenPacket(regenPacket!.payload), {
+            entityId: player.clientEntID,
+            amount: 803
+        });
+    } finally {
+        Date.now = originalDateNow;
+    }
+}
+
 function testIdleWindowBlocksRegen(): void {
     resetState();
 
@@ -572,6 +639,7 @@ async function run(): Promise<void> {
     testDeadPlayerDoesNotRegen();
     testStaleHundredHpSnapshotDoesNotShrinkPlayerRegen();
     testDirtyCombatStatsBlockRegenUntilFreshSync();
+    await testGearChangeDirtyStatsStillAllowPlayerRegen();
     testIdleWindowBlocksRegen();
     testDeadPlayerArmsBossRegenImmediately();
     await testClientDeadStateArmsBossRegenImmediately();

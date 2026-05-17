@@ -553,6 +553,185 @@ async function testExtinguishTheFireProgressesOnGladeEmberKills(): Promise<void>
     );
 }
 
+async function testIronicHuntProgressesOnScorpionKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.GatherScorpionStingers)]: {
+            state: 1,
+            currCount: 8
+        }
+    }, 'ShazariDesert');
+
+    await destroyEnemy(client, 8471, 'ScarabPredator');
+    await destroyEnemy(client, 8472, 'ScarabScorpion');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GatherScorpionStingers)]?.currCount ?? 0),
+        10,
+        'An Ironic Hunt should count scorpion-type enemies toward stingers'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GatherScorpionStingers)]?.state ?? 0),
+        2,
+        'An Ironic Hunt should become ready to turn in once enough scorpions are slain'
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x83)
+            .map((packet) => decodeMissionProgressPacket(packet.payload)),
+        [
+            { missionId: MissionID.GatherScorpionStingers, progress: 1 },
+            { missionId: MissionID.GatherScorpionStingers, progress: 1 }
+        ],
+        'An Ironic Hunt should emit additive mission progress packets for scorpion kills'
+    );
+    assert.equal(
+        decodeMissionCompletePacket(
+            client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+        ),
+        MissionID.GatherScorpionStingers,
+        'An Ironic Hunt should notify the client once the stinger objective is complete'
+    );
+}
+
+async function testIronicHuntIgnoresNonScorpionScarabKills(): Promise<void> {
+    resetGlobalState();
+    const client = createClient({
+        [String(MissionID.GatherScorpionStingers)]: {
+            state: 1,
+            currCount: 0
+        }
+    }, 'ShazariDesert');
+
+    await destroyEnemy(client, 8473, 'ScarabSoldier');
+    await destroyEnemy(client, 8474, 'ScarabRogue');
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GatherScorpionStingers)]?.currCount ?? 0),
+        0,
+        'An Ironic Hunt should ignore scarab enemies that are not scorpion type'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x83 || packet.id === 0x86),
+        false,
+        'An Ironic Hunt should stay silent for unrelated scarab kills'
+    );
+}
+
+async function testShazariSideQuestKillsProgressFromExplicitTargets(): Promise<void> {
+    const cases: Array<{
+        missionId: MissionID;
+        currentLevel: string;
+        enemyName: string;
+        ignoredEnemyName: string;
+        startingCount: number;
+        expectedLabel: string;
+    }> = [
+        {
+            missionId: MissionID.DestroyWaspHives,
+            currentLevel: 'ShazariDesert',
+            enemyName: 'TreeHiveSpawner',
+            ignoredEnemyName: 'SandWasp',
+            startingCount: 19,
+            expectedLabel: "Heavy Hive Hittin'"
+        },
+        {
+            missionId: MissionID.CollectGoblinCharms,
+            currentLevel: 'ShazariDesert',
+            enemyName: 'OutlanderGladiator',
+            ignoredEnemyName: 'OutlanderSpikeVigil',
+            startingCount: 9,
+            expectedLabel: 'You Lost Your Marbles'
+        },
+        {
+            missionId: MissionID.CollectGiantBracers,
+            currentLevel: 'ShazariDesert',
+            enemyName: 'OasisGiant',
+            ignoredEnemyName: 'OasisPuck',
+            startingCount: 9,
+            expectedLabel: 'Repo Men'
+        },
+        {
+            missionId: MissionID.CollectWormGlands,
+            currentLevel: 'ShazariDesert',
+            enemyName: 'SandWorm',
+            ignoredEnemyName: 'SandWormLarva',
+            startingCount: 14,
+            expectedLabel: "It's Snot a Problem"
+        },
+        {
+            missionId: MissionID.DestroyWaspHivesHard,
+            currentLevel: 'ShazariDesertHard',
+            enemyName: 'TreeHiveSpawnerHard',
+            ignoredEnemyName: 'TreeHiveSpawner',
+            startingCount: 39,
+            expectedLabel: "Hard Heavy Hive Hittin'"
+        },
+        {
+            missionId: MissionID.CollectGoblinCharmsHard,
+            currentLevel: 'ShazariDesertHard',
+            enemyName: 'OutlanderGladiatorHard',
+            ignoredEnemyName: 'OutlanderGladiator',
+            startingCount: 19,
+            expectedLabel: 'Hard You Lost Your Marbles'
+        },
+        {
+            missionId: MissionID.CollectGiantBracersHard,
+            currentLevel: 'ShazariDesertHard',
+            enemyName: 'OasisGiantHard',
+            ignoredEnemyName: 'OasisGiant',
+            startingCount: 19,
+            expectedLabel: 'Hard Repo Men'
+        },
+        {
+            missionId: MissionID.CollectWormGlandsHard,
+            currentLevel: 'ShazariDesertHard',
+            enemyName: 'SandWormHard',
+            ignoredEnemyName: 'SandWorm',
+            startingCount: 29,
+            expectedLabel: "Hard It's Snot a Problem"
+        }
+    ];
+
+    for (const item of cases) {
+        resetGlobalState();
+        const client = createClient({
+            [String(item.missionId)]: {
+                state: 1,
+                currCount: item.startingCount
+            }
+        }, item.currentLevel);
+
+        await destroyEnemy(client, 8480 + item.missionId, item.ignoredEnemyName);
+        await destroyEnemy(client, 8580 + item.missionId, item.enemyName);
+
+        assert.equal(
+            Number(client.character.missions[String(item.missionId)]?.currCount ?? 0),
+            item.startingCount + 1,
+            `${item.expectedLabel} should count only its Shazari quest target`
+        );
+        assert.equal(
+            Number(client.character.missions[String(item.missionId)]?.state ?? 0),
+            2,
+            `${item.expectedLabel} should become ready to turn in after the final target kill`
+        );
+        assert.deepEqual(
+            client.sentPackets
+                .filter((packet) => packet.id === 0x83)
+                .map((packet) => decodeMissionProgressPacket(packet.payload)),
+            [{ missionId: item.missionId, progress: 1 }],
+            `${item.expectedLabel} should emit one additive mission progress packet`
+        );
+        assert.equal(
+            decodeMissionCompletePacket(
+                client.sentPackets.find((packet) => packet.id === 0x86)!.payload
+            ),
+            item.missionId,
+            `${item.expectedLabel} should notify the client when the objective is complete`
+        );
+    }
+}
+
 async function testHardExtinguishTheFireProgressesOnHardGladeEmberKills(): Promise<void> {
     resetGlobalState();
     const client = createClient({
@@ -817,66 +996,252 @@ async function testHardDevourerTeethProgressesFromDevourerRealmKills(): Promise<
     );
 }
 
-async function testLaterSideQuestCollectiblesProgressFromEnemyRealms(): Promise<void> {
+async function testLaterSideQuestCollectiblesProgressFromExactEnemyTargets(): Promise<void> {
     const cases: Array<{
         missionId: MissionID;
         currentLevel: string;
         enemyName: string;
-        startingCount: number;
+        ignoredEnemyName: string;
         expectedLabel: string;
     }> = [
         {
             missionId: MissionID.RetrieveHeirlooms,
             currentLevel: 'CemeteryHill',
             enemyName: 'JackalAlpha',
-            startingCount: 9,
+            ignoredEnemyName: 'DogAlphaHard',
             expectedLabel: 'Heirloom'
+        },
+        {
+            missionId: MissionID.RetrieveHeirloomsHard,
+            currentLevel: 'CemeteryHillHard',
+            enemyName: 'JackalAlphaHard',
+            ignoredEnemyName: 'DogAlpha',
+            expectedLabel: 'Hard Heirloom'
+        },
+        {
+            missionId: MissionID.GetHobgoblinNoserings,
+            currentLevel: 'OldMineMountain',
+            enemyName: 'BlackGoblinBrute',
+            ignoredEnemyName: 'BlackGoblinBruteHard',
+            expectedLabel: 'Hobgoblin Nosering'
+        },
+        {
+            missionId: MissionID.GetHobgoblinNoseringsHard,
+            currentLevel: 'OldMineMountainHard',
+            enemyName: 'BlackGoblinBruteHard',
+            ignoredEnemyName: 'BlackGoblinBrute',
+            expectedLabel: 'Hard Hobgoblin Nosering'
         },
         {
             missionId: MissionID.CollectRockShards,
             currentLevel: 'OldMineMountain',
             enemyName: 'RockHulk',
-            startingCount: 9,
+            ignoredEnemyName: 'RockHulkHard',
             expectedLabel: 'Alurite'
+        },
+        {
+            missionId: MissionID.CollectRockShardsHard,
+            currentLevel: 'OldMineMountainHard',
+            enemyName: 'RockHulkHard',
+            ignoredEnemyName: 'RockHulk',
+            expectedLabel: 'Hard Alurite'
+        },
+        {
+            missionId: MissionID.DriveAwayGnomes,
+            currentLevel: 'OldMineMountain',
+            enemyName: 'CaveGnome',
+            ignoredEnemyName: 'CaveGnomeHard',
+            expectedLabel: 'Gnome Ear'
+        },
+        {
+            missionId: MissionID.DriveAwayGnomesHard,
+            currentLevel: 'OldMineMountainHard',
+            enemyName: 'CaveGnomeHard',
+            ignoredEnemyName: 'CaveGnome',
+            expectedLabel: 'Hard Gnome Ear'
+        },
+        {
+            missionId: MissionID.SquashSomeSpiders,
+            currentLevel: 'OldMineMountain',
+            enemyName: 'AbominationSpider',
+            ignoredEnemyName: 'GladeSpider',
+            expectedLabel: 'Spider'
+        },
+        {
+            missionId: MissionID.SquashSomeSpidersHard,
+            currentLevel: 'OldMineMountainHard',
+            enemyName: 'AbominationSpiderHard',
+            ignoredEnemyName: 'CaveSpider',
+            expectedLabel: 'Hard Spider'
+        },
+        {
+            missionId: MissionID.SlayCyclops,
+            currentLevel: 'OldMineMountain',
+            enemyName: 'MagmaCyclopsLt01',
+            ignoredEnemyName: 'CyclopsHard',
+            expectedLabel: 'Cyclops'
+        },
+        {
+            missionId: MissionID.SlayCyclopsHard,
+            currentLevel: 'OldMineMountainHard',
+            enemyName: 'MagmaCyclopsLt01Hard',
+            ignoredEnemyName: 'Cyclops',
+            expectedLabel: 'Hard Cyclops'
+        },
+        {
+            missionId: MissionID.GatherLionJewelry,
+            currentLevel: 'OldMineMountain',
+            enemyName: 'CougarGreater',
+            ignoredEnemyName: 'LionAlphaHard',
+            expectedLabel: 'Stolen Jewelry'
+        },
+        {
+            missionId: MissionID.GatherLionJewelryHard,
+            currentLevel: 'OldMineMountainHard',
+            enemyName: 'CougarGreaterHard',
+            ignoredEnemyName: 'LionAlpha',
+            expectedLabel: 'Hard Stolen Jewelry'
         },
         {
             missionId: MissionID.GatherDarkTotems,
             currentLevel: 'EmeraldGlades',
             enemyName: 'AshenDryad',
-            startingCount: 9,
+            ignoredEnemyName: 'AshenDryadHard',
             expectedLabel: 'Dark Totem'
+        },
+        {
+            missionId: MissionID.GatherDarkTotemsHard,
+            currentLevel: 'EmeraldGladesHard',
+            enemyName: 'AshenDryadHard',
+            ignoredEnemyName: 'AshenDryad',
+            expectedLabel: 'Hard Dark Totem'
+        },
+        {
+            missionId: MissionID.GatherPriestMasks,
+            currentLevel: 'EmeraldGlades',
+            enemyName: 'FirePriest',
+            ignoredEnemyName: 'MeylourHulk',
+            expectedLabel: 'Mask of Meylour'
+        },
+        {
+            missionId: MissionID.GatherPriestMasksHard,
+            currentLevel: 'EmeraldGladesHard',
+            enemyName: 'FirePriestHard',
+            ignoredEnemyName: 'MeylourHulkHard',
+            expectedLabel: 'Hard Mask of Meylour'
+        },
+        {
+            missionId: MissionID.GatherDreadMasks,
+            currentLevel: 'Castle',
+            enemyName: 'DreadPaladin',
+            ignoredEnemyName: 'GreenKnightFalse',
+            expectedLabel: 'Dread Mask'
+        },
+        {
+            missionId: MissionID.GatherDreadMasksHard,
+            currentLevel: 'CastleHard',
+            enemyName: 'DreadPaladinHard',
+            ignoredEnemyName: 'GreenKnightFalseHard',
+            expectedLabel: 'Hard Dread Mask'
+        },
+        {
+            missionId: MissionID.GatherScorpionStingers,
+            currentLevel: 'ShazariDesert',
+            enemyName: 'ScarabPredator',
+            ignoredEnemyName: 'AbyssalStinger',
+            expectedLabel: 'Scorpion Stinger'
+        },
+        {
+            missionId: MissionID.GatherScorpionStingersHard,
+            currentLevel: 'ShazariDesertHard',
+            enemyName: 'ScarabPredatorHard',
+            ignoredEnemyName: 'AbyssalStingerHard',
+            expectedLabel: 'Hard Scorpion Stinger'
         },
         {
             missionId: MissionID.CollectImperialInsignias,
             currentLevel: 'JadeCity',
             enemyName: 'ImperialGuard',
-            startingCount: 19,
+            ignoredEnemyName: 'Emperor',
             expectedLabel: 'Imperial Insignia'
+        },
+        {
+            missionId: MissionID.CollectImperialInsigniasHard,
+            currentLevel: 'JadeCityHard',
+            enemyName: 'ImperialGuardHard',
+            ignoredEnemyName: 'EmperorHard',
+            expectedLabel: 'Hard Imperial Insignia'
+        },
+        {
+            missionId: MissionID.CollectStolenMushrooms,
+            currentLevel: 'JadeCity',
+            enemyName: 'RatlingSword',
+            ignoredEnemyName: 'MushroomToxic',
+            expectedLabel: 'Mokie Shrooms'
+        },
+        {
+            missionId: MissionID.CollectStolenMushroomsHard,
+            currentLevel: 'JadeCityHard',
+            enemyName: 'RatlingSwordHard',
+            ignoredEnemyName: 'MushroomToxicHard',
+            expectedLabel: 'Hard Mokie Shrooms'
+        },
+        {
+            missionId: MissionID.CollectBrigandNecklaces,
+            currentLevel: 'JadeCity',
+            enemyName: 'BrigandBrawler',
+            ignoredEnemyName: 'BrigandChampMarker',
+            expectedLabel: 'Brigand Necklace'
+        },
+        {
+            missionId: MissionID.CollectBrigandNecklacesHard,
+            currentLevel: 'JadeCityHard',
+            enemyName: 'BrigandBrawlerHard',
+            ignoredEnemyName: 'BrigandChampMarkerHard',
+            expectedLabel: 'Hard Brigand Necklace'
         },
         {
             missionId: MissionID.CollectDemonTears,
             currentLevel: 'JadeCity',
             enemyName: 'ShadeWarrior',
-            startingCount: 19,
+            ignoredEnemyName: 'GreatPumpkin',
             expectedLabel: 'Demon Tear'
+        },
+        {
+            missionId: MissionID.CollectDemonTearsHard,
+            currentLevel: 'JadeCityHard',
+            enemyName: 'ShadeWarriorHard',
+            ignoredEnemyName: 'GreatPumpkin',
+            expectedLabel: 'Hard Demon Tear'
         }
     ];
 
-    for (const item of cases) {
+    for (const [index, item] of cases.entries()) {
         resetGlobalState();
         const client = createClient({
             [String(item.missionId)]: {
                 state: 1,
-                currCount: item.startingCount
+                currCount: 0
             }
         }, item.currentLevel);
 
-        await destroyEnemy(client, 8700 + item.missionId, item.enemyName);
+        if (item.currentLevel === 'Castle' || item.currentLevel === 'CastleHard') {
+            await killEnemyByState(client, 8700 + index * 2, item.ignoredEnemyName);
+            await killEnemyByState(client, 8701 + index * 2, item.enemyName);
+        } else {
+            await destroyEnemy(client, 8700 + index * 2, item.ignoredEnemyName);
+            await destroyEnemy(client, 8701 + index * 2, item.enemyName);
+        }
 
         assert.equal(
             Number(client.character.missions[String(item.missionId)]?.currCount ?? 0),
-            item.startingCount + 1,
-            `${item.expectedLabel} should be granted immediately from ${item.enemyName}`
+            1,
+            `${item.expectedLabel} should count ${item.enemyName} and ignore ${item.ignoredEnemyName}`
+        );
+        assert.equal(
+            Number(client.character.missions[String(item.missionId)]?.state ?? 0),
+            1,
+            `${item.expectedLabel} should stay in progress after one collected target`
         );
         assert.deepEqual(
             client.sentPackets
@@ -884,6 +1249,11 @@ async function testLaterSideQuestCollectiblesProgressFromEnemyRealms(): Promise<
                 .map((packet) => decodeMissionProgressPacket(packet.payload)),
             [{ missionId: item.missionId, progress: 1 }],
             `${item.expectedLabel} should emit an additive mission progress packet on kill`
+        );
+        assert.equal(
+            client.sentPackets.some((packet) => packet.id === 0x86),
+            false,
+            `${item.expectedLabel} should not complete from an ignored non-target kill`
         );
     }
 }
@@ -1405,6 +1775,9 @@ async function main(): Promise<void> {
     await testRecoverWandsProgressesOnGoblinShamanKills();
     await testGetSpiderFangsProgressesOnSwampSpiderKills();
     await testExtinguishTheFireProgressesOnGladeEmberKills();
+    await testIronicHuntProgressesOnScorpionKills();
+    await testIronicHuntIgnoresNonScorpionScarabKills();
+    await testShazariSideQuestKillsProgressFromExplicitTargets();
     await testHardExtinguishTheFireProgressesOnHardGladeEmberKills();
     await testBannersOfTheTuataraProgressesOnLizardBannerKills();
     await testHardBannersOfTheTuataraProgressesOnLizardBannerKills();
@@ -1412,7 +1785,7 @@ async function main(): Promise<void> {
     await testHardTuataraGreatHelmsProgressesOnLizardHeavyKills();
     await testDevourerTeethProgressesFromDevourerRealmKills();
     await testHardDevourerTeethProgressesFromDevourerRealmKills();
-    await testLaterSideQuestCollectiblesProgressFromEnemyRealms();
+    await testLaterSideQuestCollectiblesProgressFromExactEnemyTargets();
     await testStormshardSideQuestKillsProgressFromExplicitTargets();
     await testSideQuestEnemyKillsProgressInsideDungeonsOnDeadStateOnlyOnce();
     await testSideQuestDotKillsProgressInsideDungeonsOnDeadStateOnlyOnce();

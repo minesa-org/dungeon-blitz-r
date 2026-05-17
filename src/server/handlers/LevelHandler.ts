@@ -22,6 +22,7 @@ import { WorldEnter } from '../utils/WorldEnter';
 import { Config } from '../core/config';
 import { MissionLoader } from '../data/MissionLoader';
 import { NpcLoader, NpcDef } from '../data/NpcLoader';
+import { DialogueTranslationLoader } from '../data/DialogueTranslationLoader';
 import { MissionID } from '../data/runtime';
 import { Entity, EntityState, EntityTeam } from '../core/Entity';
 import { Character } from '../database/Database';
@@ -84,6 +85,7 @@ export class LevelHandler {
     private static readonly FELBRIDGE_DREAD_GATE_LOCKED_MESSAGE =
         '^tA powerful magic seals this entrance.=^tI still need to learn more about the Sleeping Lands.';
     private static readonly LOCKED_DUNGEON_ENTRY_MESSAGE = "^tI haven't unlocked this dungeon yet.";
+    private static readonly VALHAVEN_GATE_DOOR_ID = 2;
     private static readonly GOBLIN_RIVER_INITIAL_PROGRESS = 11;
     private static readonly TUTORIAL_DUNGEON_INITIAL_PROGRESS = 11;
     private static readonly KEEP_TUTORIAL_HELPER_RESPAWN_DELAY_MS = 1200;
@@ -97,6 +99,7 @@ export class LevelHandler {
         'That was the last of our Monster Fleet!'
     ]);
     private static readonly GOBLIN_RIVER_BOSS_INTRO_DEFAULT_MS = 5000;
+    private static readonly DUNGEON_CUTSCENE_COMBAT_LOCK_MAX_MS = 30000;
 
     private static resolveDungeonMapPacketLevel(levelName: string, configuredLevel: number, character: Character): number {
         if (!LevelConfig.isDungeonLevel(levelName)) {
@@ -806,6 +809,26 @@ export class LevelHandler {
         client.send(0xB7, LevelHandler.buildQuestProgressPayload(percent));
     }
 
+    private static getDialogueLanguage(character: Character | null | undefined): string {
+        return String(character?.dialogueLanguage ?? '').trim().toLowerCase() || 'en';
+    }
+
+    private static translateDialogueText(client: Client, text: string, fallbackToGeneric: boolean = false): string {
+        return DialogueTranslationLoader.translateText(
+            text,
+            LevelHandler.getDialogueLanguage(client.character),
+            { fallbackToGeneric }
+        );
+    }
+
+    private static isEnemyRoomThought(levelName: string, levelInstanceId: string, entityId: number): boolean {
+        const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
+        const entity =
+            GlobalState.levelEntities.get(scopeKey)?.get(entityId) ??
+            GlobalState.levelEntities.get(levelName)?.get(entityId);
+        return !entity || Number(entity.team ?? 0) === EntityTeam.ENEMY;
+    }
+
     private static buildQuestProgressPayload(percent: number): Buffer {
         const bb = new BitBuffer(false);
         bb.writeMethod4(Math.max(0, Math.min(100, Math.round(Number(percent ?? 0)))));
@@ -1022,18 +1045,19 @@ export class LevelHandler {
     }
 
     private static sendRoomThought(levelName: string, entityId: number, text: string, levelInstanceId: string = ''): void {
-        const bb = new BitBuffer(false);
-        bb.writeMethod4(entityId);
-        bb.writeMethod13(text);
-        const payload = bb.toBuffer();
         const scopeKey = getLevelScopeKey(levelName, levelInstanceId);
+        const fallbackToGeneric = LevelHandler.isEnemyRoomThought(levelName, levelInstanceId, entityId);
 
         for (const other of GlobalState.sessionsByToken.values()) {
             if (!other.playerSpawned || getClientLevelScope(other) !== scopeKey) {
                 continue;
             }
+
+            const bb = new BitBuffer(false);
+            bb.writeMethod4(entityId);
+            bb.writeMethod13(LevelHandler.translateDialogueText(other, text, fallbackToGeneric));
             MissionHandler.noteDungeonSkitActivity(other);
-            other.send(0x76, payload);
+            other.send(0x76, bb.toBuffer());
         }
     }
 
@@ -2368,6 +2392,41 @@ export class LevelHandler {
         return false;
     }
 
+    static isDungeonCutsceneCombatLocked(client: Client): boolean {
+        const levelScope = getClientLevelScope(client);
+        if (!levelScope) {
+            return false;
+        }
+
+        const clientRoomId = Number.isFinite(Number(client.currentRoomId))
+            ? Math.round(Number(client.currentRoomId))
+            : -1;
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== levelScope) {
+                continue;
+            }
+            if (String(other.activeDungeonCutsceneScope ?? '').trim() !== levelScope) {
+                continue;
+            }
+            const startedAt = Number(other.lastDungeonCutsceneStartAt ?? 0);
+            if (startedAt > 0 && Date.now() - startedAt > LevelHandler.DUNGEON_CUTSCENE_COMBAT_LOCK_MAX_MS) {
+                continue;
+            }
+
+            const cutsceneRoomId = Number.isFinite(Number(other.activeDungeonCutsceneRoomId))
+                ? Math.round(Number(other.activeDungeonCutsceneRoomId))
+                : -1;
+            if (cutsceneRoomId < 0) {
+                return true;
+            }
+            if (clientRoomId < 0 || sharesRoomIds(clientRoomId, cutsceneRoomId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static maybeStartTutorialDungeonTraversalTutorial(client: Client, roomId: number): void {
         if (
             client.currentLevel !== 'TutorialDungeon' ||
@@ -2594,7 +2653,15 @@ export class LevelHandler {
             return true;
         }
 
+        if (LevelHandler.mustAcceptMissionBeforeDungeonEntry(missionDef.MissionID)) {
+            return false;
+        }
+
         return Boolean(client.character && MissionHandler.canStartMission(client.character, missionDef));
+    }
+
+    private static mustAcceptMissionBeforeDungeonEntry(missionId: number): boolean {
+        return missionId === MissionID.TempleOfShadows || missionId === MissionID.TempleOfShadowsHard;
     }
 
     private static isFelbridgeDreadGateUnlocked(
@@ -2653,7 +2720,7 @@ export class LevelHandler {
         const bb = new BitBuffer();
         const entityId = Number(client.clientEntID) > 0 ? Math.round(Number(client.clientEntID)) : doorId;
         bb.writeMethod4(entityId);
-        bb.writeMethod13(text);
+        bb.writeMethod13(LevelHandler.translateDialogueText(client, text));
         client.sendBitBuffer(0x76, bb);
     }
 
@@ -2700,7 +2767,34 @@ export class LevelHandler {
             return arachnaeConnectorTarget;
         }
 
+        const valhavenGatewayTarget = LevelHandler.resolveValhavenGatewayDoorTarget(client, currentLevel, doorId);
+        if (valhavenGatewayTarget) {
+            return valhavenGatewayTarget;
+        }
+
         return LevelConfig.getDoorTarget(currentLevel, doorId);
+    }
+
+    private static resolveValhavenGatewayDoorTarget(client: Client, currentLevel: string, doorId: number): string | null {
+        if (doorId !== LevelHandler.VALHAVEN_GATE_DOOR_ID) {
+            return null;
+        }
+
+        if (
+            currentLevel === 'ShazariDesert' &&
+            LevelHandler.getMissionState(client, MissionID.HeadToValhaven) >= LevelHandler.MISSION_READY_TO_TURN_IN
+        ) {
+            return 'JadeCity';
+        }
+
+        if (
+            currentLevel === 'ShazariDesertHard' &&
+            LevelHandler.getMissionState(client, MissionID.HeadToValhavenHard) >= LevelHandler.MISSION_READY_TO_TURN_IN
+        ) {
+            return 'JadeCityHard';
+        }
+
+        return null;
     }
 
     private static resolveArachnaeConnectorDoorTarget(client: Client, currentLevel: string, doorId: number): string | null {

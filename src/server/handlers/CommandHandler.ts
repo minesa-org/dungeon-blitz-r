@@ -115,6 +115,7 @@ export class CommandHandler {
         CharacterSync.updateLiveActiveConsumable(client, activeConsumableId);
         CharacterSync.sendActiveConsumableUpdate(client, entityId || client.clientEntID, activeConsumableId);
         client.combatStatsDirty = true;
+        client.allowDirtyCombatStatsRegen = false;
         client.lastCombatStatsRefreshRequestAt = Date.now();
         CharacterSync.requestCombatStatsRefresh(client);
         await CommandHandler.saveCharacter(client);
@@ -141,6 +142,7 @@ export class CommandHandler {
             levelEntity.hp = Math.min(Math.max(0, Number(levelEntity.hp ?? newMaxHp)), newMaxHp);
         }
         client.combatStatsDirty = false;
+        client.allowDirtyCombatStatsRegen = false;
     }
 
     static handleSendCombatStats(client: Client, data: Buffer): void {
@@ -170,6 +172,7 @@ export class CommandHandler {
             levelEntity.magicDamage = magicDamage;
         }
         client.combatStatsDirty = false;
+        client.allowDirtyCombatStatsRegen = false;
     }
 
     static async handleUpdateAlertState(client: Client, data: Buffer): Promise<void> {
