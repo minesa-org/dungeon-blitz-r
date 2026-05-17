@@ -1331,6 +1331,98 @@ function testStormshardRoomDialogueTranslationsCoverExtractedSource(): void {
     assert.deepEqual(missing, [], 'Stormshard room dialogue should have Turkish translations');
 }
 
+function isEmeraldGladesRoomDialogueSegment(value: string): boolean {
+    if (!/[A-Za-z]{2,}/.test(value)) {
+        return false;
+    }
+    if (/^(?:am_|a_|symbol|instance|Symbol)/.test(value)) {
+        return false;
+    }
+    if (/^(?:default|neutral|enemy|Hard|Normal|Run|Bolster|Loop|Idle|Spawn|Windup|HitReact|BackToIdle|PoofInternal|HumanFireNova)$/.test(value)) {
+        return false;
+    }
+    if (/^(?:Camera|End|Free)$/i.test(value)) {
+        return false;
+    }
+    if (/^(?:\d+\s+)?(?:Camera|Shake|End|SpawnCue|RemoveCue|QuickFirePower|FirePower|Revive|Collision(?:On|Off)?|SetLevelMoment|PlaySound|Sound|SetMusic|SetRoomActive|Teleport|AddMarker|RemoveMarker)\b/.test(value)) {
+        return false;
+    }
+
+    return true;
+}
+
+function addEmeraldGladesRoomDialogueCandidate(raw: string, out: Set<string>): void {
+    const value = unescapeActionScriptString(raw).trim();
+    if (!value) {
+        return;
+    }
+
+    for (const part of value.split(/=@|=|:/)) {
+        const clean = part
+            .replace(/^[@:]+/, '')
+            .replace(/^\d+\s+[A-Za-z0-9_]+\s+/, '')
+            .replace(/^(?:\s*<[^>]+>\s*)+/, '')
+            .replace(/^\^t\s*/, '')
+            .trim()
+            .replace(/\s+/g, ' ');
+        if (isEmeraldGladesRoomDialogueSegment(clean)) {
+            out.add(clean);
+        }
+    }
+}
+
+function collectEmeraldGladesScriptFiles(root: string, out: string[] = []): string[] {
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        const entryPath = path.join(root, entry.name);
+        if (entry.isDirectory()) {
+            collectEmeraldGladesScriptFiles(entryPath, out);
+            continue;
+        }
+        if (!entry.name.endsWith('.as')) {
+            continue;
+        }
+
+        const relative = path.relative(path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts'), entryPath).split(path.sep).join('/');
+        if (/^(?:a_Room_(?:EGZ_.*|Rotten_.*|Hopes_.*|Refuge_.*|M0[145]R.*)|LevelsEG_fla\/.*)\.as$/.test(relative)) {
+            out.push(entryPath);
+        }
+    }
+
+    return out;
+}
+
+function testEmeraldGladesRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const scriptRoot = path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts');
+    if (!fs.existsSync(scriptRoot)) {
+        return;
+    }
+
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+    const required = new Set<string>();
+
+    for (const filePath of collectEmeraldGladesScriptFiles(scriptRoot)) {
+        const source = fs.readFileSync(filePath, 'utf8');
+        for (const match of source.matchAll(/\.(sayOn(?:Activate|Alert|Bloodied|Death|Interact|Spawn))\s*=\s*"((?:\\.|[^"\\])*)"/g)) {
+            addEmeraldGladesRoomDialogueCandidate(match[2] ?? '', required);
+        }
+        for (const match of source.matchAll(/(?:cutScene\w+|Script_\w+)\s*=\s*\[((?:.|\n)*?)\];/g)) {
+            for (const stringMatch of (match[1] ?? '').matchAll(/"((?:\\.|[^"\\])*)"/g)) {
+                addEmeraldGladesRoomDialogueCandidate(stringMatch[1] ?? '', required);
+            }
+        }
+        for (const match of source.matchAll(/\.Skit\("((?:\\.|[^"\\])*)"\)/g)) {
+            addEmeraldGladesRoomDialogueCandidate(match[1] ?? '', required);
+        }
+    }
+
+    const missing = [...required].filter((line) => !String(translations.translations?.[line] ?? '').trim()).sort();
+    assert.ok(required.size > 90, 'Emerald Glades room dialogue inventory should include all dungeon scripts');
+    assert.deepEqual(missing, [], 'Emerald Glades room dialogue should have Turkish translations');
+}
+
 async function main(): Promise<void> {
     await testLanguageCommandSwitchesToTurkishWithoutBroadcasting();
     await testLanguageCommandSwitchesBackToEnglish();
@@ -1357,6 +1449,7 @@ async function main(): Promise<void> {
     testShazariRoomDialogueTranslationsCoverExtractedSource();
     testCastleHockeRoomDialogueTranslationsCoverExtractedSource();
     testStormshardRoomDialogueTranslationsCoverExtractedSource();
+    testEmeraldGladesRoomDialogueTranslationsCoverExtractedSource();
     console.log('dialogue_language_regression: ok');
 }
 
