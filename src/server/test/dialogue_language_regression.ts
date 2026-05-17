@@ -1071,6 +1071,82 @@ function testValhavenRoomDialogueTranslationsCoverExtractedSource(): void {
     assert.deepEqual(missing, [], 'Valhaven room dialogue should have Turkish translations');
 }
 
+function looksLikeShazariRoomDialogue(value: string): boolean {
+    if (!/[A-Za-z]{2,}/.test(value)) {
+        return false;
+    }
+    if (/^(?:am_|a_|symbol)/.test(value)) {
+        return false;
+    }
+    if (/^(?:default|neutral|enemy|Hard|Normal|Run|Bolster)$/.test(value)) {
+        return false;
+    }
+    if (/^(?:Gold_|Bronze|Silver|ImperialChanneling|ImperialHealing|OasisTeleportEffectLarge|Untouchable)$/.test(value)) {
+        return false;
+    }
+    if (/^(?:\d+\s+)?(?:Camera|Shake|End|SpawnCue|RemoveCue|QuickFirePower)\b/.test(value) && !/[.!?]|:|@/.test(value)) {
+        return false;
+    }
+
+    return /[.!?]|:|@|#|\b(?:kill|die|death|Emperor|human|mortal|Seelie|Magi|Shazari|dragon|Pit|Lord|sand|temple|scarab|arena|goblin|ogre|tomb|pyramid|burial|Leviathan|Titus|Rathbone|Kovah|fight|attack|defend|slay|you|I|we|they|he|she|The|And|No|What|Where|Why|How|come|stop|dead|fool|blood|bones|curse|war|oasis|water|pharaoh|construct|time|ancient|guard|guardian|wake|rise|perfection|work|impurity|cleanse|imperfection|destiny|rights|land|sands)\b/i.test(value);
+}
+
+function addShazariRoomDialogueCandidate(raw: string, out: Set<string>): void {
+    const value = unescapeActionScriptString(raw).trim();
+    if (!looksLikeShazariRoomDialogue(value)) {
+        return;
+    }
+
+    for (const part of value.split(/=@|=|:/)) {
+        const clean = part
+            .replace(/^[@:]+/, '')
+            .replace(/^\d+\s+[A-Za-z0-9_]+\s+/, '')
+            .replace(/^(?:\s*<[^>]+>\s*)+/, '')
+            .replace(/^\^t\s*/, '')
+            .trim()
+            .replace(/\s+/g, ' ');
+        if (looksLikeShazariRoomDialogue(clean)) {
+            out.add(clean);
+        }
+    }
+}
+
+function testShazariRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const scriptRoot = path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts');
+    if (!fs.existsSync(scriptRoot)) {
+        return;
+    }
+
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+    const required = new Set<string>();
+
+    for (const file of fs.readdirSync(scriptRoot)) {
+        if (!/^a_Room_SDMission.*\.as$/.test(file)) {
+            continue;
+        }
+
+        const source = fs.readFileSync(path.join(scriptRoot, file), 'utf8');
+        for (const match of source.matchAll(/\.(sayOn(?:Activate|Alert|Bloodied|Death|Interact|Spawn))\s*=\s*"((?:\\.|[^"\\])*)"/g)) {
+            addShazariRoomDialogueCandidate(match[2] ?? '', required);
+        }
+        for (const match of source.matchAll(/(?:cutScene\w+|Script_\w+)\s*=\s*\[((?:.|\n)*?)\];/g)) {
+            for (const stringMatch of (match[1] ?? '').matchAll(/"((?:\\.|[^"\\])*)"/g)) {
+                addShazariRoomDialogueCandidate(stringMatch[1] ?? '', required);
+            }
+        }
+        for (const match of source.matchAll(/\.Skit\("((?:\\.|[^"\\])*)"\)/g)) {
+            addShazariRoomDialogueCandidate(match[1] ?? '', required);
+        }
+    }
+
+    const missing = [...required].filter((line) => !String(translations.translations?.[line] ?? '').trim()).sort();
+    assert.ok(required.size > 140, 'Shazari room dialogue inventory should include all dungeon scripts');
+    assert.deepEqual(missing, [], 'Shazari room dialogue should have Turkish translations');
+}
+
 async function main(): Promise<void> {
     await testLanguageCommandSwitchesToTurkishWithoutBroadcasting();
     await testLanguageCommandSwitchesBackToEnglish();
@@ -1094,6 +1170,7 @@ async function main(): Promise<void> {
     testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource();
     testValhavenWelcomePartyRoomDialogueTranslationsCoverExtractedSource();
     testValhavenRoomDialogueTranslationsCoverExtractedSource();
+    testShazariRoomDialogueTranslationsCoverExtractedSource();
     console.log('dialogue_language_regression: ok');
 }
 
