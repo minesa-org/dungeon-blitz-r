@@ -6,6 +6,7 @@ import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
 import { MissionID } from '../data/runtime';
 import { MissionLoader } from '../data/MissionLoader';
+import { CombatHandler } from '../handlers/CombatHandler';
 import { MissionHandler } from '../handlers/MissionHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 
@@ -16,11 +17,14 @@ type SentPacket = {
 
 type FakeClient = {
     token: number;
+    clientEntID: number;
     currentLevel: string;
     levelInstanceId: string;
     currentRoomId: number;
     playerSpawned: boolean;
     forcedDungeonCompletionScope: string;
+    activeDungeonCutsceneScope: string;
+    activeDungeonCutsceneRoomId: number;
     userId: number | null;
     character: {
         name: string;
@@ -32,8 +36,9 @@ type FakeClient = {
         questTrackerState: number;
         lastCompletedDungeonLevel?: string;
     };
-    entities: Map<number, unknown>;
+    entities: Map<number, any>;
     sentPackets: SentPacket[];
+    send: (id: number, payload: Buffer) => void;
     sendBitBuffer: (id: number, bb: BitBuffer) => void;
 };
 
@@ -63,15 +68,45 @@ function createLevelCompletePacket(progress: number = 100, remainingKills: numbe
     return bb.toBuffer();
 }
 
+function createPowerCastPacket(sourceId: number, powerId: number = 1693): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(sourceId);
+    bb.writeMethod4(powerId);
+    bb.writeMethod15(false);
+    bb.writeMethod15(true);
+    bb.writeMethod24(500);
+    bb.writeMethod24(500);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    return bb.toBuffer();
+}
+
+function createPowerHitPacket(targetId: number, sourceId: number, damage: number, powerId: number = 1693): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(targetId);
+    bb.writeMethod4(sourceId);
+    bb.writeMethod24(damage);
+    bb.writeMethod4(powerId);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    return bb.toBuffer();
+}
+
 function createBloodAndSandClient(): FakeClient {
     const sentPackets: SentPacket[] = [];
     return {
         token: 13105,
+        clientEntID: 7001,
         currentLevel: 'SD_Mission3',
         levelInstanceId: 'blood-and-sand-run',
         currentRoomId: 8,
         playerSpawned: true,
         forcedDungeonCompletionScope: '',
+        activeDungeonCutsceneScope: '',
+        activeDungeonCutsceneRoomId: 0,
         userId: null,
         character: {
             name: 'Fleerpuh',
@@ -89,6 +124,9 @@ function createBloodAndSandClient(): FakeClient {
         },
         entities: new Map(),
         sentPackets,
+        send(id: number, payload: Buffer): void {
+            sentPackets.push({ id, payload });
+        },
         sendBitBuffer(id: number, bb: BitBuffer): void {
             sentPackets.push({ id, payload: bb.toBuffer() });
         }
@@ -214,12 +252,48 @@ async function testBloodAndSandCompletesAfterPitLordDeath(): Promise<void> {
     assert.equal(client.sentPackets.some((packet) => packet.id === 0x87), true);
 }
 
+async function testBloodAndSandSuppressesBossCombatDuringIntroCutscene(): Promise<void> {
+    const client = createBloodAndSandClient();
+    const levelScope = 'SD_Mission3#blood-and-sand-run';
+    const boss = {
+        id: 9003,
+        name: 'OutlanderWyrm',
+        isPlayer: false,
+        team: EntityTeam.ENEMY,
+        entState: EntityState.ACTIVE,
+        dead: false,
+        hp: 500,
+        roomId: 8,
+        clientSpawned: true
+    };
+    client.activeDungeonCutsceneScope = levelScope;
+    client.activeDungeonCutsceneRoomId = 8;
+    client.entities.set(boss.id, boss);
+    GlobalState.levelEntities.set(levelScope, new Map([[boss.id, boss]]));
+    GlobalState.sessionsByToken.set(client.token, client as never);
+
+    try {
+        await CombatHandler.handlePowerCast(client as never, createPowerCastPacket(boss.id));
+        await CombatHandler.handlePowerHit(client as never, createPowerHitPacket(client.clientEntID, boss.id, 100));
+
+        assert.equal(
+            client.sentPackets.some((packet) => packet.id === 0x09 || packet.id === 0x0A),
+            false,
+            'Blood and Sand boss combat packets should be suppressed while the intro cutscene is active'
+        );
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+        GlobalState.levelEntities.delete(levelScope);
+    }
+}
+
 async function main(): Promise<void> {
     ensureDataLoaded();
     await testBloodAndSandIgnoresIntroCompletionReport();
     await testBloodAndSandIgnoresChampionDeath();
     await testBloodAndSandStaysOpenWhilePitLordIsAlive();
     await testBloodAndSandCompletesAfterPitLordDeath();
+    await testBloodAndSandSuppressesBossCombatDuringIntroCutscene();
     GlobalState.levelEntities.delete('SD_Mission3#blood-and-sand-run');
     console.log('blood_and_sand_completion_regression: ok');
 }

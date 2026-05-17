@@ -1139,6 +1139,57 @@ async function testHardOdemOffersMindlessQueenFromRawNpcEntityName(): Promise<vo
     );
 }
 
+async function testSigginOffersUnearthingThePastBeforeDepthsTurnIn(): Promise<void> {
+    const client = createFakeClient(
+        'ShazariDesert',
+        {
+            [String(MissionID.DeliverToSwamp)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.Capstone)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.IntoTheDepths)]: {
+                state: 2,
+                currCount: 0
+            }
+        },
+        0
+    );
+    client.character.CurrentLevel = { name: 'ShazariDesert', x: 8700, y: 178 };
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(1605513));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.TempleOfShadows)]?.state ?? 0),
+        1,
+        'Siggin should offer Unearthing the Past before Into the Depths is turned in to Titus'
+    );
+    assert.equal(
+        client.sentPackets.some((entry) => entry.id === 0x85),
+        true,
+        'Siggin should send the mission-added packet for Unearthing the Past'
+    );
+
+    const skitPacket = client.sentPackets.find((entry) => entry.id === 0x7B);
+    assert.ok(skitPacket, 'Siggin should open the Unearthing the Past offer dialogue');
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 1605513,
+            dialogueId: 2,
+            missionId: MissionID.TempleOfShadows
+        },
+        'Siggin should resolve to the Unearthing the Past offer dialogue'
+    );
+}
+
 async function testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod(): Promise<void> {
     const client = createFakeClient(
         'SwampRoadNorth',
@@ -1308,6 +1359,7 @@ async function main(): Promise<void> {
     await testSwampRoadNorthStoryNpcDoesNotAssignBeforeSwampUnlock();
     await testOdemOffersMindlessQueenFromRawNpcEntityName();
     await testHardOdemOffersMindlessQueenFromRawNpcEntityName();
+    await testSigginOffersUnearthingThePastBeforeDepthsTurnIn();
     await testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod();
     await testCompletedTowerDoesNotRepairAcceptedYornakAtDane();
     await testJarvisDoesNotAutoTurnInRecoverRingsWhileInProgress();

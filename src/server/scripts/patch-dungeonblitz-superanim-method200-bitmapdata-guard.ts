@@ -27,11 +27,11 @@ const DEFAULT_SWF = path.resolve(
   "DungeonBlitz.swf",
 );
 const METHOD982_SAFE_TOTAL_PIXELS = 4194304;
-const METHOD982_PREVIOUS_SAFE_TOTAL_PIXELS = 16384;
+const METHOD982_PREVIOUS_SAFE_TOTAL_PIXELS = 65536;
 const METHOD982_OLDER_SAFE_TOTAL_PIXELS = 4096;
-const METHOD982_OLDEST_SAFE_TOTAL_PIXELS = 65536;
-const METHOD982_FORCED_BITMAP_SIZE = 2048;
-const METHOD982_PREVIOUS_FORCED_BITMAP_SIZES = [64, 128, 512];
+const METHOD982_OLDEST_SAFE_TOTAL_PIXELS = 16384;
+const METHOD982_FORCED_BITMAP_SIZE = 1;
+const METHOD982_PREVIOUS_FORCED_BITMAP_SIZES = [64, 128, 256, 512, 2048];
 const METHOD200_SAFE_TOTAL_PIXELS = 65536;
 const METHOD200_PREVIOUS_SAFE_TOTAL_PIXELS = 16777215;
 
@@ -60,8 +60,8 @@ function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
         "  npm exec tsx src/server/scripts/patch-dungeonblitz-superanim-method200-bitmapdata-guard.ts [--verify] [--swf <path>]",
         "",
         "Patches SuperAnimData.method_200 and method_982 so oversized ability",
-        "BitmapData allocations are reduced to a safe 1x1 transparent bitmap",
-        "instead of crashing Flash.",
+        "BitmapData allocations are bounded before Flash can crash, and",
+        "method_866 clears stale Bitmap snapshots if it ever falls back to live sprites.",
       ].join("\n"));
       process.exit(0);
     }
@@ -594,6 +594,29 @@ function getStaticMethod(swfPath: string, methodName: string) {
   return { ctx, abc, methodBody, code, instructions };
 }
 
+function getInstanceMethod(swfPath: string, methodName: string) {
+  const ctx = parseSwf(swfPath);
+  const abc = parseAbc(ctx);
+  const classIndex = classIndexByName(abc, "SuperAnimData");
+  if (classIndex === null) {
+    throw new PatchError("Could not find SuperAnimData class.");
+  }
+
+  const methodIdx = methodIdxForTrait(abc.instances[classIndex].traits, abc, methodName);
+  if (methodIdx === null) {
+    throw new PatchError(`Could not find SuperAnimData.${methodName}.`);
+  }
+
+  const methodBody = abc.methodBodies.get(methodIdx);
+  if (!methodBody) {
+    throw new PatchError(`Could not find method body for SuperAnimData.${methodName} (${methodIdx}).`);
+  }
+
+  const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
+  const instructions = disassemble(code, `SuperAnimData.${methodName}:${methodIdx}`);
+  return { ctx, abc, methodBody, code, instructions };
+}
+
 function writePatchedMethod(
   swfPath: string,
   methodName: string,
@@ -621,6 +644,71 @@ function writePatchedMethod(
   ensureBackup(swfPath);
   const { body, delta } = applyPatchesToBody(ctx.body, patches);
   writeSwf(ctx, body, delta);
+}
+
+function findMethod866NullFallbackInsertOffset(
+  instructions: Instruction[],
+  abc: ReturnType<typeof parseAbc>,
+): number | null {
+  for (let index = 0; index < instructions.length - 8; index += 1) {
+    const nullCheckLocal = instructions[index];
+    const jumpToBitmapPath = instructions[index + 1];
+    if (
+      getLocalOperand(nullCheckLocal) !== 11 ||
+      jumpToBitmapPath.opcode !== 0x11 ||
+      jumpToBitmapPath.operands[0]?.[0] !== "s24"
+    ) {
+      continue;
+    }
+
+    for (let scan = index + 2; scan < Math.min(instructions.length - 2, index + 18); scan += 1) {
+      if (
+        getLocalOperand(instructions[scan]) === 3 &&
+        getLocalOperand(instructions[scan + 1]) === 9 &&
+        instructions[scan + 2]?.opcode === 0x4f &&
+        u30OperandName(instructions[scan + 2], abc.multinameNames) === "addChild" &&
+        instructions[scan + 2].operands[1]?.[1] === 1
+      ) {
+        return jumpToBitmapPath.offset + jumpToBitmapPath.size;
+      }
+    }
+  }
+
+  return null;
+}
+
+function method866LiveFallbackCleanup(bitmapDataName: number): Buffer {
+  return assembleInserted([
+    getLocal(4),
+    { opcode: 0x20 },
+    { opcode: 0x61, operands: [["u30", bitmapDataName]] },
+  ]);
+}
+
+function patchMethod866(swfPath: string, verify: boolean): boolean {
+  const { ctx, abc, methodBody, code, instructions } = getInstanceMethod(swfPath, "method_866");
+  const bitmapDataName = findRequiredMultiname(abc, "bitmapData");
+  const cleanup = method866LiveFallbackCleanup(bitmapDataName);
+  const insertOffset = findMethod866NullFallbackInsertOffset(instructions, abc);
+  if (insertOffset === null) {
+    throw new PatchError(`${swfPath}: could not find SuperAnimData.method_866 live sprite fallback.`);
+  }
+
+  const alreadyPatched =
+    code.subarray(insertOffset, insertOffset + cleanup.length).equals(cleanup);
+  if (alreadyPatched) {
+    return false;
+  }
+
+  if (verify) {
+    throw new PatchError(`${swfPath}: verify failed; SuperAnimData.method_866 live fallback cleanup is missing.`);
+  }
+
+  const patchedCode = applyCodeEditsAndAdjustBranches(code, instructions, [
+    { start: insertOffset, end: insertOffset, data: cleanup },
+  ]);
+  writePatchedMethod(swfPath, "method_866", ctx, methodBody, patchedCode);
+  return true;
 }
 
 function patchMethod200(swfPath: string, verify: boolean): boolean {
@@ -880,8 +968,9 @@ function patchMethod982(swfPath: string, verify: boolean): boolean {
 function patchSwf(swfPath: string, verify: boolean): void {
   const patched200 = patchMethod200(swfPath, verify);
   const patched982 = patchMethod982(swfPath, verify);
+  const patched866 = patchMethod866(swfPath, verify);
 
-  if (!patched200 && !patched982) {
+  if (!patched200 && !patched982 && !patched866) {
     console.log(`${swfPath}: already patched (SuperAnimData BitmapData guards present).`);
     return;
   }
@@ -889,6 +978,7 @@ function patchSwf(swfPath: string, verify: boolean): void {
   const patchedMethods = [
     patched200 ? "method_200" : "",
     patched982 ? "method_982" : "",
+    patched866 ? "method_866" : "",
   ].filter(Boolean).join(", ");
   console.log(`${swfPath}: patched SuperAnimData ${patchedMethods} BitmapData guards.`);
 }

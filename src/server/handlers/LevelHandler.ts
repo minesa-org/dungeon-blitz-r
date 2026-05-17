@@ -98,6 +98,7 @@ export class LevelHandler {
         'That was the last of our Monster Fleet!'
     ]);
     private static readonly GOBLIN_RIVER_BOSS_INTRO_DEFAULT_MS = 5000;
+    private static readonly DUNGEON_CUTSCENE_COMBAT_LOCK_MAX_MS = 30000;
 
     private static resolveDungeonMapPacketLevel(levelName: string, configuredLevel: number, character: Character): number {
         if (!LevelConfig.isDungeonLevel(levelName)) {
@@ -2390,6 +2391,41 @@ export class LevelHandler {
         return false;
     }
 
+    static isDungeonCutsceneCombatLocked(client: Client): boolean {
+        const levelScope = getClientLevelScope(client);
+        if (!levelScope) {
+            return false;
+        }
+
+        const clientRoomId = Number.isFinite(Number(client.currentRoomId))
+            ? Math.round(Number(client.currentRoomId))
+            : -1;
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== levelScope) {
+                continue;
+            }
+            if (String(other.activeDungeonCutsceneScope ?? '').trim() !== levelScope) {
+                continue;
+            }
+            const startedAt = Number(other.lastDungeonCutsceneStartAt ?? 0);
+            if (startedAt > 0 && Date.now() - startedAt > LevelHandler.DUNGEON_CUTSCENE_COMBAT_LOCK_MAX_MS) {
+                continue;
+            }
+
+            const cutsceneRoomId = Number.isFinite(Number(other.activeDungeonCutsceneRoomId))
+                ? Math.round(Number(other.activeDungeonCutsceneRoomId))
+                : -1;
+            if (cutsceneRoomId < 0) {
+                return true;
+            }
+            if (clientRoomId < 0 || sharesRoomIds(clientRoomId, cutsceneRoomId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static maybeStartTutorialDungeonTraversalTutorial(client: Client, roomId: number): void {
         if (
             client.currentLevel !== 'TutorialDungeon' ||
@@ -2616,7 +2652,15 @@ export class LevelHandler {
             return true;
         }
 
+        if (LevelHandler.mustAcceptMissionBeforeDungeonEntry(missionDef.MissionID)) {
+            return false;
+        }
+
         return Boolean(client.character && MissionHandler.canStartMission(client.character, missionDef));
+    }
+
+    private static mustAcceptMissionBeforeDungeonEntry(missionId: number): boolean {
+        return missionId === MissionID.TempleOfShadows || missionId === MissionID.TempleOfShadowsHard;
     }
 
     private static isFelbridgeDreadGateUnlocked(

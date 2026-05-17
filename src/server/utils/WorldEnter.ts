@@ -138,6 +138,12 @@ export class WorldEnter {
         if (!String(missionDef.Dungeon ?? '').trim()) {
             return false;
         }
+        if (
+            Number(missionDef.MissionID ?? 0) === MissionID.TempleOfShadows ||
+            Number(missionDef.MissionID ?? 0) === MissionID.TempleOfShadowsHard
+        ) {
+            return false;
+        }
 
         return WorldEnter.canStartMission(missionsState, missionDef);
     }

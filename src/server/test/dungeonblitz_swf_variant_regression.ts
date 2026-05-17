@@ -14,16 +14,27 @@ import {
 } from '../scripts/swfPatchUtils';
 import type { Instruction } from '../scripts/swfPatchUtils';
 
-const BASE_SWF_PATH = path.resolve(__dirname, '../../client/content/localhost/p/cbp/DungeonBlitz.swf');
+function resolveBaseSwfPath(): string {
+    const candidates = [
+        path.resolve(__dirname, '../../client/content/localhost/p/cbp/DungeonBlitz.swf'),
+        path.resolve(__dirname, '../../../client/content/localhost/p/cbp/DungeonBlitz.swf'),
+        path.resolve(process.cwd(), 'src/client/content/localhost/p/cbp/DungeonBlitz.swf'),
+        path.resolve(process.cwd(), '../client/content/localhost/p/cbp/DungeonBlitz.swf')
+    ];
+
+    return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
+}
+
+const BASE_SWF_PATH = resolveBaseSwfPath();
 const MULTIPLAYER_HOST = Config.MULTIPLAYER_HOST;
-const SWF_RUNTIME_VERSION = '20260517-superanim982-clean';
+const SWF_RUNTIME_VERSION = '20260517-superanim982-scaled-cache-clean';
 const LOCAL_REFRESH_URL = `http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp&rv=${SWF_RUNTIME_VERSION}`;
 const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp&rv=${SWF_RUNTIME_VERSION}`;
 const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
 const SUPERANIM_METHOD200_SAFE_PIXELS = 65536;
 const SUPERANIM_METHOD982_SAFE_PIXELS = 4194304;
-const SUPERANIM_METHOD982_FALLBACK_SIZE = 2048;
+const SUPERANIM_METHOD982_SAFE_AXIS = 8191;
 const SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE = 3072;
 
 function getStringMatches(swfPath: string, target: string): number[] {
@@ -442,9 +453,31 @@ function assertSuperAnimMethod982BitmapDataGuard(swfPath: string): void {
         'SuperAnimData.method_982 must enforce the safe output BitmapData total pixel limit'
     );
     assert.equal(
-        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === SUPERANIM_METHOD982_FALLBACK_SIZE).length >= 4,
+        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === SUPERANIM_METHOD982_SAFE_AXIS).length >= 2,
         true,
-        'SuperAnimData.method_982 fallback must use a visible 2048x2048 BitmapData instead of 1x1'
+        'SuperAnimData.method_982 must enforce the safe output BitmapData axis limit'
+    );
+    assert.equal(
+        guardWindow.filter((instruction) => instruction.opcode === 0x24 && instruction.operands[0]?.[1] === 1).length >= 2,
+        true,
+        'SuperAnimData.method_982 unsafe fallback must collapse to a 1x1 BitmapData instead of live sprite artifacts'
+    );
+}
+
+function assertSuperAnimMethod866LiveFallbackCleanup(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'SuperAnimData', 'method_866');
+
+    assert.equal(
+        instructions.some((instruction, index) =>
+            getLocalOperand(instruction) === 11 &&
+            instructions[index + 1]?.opcode === 0x11 &&
+            getLocalOperand(instructions[index + 2]) === 4 &&
+            instructions[index + 3]?.opcode === 0x20 &&
+            instructions[index + 4]?.opcode === 0x61 &&
+            u30OperandName(instructions[index + 4], abc.multinameNames) === 'bitmapData'
+        ),
+        true,
+        'SuperAnimData.method_866 must clear stale Bitmap.bitmapData when method_982 falls back to live sprites'
     );
 }
 
@@ -515,9 +548,11 @@ function testBaseAndLocalVariantKeepClass23BitmapDataGuard(): void {
 
 function testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard(): void {
     assertSuperAnimMethod982BitmapDataGuard(BASE_SWF_PATH);
+    assertSuperAnimMethod866LiveFallbackCleanup(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
     withTempSwf(buffer, (tempPath) => {
         assertSuperAnimMethod982BitmapDataGuard(tempPath);
+        assertSuperAnimMethod866LiveFallbackCleanup(tempPath);
     });
 }
 

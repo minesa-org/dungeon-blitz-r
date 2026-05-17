@@ -785,6 +785,15 @@ export class CombatHandler {
         return GlobalState.levelEntities.get(levelName)?.get(entityId) ?? null;
     }
 
+    private static shouldSuppressCutsceneHostileCombat(client: Client, levelScope: string, sourceId: number): boolean {
+        if (!LevelHandler.isDungeonCutsceneCombatLocked(client) || !levelScope || sourceId <= 0) {
+            return false;
+        }
+
+        const sourceEntity = CombatHandler.resolveLevelEntity(levelScope, sourceId) ?? client.entities.get(sourceId);
+        return Boolean(sourceEntity && !sourceEntity.isPlayer && Number(sourceEntity.team ?? 0) === EntityTeam.ENEMY);
+    }
+
     private static shouldMirrorClientSpawnEntityToParty(levelName: string, entity: any): boolean {
         return EntityHandler.shouldMirrorClientSpawnEntityToParty(levelName, entity);
     }
@@ -1497,8 +1506,12 @@ export class CombatHandler {
         if (!info) {
             return;
         }
+        const levelScope = getClientLevelScope(client);
+        if (CombatHandler.shouldSuppressCutsceneHostileCombat(client, levelScope, info.sourceId)) {
+            return;
+        }
 
-        const sourceSession = CombatHandler.resolveCombatSourceSession(getClientLevelScope(client), info.sourceId, client);
+        const sourceSession = CombatHandler.resolveCombatSourceSession(levelScope, info.sourceId, client);
         if (sourceSession) {
             noteDungeonRunCast(sourceSession, {
                 sourceId: info.sourceId,
@@ -1533,6 +1546,9 @@ export class CombatHandler {
         const { targetId, sourceId, damage } = info;
         const currentLevel = client.currentLevel;
         const levelScope = getClientLevelScope(client);
+        if (CombatHandler.shouldSuppressCutsceneHostileCombat(client, levelScope, sourceId)) {
+            return;
+        }
         const targetEntity = CombatHandler.resolveLevelEntity(levelScope, targetId);
         const sourceEntity = CombatHandler.resolveLevelEntity(levelScope, sourceId);
         const isHostileNpcSource = Boolean(
@@ -1615,6 +1631,9 @@ export class CombatHandler {
 
     static async handleProjectileExplode(client: Client, data: Buffer): Promise<void> {
         if (LevelHandler.isGoblinRiverBossIntroLocked(client)) {
+            return;
+        }
+        if (LevelHandler.isDungeonCutsceneCombatLocked(client)) {
             return;
         }
         CombatHandler.broadcastCombatPacket(client, 0x0E, data, {
