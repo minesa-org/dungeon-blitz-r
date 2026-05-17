@@ -177,7 +177,7 @@ function normalizeKey(value) {
 }
 
 function isLikelyAlreadyLocalized(value) {
-    return /^(Yerel|Turkce|Acemi|Yesim|Kopru|Mezarlik|Eski|Zumrut|Shazari|Siyah|Kurtlarin|Firtina|Fel|Val|Kilit|Dehset|Hocke|Gorev|Zindan|Binek|Evcil|Esya|Yetenek|Saldiri|Savunma|Guc|Can|Mana|Altin|Kral|Baron|General)\b/i.test(normalizeKey(value));
+    return /^(Yerel|Turkce|Acemi|Yesim|Kopru|Mezarlik|Eski|Zumrut|Shazari|Siyah|Kurtlarin|Firtina|Fel|Val|Kilit|Dehset|Hocke|Gorev|Zindan|Binek|Evcil|Esya|Yetenek|Saldiri|Savunma|Guc|Can|Mana|Altin|Kral|Baron|General)\b|\bBinegi\b/i.test(normalizeKey(value));
 }
 
 function normalizeUnsupportedTurkishGlyphs(value) {
@@ -213,6 +213,10 @@ function shouldTranslateTag(rootName, tagName) {
 
 function translateValue(value, translations, context = {}) {
     const decoded = decodeEntities(value);
+    if (context.allowAlreadyLocalizedSkip && !shouldReplaceDisplayName(decoded)) {
+        return decoded;
+    }
+
     if (context.allowAlreadyLocalizedSkip && isLikelyAlreadyLocalized(decoded)) {
         return decoded;
     }
@@ -573,7 +577,15 @@ function deriveDisplayName(rootName, entry) {
     }
 
     if (rootName === 'LevelTypes') {
-        return localizeIdentifier(getAttr(entry, 'LevelName'), rootName);
+        const exact = new Map(Object.entries({
+            TutorialBoat: 'Goblin Saldirisi',
+            TutorialDungeon: 'Goblin Kaciricilar',
+            GoblinRiverDungeon: 'Goblin Kampi',
+            GhostBossDungeon: "Nephit'in Pesinde",
+            DreamDragonDungeon: 'Ejderhanin Ruyasi'
+        }));
+        const levelName = getAttr(entry, 'LevelName');
+        return exact.get(levelName) || localizeIdentifier(levelName, rootName);
     }
 
     if (rootName === 'BuildingTypes') {

@@ -427,6 +427,69 @@ function testCapstoneRoomDialogueTranslationsCoverExtractedSource(): void {
     assert.deepEqual(missing, [], 'Capstone dungeon dialogue should have Turkish translations');
 }
 
+function testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+
+    const wolfsEndEnemyLines = [
+        'Mwahahaha!',
+        'No fair!',
+        '@Back to the deep with you, trog scum!',
+        'These seas are ours!',
+        'This ship is going down!',
+        'Humans! What are humans doing here!?!',
+        "Sink them! We can't be followed!",
+        'CHARGE!',
+        "The human from that boat!:He|she followed us!",
+        'You killed our Kraken!',
+        'He was only 120 years old!',
+        'What did that Kraken ever do to you?',
+        'The human from across the sea!',
+        'You were a fool to follow us!',
+        "You're gonna die in these caves, human!",
+        'The Kraken shoulda killed you!',
+        'Curse of Thrung upon ye!',
+        'My soul goes to the Sleeping Lands...',
+        'Who goes...oh!:The Kraken Slayer!',
+        "We're doomed!",
+        ':Have you come to serve Nephit too, human?',
+        "Don't let him|her cross the bridge!",
+        'Kill him|her and we can go home!',
+        "We'll never see the Sleeping Lands again...",
+        'Goblins! This is our final stand!',
+        ':We\'re coming, boss',
+        'Turn back, mortal.:Or join us.',
+        'This war isn\'t over!',
+        'We goblins never give up, human!',
+        'Dead, rise to my defense!:The Ur-Sage demands it!:Kill him|her!',
+        "Why do you fight so?:I conquered Death itself:You're nothing.",
+        'No! This is for us!: We have to get back to the Sleeping Lands.',
+        'Nephit is Goblin-kind\'s salvation!:He can open the passage!',
+        'For Nephit! Our one true hope!',
+        "Get out!: You'll ruin everything!",
+        'Nephit, protect me!',
+        "Nephit knows the path!: You can't stop him from leading us!",
+        'Nephit will raise me to fight you again!',
+        'The Karaken Slayer!: To Arms!',
+        'Death is a small price to pay for knowledge.:So sayeth Nephit',
+        "Master's wisdom is supreme.:Bow down to your fate.",
+        'The goblins failed us.',
+        'The Sleepers stir...',
+        '"Help! Help!"...:A child cries out in the night.',
+        'In the Sleeping Lands, dreams come true.',
+        'Where all sleep, none may die.',
+        'Lay down your sweet head...:That I might chop it off!',
+        'Beware human...:You disturb Sythokahn\'s dream...',
+        'All the treasure in the waking world...:Can\'t buy your way into the Sleeping Lands.',
+        'Why do I torment myself with these fantasies?:Come forth my fellow dreamers.'
+    ];
+
+    const missing = wolfsEndEnemyLines.filter((line) => !String(translations.translations?.[line] ?? '').trim());
+    assert.deepEqual(missing, [], "Wolf's End enemy room dialogue should have Turkish translations");
+}
+
 async function main(): Promise<void> {
     await testLanguageCommandSwitchesToTurkishWithoutBroadcasting();
     await testLanguageCommandSwitchesBackToEnglish();
@@ -439,6 +502,7 @@ async function main(): Promise<void> {
     testLevelHandlerRoomThoughtUsesRecipientLanguage();
     testCapstoneBossDialogueTranslatesEnemyAndPlayerLines();
     testCapstoneRoomDialogueTranslationsCoverExtractedSource();
+    testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource();
     console.log('dialogue_language_regression: ok');
 }
 

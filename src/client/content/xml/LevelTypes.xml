@@ -9,7 +9,7 @@
 	</LevelType>
 	<LevelType LevelName="TutorialBoat">
 		<ZoneSet>NewbieRoad</ZoneSet>
-		<DisplayName>Egitim Tekne</DisplayName>
+		<DisplayName>Goblin Saldirisi</DisplayName>
 		<RankingsURL>assault</RankingsURL>
 		<MusicLoop>OminousDungeonLongLoopFunky_26.mp3</MusicLoop>
 	</LevelType>
@@ -25,7 +25,7 @@
 	</LevelType>
 	<LevelType LevelName="GoblinRiverDungeon">
 		<ZoneSet>NewbieRoad</ZoneSet>
-		<DisplayName>goblin Camp</DisplayName>
+		<DisplayName>Goblin Kampi</DisplayName>
 		<RankingsURL>river</RankingsURL>
 		<MusicLoop>D04_DramaLoop_SpookyForest.mp3</MusicLoop>
 	</LevelType>
@@ -611,7 +611,7 @@
 	</LevelType>
 	<LevelType LevelName="BT_Mission4Hard">
 		<ZoneSet>BridgeTownHard</ZoneSet>
-		<DisplayName>dehset Dereliction Duty</DisplayName>
+		<DisplayName>Dehset Gorev Ihmali</DisplayName>
 		<RankingsURL>dread/dereliction</RankingsURL>
 		<MusicLoop>MedievalOddLongLoopWithSomeDrama_32.mp3</MusicLoop>
 	</LevelType>

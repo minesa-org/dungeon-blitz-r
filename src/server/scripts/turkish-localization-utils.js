@@ -50,6 +50,8 @@ const EXACT_PHRASES = new Map(Object.entries({
     'Unknown': 'Bilinmeyen',
     'Player': 'Oyuncu',
     'Dungeon': 'Zindan',
+    'Dereliction of Duty': 'Gorev Ihmali',
+    'Dread Dereliction of Duty': 'Dehset Gorev Ihmali',
     'Gear': 'Ekipman',
     'Loot': 'Ganimet',
     'Display': 'Gorunum',

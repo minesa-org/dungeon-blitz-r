@@ -28,7 +28,9 @@ const EXACT_PHRASES: Record<string, string> = {
     'Rogue': 'Haydut',
     'Mage': 'Buyucu',
     'Adventurer': 'Maceraci',
-    'Hero': 'Kahraman'
+    'Hero': 'Kahraman',
+    'Dereliction of Duty': 'Gorev Ihmali',
+    'Dread Dereliction of Duty': 'Dehset Gorev Ihmali'
 };
 
 const PROPER_PHRASES: Record<string, string> = {
