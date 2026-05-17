@@ -16,13 +16,14 @@ import type { Instruction } from '../scripts/swfPatchUtils';
 
 const BASE_SWF_PATH = path.resolve(__dirname, '../../client/content/localhost/p/cbp/DungeonBlitz.swf');
 const MULTIPLAYER_HOST = Config.MULTIPLAYER_HOST;
-const SWF_RUNTIME_VERSION = '20260517-superanim806-fullscreen';
+const SWF_RUNTIME_VERSION = '20260517-superanim982-clean';
 const LOCAL_REFRESH_URL = `http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp&rv=${SWF_RUNTIME_VERSION}`;
 const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp&rv=${SWF_RUNTIME_VERSION}`;
 const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
 const SUPERANIM_METHOD200_SAFE_PIXELS = 65536;
-const SUPERANIM_METHOD982_SAFE_PIXELS = 262144;
+const SUPERANIM_METHOD982_SAFE_PIXELS = 4194304;
+const SUPERANIM_METHOD982_FALLBACK_SIZE = 2048;
 const SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE = 3072;
 
 function getStringMatches(swfPath: string, target: string): number[] {
@@ -441,9 +442,9 @@ function assertSuperAnimMethod982BitmapDataGuard(swfPath: string): void {
         'SuperAnimData.method_982 must enforce the safe output BitmapData total pixel limit'
     );
     assert.equal(
-        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 512).length >= 4,
+        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === SUPERANIM_METHOD982_FALLBACK_SIZE).length >= 4,
         true,
-        'SuperAnimData.method_982 fallback must use a visible 512x512 BitmapData instead of 1x1'
+        'SuperAnimData.method_982 fallback must use a visible 2048x2048 BitmapData instead of 1x1'
     );
 }
 

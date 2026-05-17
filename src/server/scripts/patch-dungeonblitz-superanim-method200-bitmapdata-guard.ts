@@ -26,12 +26,12 @@ const DEFAULT_SWF = path.resolve(
   "cbp",
   "DungeonBlitz.swf",
 );
-const METHOD982_SAFE_TOTAL_PIXELS = 262144;
+const METHOD982_SAFE_TOTAL_PIXELS = 4194304;
 const METHOD982_PREVIOUS_SAFE_TOTAL_PIXELS = 16384;
 const METHOD982_OLDER_SAFE_TOTAL_PIXELS = 4096;
 const METHOD982_OLDEST_SAFE_TOTAL_PIXELS = 65536;
-const METHOD982_FORCED_BITMAP_SIZE = 512;
-const METHOD982_PREVIOUS_FORCED_BITMAP_SIZES = [64, 128];
+const METHOD982_FORCED_BITMAP_SIZE = 2048;
+const METHOD982_PREVIOUS_FORCED_BITMAP_SIZES = [64, 128, 512];
 const METHOD200_SAFE_TOTAL_PIXELS = 65536;
 const METHOD200_PREVIOUS_SAFE_TOTAL_PIXELS = 16777215;
 
@@ -545,6 +545,32 @@ function hasExactGuardBefore(code: Buffer, constructorOffset: number, guard: Buf
   return constructorOffset >= guard.length && code.subarray(constructorOffset - guard.length, constructorOffset).equals(guard);
 }
 
+function findMethod982ExistingGuardStart(instructions: Instruction[], constructorOffset: number): number | null {
+  for (let index = 0; index < instructions.length - 7; index += 1) {
+    const candidate = instructions[index];
+    if (candidate.offset >= constructorOffset) {
+      break;
+    }
+    if (constructorOffset - candidate.offset > 700) {
+      continue;
+    }
+    if (
+      getLocalOperand(candidate) === 11 &&
+      getLocalOperand(instructions[index + 1]) === 11 &&
+      instructions[index + 2]?.opcode === 0xab &&
+      instructions[index + 3]?.opcode === 0x12 &&
+      getLocalOperand(instructions[index + 4]) === 12 &&
+      getLocalOperand(instructions[index + 5]) === 12 &&
+      instructions[index + 6]?.opcode === 0xab &&
+      instructions[index + 7]?.opcode === 0x12
+    ) {
+      return candidate.offset;
+    }
+  }
+
+  return null;
+}
+
 function getStaticMethod(swfPath: string, methodName: string) {
   const ctx = parseSwf(swfPath);
   const abc = parseAbc(ctx);
@@ -781,7 +807,14 @@ function patchMethod982(swfPath: string, verify: boolean): boolean {
       },
     );
   }
-  if (outputForcedPatched) {
+  const existingGuardStart = findMethod982ExistingGuardStart(instructions, outputCtor.constructor.offset);
+  if (existingGuardStart !== null) {
+    edits.push({
+      start: existingGuardStart,
+      end: outputCtor.constructor.offset,
+      data: outputGuard,
+    });
+  } else if (outputForcedPatched) {
     edits.push({
       start: outputCtor.constructor.offset - forcedOutputFallback.length,
       end: outputCtor.constructor.offset,
