@@ -184,6 +184,13 @@ export class NpcHandler {
                         didMutate = true;
                     }
                 }
+            } else {
+                const progressedMissionId = NpcHandler.noteActiveTargetNpcProgress(client, npc, missionNpcKey);
+                if (progressedMissionId) {
+                    dialogueId = 3;
+                    missionId = progressedMissionId;
+                    didMutate = true;
+                }
             }
         }
 
@@ -464,6 +471,55 @@ export class NpcHandler {
             NpcHandler.sendMissionComplete(client, oracle.missionId);
         }
         return true;
+    }
+
+    private static noteActiveTargetNpcProgress(client: Client, npc: ResolvedNpc, npcKey: string): number | null {
+        if (!client.character || !npcKey || !NpcHandler.isFriendlyNpc(npc)) {
+            return null;
+        }
+
+        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            if (!missionDef || NpcHandler.getMissionState(client.character, missionId) !== NpcHandler.MISSION_IN_PROGRESS) {
+                continue;
+            }
+
+            if (
+                String(missionDef.Dungeon ?? '').trim() ||
+                !NpcHandler.missionRequiresTurnIn(missionDef) ||
+                !NpcHandler.getMissionActiveTargetNpcKeys(missionDef).includes(npcKey)
+            ) {
+                continue;
+            }
+
+            const completeCount = Math.max(1, Number(missionDef.CompleteCount ?? 1));
+            const entry = NpcHandler.getMissionEntry(client.character, missionId);
+            const currentCount = Math.max(0, Number(entry.currCount ?? 0));
+            const nextCount = Math.min(completeCount, currentCount + 1);
+            const nextState = nextCount >= completeCount
+                ? NpcHandler.MISSION_READY_TO_TURN_IN
+                : NpcHandler.MISSION_IN_PROGRESS;
+
+            NpcHandler.setMissionState(client.character, missionId, nextState, { currCount: nextCount });
+            NpcHandler.sendMissionProgress(client, missionId, 1);
+            if (nextState === NpcHandler.MISSION_READY_TO_TURN_IN) {
+                NpcHandler.sendMissionComplete(client, missionId);
+            }
+            return missionId;
+        }
+
+        return null;
+    }
+
+    private static isFriendlyNpc(npc: ResolvedNpc): boolean {
+        return Number(npc.team ?? npc.Team ?? 0) === 3;
+    }
+
+    private static getMissionActiveTargetNpcKeys(missionDef: MissionDef): string[] {
+        return String(missionDef.ActiveTarget ?? '')
+            .split(',')
+            .map((entry) => NpcHandler.normalizeMissionNpcKey(entry))
+            .filter(Boolean);
     }
 
     private static missionStartsReadyToTurnIn(missionDef: MissionDef | undefined): boolean {

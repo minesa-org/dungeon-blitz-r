@@ -131,6 +131,19 @@ function decodeStartSkitPacket(payload: Buffer): { npcId: number; dialogueId: nu
     };
 }
 
+function decodeMissionProgressPacket(payload: Buffer): { missionId: number; progress: number } {
+    const br = new BitReader(payload);
+    return {
+        missionId: br.readMethod4(),
+        progress: br.readMethod4()
+    };
+}
+
+function decodeMissionIdPacket(payload: Buffer): number {
+    const br = new BitReader(payload);
+    return br.readMethod4();
+}
+
 function decodeNpcBubblePacket(payload: Buffer): { npcId: number; text: string } {
     const br = new BitReader(payload);
     return {
@@ -1190,6 +1203,142 @@ async function testSigginOffersUnearthingThePastBeforeDepthsTurnIn(): Promise<vo
     );
 }
 
+async function testShazariGoblinMessengerCompletesAtSecondMessenger(): Promise<void> {
+    const cases: Array<{
+        levelName: string;
+        missionId: MissionID;
+        prereqMissionId: MissionID;
+        targetNpcId: number;
+    }> = [
+        {
+            levelName: 'ShazariDesert',
+            missionId: MissionID.GoblinMessenger,
+            prereqMissionId: MissionID.GoblinDiplomacy,
+            targetNpcId: 9404297
+        },
+        {
+            levelName: 'ShazariDesertHard',
+            missionId: MissionID.GoblinMessengerHard,
+            prereqMissionId: MissionID.GoblinDiplomacyHard,
+            targetNpcId: 9436841
+        }
+    ];
+
+    for (const item of cases) {
+        const client = createFakeClient(
+            item.levelName,
+            {
+                [String(MissionID.DeliverToSwamp)]: {
+                    state: 3,
+                    currCount: 1,
+                    claimed: 1,
+                    complete: 1
+                },
+                [String(item.prereqMissionId)]: {
+                    state: 3,
+                    currCount: 1,
+                    claimed: 1,
+                    complete: 1
+                },
+                [String(item.missionId)]: {
+                    state: 1,
+                    currCount: 0
+                }
+            },
+            0
+        );
+
+        await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(item.targetNpcId));
+
+        const mission = client.character.missions[String(item.missionId)];
+        assert.equal(Number(mission?.currCount ?? 0), 1, `${item.levelName} messenger target talk should count`);
+        assert.equal(Number(mission?.state ?? 0), 2, `${item.levelName} messenger should become ready to turn in`);
+
+        const progressPacket = client.sentPackets.find((packet) => packet.id === 0x83);
+        assert.ok(progressPacket, `${item.levelName} messenger target talk should send progress`);
+        assert.deepEqual(
+            decodeMissionProgressPacket(progressPacket!.payload),
+            {
+                missionId: item.missionId,
+                progress: 1
+            },
+            `${item.levelName} messenger progress packet should name the quest`
+        );
+
+        const completePacket = client.sentPackets.find((packet) => packet.id === 0x86);
+        assert.ok(completePacket, `${item.levelName} messenger target talk should send completion`);
+        assert.equal(
+            decodeMissionIdPacket(completePacket!.payload),
+            item.missionId,
+            `${item.levelName} messenger completion packet should name the quest`
+        );
+
+        const skitPacket = client.sentPackets.find((packet) => packet.id === 0x7B);
+        assert.ok(skitPacket, `${item.levelName} messenger target talk should still open mission dialogue`);
+        assert.deepEqual(
+            decodeStartSkitPacket(skitPacket!.payload),
+            {
+                npcId: item.targetNpcId,
+                dialogueId: 3,
+                missionId: item.missionId
+            },
+            `${item.levelName} messenger target talk should use the active mission dialogue`
+        );
+    }
+}
+
+async function testShazariGoblinMessengerTurnsInAtChiefAfterSecondMessenger(): Promise<void> {
+    const client = createFakeClient(
+        'ShazariDesert',
+        {
+            [String(MissionID.DeliverToSwamp)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.GoblinDiplomacy)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.GoblinMessenger)]: {
+                state: 1,
+                currCount: 0
+            }
+        },
+        0
+    );
+    client.character.level = 24;
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(9404297));
+    client.sentPackets.length = 0;
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(556937));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.GoblinMessenger)]?.state ?? 0),
+        3,
+        'Goblin Messenger should be claimable at the chief after talking to the second messenger'
+    );
+    assert.equal(client.character.xp, 2029, 'Goblin Messenger turn-in should award Shazari XP');
+    assert.equal(client.character.gold, 1535, 'Goblin Messenger turn-in should award Shazari gold');
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0x84), true, 'chief turn-in should open reward UI');
+
+    const skitPacket = client.sentPackets.find((packet) => packet.id === 0x7B);
+    assert.ok(skitPacket, 'chief turn-in should play the Goblin Messenger return dialogue');
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 556937,
+            dialogueId: 4,
+            missionId: MissionID.GoblinMessenger
+        },
+        'chief should resolve to Goblin Messenger return dialogue'
+    );
+}
+
 async function testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod(): Promise<void> {
     const client = createFakeClient(
         'SwampRoadNorth',
@@ -1360,6 +1509,8 @@ async function main(): Promise<void> {
     await testOdemOffersMindlessQueenFromRawNpcEntityName();
     await testHardOdemOffersMindlessQueenFromRawNpcEntityName();
     await testSigginOffersUnearthingThePastBeforeDepthsTurnIn();
+    await testShazariGoblinMessengerCompletesAtSecondMessenger();
+    await testShazariGoblinMessengerTurnsInAtChiefAfterSecondMessenger();
     await testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod();
     await testCompletedTowerDoesNotRepairAcceptedYornakAtDane();
     await testJarvisDoesNotAutoTurnInRecoverRingsWhileInProgress();
