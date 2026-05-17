@@ -884,6 +884,101 @@ function testBridgeTownMissionsRoomDialogueTranslationsCoverExtractedSource(): v
     assert.deepEqual(missing, [], 'BridgeTown mission 1-3 room dialogue should have Turkish translations');
 }
 
+function isFelbridgeRoomDialogueSegment(value: string): boolean {
+    if (!/[A-Za-z]{2,}/.test(value)) {
+        return false;
+    }
+    if (/^(?:am_|a_|symbol|instance|Symbol|mc_|btn_)/.test(value)) {
+        return false;
+    }
+    if (/^(?:default|neutral|enemy|Hard|Normal|Run|Bolster|Loop|Idle|Spawn|Windup|HitReact|BackToIdle|PoofInternal|HumanFireNova|Open|Closed|Close|Lowered|Raised|Up|Down|Left|Right|Start|Stop|Done|Door|Gate)$/i.test(value)) {
+        return false;
+    }
+    if (/^(?:Gold_|Bronze|Silver|ImperialChanneling|ImperialHealing|OasisTeleportEffectLarge|Untouchable)$/.test(value)) {
+        return false;
+    }
+    if (/^(?:Camera|End|Free)$/i.test(value)) {
+        return false;
+    }
+    if (/^(?:\d+\s+)?(?:Camera|Shake|End|SpawnCue|RemoveCue|QuickFirePower|FirePower|Revive|Collision(?:On|Off)?|SetLevelMoment|PlaySound|Sound|SetMusic|SetRoomActive|Teleport|AddMarker|RemoveMarker|Fade|Focus|Lock|Unlock|Disable|Enable|Show|Hide|Wait)\b/.test(value)) {
+        return false;
+    }
+
+    return true;
+}
+
+function addFelbridgeRoomDialogueCandidate(raw: string, out: Set<string>): void {
+    const value = unescapeActionScriptString(raw).trim();
+    if (!value) {
+        return;
+    }
+
+    for (const part of value.split(/=@|=|:/)) {
+        const clean = part
+            .replace(/^[@:]+/, '')
+            .replace(/^\d+\s+[A-Za-z0-9_]+\s+/, '')
+            .replace(/^(?:\s*<[^>]+>\s*)+/, '')
+            .replace(/^\^t\s*/, '')
+            .trim()
+            .replace(/\s+/g, ' ');
+        if (isFelbridgeRoomDialogueSegment(clean)) {
+            out.add(clean);
+        }
+    }
+}
+
+function collectFelbridgeScriptFiles(root: string, out: string[] = []): string[] {
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        const entryPath = path.join(root, entry.name);
+        if (entry.isDirectory()) {
+            collectFelbridgeScriptFiles(entryPath, out);
+            continue;
+        }
+        if (!entry.name.endsWith('.as')) {
+            continue;
+        }
+
+        const relative = path.relative(path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts'), entryPath).split(path.sep).join('/');
+        if (/^(?:a_Room_(?:BT(?:\d+|Z_|M\d+R).*|CH(?:\d|mini|M\d+R|05R|08_|2_).*|CH2_.*)|LevelsB[TC]_fla\/.*)\.as$/.test(relative)) {
+            out.push(entryPath);
+        }
+    }
+
+    return out;
+}
+
+function testFelbridgeRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const scriptRoot = path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts');
+    if (!fs.existsSync(scriptRoot)) {
+        return;
+    }
+
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+    const required = new Set<string>();
+
+    for (const filePath of collectFelbridgeScriptFiles(scriptRoot)) {
+        const source = fs.readFileSync(filePath, 'utf8');
+        for (const match of source.matchAll(/\.(sayOn(?:Activate|Alert|Bloodied|Death|Interact|Spawn))\s*=\s*"((?:\\.|[^"\\])*)"/g)) {
+            addFelbridgeRoomDialogueCandidate(match[2] ?? '', required);
+        }
+        for (const match of source.matchAll(/(?:cutScene\w+|Script_\w+)\s*=\s*\[((?:.|\n)*?)\];/g)) {
+            for (const stringMatch of (match[1] ?? '').matchAll(/"((?:\\.|[^"\\])*)"/g)) {
+                addFelbridgeRoomDialogueCandidate(stringMatch[1] ?? '', required);
+            }
+        }
+        for (const match of source.matchAll(/\.Skit\("((?:\\.|[^"\\])*)"\)/g)) {
+            addFelbridgeRoomDialogueCandidate(match[1] ?? '', required);
+        }
+    }
+
+    const missing = [...required].filter((line) => !String(translations.translations?.[line] ?? '').trim()).sort();
+    assert.ok(required.size > 440, 'Felbridge room dialogue inventory should include BridgeTown and Cemetery Hill scripts');
+    assert.deepEqual(missing, [], 'Felbridge room dialogue should have Turkish translations');
+}
+
 function testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource(): void {
     const dataDir = path.resolve(__dirname, '../data');
     const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
@@ -1443,6 +1538,7 @@ async function main(): Promise<void> {
     testCapstoneRoomDialogueTranslationsCoverExtractedSource();
     testFelbridgeMeylourRoomDialogueTranslationsCoverExtractedSource();
     testBridgeTownMissionsRoomDialogueTranslationsCoverExtractedSource();
+    testFelbridgeRoomDialogueTranslationsCoverExtractedSource();
     testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource();
     testValhavenWelcomePartyRoomDialogueTranslationsCoverExtractedSource();
     testValhavenRoomDialogueTranslationsCoverExtractedSource();
