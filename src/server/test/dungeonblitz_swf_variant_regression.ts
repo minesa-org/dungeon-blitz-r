@@ -16,13 +16,14 @@ import type { Instruction } from '../scripts/swfPatchUtils';
 
 const BASE_SWF_PATH = path.resolve(__dirname, '../../client/content/localhost/p/cbp/DungeonBlitz.swf');
 const MULTIPLAYER_HOST = Config.MULTIPLAYER_HOST;
-const SWF_RUNTIME_VERSION = '20260517-class82-bitmapdata';
+const SWF_RUNTIME_VERSION = '20260517-superanim806-fullscreen';
 const LOCAL_REFRESH_URL = `http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp&rv=${SWF_RUNTIME_VERSION}`;
 const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp&rv=${SWF_RUNTIME_VERSION}`;
 const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
 const SUPERANIM_METHOD200_SAFE_PIXELS = 65536;
-const SUPERANIM_METHOD982_SAFE_PIXELS = 65536;
+const SUPERANIM_METHOD982_SAFE_PIXELS = 262144;
+const SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE = 3072;
 
 function getStringMatches(swfPath: string, target: string): number[] {
     const ctx = parseSwf(swfPath);
@@ -150,6 +151,37 @@ function findBitmapDataConstructorIndex(
     });
 }
 
+function findPropertyBitmapDataConstructorIndex(
+    instructions: Instruction[],
+    names: string[],
+    widthName: string,
+    heightName: string
+): number {
+    return instructions.findIndex((instruction, index) => {
+        const widthSelf = instructions[index + 1];
+        const width = instructions[index + 2];
+        const heightSelf = instructions[index + 3];
+        const height = instructions[index + 4];
+        const pushTrue = instructions[index + 5];
+        const construct = instructions[index + 6];
+
+        return (
+            instruction.opcode === 0x5d &&
+            u30OperandName(instruction, names) === 'BitmapData' &&
+            widthSelf?.opcode === 0xd0 &&
+            width?.opcode === 0x66 &&
+            u30OperandName(width, names) === widthName &&
+            heightSelf?.opcode === 0xd0 &&
+            height?.opcode === 0x66 &&
+            u30OperandName(height, names) === heightName &&
+            pushTrue?.opcode === 0x26 &&
+            construct?.opcode === 0x4a &&
+            u30OperandName(construct, names) === 'BitmapData' &&
+            construct.operands[1]?.[1] === 3
+        );
+    });
+}
+
 function assertBitmapDataGuardWindow(
     swfPath: string,
     widthLocal: number,
@@ -165,7 +197,7 @@ function assertBitmapDataGuardWindow(
     );
     assert.notEqual(constructorIndex, -1, `${label} BitmapData constructor not found`);
 
-    const guardWindow = instructions.slice(Math.max(0, constructorIndex - 55), constructorIndex);
+    const guardWindow = instructions.slice(Math.max(0, constructorIndex - 75), constructorIndex);
     assert.equal(
         guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 8191).length >= 2,
         true,
@@ -206,7 +238,7 @@ function assertClass82BitmapDataGuardWindow(swfPath: string): void {
     );
     assert.notEqual(constructorIndex, -1, 'class_82.method_193 BitmapData constructor not found');
 
-    const guardWindow = instructions.slice(Math.max(0, constructorIndex - 55), constructorIndex);
+    const guardWindow = instructions.slice(Math.max(0, constructorIndex - 75), constructorIndex);
     assert.equal(
         guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 8191).length >= 2,
         true,
@@ -242,9 +274,141 @@ function assertClass82BitmapDataGuardWindow(swfPath: string): void {
     );
 }
 
+function assertClass23BitmapDataGuardWindow(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'class_23', 'method_942');
+    const widthName = 'var_1707';
+    const heightName = 'var_2152';
+    const constructorIndex = findPropertyBitmapDataConstructorIndex(
+        instructions,
+        abc.multinameNames,
+        widthName,
+        heightName
+    );
+    assert.notEqual(constructorIndex, -1, 'class_23.method_942 BitmapData constructor not found');
+
+    const guardWindow = instructions.slice(Math.max(0, constructorIndex - 75), constructorIndex);
+    assert.equal(
+        guardWindow.some((instruction, index) =>
+            instruction.opcode === 0xd0 &&
+            guardWindow[index + 1]?.opcode === 0x66 &&
+            u30OperandName(guardWindow[index + 1], abc.multinameNames) === widthName &&
+            guardWindow[index + 2]?.opcode === 0xd0 &&
+            guardWindow[index + 3]?.opcode === 0x66 &&
+            u30OperandName(guardWindow[index + 3], abc.multinameNames) === widthName &&
+            guardWindow[index + 4]?.opcode === 0xab &&
+            guardWindow[index + 5]?.opcode === 0x12
+        ),
+        true,
+        'class_23.method_942 must reject NaN cache widths'
+    );
+    assert.equal(
+        guardWindow.some((instruction, index) =>
+            instruction.opcode === 0xd0 &&
+            guardWindow[index + 1]?.opcode === 0x66 &&
+            u30OperandName(guardWindow[index + 1], abc.multinameNames) === heightName &&
+            guardWindow[index + 2]?.opcode === 0xd0 &&
+            guardWindow[index + 3]?.opcode === 0x66 &&
+            u30OperandName(guardWindow[index + 3], abc.multinameNames) === heightName &&
+            guardWindow[index + 4]?.opcode === 0xab &&
+            guardWindow[index + 5]?.opcode === 0x12
+        ),
+        true,
+        'class_23.method_942 must reject NaN cache heights'
+    );
+    assert.equal(
+        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 8191).length >= 2,
+        true,
+        'class_23.method_942 must enforce Flash\'s 8191 BitmapData axis limit'
+    );
+    assert.equal(
+        guardWindow.some((instruction, index) => {
+            const pushIntOperand = guardWindow[index + 5]?.operands[0];
+            return (
+                instruction.opcode === 0xd0 &&
+                guardWindow[index + 1]?.opcode === 0x66 &&
+                u30OperandName(guardWindow[index + 1], abc.multinameNames) === widthName &&
+                guardWindow[index + 2]?.opcode === 0xd0 &&
+                guardWindow[index + 3]?.opcode === 0x66 &&
+                u30OperandName(guardWindow[index + 3], abc.multinameNames) === heightName &&
+                guardWindow[index + 4]?.opcode === 0xa2 &&
+                guardWindow[index + 5]?.opcode === 0x2d &&
+                pushIntOperand?.[0] === 'u30' &&
+                abc.intValues[pushIntOperand[1]] === BITMAPDATA_TOTAL_PIXELS &&
+                guardWindow[index + 6]?.opcode === 0xaf
+            );
+        }),
+        true,
+        'class_23.method_942 must enforce the BitmapData total pixel limit'
+    );
+    assert.equal(
+        guardWindow.some((instruction, index) =>
+            instruction.opcode === 0xd0 &&
+            guardWindow[index + 1]?.opcode === 0x25 &&
+            guardWindow[index + 1]?.operands[0]?.[1] === 512 &&
+            guardWindow[index + 2]?.opcode === 0x68 &&
+            u30OperandName(guardWindow[index + 2], abc.multinameNames) === widthName
+        ),
+        true,
+        'class_23.method_942 fallback must reset cache width to 512'
+    );
+    assert.equal(
+        guardWindow.some((instruction, index) =>
+            instruction.opcode === 0xd0 &&
+            guardWindow[index + 1]?.opcode === 0x25 &&
+            guardWindow[index + 1]?.operands[0]?.[1] === 512 &&
+            guardWindow[index + 2]?.opcode === 0x68 &&
+            u30OperandName(guardWindow[index + 2], abc.multinameNames) === heightName
+        ),
+        true,
+        'class_23.method_942 fallback must reset cache height to 512'
+    );
+}
+
+function assertGameMethod1947SafeScreenBitmapData(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_1947');
+    const constructorIndex = instructions.findIndex((instruction, index) =>
+        instruction.opcode === 0x5d &&
+        u30OperandName(instruction, abc.multinameNames) === 'BitmapData' &&
+        instructions[index + 1]?.opcode === 0x25 &&
+        instructions[index + 1]?.operands[0]?.[1] === 1440 &&
+        instructions[index + 2]?.opcode === 0x25 &&
+        instructions[index + 2]?.operands[0]?.[1] === 835
+    );
+
+    assert.notEqual(
+        constructorIndex,
+        -1,
+        'Game.method_1947 screen BitmapData allocation must use safe fixed dimensions'
+    );
+}
+
 function assertSuperAnimMethod200BitmapDataGuard(swfPath: string): void {
     assertBitmapDataGuardWindow(swfPath, 10, 11, 'SuperAnimData.method_200 direct allocation');
     assertBitmapDataGuardWindow(swfPath, 25, 26, 'SuperAnimData.method_200 cropped allocation');
+}
+
+function assertSuperAnimMethod806FullscreenBitmapData(swfPath: string): void {
+    const { abc, instructions } = getStaticMethodCode(swfPath, 'SuperAnimData', 'method_806');
+    const forcedEntityBitmapCount = instructions.filter((instruction, index) =>
+        instruction.opcode === 0x5d &&
+        u30OperandName(instruction, abc.multinameNames) === 'BitmapData' &&
+        instructions[index + 1]?.opcode === 0x25 &&
+        instructions[index + 1]?.operands[0]?.[1] === SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE &&
+        instructions[index + 2]?.opcode === 0x25 &&
+        instructions[index + 2]?.operands[0]?.[1] === SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE &&
+        instructions[index + 3]?.opcode === 0x26 &&
+        instructions[index + 4]?.opcode === 0x24 &&
+        instructions[index + 4]?.operands[0]?.[1] === 0 &&
+        instructions[index + 5]?.opcode === 0x4a &&
+        u30OperandName(instructions[index + 5], abc.multinameNames) === 'BitmapData' &&
+        instructions[index + 5]?.operands[1]?.[1] === 4
+    ).length;
+
+    assert.equal(
+        forcedEntityBitmapCount,
+        2,
+        'SuperAnimData.method_806 fullscreen entity BitmapData allocations must use safe fixed dimensions'
+    );
 }
 
 function assertSuperAnimMethod982BitmapDataGuard(swfPath: string): void {
@@ -277,9 +441,9 @@ function assertSuperAnimMethod982BitmapDataGuard(swfPath: string): void {
         'SuperAnimData.method_982 must enforce the safe output BitmapData total pixel limit'
     );
     assert.equal(
-        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 128).length >= 4,
+        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 512).length >= 4,
         true,
-        'SuperAnimData.method_982 fallback must use a visible 128x128 BitmapData instead of 1x1'
+        'SuperAnimData.method_982 fallback must use a visible 512x512 BitmapData instead of 1x1'
     );
 }
 
@@ -340,11 +504,35 @@ function testBaseAndLocalVariantKeepClass82BitmapDataGuard(): void {
     });
 }
 
+function testBaseAndLocalVariantKeepClass23BitmapDataGuard(): void {
+    assertClass23BitmapDataGuardWindow(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertClass23BitmapDataGuardWindow(tempPath);
+    });
+}
+
 function testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard(): void {
     assertSuperAnimMethod982BitmapDataGuard(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
     withTempSwf(buffer, (tempPath) => {
         assertSuperAnimMethod982BitmapDataGuard(tempPath);
+    });
+}
+
+function testBaseAndLocalVariantKeepSuperAnimMethod806FullscreenBitmapData(): void {
+    assertSuperAnimMethod806FullscreenBitmapData(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertSuperAnimMethod806FullscreenBitmapData(tempPath);
+    });
+}
+
+function testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData(): void {
+    assertGameMethod1947SafeScreenBitmapData(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertGameMethod1947SafeScreenBitmapData(tempPath);
     });
 }
 
@@ -354,7 +542,10 @@ function main(): void {
     testVariantRemovesDungeonMountSpeedGate();
     testBaseAndLocalVariantKeepSuperAnimMethod200BitmapDataGuard();
     testBaseAndLocalVariantKeepClass82BitmapDataGuard();
+    testBaseAndLocalVariantKeepClass23BitmapDataGuard();
+    testBaseAndLocalVariantKeepSuperAnimMethod806FullscreenBitmapData();
     testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard();
+    testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData();
     console.log('dungeonblitz_swf_variant_regression: ok');
 }
 

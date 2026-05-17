@@ -26,8 +26,12 @@ const DEFAULT_SWF = path.resolve(
   "cbp",
   "DungeonBlitz.swf",
 );
-const METHOD982_SAFE_TOTAL_PIXELS = 65536;
-const METHOD982_PREVIOUS_SAFE_TOTAL_PIXELS = 262144;
+const METHOD982_SAFE_TOTAL_PIXELS = 262144;
+const METHOD982_PREVIOUS_SAFE_TOTAL_PIXELS = 16384;
+const METHOD982_OLDER_SAFE_TOTAL_PIXELS = 4096;
+const METHOD982_OLDEST_SAFE_TOTAL_PIXELS = 65536;
+const METHOD982_FORCED_BITMAP_SIZE = 512;
+const METHOD982_PREVIOUS_FORCED_BITMAP_SIZES = [64, 128];
 const METHOD200_SAFE_TOTAL_PIXELS = 65536;
 const METHOD200_PREVIOUS_SAFE_TOTAL_PIXELS = 16777215;
 
@@ -259,6 +263,13 @@ function pushInteger(value: number): InsertedInstruction {
     return { opcode: 0x24, operands: [["s8", value]] };
   }
   return { opcode: 0x25, operands: [["u30", value]] };
+}
+
+function pushedIntegerValue(inst: Instruction): number | null {
+  if ((inst.opcode === 0x24 || inst.opcode === 0x25) && inst.operands[0]) {
+    return inst.operands[0][1];
+  }
+  return null;
 }
 
 function dimensionGuard(
@@ -505,11 +516,15 @@ function findBitmapDataConstructorOrForced(
     const pushZero = instructions[index + 4];
     const construct = instructions[index + 5];
     const usesLocals = getLocalOperand(width) === widthLocal && getLocalOperand(height) === heightLocal;
+    const forcedWidth = pushedIntegerValue(width);
+    const forcedHeight = pushedIntegerValue(height);
     const forcedSmall =
-      width.opcode === 0x24 &&
-      width.operands[0]?.[1] === 1 &&
-      height.opcode === 0x24 &&
-      height.operands[0]?.[1] === 1;
+      (forcedWidth === 1 ||
+        METHOD982_PREVIOUS_FORCED_BITMAP_SIZES.includes(forcedWidth ?? 0) ||
+        forcedWidth === METHOD982_FORCED_BITMAP_SIZE) &&
+      (forcedHeight === 1 ||
+        METHOD982_PREVIOUS_FORCED_BITMAP_SIZES.includes(forcedHeight ?? 0) ||
+        forcedHeight === METHOD982_FORCED_BITMAP_SIZE);
     if (
       (usesLocals || forcedSmall) &&
       pushTrue.opcode === 0x26 &&
@@ -696,6 +711,8 @@ function patchMethod982(swfPath: string, verify: boolean): boolean {
   const heightName = findRequiredMultiname(abc, "height");
   const totalPixelsIntIndex = findRequiredInt(abc, METHOD982_SAFE_TOTAL_PIXELS);
   const previousTotalPixelsIntIndex = findRequiredInt(abc, METHOD982_PREVIOUS_SAFE_TOTAL_PIXELS);
+  const olderTotalPixelsIntIndex = findRequiredInt(abc, METHOD982_OLDER_SAFE_TOTAL_PIXELS);
+  const oldestTotalPixelsIntIndex = findRequiredInt(abc, METHOD982_OLDEST_SAFE_TOTAL_PIXELS);
   const hardTotalPixelsIntIndex = findRequiredInt(abc, 16777215);
   const forcedOutputFallback = assembleInserted(rectFallback(11, 12, 10, widthName, heightName));
   const legacyForcedOutputFallback = assembleInserted([
@@ -703,10 +720,18 @@ function patchMethod982(swfPath: string, verify: boolean): boolean {
     { opcode: 0x29 },
     ...rectFallback(11, 12, 10, widthName, heightName),
   ]);
-  const outputGuard = assembleInserted(rectDimensionGuard(11, 12, 10, widthName, heightName, totalPixelsIntIndex, 128));
+  const outputGuard = assembleInserted(
+    rectDimensionGuard(11, 12, 10, widthName, heightName, totalPixelsIntIndex, METHOD982_FORCED_BITMAP_SIZE),
+  );
   const onePixelOutputGuard = assembleInserted(rectDimensionGuard(11, 12, 10, widthName, heightName, totalPixelsIntIndex));
   const previousOutputGuard = assembleInserted(
-    rectDimensionGuard(11, 12, 10, widthName, heightName, previousTotalPixelsIntIndex),
+    rectDimensionGuard(11, 12, 10, widthName, heightName, previousTotalPixelsIntIndex, 128),
+  );
+  const olderOutputGuard = assembleInserted(
+    rectDimensionGuard(11, 12, 10, widthName, heightName, olderTotalPixelsIntIndex, 128),
+  );
+  const oldestOutputGuard = assembleInserted(
+    rectDimensionGuard(11, 12, 10, widthName, heightName, oldestTotalPixelsIntIndex),
   );
   const hardOutputGuard = assembleInserted(rectDimensionGuard(11, 12, 10, widthName, heightName, hardTotalPixelsIntIndex));
   const noProductOutputGuard = assembleInserted(rectDimensionGuard(11, 12, 10, widthName, heightName));
@@ -726,11 +751,14 @@ function patchMethod982(swfPath: string, verify: boolean): boolean {
   const outputPatched = hasExactGuardBefore(code, outputCtor.constructor.offset, outputGuard);
   const outputOnePixelPatched = hasExactGuardBefore(code, outputCtor.constructor.offset, onePixelOutputGuard);
   const outputPreviousPatched = hasExactGuardBefore(code, outputCtor.constructor.offset, previousOutputGuard);
+  const outputOlderPatched = hasExactGuardBefore(code, outputCtor.constructor.offset, olderOutputGuard);
+  const outputOldestPatched = hasExactGuardBefore(code, outputCtor.constructor.offset, oldestOutputGuard);
   const outputHardPatched = hasExactGuardBefore(code, outputCtor.constructor.offset, hardOutputGuard);
   const outputNoProductPatched = hasExactGuardBefore(code, outputCtor.constructor.offset, noProductOutputGuard);
   const outputPushshortProductPatched = hasExactGuardBefore(code, outputCtor.constructor.offset, pushshortProductOutputGuard);
+  const outputUsesGuardedLocals = getLocalOperand(outputCtor.width) === 11 && getLocalOperand(outputCtor.height) === 12;
 
-  if (outputPatched && !outputCtor.forced) {
+  if (outputPatched && outputUsesGuardedLocals) {
     return false;
   }
 
@@ -739,7 +767,7 @@ function patchMethod982(swfPath: string, verify: boolean): boolean {
   }
 
   const edits: Array<{ start: number; end: number; data: Buffer }> = [];
-  if (outputCtor.forced) {
+  if (!outputUsesGuardedLocals) {
     edits.push(
       {
         start: outputCtor.width.offset,
@@ -774,6 +802,18 @@ function patchMethod982(swfPath: string, verify: boolean): boolean {
   } else if (outputPreviousPatched) {
     edits.push({
       start: outputCtor.constructor.offset - previousOutputGuard.length,
+      end: outputCtor.constructor.offset,
+      data: outputGuard,
+    });
+  } else if (outputOlderPatched) {
+    edits.push({
+      start: outputCtor.constructor.offset - olderOutputGuard.length,
+      end: outputCtor.constructor.offset,
+      data: outputGuard,
+    });
+  } else if (outputOldestPatched) {
+    edits.push({
+      start: outputCtor.constructor.offset - oldestOutputGuard.length,
       end: outputCtor.constructor.offset,
       data: outputGuard,
     });
