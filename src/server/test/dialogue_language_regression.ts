@@ -1147,6 +1147,98 @@ function testShazariRoomDialogueTranslationsCoverExtractedSource(): void {
     assert.deepEqual(missing, [], 'Shazari room dialogue should have Turkish translations');
 }
 
+function looksLikeCastleHockeRoomDialogue(value: string): boolean {
+    if (!/[A-Za-z]{2,}/.test(value)) {
+        return false;
+    }
+    if (/^(?:am_|a_|symbol|instance|Symbol)/.test(value)) {
+        return false;
+    }
+    if (/^(?:default|neutral|enemy|Hard|Normal|Run|Bolster|Loop|Idle|Spawn|Windup|HitReact|BackToIdle|PoofInternal|HumanFireNova)$/.test(value)) {
+        return false;
+    }
+    if (/^(?:Gold_|Bronze|Silver|ImperialChanneling|ImperialHealing|OasisTeleportEffectLarge|Untouchable)$/.test(value)) {
+        return false;
+    }
+    if (/^(?:\d+\s+)?(?:Camera|Shake|End|SpawnCue|RemoveCue|QuickFirePower|FirePower|Revive|Collision(?:On|Off)?|SetLevelMoment)\b/.test(value) && !/[.!?]|:|@/.test(value)) {
+        return false;
+    }
+
+    return /[.!?]|:|@|#|\b(?:kill|die|death|Baron|Hocke|House|Castle|Capstone|dragon|dragons|Dragon|Legion|Legions|Sleeping Lands|Meylour|Nephit|Titus|ghost|spirits|Goblins|goblins|golem|knights|paladin|Dread|Emerald|Throne|Aether|Observatory|Ramparts|human|thieves|trespass|trespassing|intruder|enemy|enemies|command|obey|protect|slay|world|cause|Emperor|secrets|magic|dead|battle|army|your|you|I|we|they|he|she|The|And|No|What|Where|Why|How|For|All|By|Prepare|Dangerous|Once|This|That|Such|A|With|Now)\b/i.test(value);
+}
+
+function addCastleHockeRoomDialogueCandidate(raw: string, out: Set<string>): void {
+    const value = unescapeActionScriptString(raw).trim();
+    if (!looksLikeCastleHockeRoomDialogue(value)) {
+        return;
+    }
+
+    for (const part of value.split(/=@|=|:/)) {
+        const clean = part
+            .replace(/^[@:]+/, '')
+            .replace(/^\d+\s+[A-Za-z0-9_]+\s+/, '')
+            .replace(/^(?:\s*<[^>]+>\s*)+/, '')
+            .replace(/^\^t\s*/, '')
+            .trim()
+            .replace(/\s+/g, ' ');
+        if (looksLikeCastleHockeRoomDialogue(clean)) {
+            out.add(clean);
+        }
+    }
+}
+
+function collectCastleHockeScriptFiles(root: string, out: string[] = []): string[] {
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        const entryPath = path.join(root, entry.name);
+        if (entry.isDirectory()) {
+            collectCastleHockeScriptFiles(entryPath, out);
+            continue;
+        }
+        if (!entry.name.endsWith('.as')) {
+            continue;
+        }
+
+        const relative = path.relative(path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts'), entryPath).split(path.sep).join('/');
+        if (/^(?:a_Room_(?:ACM\d|Dragon_R|Throne_R|Battle_R|Ramparts_R|Capstone_R).*|LevelsAC_fla\/.*)\.as$/.test(relative)) {
+            out.push(entryPath);
+        }
+    }
+
+    return out;
+}
+
+function testCastleHockeRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const scriptRoot = path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts');
+    if (!fs.existsSync(scriptRoot)) {
+        return;
+    }
+
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+    const required = new Set<string>();
+
+    for (const filePath of collectCastleHockeScriptFiles(scriptRoot)) {
+        const source = fs.readFileSync(filePath, 'utf8');
+        for (const match of source.matchAll(/\.(sayOn(?:Activate|Alert|Bloodied|Death|Interact|Spawn))\s*=\s*"((?:\\.|[^"\\])*)"/g)) {
+            addCastleHockeRoomDialogueCandidate(match[2] ?? '', required);
+        }
+        for (const match of source.matchAll(/(?:cutScene\w+|Script_\w+)\s*=\s*\[((?:.|\n)*?)\];/g)) {
+            for (const stringMatch of (match[1] ?? '').matchAll(/"((?:\\.|[^"\\])*)"/g)) {
+                addCastleHockeRoomDialogueCandidate(stringMatch[1] ?? '', required);
+            }
+        }
+        for (const match of source.matchAll(/\.Skit\("((?:\\.|[^"\\])*)"\)/g)) {
+            addCastleHockeRoomDialogueCandidate(match[1] ?? '', required);
+        }
+    }
+
+    const missing = [...required].filter((line) => !String(translations.translations?.[line] ?? '').trim()).sort();
+    assert.ok(required.size > 220, 'Castle Hocke room dialogue inventory should include all dungeon scripts');
+    assert.deepEqual(missing, [], 'Castle Hocke room dialogue should have Turkish translations');
+}
+
 async function main(): Promise<void> {
     await testLanguageCommandSwitchesToTurkishWithoutBroadcasting();
     await testLanguageCommandSwitchesBackToEnglish();
@@ -1171,6 +1263,7 @@ async function main(): Promise<void> {
     testValhavenWelcomePartyRoomDialogueTranslationsCoverExtractedSource();
     testValhavenRoomDialogueTranslationsCoverExtractedSource();
     testShazariRoomDialogueTranslationsCoverExtractedSource();
+    testCastleHockeRoomDialogueTranslationsCoverExtractedSource();
     console.log('dialogue_language_regression: ok');
 }
 
