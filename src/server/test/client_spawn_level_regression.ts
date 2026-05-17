@@ -1414,6 +1414,133 @@ async function testDeepgardDragonMiniBossIntroIgnoresWrongVerticalBand(): Promis
     assert.equal(client.triggeredLevelStates.has('AC_Mission1Hard:2003367144:am_Trigger_Cutscene'), false);
 }
 
+async function testProdigalSonDefectorMomentsStartOnTriggerCrossing(): Promise<void> {
+    const triggers = [
+        { roomId: 1971923064, startX: 9700, deltaX: 160, y: -1450 },
+        { roomId: 2061059764, startX: 18100, deltaX: 160, y: -1150 }
+    ];
+    const leader = createFakeClient('Alpha');
+    const follower = createFakeClient('Beta');
+    leader.currentLevel = 'JC_Mission3';
+    follower.currentLevel = 'JC_Mission3';
+    leader.levelInstanceId = 'prodigal-run';
+    follower.levelInstanceId = 'prodigal-run';
+    leader.clientEntID = 9501;
+    follower.clientEntID = 9502;
+    leader.entities.set(leader.clientEntID, {
+        id: leader.clientEntID,
+        name: 'Alpha',
+        isPlayer: true,
+        x: triggers[0].startX,
+        y: triggers[0].y,
+        v: 0,
+        team: 1
+    });
+    follower.entities.set(follower.clientEntID, {
+        id: follower.clientEntID,
+        name: 'Beta',
+        isPlayer: true,
+        x: triggers[0].startX - 100,
+        y: triggers[0].y,
+        v: 0,
+        team: 1
+    });
+    GlobalState.sessionsByToken.set(leader.token, leader as never);
+    GlobalState.sessionsByToken.set(follower.token, follower as never);
+
+    for (const trigger of triggers) {
+        const leaderEntity = leader.entities.get(leader.clientEntID)!;
+        leaderEntity.x = trigger.startX;
+        leaderEntity.y = trigger.y;
+        leader.sentPackets.length = 0;
+        follower.sentPackets.length = 0;
+
+        await LevelHandler.handleEntityIncrementalUpdate(
+            leader as never,
+            buildIncrementalUpdatePayload(leader.clientEntID, trigger.deltaX, 0, 0)
+        );
+
+        const expected = { key: `${trigger.roomId}^Trigger^am_Trigger_01`, value: '' };
+        const leaderTriggers = leader.sentPackets
+            .filter((packet) => packet.id === 0x40)
+            .map((packet) => parseLevelState(packet.payload));
+        const followerTriggers = follower.sentPackets
+            .filter((packet) => packet.id === 0x40)
+            .map((packet) => parseLevelState(packet.payload));
+
+        assert.deepEqual(leaderTriggers, [expected]);
+        assert.deepEqual(followerTriggers, [expected]);
+        assert.equal(leader.triggeredLevelStates.has(`JC_Mission3:${trigger.roomId}:am_Trigger_01`), true);
+        assert.equal(follower.triggeredLevelStates.has(`JC_Mission3:${trigger.roomId}:am_Trigger_01`), true);
+    }
+}
+
+async function testProdigalSonDefectorMomentsIgnoreWrongVerticalBand(): Promise<void> {
+    const client = createFakeClient('Alpha');
+    client.currentLevel = 'JC_Mission3Hard';
+    client.clientEntID = 9601;
+    client.entities.set(client.clientEntID, {
+        id: client.clientEntID,
+        name: 'Alpha',
+        isPlayer: true,
+        x: 9700,
+        y: 500,
+        v: 0,
+        team: 1
+    });
+    GlobalState.sessionsByToken.set(client.token, client as never);
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        client as never,
+        buildIncrementalUpdatePayload(client.clientEntID, 160, 0, 0)
+    );
+
+    assert.deepEqual(client.sentPackets.filter((packet) => packet.id === 0x40), []);
+    assert.equal(client.triggeredLevelStates.has('JC_Mission3Hard:1971923064:am_Trigger_01'), false);
+}
+
+async function testProdigalSonDefectorMomentOnlyStartsOnce(): Promise<void> {
+    const client = createFakeClient('Alpha');
+    client.currentLevel = 'JC_Mission3';
+    client.clientEntID = 9701;
+    client.entities.set(client.clientEntID, {
+        id: client.clientEntID,
+        name: 'Alpha',
+        isPlayer: true,
+        x: 9700,
+        y: -1450,
+        v: 0,
+        team: 1
+    });
+    GlobalState.sessionsByToken.set(client.token, client as never);
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        client as never,
+        buildIncrementalUpdatePayload(client.clientEntID, 160, 0, 0)
+    );
+    assert.deepEqual(
+        client.sentPackets
+            .filter((packet) => packet.id === 0x40)
+            .map((packet) => parseLevelState(packet.payload)),
+        [{ key: '1971923064^Trigger^am_Trigger_01', value: '' }]
+    );
+
+    client.sentPackets.length = 0;
+    const player = client.entities.get(client.clientEntID)!;
+    player.x = 9700;
+    player.y = -1450;
+    await LevelHandler.handleEntityIncrementalUpdate(
+        client as never,
+        buildIncrementalUpdatePayload(client.clientEntID, 160, 0, 0)
+    );
+
+    assert.deepEqual(
+        client.sentPackets.filter((packet) => packet.id === 0x40),
+        [],
+        'The Prodigal Son defector trigger should only be synthesized once per run'
+    );
+}
+
 function testConflictingLocalIdsStillTriggerRemotePlayerSeed(): void {
     const sender = createFakeClient('Alpha');
     const watcher = createFakeClient('Beta');
@@ -2241,6 +2368,21 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         await testDeepgardDragonMiniBossIntroIgnoresWrongVerticalBand();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        await testProdigalSonDefectorMomentsStartOnTriggerCrossing();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        await testProdigalSonDefectorMomentsIgnoreWrongVerticalBand();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        await testProdigalSonDefectorMomentOnlyStartsOnce();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

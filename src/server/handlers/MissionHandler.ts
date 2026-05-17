@@ -55,6 +55,13 @@ type DungeonMissionUpdateResult = {
     persistedScore: number;
 };
 
+type AggregateMissionReconcileResult = {
+    missionId: number;
+    changed: boolean;
+    progressDelta: number;
+    becameReadyToTurnIn: boolean;
+};
+
 type CollectibleKillProgressRule = {
     progressText: string;
     realm?: string;
@@ -76,6 +83,10 @@ export class MissionHandler {
     private static readonly MISSION_IN_PROGRESS = 1;
     private static readonly MISSION_READY_TO_TURN_IN = 2;
     private static readonly MISSION_CLAIMED = 3;
+    private static readonly ATTACK_OF_OPPORTUNITY_MISSION_ID = 233;
+    private static readonly ATTACK_OF_OPPORTUNITY_HARD_MISSION_ID = 254;
+    private static readonly ATTACK_OF_OPPORTUNITY_SATELLITE_IDS = new Set([234, 235, 236]);
+    private static readonly ATTACK_OF_OPPORTUNITY_HARD_SATELLITE_IDS = new Set([255, 256, 257]);
     static readonly DUNGEON_COMPLETION_SKIT_SETTLE_MS = 1500;
     static readonly DUNGEON_COMPLETION_MAX_DEFER_MS = 15000;
     static readonly CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS = 43 * 250;
@@ -87,6 +98,16 @@ export class MissionHandler {
         'IntroGoblinShamanHood'
     ]);
     private static readonly FULL_CLEAR_ONLY_DUNGEON_PATTERN = /^CH_MiniMission\d+(Hard)?$/;
+    private static readonly FULL_CLEAR_ONLY_DUNGEON_NAMES = new Set([
+        'JC_Mini1',
+        'JC_Mini1Hard',
+        'JC_Mini2',
+        'JC_Mini2Hard',
+        'JC_Mission8',
+        'JC_Mission8Hard',
+        'JC_Mission10',
+        'JC_Mission10Hard'
+    ]);
     private static readonly DUNGEONS_REQUIRING_BOSS_DEFEAT = new Set([
         'AC_Mission6',
         'AC_Mission6Hard',
@@ -772,7 +793,27 @@ export class MissionHandler {
             }
         }
 
+        const instantReturnMissionId = MissionHandler.primeZoneInstantReturnMission(character);
+        if (instantReturnMissionId > 0) {
+            didMutate = true;
+            if (addedMissionId === 0) {
+                addedMissionId = instantReturnMissionId;
+            }
+        }
+
         if (MissionHandler.normalizeInstantReturnMissionStates(character)) {
+            didMutate = true;
+        }
+
+        const chainedDungeonMissionId = MissionHandler.primeMissingChainedDungeonFollowup(character);
+        if (chainedDungeonMissionId > 0) {
+            didMutate = true;
+            if (addedMissionId === 0) {
+                addedMissionId = chainedDungeonMissionId;
+            }
+        }
+
+        if (MissionHandler.reconcileAttackOfOpportunityAggregateProgress(character).changed) {
             didMutate = true;
         }
 
@@ -804,6 +845,76 @@ export class MissionHandler {
         return { didMutate, addedMissionId };
     }
 
+    private static primeZoneInstantReturnMission(character: Character): number {
+        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
+            if (MissionHandler.getMissionState(character, missionId) !== MissionHandler.MISSION_NOT_STARTED) {
+                continue;
+            }
+
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            if (!missionDef || !MissionHandler.canStartMission(character, missionDef)) {
+                continue;
+            }
+
+            if (!MissionHandler.missionStartsReadyToTurnIn(missionDef)) {
+                continue;
+            }
+
+            if (String(missionDef.ContactName ?? '').trim()) {
+                continue;
+            }
+
+            const initialState = MissionHandler.getInitialMissionState(missionDef);
+            MissionHandler.setMissionState(character, missionId, initialState, missionDef, { currCount: 0 });
+            return missionId;
+        }
+
+        return 0;
+    }
+
+    private static primeMissingChainedDungeonFollowup(character: Character): number {
+        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
+            const completedMissionDef = MissionLoader.getMissionDef(missionId);
+            if (!completedMissionDef || MissionHandler.getMissionState(character, missionId) < MissionHandler.MISSION_CLAIMED) {
+                continue;
+            }
+
+            const completedDungeon = LevelConfig.normalizeLevelName(completedMissionDef.Dungeon);
+            if (!completedDungeon || !LevelConfig.isDungeonLevel(completedDungeon)) {
+                continue;
+            }
+
+            const nextDungeon = LevelConfig.normalizeLevelName(LevelConfig.getDoorTarget(completedDungeon, 2));
+            if (!nextDungeon || !LevelConfig.isDungeonLevel(nextDungeon)) {
+                continue;
+            }
+
+            const followupMissionDef = MissionLoader.findPrimaryMissionByDungeon(nextDungeon);
+            if (!followupMissionDef || MissionHandler.getMissionState(character, followupMissionDef.MissionID) !== MissionHandler.MISSION_NOT_STARTED) {
+                continue;
+            }
+
+            const completedMissionName = String(completedMissionDef.MissionName ?? '').trim();
+            const requiresCompletedMission = (followupMissionDef.PreReqMissions ?? [])
+                .some((missionName) => String(missionName ?? '').trim() === completedMissionName);
+            if (!requiresCompletedMission || !MissionHandler.canStartMission(character, followupMissionDef)) {
+                continue;
+            }
+
+            const initialState = MissionHandler.getInitialMissionState(followupMissionDef);
+            MissionHandler.setMissionState(
+                character,
+                followupMissionDef.MissionID,
+                initialState,
+                followupMissionDef,
+                { currCount: 0 }
+            );
+            return followupMissionDef.MissionID;
+        }
+
+        return 0;
+    }
+
     static syncMissionStateToClient(client: Client): void {
         if (!client.character) {
             return;
@@ -830,6 +941,9 @@ export class MissionHandler {
             return;
         }
 
+        const missionEntry = MissionHandler.asMissionEntry(
+            MissionHandler.getMissionStateMap(client.character)[String(missionDef.MissionID)]
+        );
         const existingState = MissionHandler.getMissionState(client.character, missionDef.MissionID);
         if (existingState > MissionHandler.MISSION_NOT_STARTED) {
             if (Number(client.character.questTrackerState ?? 0) !== 0) {
@@ -841,6 +955,14 @@ export class MissionHandler {
                     await MissionHandler.saveCharacter(client);
                 }
             }
+            return;
+        }
+
+        const hasHistoricalCompletion =
+            Number(missionEntry.Time ?? 0) > 0 ||
+            Number(missionEntry.highscore ?? 0) > 0 ||
+            Number(missionEntry.Tier ?? 0) > 0;
+        if (hasHistoricalCompletion) {
             return;
         }
 
@@ -869,7 +991,13 @@ export class MissionHandler {
 
     static isFullClearOnlyDungeon(levelName: string | null | undefined): boolean {
         const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
-        return Boolean(normalizedLevel && MissionHandler.FULL_CLEAR_ONLY_DUNGEON_PATTERN.test(normalizedLevel));
+        return Boolean(
+            normalizedLevel &&
+            (
+                MissionHandler.FULL_CLEAR_ONLY_DUNGEON_PATTERN.test(normalizedLevel) ||
+                MissionHandler.FULL_CLEAR_ONLY_DUNGEON_NAMES.has(normalizedLevel)
+            )
+        );
     }
 
     static syncFullClearDungeonEntryMissionToClient(client: Client): void {
@@ -890,7 +1018,7 @@ export class MissionHandler {
             return;
         }
 
-        if (MissionHandler.getMissionState(client.character, missionDef.MissionID) <= MissionHandler.MISSION_NOT_STARTED) {
+        if (MissionHandler.getMissionState(client.character, missionDef.MissionID) !== MissionHandler.MISSION_IN_PROGRESS) {
             return;
         }
 
@@ -1304,9 +1432,24 @@ export class MissionHandler {
                     didMutate = true;
                 }
 
-                const valhavenFollowupMissionId = MissionHandler.primeWelcomePartyFollowup(client, completedMissionId);
-                if (valhavenFollowupMissionId > 0) {
+                const chainedDungeonMissionId = MissionHandler.primeChainedDungeonFollowupMission(
+                    client,
+                    currentLevel,
+                    completedMissionId
+                );
+                if (chainedDungeonMissionId > 0) {
                     didMutate = true;
+                }
+
+                const aggregateReconcile = MissionHandler.reconcileAttackOfOpportunityAggregateProgress(client.character);
+                if (aggregateReconcile.changed) {
+                    didMutate = true;
+                    if (aggregateReconcile.progressDelta > 0) {
+                        MissionHandler.sendMissionProgress(client, aggregateReconcile.missionId, aggregateReconcile.progressDelta);
+                    }
+                    if (aggregateReconcile.becameReadyToTurnIn) {
+                        MissionHandler.sendMissionComplete(client, aggregateReconcile.missionId);
+                    }
                 }
 
                 if (
@@ -1370,6 +1513,67 @@ export class MissionHandler {
         if (forceSharedDungeonCompletion && client.forcedDungeonCompletionScope === levelScope) {
             client.forcedDungeonCompletionScope = '';
         }
+    }
+
+    private static reconcileAttackOfOpportunityAggregateProgress(character: Character): AggregateMissionReconcileResult {
+        const pairs: Array<{ aggregateId: number; satelliteIds: ReadonlySet<number> }> = [
+            {
+                aggregateId: MissionHandler.ATTACK_OF_OPPORTUNITY_MISSION_ID,
+                satelliteIds: MissionHandler.ATTACK_OF_OPPORTUNITY_SATELLITE_IDS
+            },
+            {
+                aggregateId: MissionHandler.ATTACK_OF_OPPORTUNITY_HARD_MISSION_ID,
+                satelliteIds: MissionHandler.ATTACK_OF_OPPORTUNITY_HARD_SATELLITE_IDS
+            }
+        ];
+
+        for (const pair of pairs) {
+            const aggregateDef = MissionLoader.getMissionDef(pair.aggregateId);
+            if (!aggregateDef) {
+                continue;
+            }
+
+            const aggregateState = MissionHandler.getMissionState(character, pair.aggregateId);
+            if (aggregateState !== MissionHandler.MISSION_IN_PROGRESS) {
+                continue;
+            }
+
+            const completeCount = Math.max(1, Number(aggregateDef.CompleteCount ?? 1));
+            const completedSatellites = Array.from(pair.satelliteIds).reduce((count, missionId) => {
+                return count + (MissionHandler.getMissionState(character, missionId) >= MissionHandler.MISSION_CLAIMED ? 1 : 0);
+            }, 0);
+            const nextCount = Math.min(completeCount, completedSatellites);
+            const currentEntry = MissionHandler.asMissionEntry(
+                MissionHandler.getMissionStateMap(character)[String(pair.aggregateId)]
+            );
+            const currentCount = Math.max(0, Number(currentEntry.currCount ?? 0));
+            const becameReadyToTurnIn = nextCount >= completeCount;
+            const nextState = becameReadyToTurnIn
+                ? MissionHandler.MISSION_READY_TO_TURN_IN
+                : MissionHandler.MISSION_IN_PROGRESS;
+            const progressDelta = Math.max(0, nextCount - currentCount);
+
+            if (currentCount === nextCount && aggregateState === nextState) {
+                continue;
+            }
+
+            MissionHandler.setMissionState(character, pair.aggregateId, nextState, aggregateDef, {
+                currCount: nextCount
+            });
+            return {
+                missionId: pair.aggregateId,
+                changed: true,
+                progressDelta,
+                becameReadyToTurnIn
+            };
+        }
+
+        return {
+            missionId: 0,
+            changed: false,
+            progressDelta: 0,
+            becameReadyToTurnIn: false
+        };
     }
 
     static async handleForcedDungeonBossCompletion(client: Client, destroyedEntity: any): Promise<void> {
@@ -2006,34 +2210,55 @@ export class MissionHandler {
         return MissionID.FindAnnasFather;
     }
 
-    private static primeWelcomePartyFollowup(client: Client, completedMissionId: number): number {
-        if (!client.character) {
+    private static primeChainedDungeonFollowupMission(
+        client: Client,
+        currentLevel: string,
+        completedMissionId: number
+    ): number {
+        if (!client.character || !completedMissionId) {
             return 0;
         }
 
-        const followupMissionId =
-            completedMissionId === MissionID.HeadToValhaven
-                ? MissionID.MeetWithOdin
-                : completedMissionId === MissionID.HeadToValhavenHard
-                    ? MissionID.MeetWithOdinHard
-                    : 0;
-        if (!followupMissionId) {
+        const normalizedCurrentLevel = LevelConfig.normalizeLevelName(currentLevel) || String(currentLevel ?? '').trim();
+        if (!normalizedCurrentLevel || !LevelConfig.isDungeonLevel(normalizedCurrentLevel)) {
             return 0;
         }
 
-        if (MissionHandler.getMissionState(client.character, followupMissionId) !== MissionHandler.MISSION_NOT_STARTED) {
+        const nextLevel = LevelConfig.normalizeLevelName(LevelConfig.getDoorTarget(normalizedCurrentLevel, 2));
+        if (!nextLevel || !LevelConfig.isDungeonLevel(nextLevel)) {
             return 0;
         }
 
-        const missionDef = MissionLoader.getMissionDef(followupMissionId);
-        if (!missionDef || !MissionHandler.canStartMission(client.character, missionDef)) {
+        const completedMissionDef = MissionLoader.getMissionDef(completedMissionId);
+        const followupMissionDef = MissionLoader.findPrimaryMissionByDungeon(nextLevel);
+        if (!completedMissionDef || !followupMissionDef) {
             return 0;
         }
 
-        const initialState = MissionHandler.getInitialMissionState(missionDef);
-        MissionHandler.setMissionState(client.character, followupMissionId, initialState, missionDef, {
-            currCount: Math.max(0, Number(missionDef.CompleteCount ?? 0))
-        });
+        const followupMissionId = Number(followupMissionDef.MissionID ?? 0);
+        if (
+            !followupMissionId ||
+            followupMissionId === completedMissionId ||
+            MissionHandler.getMissionState(client.character, followupMissionId) !== MissionHandler.MISSION_NOT_STARTED
+        ) {
+            return 0;
+        }
+
+        const completedMissionName = String(completedMissionDef.MissionName ?? '').trim();
+        const requiresCompletedMission = (followupMissionDef.PreReqMissions ?? [])
+            .some((missionName) => String(missionName ?? '').trim() === completedMissionName);
+        if (!requiresCompletedMission || !MissionHandler.canStartMission(client.character, followupMissionDef)) {
+            return 0;
+        }
+
+        const initialState = MissionHandler.getInitialMissionState(followupMissionDef);
+        MissionHandler.setMissionState(
+            client.character,
+            followupMissionId,
+            initialState,
+            followupMissionDef,
+            { currCount: 0 }
+        );
         MissionHandler.sendMissionAdded(client, followupMissionId, initialState);
         return followupMissionId;
     }
@@ -2062,7 +2287,10 @@ export class MissionHandler {
                 continue;
             }
 
-            if (MissionHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '') !== normalizedNpc) {
+            const contactKey = MissionHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '');
+            const returnKey = MissionHandler.getMissionReturnNpcKey(missionDef);
+            const startsAtReturnOnly = !contactKey && Boolean(returnKey) && returnKey === normalizedNpc;
+            if (!startsAtReturnOnly) {
                 continue;
             }
 
@@ -2078,6 +2306,19 @@ export class MissionHandler {
         }
 
         return 0;
+    }
+
+    private static getMissionReturnNpcKey(missionDef: MissionDef): string {
+        const returnKey = MissionHandler.normalizeMissionNpcKey(missionDef.ReturnName ?? '');
+        if (returnKey) {
+            return returnKey;
+        }
+
+        if (Number(missionDef.MissionID ?? 0) === MissionID.ClearYourHouse) {
+            return MissionHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '');
+        }
+
+        return '';
     }
 
     private static claimKeepQuestCompletionReward(
@@ -3103,7 +3344,27 @@ export class MissionHandler {
             nrquestanna03hard: 'nranna03hard',
             pecky: 'nrpecky',
             captainfink: 'nrcaptfink',
-            fink: 'nrcaptfink'
+            fink: 'nrcaptfink',
+            captain: 'nrcaptfink',
+            npccaptain: 'nrcaptfink',
+            npcorder01: 'vhjackal02',
+            npcorder02: 'vhodin01',
+            npcorder03: 'vhfabmab01',
+            npcorder04: 'vhodin01',
+            npcorder01hard: 'vhjackal02hard',
+            npcorder02hard: 'vhodin01hard',
+            npcorder03hard: 'vhfabmab01hard',
+            npcorder04hard: 'vhodin01hard',
+            npcrebel01: 'vhrebel01',
+            npcrebel02: 'vhrebel02',
+            npcrebel01hard: 'vhrebel01hard',
+            npcrebel02hard: 'vhrebel02hard',
+            npcvagrant02: 'vhskitts01',
+            npcvagrant01: 'vhvagrant01',
+            npcvagrant02hard: 'vhskitts01hard',
+            npcvagrant01hard: 'vhvagrant01hard',
+            npcmonk01: 'vhmonk01',
+            npcmonk01hard: 'vhmonk01hard'
         };
 
         return aliases[normalized] ?? normalized;

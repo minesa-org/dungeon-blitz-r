@@ -181,6 +181,19 @@ export class NpcHandler {
                             await NpcHandler.persistCharacter(client);
                         }
 
+                        const followupMissionId = NpcHandler.autoAcceptFollowupMission(
+                            client.character,
+                            missionDef?.ReturnName ?? missionDef?.ContactName ?? ''
+                        );
+                        if (followupMissionId > 0) {
+                            const followupDef = MissionLoader.getMissionDef(followupMissionId);
+                            NpcHandler.sendMissionAdded(
+                                client,
+                                followupMissionId,
+                                NpcHandler.getInitialMissionState(followupDef)
+                            );
+                        }
+
                         didMutate = true;
                     }
                 }
@@ -309,6 +322,41 @@ export class NpcHandler {
                 primedContactOffer: best.primedContactOffer
             }
             : null;
+    }
+
+    private static autoAcceptFollowupMission(character: Character, npcName: string): number {
+        const normalizedNpc = NpcHandler.normalizeMissionNpcKey(npcName);
+        if (!normalizedNpc) {
+            return 0;
+        }
+
+        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
+            if (NpcHandler.getMissionState(character, missionId) !== NpcHandler.MISSION_NOT_STARTED) {
+                continue;
+            }
+
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            if (!missionDef) {
+                continue;
+            }
+
+            const contactKey = NpcHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '');
+            const returnKey = NpcHandler.getMissionReturnNpcKey(missionDef);
+            const startsAtReturnOnly = !contactKey && Boolean(returnKey) && returnKey === normalizedNpc;
+            if (!startsAtReturnOnly) {
+                continue;
+            }
+
+            if (!NpcHandler.canStartMission(character, missionDef)) {
+                continue;
+            }
+
+            const initialState = NpcHandler.getInitialMissionState(missionDef);
+            NpcHandler.setMissionState(character, missionId, initialState, { currCount: 0 });
+            return missionId;
+        }
+
+        return 0;
     }
 
     private static canStartMission(character: Character, missionDef: MissionDef): boolean {
@@ -845,6 +893,24 @@ export class NpcHandler {
             fink: 'nrcaptfink',
             captain: 'nrcaptfink',
             npccaptain: 'nrcaptfink',
+            npcorder01: 'vhjackal02',
+            npcorder02: 'vhodin01',
+            npcorder03: 'vhfabmab01',
+            npcorder04: 'vhodin01',
+            npcorder01hard: 'vhjackal02hard',
+            npcorder02hard: 'vhodin01hard',
+            npcorder03hard: 'vhfabmab01hard',
+            npcorder04hard: 'vhodin01hard',
+            npcrebel01: 'vhrebel01',
+            npcrebel02: 'vhrebel02',
+            npcrebel01hard: 'vhrebel01hard',
+            npcrebel02hard: 'vhrebel02hard',
+            npcvagrant02: 'vhskitts01',
+            npcvagrant01: 'vhvagrant01',
+            npcvagrant02hard: 'vhskitts01hard',
+            npcvagrant01hard: 'vhvagrant01hard',
+            npcmonk01: 'vhmonk01',
+            npcmonk01hard: 'vhmonk01hard',
             affric: 'nraffric',
             npcaffric: 'nraffric',
             odem: 'nrodem',
@@ -885,6 +951,24 @@ export class NpcHandler {
             pecky: 'nrpecky',
             captainfink: 'nrcaptfink',
             fink: 'nrcaptfink',
+            npcorder01: 'vhjackal02',
+            npcorder02: 'vhodin01',
+            npcorder03: 'vhfabmab01',
+            npcorder04: 'vhodin01',
+            npcorder01hard: 'vhjackal02hard',
+            npcorder02hard: 'vhodin01hard',
+            npcorder03hard: 'vhfabmab01hard',
+            npcorder04hard: 'vhodin01hard',
+            npcrebel01: 'vhrebel01',
+            npcrebel02: 'vhrebel02',
+            npcrebel01hard: 'vhrebel01hard',
+            npcrebel02hard: 'vhrebel02hard',
+            npcvagrant02: 'vhskitts01',
+            npcvagrant01: 'vhvagrant01',
+            npcvagrant02hard: 'vhskitts01hard',
+            npcvagrant01hard: 'vhvagrant01hard',
+            npcmonk01: 'vhmonk01',
+            npcmonk01hard: 'vhmonk01hard',
             npcodem: 'odem',
             npcodemhard: 'odemhard'
         };
