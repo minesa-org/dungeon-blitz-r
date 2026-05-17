@@ -76,6 +76,8 @@ export class PresenceService {
         BridgeTown: 'fellbridge',
         Castle: 'castlehocke',
         EmeraldGlades: 'emeraldglades',
+        JadeCity: 'valhaven',
+        JadeCityHard: 'valhaven',
         ShazariDesert: 'shazaridesert',
         OldMineMountain: 'stormshardmountain',
         CemeteryHill: 'cemeteryhill',

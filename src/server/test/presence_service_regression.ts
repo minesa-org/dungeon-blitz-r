@@ -87,6 +87,7 @@ function testJadeCityPresenceUsesValhavenName(): void {
     assert.ok(snapshot, 'presence snapshot should resolve for Valhaven clients');
     assert.equal(snapshot.levelName, 'Valhaven');
     assert.equal(snapshot.details, 'Valhaven');
+    assert.equal(snapshot.areaKey, 'valhaven');
 }
 
 function testJadeCityHardPresenceUsesValhavenName(): void {
@@ -97,6 +98,7 @@ function testJadeCityHardPresenceUsesValhavenName(): void {
     assert.ok(snapshot, 'presence snapshot should resolve for hard Valhaven clients');
     assert.equal(snapshot.levelName, 'Valhaven (Hard)');
     assert.equal(snapshot.details, 'Valhaven (Hard)');
+    assert.equal(snapshot.areaKey, 'valhaven');
 }
 
 function testJadeCityMissionFallbackUsesValhavenPrefix(): void {
