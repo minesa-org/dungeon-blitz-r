@@ -2722,7 +2722,8 @@ export class LevelHandler {
             return arachnaeConnectorTarget;
         }
 
-        return LevelConfig.getDoorTarget(currentLevel, doorId);
+        const target = LevelConfig.getDoorTarget(currentLevel, doorId);
+        return LevelHandler.resolveCompletedCastleGatewayTarget(client, currentLevel, doorId, target) ?? target;
     }
 
     private static resolveArachnaeConnectorDoorTarget(client: Client, currentLevel: string, doorId: number): string | null {
@@ -2743,6 +2744,40 @@ export class LevelHandler {
         }
 
         return null;
+    }
+
+    private static resolveCompletedCastleGatewayTarget(
+        client: Client,
+        currentLevel: string | null | undefined,
+        doorId: number,
+        targetLevelRaw: string | null | undefined
+    ): string | null {
+        const normalizedCurrentLevel = LevelConfig.normalizeLevelName(currentLevel);
+        const targetLevel = LevelConfig.normalizeLevelName(targetLevelRaw || '') || String(targetLevelRaw || '').trim();
+        if (!normalizedCurrentLevel || !targetLevel) {
+            return null;
+        }
+
+        const gatewayByTarget: Record<string, { sourceLevel: string; missionId: number; zoneLevel: string }> = {
+            AC_Mission1: {
+                sourceLevel: 'BridgeTown',
+                missionId: MissionID.DeepgardDragon,
+                zoneLevel: 'Castle'
+            },
+            AC_Mission1Hard: {
+                sourceLevel: 'BridgeTownHard',
+                missionId: MissionID.DeepgardDragonHard,
+                zoneLevel: 'CastleHard'
+            }
+        };
+        const gateway = gatewayByTarget[targetLevel];
+        if (!gateway || normalizedCurrentLevel !== gateway.sourceLevel || doorId !== 3) {
+            return null;
+        }
+
+        return LevelHandler.getMissionState(client, gateway.missionId) >= LevelHandler.MISSION_READY_TO_TURN_IN
+            ? gateway.zoneLevel
+            : null;
     }
 
     private static hasRoomEventStarted(client: Client, roomId: number): boolean {
@@ -3436,6 +3471,13 @@ export class LevelHandler {
         }
 
         targetLevel = LevelHandler.resolveKeepTutorialTransferTarget(client, targetLevel);
+        targetLevel =
+            LevelHandler.resolveCompletedCastleGatewayTarget(
+                client,
+                client.currentLevel,
+                client.lastDoorId,
+                targetLevel
+            ) ?? targetLevel;
 
         if (!LevelConfig.has(targetLevel)) {
             const safeFallback = LevelConfig.normalizeLevelName(client.currentLevel || "NewbieRoad") || "NewbieRoad";

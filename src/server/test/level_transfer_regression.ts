@@ -49,6 +49,14 @@ function createClient(): any {
         playerSpawned: false,
         mountTransferGraceUntil: 0,
         startedRoomEvents: new Set<string>(),
+        pendingLoot: new Map(),
+        processedRewardSources: new Set<string>(),
+        triggeredLevelStates: new Set<string>(),
+        keepTutorialState: null,
+        goblinRiverBossIntroUnlockTimer: null,
+        goblinRiverBossIntroLockUntil: 0,
+        clientSpawnConfirmed: false,
+        dungeonRun: null,
         knownEntityIds: new Set<number>(),
         sentPackets,
         armPendingTransferGrace() {
@@ -146,6 +154,29 @@ function parseEnterWorldLevelPacket(payload: Buffer): { mapLevel: number; baseLe
     const internalName = br.readMethod13();
 
     return { mapLevel, baseLevel, internalName };
+}
+
+function parseEnterWorldVisualPacket(payload: Buffer): { internalName: string; isDungeon: boolean } {
+    const br = new BitReader(payload);
+    br.readMethod4();
+    br.readMethod4();
+    br.readMethod13();
+    const hasOldCoord = br.readMethod15();
+    if (hasOldCoord) {
+        br.readMethod4();
+        br.readMethod4();
+    }
+    br.readMethod13();
+    br.readMethod4();
+    br.readMethod13();
+    br.readMethod6(6);
+    br.readMethod6(6);
+    const internalName = br.readMethod13();
+    br.readMethod13();
+    br.readMethod13();
+    const isDungeon = br.readMethod15();
+
+    return { internalName, isDungeon };
 }
 
 function withMockedRandom(values: number[], fn: () => void): void {
@@ -797,6 +828,109 @@ function testCemeteryHillGeneralSvenDoorTargetsMiniMission9(): void {
     assert.deepEqual(parseDoorTargetPacket(doorTargetPacket.payload), {
         doorId: 209,
         target: 'CH_MiniMission9'
+    });
+}
+
+function testCompletedCastleHockeGatewayTargetsCastleZone(): void {
+    const client = createClient();
+    client.currentLevel = 'BridgeTown';
+    client.character = createCharacter('CastleRunner');
+    client.character.missions = {
+        [String(MissionID.DeepgardDragon)]: {
+            state: 2,
+            currCount: 1,
+            Tier: 8,
+            highscore: 12345,
+            Time: 999
+        }
+    };
+
+    LevelHandler.handleRequestDoorState(client as never, createDoorStateRequestPacket(3));
+
+    const doorStatePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x42);
+    assert.ok(doorStatePacket);
+    assert.deepEqual(
+        parseDoorStatePacket(doorStatePacket.payload),
+        {
+            doorId: 3,
+            state: 1,
+            target: 'Castle'
+        },
+        'completed Castle Hocke gateway should show as a normal zone door, not a dungeon repeat door'
+    );
+
+    client.sentPackets.length = 0;
+    LevelHandler.handleOpenDoor(client as never, createOpenDoorPacket(3));
+
+    assert.equal(client.lastDoorId, 3);
+    assert.equal(client.lastDoorTargetLevel, 'Castle');
+    const doorTargetPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x2E);
+    assert.ok(doorTargetPacket);
+    assert.deepEqual(parseDoorTargetPacket(doorTargetPacket.payload), {
+        doorId: 3,
+        target: 'Castle'
+    });
+}
+
+async function testCompletedCastleHockeTransferRequestTargetsCastleZone(): Promise<void> {
+    const client = createClient();
+    client.token = 3301;
+    client.currentLevel = 'BridgeTown';
+    client.lastDoorId = 3;
+    client.lastDoorTargetLevel = 'Castle';
+    client.character = createCharacter('CastleRunner');
+    client.character.CurrentLevel = { name: 'BridgeTown', x: 3944, y: 838 };
+    client.character.PreviousLevel = { name: 'SwampRoadNorth', x: 4360, y: 595 };
+    client.character.missions = {
+        [String(MissionID.DeepgardDragon)]: {
+            state: 2,
+            currCount: 1,
+            Tier: 8,
+            highscore: 12345,
+            Time: 999
+        }
+    };
+
+    await LevelHandler.handleLevelTransferRequest(
+        client as never,
+        createLevelTransferPacket(3301, 'AC_Mission1')
+    );
+
+    const enterWorldPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x21);
+    assert.ok(enterWorldPacket, 'completed Castle Hocke gateway transfer should still send an enter-world packet');
+    assert.deepEqual(
+        parseEnterWorldVisualPacket(enterWorldPacket.payload),
+        {
+            internalName: 'Castle',
+            isDungeon: false
+        },
+        'stale AC_Mission1 transfer requests from the completed gateway should be rewritten to the Castle zone'
+    );
+}
+
+function testCompletedDreadCastleHockeGatewayTargetsCastleHardZone(): void {
+    const client = createClient();
+    client.currentLevel = 'BridgeTownHard';
+    client.character = createCharacter('DreadCastleRunner');
+    client.character.missions = {
+        [String(MissionID.DeepgardDragonHard)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1,
+            Tier: 10
+        }
+    };
+
+    LevelHandler.handleOpenDoor(client as never, createOpenDoorPacket(3));
+
+    assert.equal(client.lastDoorId, 3);
+    assert.equal(client.lastDoorTargetLevel, 'CastleHard');
+    const doorTargetPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x2E);
+    assert.ok(doorTargetPacket);
+    assert.deepEqual(parseDoorTargetPacket(doorTargetPacket.payload), {
+        doorId: 3,
+        target: 'CastleHard'
     });
 }
 
@@ -1887,6 +2021,9 @@ async function main(): Promise<void> {
         testEmeraldGladesDreadPortalSpawnsAtGate();
         testEmeraldGladesDreadPortalReturnSpawnsAtGate();
         testCemeteryHillGeneralSvenDoorTargetsMiniMission9();
+        testCompletedCastleHockeGatewayTargetsCastleZone();
+        await testCompletedCastleHockeTransferRequestTargetsCastleZone();
+        testCompletedDreadCastleHockeGatewayTargetsCastleHardZone();
         testLockedDungeonDoorReportsLockedAndDoesNotOpen();
         await testLockedDungeonTransferRequestIsBlocked();
 
