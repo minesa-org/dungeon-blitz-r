@@ -170,6 +170,7 @@ export class Client {
     public authoritativeMaxHp: number = 100;
     public authoritativeCurrentHp: number = 100;
     public combatStatsDirty: boolean = false;
+    public allowDirtyCombatStatsRegen: boolean = false;
     public lastCombatStatsRefreshRequestAt: number = 0;
     public lastCombatActivityAt: number = 0;
     public lastCombatRegenTickAt: number = 0;
@@ -348,6 +349,7 @@ export class Client {
         this.authoritativeMaxHp = 100;
         this.authoritativeCurrentHp = 100;
         this.combatStatsDirty = false;
+        this.allowDirtyCombatStatsRegen = false;
         this.lastCombatStatsRefreshRequestAt = 0;
         this.lastCombatActivityAt = 0;
         this.lastCombatRegenTickAt = 0;

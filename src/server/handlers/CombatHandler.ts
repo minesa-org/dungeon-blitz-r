@@ -260,7 +260,7 @@ export class CombatHandler {
         return Math.max(1, baseMaxHp, bestKnownCurrentHp);
     }
 
-    private static ensureFreshPlayerCombatStats(client: Client, nowMs: number): boolean {
+    private static shouldDeferPlayerRegenForCombatStats(client: Client, nowMs: number): boolean {
         if (!client.combatStatsDirty) {
             return false;
         }
@@ -269,7 +269,7 @@ export class CombatHandler {
             client.lastCombatStatsRefreshRequestAt = nowMs;
             CharacterSync.requestCombatStatsRefresh(client);
         }
-        return true;
+        return !client.allowDirtyCombatStatsRegen;
     }
 
     private static buildCharRegenPayload(entityId: number, amount: number): Buffer {
@@ -498,7 +498,7 @@ export class CombatHandler {
         if (!levelScope) {
             return;
         }
-        if (CombatHandler.ensureFreshPlayerCombatStats(client, nowMs)) {
+        if (CombatHandler.shouldDeferPlayerRegenForCombatStats(client, nowMs)) {
             return;
         }
 
