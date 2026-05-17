@@ -249,6 +249,26 @@ function testTurkishEnemyFallbackKeepsLineVariety(): void {
     assert.notEqual(second, 'Saldirin!');
 }
 
+function testMeylourFallbackKeepsLineVarietyLikeScarab(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const first = DialogueTranslationLoader.translateText(
+        'Meylour will burn everything!',
+        'tr',
+        { fallbackToGeneric: true }
+    );
+    const second = DialogueTranslationLoader.translateText(
+        'Meylour will kill you!',
+        'tr',
+        { fallbackToGeneric: true }
+    );
+
+    assert.notEqual(first, 'Meylour icin!');
+    assert.notEqual(second, 'Meylour icin!');
+    assert.notEqual(first, second, 'unknown Meylour fallback should keep Scarab-style line variety');
+}
+
 function testSpecificDungeonRoomThoughtTranslation(): void {
     const dataDir = path.resolve(__dirname, '../data');
     DialogueTranslationLoader.load(dataDir);
@@ -443,6 +463,57 @@ function testFelbridgeMeylourRoomDialogueUsesExactTranslations(): void {
     ]);
 }
 
+function testFelbridgeMeylourLiveSkitSegmentsUseTranslations(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51008;
+    client.currentLevel = 'BT_Mission4';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+    client.entities.set(702, {
+        id: 702,
+        name: 'StewardOfFelbridge',
+        team: EntityTeam.ENEMY
+    });
+
+    const liveSkitSegments: Array<[string, string]> = [
+        ['Meylour is our only savior!', 'Meylour tek kurtaricimiz!'],
+        ['The Living Mountain preserve me!', 'Yasayan Dag beni korusun!'],
+        ['Meylour demands his sacrifices, LanguageTester!', 'Meylour kurbanlarini ister, LanguageTester!'],
+        ['This temple is sacred Paladin.', 'Bu tapinak kutsaldir Paladin.'],
+        ['Your doom is sealed, LanguageTester!', 'Sonun muhurlendi, LanguageTester!'],
+        ['They belong to Meylour now!', "Artik Meylour'a aitler!"],
+        ['Meylour grant me your strength!', 'Meylour, bana gucunu ver!'],
+        ['You will die on the peak, LanguageTester...', 'Zirvede oleceksin, LanguageTester...']
+    ];
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        for (const [source] of liveSkitSegments) {
+            SocialHandler.handleStartSkit(
+                client as never,
+                createStartSkitPacket(702, source)
+            );
+        }
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const thoughts = client.sentPackets
+        .filter((entry) => entry.id === 0x76)
+        .map((entry) => decodeRoomThought(entry.payload));
+
+    assert.deepEqual(thoughts.map((thought) => thought.text), liveSkitSegments.map(([, expected]) => expected));
+    assert.equal(
+        thoughts.some((thought) => thought.text === 'Meylour icin!'),
+        false,
+        'live Felbridge skit segments should not fall through to the old Meylour placeholder'
+    );
+}
+
 function testCapstoneRoomDialogueTranslationsCoverExtractedSource(): void {
     const dataDir = path.resolve(__dirname, '../data');
     const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
@@ -489,26 +560,49 @@ function testFelbridgeMeylourRoomDialogueTranslationsCoverExtractedSource(): voi
 
     const felbridgeMeylourLines = [
         "You cannot stop the Harvest Ritual!:You'll doom us all!",
+        'You cannot stop the Harvest Ritual!',
+        "You'll doom us all!",
         "@Looks like the Meylour's servants have gone wild.:@The Steward's house is being ruined.",
+        "Looks like the Meylour's servants have gone wild.",
+        "The Steward's house is being ruined.",
         'We shall carry you to the dire peak, sacrifice!',
         "Meylour's wrath will claim you!",
         'This temple is sacred #tc#.',
         "The Steward's ritual is complete...:Your doom is sealed, #tn#!",
+        "The Steward's ritual is complete...",
+        'Your doom is sealed, #tn#!',
         'Meylour will devour you all...',
         'For the Glory of Meylour, I give my life!',
         "He's|She's here for The Steward!:Cut him|her down!",
+        "He's here for The Steward!",
+        "She's here for The Steward!",
+        'Cut him down!',
+        'Cut her down!',
         'The Steward brought these.:They belong to Meylour now!',
+        'The Steward brought these.',
+        'They belong to Meylour now!',
         'These caves are holy ground, intruder.:Begone!',
+        'These caves are holy ground, intruder.',
+        'Begone!',
         'These offerings are for Meylour!:Begone, heretic!',
+        'These offerings are for Meylour!',
+        'Begone, heretic!',
         'Meylour The Living Mountain codemns thee!',
         'Meylour, I pray, devour my bones!',
         "::Felbridge didn't need your meddling!",
+        "Felbridge didn't need your meddling!",
         "Meylour's Eternal Avalanche will crush you!",
         "You snivelling worm!:You dare to defile Meylour's temple?",
+        'You snivelling worm!',
+        "You dare to defile Meylour's temple?",
         'Meylour, my blood runs for thee!',
         'More sacrifices for the Living Mountain::Meylour grant me your strength!',
+        'More sacrifices for the Living Mountain',
+        'Meylour grant me your strength!',
         'Oh that I shall be reborn as rock, Mighty Meylour!',
         'Oh, you from Felbridge?:Come to the woods for some payback, have ye?',
+        'Oh, you from Felbridge?',
+        'Come to the woods for some payback, have ye?',
         'No wonder the people of Felbridge are so wary of strangers.',
         'So, #tn#. The Steward was right about you.',
         'Where is he? If you lot have hurt the Steward...',
@@ -517,6 +611,8 @@ function testFelbridgeMeylourRoomDialogueTranslationsCoverExtractedSource(): voi
         'The Steward and his evil cult have sacrificed innocents...',
         'Time to put an end to the Steward and whoever is in league with him',
         'Meylour is our only savior!:The Living Mountain preserve me!',
+        'Meylour is our only savior!',
+        'The Living Mountain preserve me!',
         'Meylour demands his sacrifices, #tn#!',
         "You've sacrificed scores of people to your dark god.",
         '<Goto Red 1>And I will continue to give Meylour more!',
@@ -525,7 +621,8 @@ function testFelbridgeMeylourRoomDialogueTranslationsCoverExtractedSource(): voi
         'We will never go back there!',
         'NEVER!',
         'You will die on the peak, #tn#...',
-        'Your cult is finished, Steward.'
+        'Your cult is finished, Steward.',
+        "I need to let the Warden know he's in charge now."
     ];
 
     const missing = felbridgeMeylourLines.filter((line) => !String(translations.translations?.[line] ?? '').trim());
@@ -602,11 +699,13 @@ async function main(): Promise<void> {
     testTurkishRoomThoughtUsesTranslationTable();
     testTurkishRoomThoughtFallbackPreventsEnemyEnglish();
     testTurkishEnemyFallbackKeepsLineVariety();
+    testMeylourFallbackKeepsLineVarietyLikeScarab();
     testSpecificDungeonRoomThoughtTranslation();
     testSplitDungeonRoomThoughtTranslation();
     testLevelHandlerRoomThoughtUsesRecipientLanguage();
     testCapstoneBossDialogueTranslatesEnemyAndPlayerLines();
     testFelbridgeMeylourRoomDialogueUsesExactTranslations();
+    testFelbridgeMeylourLiveSkitSegmentsUseTranslations();
     testCapstoneRoomDialogueTranslationsCoverExtractedSource();
     testFelbridgeMeylourRoomDialogueTranslationsCoverExtractedSource();
     testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource();
