@@ -17,6 +17,7 @@ interface LockboxRewardDefinition {
     index: number;
     name: string | null;
     type: LockboxRewardType;
+    weight: number;
     goldAmount?: number;
 }
 
@@ -25,8 +26,31 @@ interface ResolvedLockboxReward {
     type: LockboxRewardType;
     grantName: string;
     packetName: string;
+    rarity: string;
     gearId?: number;
     goldAmount?: number;
+    selectionDebug: {
+        topLevelRoll: number;
+        topLevelChancePercent: number;
+        topLevelBandStartPercent: number;
+        topLevelBandEndPercent: number;
+        secondaryRoll?: number;
+        secondaryChancePercent?: number;
+        secondaryPoolSize?: number;
+    };
+}
+
+interface LockboxRewardPoolSnapshot {
+    rewards: LockboxRewardDefinition[];
+    totalWeight: number;
+}
+
+interface WeightedRewardPick {
+    reward: LockboxRewardDefinition;
+    roll: number;
+    bandStart: number;
+    bandEnd: number;
+    totalWeight: number;
 }
 
 export class LockboxHandler {
@@ -42,26 +66,26 @@ export class LockboxHandler {
         2: { quantity: 25, cost: 470 }
     };
     private static readonly LOCKBOX_REWARD_POOL: LockboxRewardDefinition[] = [
-        { index: 0, name: 'MountLockbox01L01', type: 'mount' },
-        { index: 1, name: 'Lockbox01L01', type: 'pet' },
-        { index: 2, name: 'GenericBrown', type: 'egg' },
-        { index: 3, name: 'CommonBrown', type: 'egg' },
-        { index: 4, name: 'OrdinaryBrown', type: 'egg' },
-        { index: 5, name: 'PlainBrown', type: 'egg' },
-        { index: 6, name: 'RarePetFood', type: 'consumable' },
-        { index: 7, name: 'PetFood', type: 'consumable' },
-        { index: 8, name: null, type: 'gear' },
-        { index: 9, name: 'TripleFind', type: 'charm' },
-        { index: 10, name: 'DoubleFind1', type: 'charm' },
-        { index: 11, name: 'DoubleFind2', type: 'charm' },
-        { index: 12, name: 'DoubleFind3', type: 'charm' },
-        { index: 13, name: 'MajorLegendaryCatalyst', type: 'consumable' },
-        { index: 14, name: 'MajorRareCatalyst', type: 'consumable' },
-        { index: 15, name: 'MinorRareCatalyst', type: 'consumable' },
-        { index: 16, name: '3,000,000 Gold', type: 'gold', goldAmount: 3000000 },
-        { index: 17, name: '1,500,000 Gold', type: 'gold', goldAmount: 1500000 },
-        { index: 18, name: '750,000 Gold', type: 'gold', goldAmount: 750000 },
-        { index: 19, name: null, type: 'dye' }
+        { index: 0, name: 'MountLockbox01L01', type: 'mount', weight: 0.5 },
+        { index: 1, name: 'Lockbox01L01', type: 'pet', weight: 1 },
+        { index: 2, name: 'GenericBrown', type: 'egg', weight: 2.5 },
+        { index: 3, name: 'CommonBrown', type: 'egg', weight: 2.5 },
+        { index: 4, name: 'OrdinaryBrown', type: 'egg', weight: 2.5 },
+        { index: 5, name: 'PlainBrown', type: 'egg', weight: 2.5 },
+        { index: 6, name: 'RarePetFood', type: 'consumable', weight: 7 },
+        { index: 7, name: 'PetFood', type: 'consumable', weight: 13 },
+        { index: 8, name: null, type: 'gear', weight: 2.5 },
+        { index: 9, name: 'TripleFind', type: 'charm', weight: 2 },
+        { index: 10, name: 'DoubleFind1', type: 'charm', weight: 7 },
+        { index: 11, name: 'DoubleFind2', type: 'charm', weight: 7 },
+        { index: 12, name: 'DoubleFind3', type: 'charm', weight: 7 },
+        { index: 13, name: 'MajorLegendaryCatalyst', type: 'consumable', weight: 4 },
+        { index: 14, name: 'MajorRareCatalyst', type: 'consumable', weight: 8 },
+        { index: 15, name: 'MinorRareCatalyst', type: 'consumable', weight: 12 },
+        { index: 16, name: '1,000,000 Gold', type: 'gold', weight: 2, goldAmount: 1000000 },
+        { index: 17, name: '500,000 Gold', type: 'gold', weight: 3, goldAmount: 500000 },
+        { index: 18, name: '250,000 Gold', type: 'gold', weight: 9, goldAmount: 250000 },
+        { index: 19, name: null, type: 'dye', weight: 5 }
     ];
     private static readonly CLASS_GEAR_IDS: Record<string, number[]> = {
         mage: [1165, 1166, 1167, 1168, 1169, 1170],
@@ -189,13 +213,33 @@ export class LockboxHandler {
         LockboxHandler.addLockboxes(client.character, LockboxHandler.TROVE_LOCKBOX_ID, -1);
         client.character.DragonKeys = currentKeys - 1;
 
-        const reward = LockboxHandler.selectReward(client.character);
+        const rewardPool = LockboxHandler.buildRewardPool(client.character);
+        const reward = LockboxHandler.selectReward(client.character, rewardPool);
         LockboxHandler.sendLockboxReveal(client, reward);
 
         const sigilReward = 50 + Math.floor(Math.random() * 101);
         client.character.SilverSigils = Number(client.character.SilverSigils ?? 0) + sigilReward;
         ensureSigilStoreAlertState(client.character);
         LockboxHandler.sendRoyalSigilReward(client, sigilReward);
+
+        console.log(
+            `[LockboxHandler] Treasure Trove opened by ${String(client.character.name ?? 'Unknown')}: ` +
+            `rewardIndex=${reward.index} type=${reward.type} rarity=${reward.rarity} name="${reward.grantName}" ` +
+            `gearId=${Number(reward.gearId ?? 0)} gold=${Number(reward.goldAmount ?? 0)} ` +
+            `topRoll=${LockboxHandler.formatChanceRoll(reward.selectionDebug.topLevelRoll)} ` +
+            `topChance=${LockboxHandler.formatPercent(reward.selectionDebug.topLevelChancePercent)} ` +
+            `topBand=${LockboxHandler.formatPercent(reward.selectionDebug.topLevelBandStartPercent)}-${LockboxHandler.formatPercent(reward.selectionDebug.topLevelBandEndPercent)} ` +
+            (
+                reward.selectionDebug.secondaryChancePercent == null
+                    ? ''
+                    : `subRoll=${LockboxHandler.formatChanceRoll(reward.selectionDebug.secondaryRoll ?? 0)} ` +
+                        `subChance=${LockboxHandler.formatPercent(reward.selectionDebug.secondaryChancePercent)} ` +
+                        `subPool=${Number(reward.selectionDebug.secondaryPoolSize ?? 0)} `
+            ) +
+            `sigils=${sigilReward} poolEntries=${rewardPool.rewards.length} poolWeight=${rewardPool.totalWeight} ` +
+            `remainingTroves=${LockboxHandler.getLockboxCount(client.character, LockboxHandler.TROVE_LOCKBOX_ID)} ` +
+            `remainingKeys=${Number(client.character.DragonKeys ?? 0)}`
+        );
 
         await LockboxHandler.applyReward(client, reward);
         await LockboxHandler.saveCharacter(client);
@@ -245,7 +289,7 @@ export class LockboxHandler {
         return Number(normalized.find((lockbox) => lockbox.lockboxID === lockboxId)?.count ?? 0);
     }
 
-    private static selectReward(character: any): ResolvedLockboxReward {
+    private static buildRewardPool(character: any): LockboxRewardPoolSnapshot {
         const className = String(character?.class ?? 'paladin').trim().toLowerCase();
         const ownedMounts = new Set<number>(PetHandler.normalizeMountState(character));
         const ownedPetTypes = new Set<number>(
@@ -294,7 +338,7 @@ export class LockboxHandler {
             return true;
         });
 
-        const rewardPool = availableRewards.length > 0
+        const rewards = availableRewards.length > 0
             ? availableRewards
             : LockboxHandler.LOCKBOX_REWARD_POOL.filter((reward) =>
                 reward.type === 'gold' ||
@@ -302,50 +346,94 @@ export class LockboxHandler {
                 reward.type === 'charm' ||
                 reward.type === 'egg'
             );
-        const selectedReward = rewardPool[Math.floor(Math.random() * rewardPool.length)] ?? LockboxHandler.LOCKBOX_REWARD_POOL[18];
+        const totalWeight = rewards.reduce((sum, reward) => sum + Math.max(0, Number(reward.weight ?? 0)), 0);
+        return { rewards, totalWeight };
+    }
+
+    private static selectReward(
+        character: any,
+        rewardPoolSnapshot: LockboxRewardPoolSnapshot = LockboxHandler.buildRewardPool(character)
+    ): ResolvedLockboxReward {
+        const className = String(character?.class ?? 'paladin').trim().toLowerCase();
+        const ownedDyes = new Set<number>(
+            (Array.isArray(character?.OwnedDyes) ? character.OwnedDyes : [])
+                .map((dyeId: unknown) => Number(dyeId))
+                .filter((dyeId: number) => dyeId > 0)
+        );
+        const ownedGearIds = new Set<number>();
+        for (const rawGear of Array.isArray(character?.inventoryGears) ? character.inventoryGears : []) {
+            const gearId = Number(rawGear?.gearID ?? 0);
+            if (gearId > 0) {
+                ownedGearIds.add(gearId);
+            }
+        }
+        for (const rawGear of Array.isArray(character?.equippedGears) ? character.equippedGears : []) {
+            const gearId = Number(rawGear?.gearID ?? 0);
+            if (gearId > 0) {
+                ownedGearIds.add(gearId);
+            }
+        }
+
+        const rewardPool = rewardPoolSnapshot.rewards;
+        const weightedPick = LockboxHandler.pickWeightedReward(rewardPool);
+        const selectedReward = weightedPick?.reward ?? LockboxHandler.LOCKBOX_REWARD_POOL[18];
+        const selectionDebug = LockboxHandler.buildSelectionDebug(weightedPick, selectedReward, rewardPoolSnapshot.totalWeight);
 
         if (selectedReward.type === 'dye') {
             const availableDyeNames = LockboxHandler.LEGENDARY_DYES.filter(
                 (dyeName) => !ownedDyes.has(GameData.getDyeId(dyeName))
             );
-            const dyeName = availableDyeNames[Math.floor(Math.random() * availableDyeNames.length)] ?? 'BroodMotherBlack';
+            const secondaryRoll = Math.random();
+            const dyeName = availableDyeNames[Math.floor(secondaryRoll * availableDyeNames.length)] ?? 'BroodMotherBlack';
+            const dyeId = GameData.getDyeId(dyeName);
             return {
                 index: selectedReward.index,
                 type: 'dye',
                 grantName: dyeName,
-                packetName: dyeName
+                packetName: dyeName,
+                rarity: GameData.DYES.find((dye) => dye.id === dyeId)?.rarity ?? 'L',
+                selectionDebug: LockboxHandler.withSecondarySelection(selectionDebug, secondaryRoll, availableDyeNames.length)
             };
         }
 
         if (selectedReward.type === 'gear') {
             const availableGearIds = LockboxHandler.getAvailableClassGearIds(className, ownedGearIds);
-            const gearId = availableGearIds[Math.floor(Math.random() * availableGearIds.length)] ?? 0;
+            const secondaryRoll = Math.random();
+            const gearId = availableGearIds[Math.floor(secondaryRoll * availableGearIds.length)] ?? 0;
             return {
                 index: selectedReward.index,
                 type: 'gear',
                 grantName: LockboxHandler.CLASS_GEAR_NAMES[gearId] ?? `LockboxGear${gearId}`,
                 packetName: LockboxHandler.CLASS_GEAR_NAMES[gearId] ?? `LockboxGear${gearId}`,
-                gearId
+                gearId,
+                rarity: 'L',
+                selectionDebug: LockboxHandler.withSecondarySelection(selectionDebug, secondaryRoll, availableGearIds.length)
             };
         }
 
         const rewardName = selectedReward.name ?? '';
         if (selectedReward.type === 'egg') {
-            const petDef = PetConfig.resolveRandomPetForEggName(rewardName);
+            const eligiblePets = PetConfig.getHatchablePetsForEggName(rewardName);
+            const secondaryRoll = Math.random();
+            const petDef = PetConfig.resolveRandomPetForEggName(rewardName, secondaryRoll);
             if (!petDef) {
                 return {
                     index: selectedReward.index,
                     type: 'gold',
-                    grantName: '750,000 Gold',
-                    packetName: '750,000 Gold',
-                    goldAmount: 750000
+                    grantName: '250,000 Gold',
+                    packetName: '250,000 Gold',
+                    rarity: 'N/A',
+                    goldAmount: 250000,
+                    selectionDebug
                 };
             }
             return {
                 index: selectedReward.index,
                 type: 'egg',
                 grantName: String(petDef.PetName ?? rewardName),
-                packetName: String(petDef.PetName ?? rewardName)
+                packetName: String(petDef.PetName ?? rewardName),
+                rarity: String(petDef.DisplayRarity ?? 'M'),
+                selectionDebug: LockboxHandler.withSecondarySelection(selectionDebug, secondaryRoll, eligiblePets.length)
             };
         }
 
@@ -354,13 +442,117 @@ export class LockboxHandler {
             type: selectedReward.type,
             grantName: rewardName,
             packetName: rewardName,
-            goldAmount: selectedReward.goldAmount
+            rarity: LockboxHandler.resolveRewardRarity(selectedReward.type, rewardName),
+            goldAmount: selectedReward.goldAmount,
+            selectionDebug
         };
     }
 
     private static getAvailableClassGearIds(className: string, ownedGearIds: Set<number>): number[] {
         const classGearIds = LockboxHandler.CLASS_GEAR_IDS[className] ?? LockboxHandler.CLASS_GEAR_IDS.paladin;
         return classGearIds.filter((gearId) => !ownedGearIds.has(gearId));
+    }
+
+    private static pickWeightedReward(rewardPool: LockboxRewardDefinition[]): WeightedRewardPick | null {
+        const totalWeight = rewardPool.reduce((sum, reward) => sum + Math.max(0, Number(reward.weight ?? 0)), 0);
+        if (totalWeight <= 0) {
+            return null;
+        }
+
+        const roll = Math.random() * totalWeight;
+        let remaining = roll;
+        let bandStart = 0;
+        for (const reward of rewardPool) {
+            const weight = Math.max(0, Number(reward.weight ?? 0));
+            remaining -= weight;
+            if (remaining < 0) {
+                return {
+                    reward,
+                    roll,
+                    bandStart,
+                    bandEnd: bandStart + weight,
+                    totalWeight
+                };
+            }
+            bandStart += weight;
+        }
+
+        const reward = rewardPool[rewardPool.length - 1];
+        if (!reward) {
+            return null;
+        }
+        const weight = Math.max(0, Number(reward.weight ?? 0));
+        return {
+            reward,
+            roll,
+            bandStart: Math.max(0, totalWeight - weight),
+            bandEnd: totalWeight,
+            totalWeight
+        };
+    }
+
+    private static buildSelectionDebug(
+        weightedPick: WeightedRewardPick | null,
+        selectedReward: LockboxRewardDefinition,
+        totalWeight: number
+    ): ResolvedLockboxReward['selectionDebug'] {
+        const safeTotalWeight = Math.max(0, Number(weightedPick?.totalWeight ?? totalWeight ?? 0));
+        const selectedWeight = Math.max(0, Number(selectedReward.weight ?? 0));
+        return {
+            topLevelRoll: safeTotalWeight > 0 ? Number(weightedPick?.roll ?? 0) / safeTotalWeight : 0,
+            topLevelChancePercent: safeTotalWeight > 0 ? (selectedWeight / safeTotalWeight) * 100 : 0,
+            topLevelBandStartPercent: safeTotalWeight > 0 ? (Number(weightedPick?.bandStart ?? 0) / safeTotalWeight) * 100 : 0,
+            topLevelBandEndPercent: safeTotalWeight > 0 ? (Number(weightedPick?.bandEnd ?? selectedWeight) / safeTotalWeight) * 100 : 0
+        };
+    }
+
+    private static withSecondarySelection(
+        selectionDebug: ResolvedLockboxReward['selectionDebug'],
+        secondaryRoll: number,
+        poolSize: number
+    ): ResolvedLockboxReward['selectionDebug'] {
+        return {
+            ...selectionDebug,
+            secondaryRoll,
+            secondaryChancePercent: poolSize > 0 ? 100 / poolSize : 0,
+            secondaryPoolSize: poolSize
+        };
+    }
+
+    private static resolveRewardRarity(type: LockboxRewardType, rewardName: string): string {
+        if (type === 'mount') {
+            return 'L';
+        }
+
+        if (type === 'pet') {
+            return String(
+                PetConfig.PET_TYPES.find((pet) => String(pet?.PetName ?? '') === rewardName)?.DisplayRarity ?? 'L'
+            );
+        }
+
+        if (type === 'consumable') {
+            return String(
+                GameData.CONSUMABLES.find((consumable) => String(consumable?.ConsumableName ?? '') === rewardName)?.Rarity ?? 'N/A'
+            );
+        }
+
+        if (type === 'gold') {
+            return 'N/A';
+        }
+
+        if (type === 'charm') {
+            return 'Special';
+        }
+
+        return 'N/A';
+    }
+
+    private static formatPercent(value: number): string {
+        return `${Number(value ?? 0).toFixed(3)}%`;
+    }
+
+    private static formatChanceRoll(value: number): string {
+        return LockboxHandler.formatPercent(Math.max(0, Math.min(1, Number(value ?? 0))) * 100);
     }
 
     private static async applyReward(client: Client, reward: ResolvedLockboxReward): Promise<void> {
