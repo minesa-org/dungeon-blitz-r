@@ -514,6 +514,61 @@ function testFelbridgeMeylourLiveSkitSegmentsUseTranslations(): void {
     );
 }
 
+function testBridgeTownMissionsLiveSkitSegmentsUseTranslations(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    DialogueTranslationLoader.load(dataDir);
+
+    const client = createFakeClient();
+    client.character.dialogueLanguage = 'tr';
+    client.token = 51009;
+    client.currentLevel = 'BT_Mission1';
+    client.levelInstanceId = '';
+    client.playerSpawned = true;
+    client.entities.set(703, {
+        id: 703,
+        name: 'BridgeTownMissionEnemy',
+        team: EntityTeam.ENEMY
+    });
+
+    const liveSkitSegments: Array<[string, string]> = [
+        ["LanguageTester, you should've stayed back across the sea.", 'LanguageTester, denizin ote yakasinda kalmaliydin.'],
+        ['You always were a servile lapdog, LanguageTester.', 'Her zaman yalaka bir kopektin, LanguageTester.'],
+        ["He's from the King!", 'Kral tarafindan gelmis!'],
+        ['Come to take us back in chains!', 'Bizi zincire vurup geri goturmeye gelmis!'],
+        ['I got one last trick for you, LanguageTester!', 'Senin icin son bir numaram var, LanguageTester!'],
+        ['Wrath, avenge me!', 'Gazap, intikamimi al!'],
+        ['Goblin magick lets us master these woods.', 'Goblin buyusu bu ormanlara hukmetmemizi sagliyor.'],
+        ['Care to meet them?', 'Onlarla tanismak ister misin?'],
+        ['We shall send you to the mountain\'s heart.', 'Seni dagin kalbine gonderecegiz.'],
+        ['Hurt him! You fool, he is our leader!', 'Ona zarar mi vermek! Aptal, o bizim liderimiz!'],
+        ['Rage of the stone, up!', 'Tasin ofkesi, ayaga kalk!'],
+        ['To me, rocklings!', 'Bana gelin, kaya yaratiklari!']
+    ];
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    try {
+        for (const [source] of liveSkitSegments) {
+            SocialHandler.handleStartSkit(
+                client as never,
+                createStartSkitPacket(703, source)
+            );
+        }
+    } finally {
+        GlobalState.sessionsByToken.delete(client.token);
+    }
+
+    const thoughts = client.sentPackets
+        .filter((entry) => entry.id === 0x76)
+        .map((entry) => decodeRoomThought(entry.payload));
+
+    assert.deepEqual(thoughts.map((thought) => thought.text), liveSkitSegments.map(([, expected]) => expected));
+    assert.equal(
+        thoughts.some((thought) => thought.text === 'Meylour icin!'),
+        false,
+        'BridgeTown mission skit segments should not fall through to old placeholder lines'
+    );
+}
+
 function testCapstoneRoomDialogueTranslationsCoverExtractedSource(): void {
     const dataDir = path.resolve(__dirname, '../data');
     const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
@@ -629,6 +684,109 @@ function testFelbridgeMeylourRoomDialogueTranslationsCoverExtractedSource(): voi
     assert.deepEqual(missing, [], 'Felbridge Meylour room dialogue should have exact Turkish translations');
 }
 
+function testBridgeTownMissionsRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+
+    const bridgeTownMissionLines = [
+        'You cursed fool!',
+        'We had a good thing going here...:You coulda joined us!',
+        'We had a good thing going here...',
+        'You coulda joined us!',
+        'I remember you two. You were heroes once.',
+        "#tn#, you should've stayed back across the sea.",
+        'You always were a servile lapdog, #tn#.',
+        'Let me remind you of your duty, scum.',
+        'All these wretched deserters...',
+        'I got one last trick for you, #tn#!',
+        'Wrath, avenge me!:Urghhhhh...',
+        'Wrath, avenge me!',
+        'Urghhhhh...',
+        'I heard you were dead, Svagg.',
+        "Not me. I'm a survivor.",
+        'You sold your soul for Goblin Magic.',
+        'It was worth the price. Goblins used it, why not me?',
+        'My followers respect power, Goblin or Human. Let us show you!',
+        'Rawk!',
+        'A Wargryph. Wow.',
+        "Svagg's deserter tricks didn't save him though.",
+        'I recognize you too, deserter!',
+        '10 WaveBoss Not a deserter, just smarter then you.',
+        'Not a deserter, just smarter then you.',
+        '10 WaveBoss This land is ripe for the robbing!',
+        'This land is ripe for the robbing!',
+        "You're scum and a coward. I'll enjoy this!",
+        'Imps, destroy this idiot!',
+        'The forest is ours, bridge-scum.:That was the deal!',
+        'The forest is ours, bridge-scum.',
+        'That was the deal!',
+        "These woods ain't for you no more, bridger-scum!",
+        'Back in the homeland, I ate your kind for breakfast.',
+        'You scum look familiar.',
+        'I fought at the Battle of Querrel Hill.',
+        'You deserted the King and turned bandit!',
+        "If you'd been smart, you woulda too.",
+        "Now it's too late!",
+        "He's|She's from the King!:Come to take us back in chains!",
+        "He's|She's from the King!",
+        "He's from the King!",
+        "She's from the King!",
+        'Come to take us back in chains!',
+        "Ellyrian scum! We won't go back!",
+        'You shoulda died a hero in the war.',
+        "Come to claim these woods for the King?:We won't bend knee again!",
+        'Come to claim these woods for the King?',
+        "We won't bend knee again!",
+        'We should never have fought the goblins.:Their magic serves us now!',
+        'We should never have fought the goblins.',
+        'Their magic serves us now!',
+        "Goblin magick lets us master these woods.:You'll die here without their power.",
+        'Goblin magick lets us master these woods.',
+        "You'll die here without their power.",
+        'How did you get past the spider?',
+        "Without the goblin's spells, you'll die here.:This forest is ours!",
+        "Without the goblin's spells, you'll die here.",
+        'This forest is ours!',
+        "A goblin's skull can enchant 100 spiders.:Care to meet them?",
+        "A goblin's skull can enchant 100 spiders.",
+        'Care to meet them?',
+        '@What have these bandits done?',
+        'What have these bandits done?',
+        '@Back in your hole, beast!',
+        'Back in your hole, beast!',
+        '@How can these bandits stand those things?',
+        'How can these bandits stand those things?',
+        "Svagg's imps, protect me!",
+        'They said goblin magicks would protect us...',
+        'You fought goblins, sure.:But not goblin magic under human command!',
+        'You fought goblins, sure.',
+        'But not goblin magic under human command!',
+        'Death to your King!: And you too!',
+        'Death to your King!',
+        'And you too!',
+        'Your flesh is not of ours.',
+        "We shall send you to the mountain's heart.:There you shall join the others.",
+        "We shall send you to the mountain's heart.",
+        'There you shall join the others.',
+        'Minions rise!',
+        'The mountaintop will be your doom.',
+        'Servants, heed my call!',
+        'You should not be here.',
+        'We told you to leave, stranger!',
+        "He's|She's here for The Steward!",
+        'Cut him|her down!',
+        'Hurt him! You fool, he is our leader!',
+        "Unless I'm wrong, the village is right above me.",
+        'Rage of the stone, up!',
+        'To me, rocklings!'
+    ];
+
+    const missing = bridgeTownMissionLines.filter((line) => !String(translations.translations?.[line] ?? '').trim());
+    assert.deepEqual(missing, [], 'BridgeTown mission 1-3 room dialogue should have Turkish translations');
+}
+
 function testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource(): void {
     const dataDir = path.resolve(__dirname, '../data');
     const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
@@ -706,8 +864,10 @@ async function main(): Promise<void> {
     testCapstoneBossDialogueTranslatesEnemyAndPlayerLines();
     testFelbridgeMeylourRoomDialogueUsesExactTranslations();
     testFelbridgeMeylourLiveSkitSegmentsUseTranslations();
+    testBridgeTownMissionsLiveSkitSegmentsUseTranslations();
     testCapstoneRoomDialogueTranslationsCoverExtractedSource();
     testFelbridgeMeylourRoomDialogueTranslationsCoverExtractedSource();
+    testBridgeTownMissionsRoomDialogueTranslationsCoverExtractedSource();
     testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource();
     console.log('dialogue_language_regression: ok');
 }
