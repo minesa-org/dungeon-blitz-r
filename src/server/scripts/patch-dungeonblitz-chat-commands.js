@@ -122,6 +122,19 @@ function exportClass127(ffdecPath, workRoot, swfPath) {
     return classPath;
 }
 
+function exportClass127Pcode(ffdecPath, workRoot, swfPath) {
+    fs.rmSync(workRoot, { recursive: true, force: true });
+    fs.mkdirSync(workRoot, { recursive: true });
+    runFfdec(ffdecPath, ['-format', 'script:pcode', '-selectclass', 'class_127', '-export', 'script', workRoot, swfPath]);
+
+    const pcodePath = path.join(workRoot, 'scripts', 'class_127.pcode');
+    if (!fs.existsSync(pcodePath)) {
+        throw new Error(`FFDec export did not produce ${pcodePath}`);
+    }
+
+    return pcodePath;
+}
+
 function verifyPatchedClass127(source, swfPath) {
     if (!source.includes('private function method_1940(param1:String) : Boolean')) {
         throw new Error(`${path.basename(swfPath)} is missing the /lang passthrough helper.`);
@@ -137,7 +150,30 @@ function verifyPatchedClass127(source, swfPath) {
     }
 }
 
+function verifyPublicChatSenderNamePcode(source, swfPath) {
+    const receiveChatIndex = source.indexOf('name "class_127/ReceiveChat"');
+    if (receiveChatIndex === -1) {
+        throw new Error(`${path.basename(swfPath)} is missing ReceiveChat pcode.`);
+    }
+
+    const nextMethodIndex = source.indexOf('\n                                                                                                   public function ', receiveChatIndex + 1);
+    const receiveChatPcode = nextMethodIndex === -1 ? source.slice(receiveChatIndex) : source.slice(receiveChatIndex, nextMethodIndex);
+    const requiredPatterns = [
+        /pushstring "Unknown"\s+coerce_s\s+setlocal 5/,
+        /getproperty QName\(PackageInternalNs\(""\),"entName"\)/,
+        /getlocal 5\s+callproperty Multiname\("FormatHotName"/
+    ];
+
+    for (const pattern of requiredPatterns) {
+        if (!pattern.test(receiveChatPcode)) {
+            throw new Error(`${path.basename(swfPath)} is missing public chat sender-name pcode pattern: ${pattern}`);
+        }
+    }
+}
+
 function patchClass127Source(source, swfPath) {
+    source = patchPublicChatSenderName(source, swfPath);
+
     const oldReturn = 'return _loc2_ == "/lang:tr" || _loc2_ == "/lang:en" || _loc2_ == "\\\\lang:tr" || _loc2_ == "\\\\lang:en";';
     const newBlock = [
         'if(_loc2_.indexOf("/lang:") == 0)',
@@ -203,6 +239,40 @@ function patchClass127Source(source, swfPath) {
     return source.replace(methodStartPattern, patchedMethodStart);
 }
 
+function patchPublicChatSenderName(source, swfPath) {
+    if (
+        source.includes('var _loc5_:String = "Unknown";') &&
+        source.includes('_loc10_ = var_1.FormatHotName(_loc5_);')
+    ) {
+        return source;
+    }
+
+    const loc6Declaration = 'var _loc6_:String = MathUtil.method_259(param2);';
+    if (!source.includes(loc6Declaration)) {
+        throw new Error(`${path.basename(swfPath)} has an unexpected ReceiveChat local declaration block.`);
+    }
+
+    source = source.replace(
+        loc6Declaration,
+        'var _loc5_:String = "Unknown";\n         var _loc6_:String = MathUtil.method_259(param2);'
+    );
+
+    const inlineNameDeclaration = 'var _loc5_:String = Boolean(_loc4_) && Boolean(_loc4_.entType) ? _loc4_.entType.entName : "Unknown";';
+    if (!source.includes(inlineNameDeclaration)) {
+        throw new Error(`${path.basename(swfPath)} has an unexpected ReceiveChat sender-name assignment.`);
+    }
+    source = source.replace(
+        inlineNameDeclaration,
+        '_loc5_ = Boolean(_loc4_) && Boolean(_loc4_.entType) ? _loc4_.entType.entName : "Unknown";'
+    );
+
+    const hardcodedName = '_loc10_ = var_1.FormatHotName("Unknown");';
+    if (!source.includes(hardcodedName)) {
+        throw new Error(`${path.basename(swfPath)} has an unexpected ReceiveChat display-name assignment.`);
+    }
+    return source.replace(hardcodedName, '_loc10_ = var_1.FormatHotName(_loc5_);');
+}
+
 function patchSwf(repoRoot, ffdecPath, swfPath) {
     const workRoot = path.join(
         repoRoot,
@@ -233,6 +303,8 @@ function verifySwf(repoRoot, ffdecPath, swfPath) {
     );
     const classPath = exportClass127(ffdecPath, workRoot, swfPath);
     verifyPatchedClass127(fs.readFileSync(classPath, 'utf8'), swfPath);
+    const pcodePath = exportClass127Pcode(ffdecPath, `${workRoot}-pcode`, swfPath);
+    verifyPublicChatSenderNamePcode(fs.readFileSync(pcodePath, 'utf8'), swfPath);
     console.log(`Verified chat command passthrough in ${swfPath}`);
 }
 
