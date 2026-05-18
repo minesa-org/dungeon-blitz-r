@@ -979,6 +979,58 @@ function testFelbridgeRoomDialogueTranslationsCoverExtractedSource(): void {
     assert.deepEqual(missing, [], 'Felbridge room dialogue should have Turkish translations');
 }
 
+function collectCemeteryHillScriptFiles(root: string, out: string[] = []): string[] {
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        const entryPath = path.join(root, entry.name);
+        if (entry.isDirectory()) {
+            collectCemeteryHillScriptFiles(entryPath, out);
+            continue;
+        }
+        if (!entry.name.endsWith('.as')) {
+            continue;
+        }
+
+        const relative = path.relative(path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts'), entryPath).split(path.sep).join('/');
+        if (/^(?:a_Room_(?:CH(?:\d|mini|M\d+R|05R|08_|2_).*|CH2_.*)|LevelsCH_fla\/.*)\.as$/.test(relative)) {
+            out.push(entryPath);
+        }
+    }
+
+    return out;
+}
+
+function testCemeteryHillRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const scriptRoot = path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts');
+    if (!fs.existsSync(scriptRoot)) {
+        return;
+    }
+
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+    const required = new Set<string>();
+
+    for (const filePath of collectCemeteryHillScriptFiles(scriptRoot)) {
+        const source = fs.readFileSync(filePath, 'utf8');
+        for (const match of source.matchAll(/\.(sayOn(?:Activate|Alert|Bloodied|Death|Interact|Spawn))\s*=\s*"((?:\\.|[^"\\])*)"/g)) {
+            addFelbridgeRoomDialogueCandidate(match[2] ?? '', required);
+        }
+        for (const match of source.matchAll(/(?:cutScene\w+|Script_\w+)\s*=\s*\[((?:.|\n)*?)\];/g)) {
+            for (const stringMatch of (match[1] ?? '').matchAll(/"((?:\\.|[^"\\])*)"/g)) {
+                addFelbridgeRoomDialogueCandidate(stringMatch[1] ?? '', required);
+            }
+        }
+        for (const match of source.matchAll(/\.Skit\("((?:\\.|[^"\\])*)"\)/g)) {
+            addFelbridgeRoomDialogueCandidate(match[1] ?? '', required);
+        }
+    }
+
+    const missing = [...required].filter((line) => !String(translations.translations?.[line] ?? '').trim()).sort();
+    assert.ok(required.size > 270, 'Cemetery Hill room dialogue inventory should include all LevelsCH scripts');
+    assert.deepEqual(missing, [], 'Cemetery Hill room dialogue should have Turkish translations');
+}
+
 function testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource(): void {
     const dataDir = path.resolve(__dirname, '../data');
     const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
@@ -1539,6 +1591,7 @@ async function main(): Promise<void> {
     testFelbridgeMeylourRoomDialogueTranslationsCoverExtractedSource();
     testBridgeTownMissionsRoomDialogueTranslationsCoverExtractedSource();
     testFelbridgeRoomDialogueTranslationsCoverExtractedSource();
+    testCemeteryHillRoomDialogueTranslationsCoverExtractedSource();
     testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource();
     testValhavenWelcomePartyRoomDialogueTranslationsCoverExtractedSource();
     testValhavenRoomDialogueTranslationsCoverExtractedSource();
