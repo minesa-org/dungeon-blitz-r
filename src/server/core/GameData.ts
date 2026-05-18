@@ -49,7 +49,7 @@ export class GameData {
     private static GEAR_DROP_RULES_BY_ID: Record<number, GearDropRule[]> = {};
     private static GEAR_DROP_RULES_LOADED = false;
     private static BOSS_DROP_DUNGEON_BY_SOURCE: Record<string, string> = {};
-    private static REALM_DROP_DUNGEON_BY_SOURCE_LEVEL: Record<string, string> = {};
+    private static REALM_DROP_DUNGEON_BY_SOURCE_LEVEL: Record<string, Set<string>> = {};
     private static GEAR_DROP_LOCATION_MAPS_LOADED = false;
     private static readonly BOSS_ENTITY_NAME_ALIASES = new Set<string>([
         'AncientDragonDream',
@@ -209,7 +209,11 @@ export class GameData {
 
     private static normalizeDungeonLevelKey(value: string | null | undefined): string {
         const normalized = LevelConfig.normalizeLevelName(value);
-        return GameData.normalizeLookupKey(String(normalized || value || '').replace(/Hard$/i, ''));
+        const fallback = String(value ?? '').trim();
+        const baseName = String(normalized || fallback || '')
+            .replace(/^a_Level_/i, '')
+            .replace(/Hard$/i, '');
+        return GameData.normalizeLookupKey(baseName);
     }
 
     private static buildRealmDropLocationKey(realm: string, level: number): string {
@@ -387,10 +391,18 @@ export class GameData {
                         GameData.BOSS_DROP_DUNGEON_BY_SOURCE[bossKey] = dungeonKey;
                     } else {
                         const realmKey = GameData.normalizeLookupKey(sourceKey);
-                        if (realmKey && !GameData.REALM_DROP_DUNGEON_BY_SOURCE_LEVEL[realmKey]) {
+                        if (!realmKey) {
+                            continue;
+                        }
+
+                        let dungeonKeys = GameData.REALM_DROP_DUNGEON_BY_SOURCE_LEVEL[realmKey];
+                        if (!dungeonKeys) {
+                            dungeonKeys = new Set<string>();
+                            GameData.REALM_DROP_DUNGEON_BY_SOURCE_LEVEL[realmKey] = dungeonKeys;
                             realmLocationCount += 1;
                         }
-                        GameData.REALM_DROP_DUNGEON_BY_SOURCE_LEVEL[realmKey] = dungeonKey;
+
+                        dungeonKeys.add(dungeonKey);
                     }
                 }
             }
@@ -483,6 +495,20 @@ export class GameData {
         });
     }
 
+    private static isCurrentDungeonLevelMatchingRule(rule: GearDropRule, context: GearDropContext): boolean {
+        const normalizedLevelName = LevelConfig.normalizeLevelName(context.currentLevel);
+        if (!normalizedLevelName) {
+            return false;
+        }
+
+        const levelSpec = LevelConfig.get(normalizedLevelName);
+        if (!levelSpec?.isDungeon) {
+            return false;
+        }
+
+        return Math.max(0, Math.round(Number(levelSpec.baseId ?? 0))) === Math.max(0, Math.round(rule.level));
+    }
+
     private static isGearRuleAllowedInCurrentDungeon(
         rule: GearDropRule,
         context: GearDropContext,
@@ -493,15 +519,24 @@ export class GameData {
             return false;
         }
 
-        const expectedDungeonKey = source === 'boss'
-            ? GameData.BOSS_DROP_DUNGEON_BY_SOURCE[GameData.normalizeLookupKey(rule.bossName)]
-            : GameData.REALM_DROP_DUNGEON_BY_SOURCE_LEVEL[GameData.buildRealmDropLocationKey(rule.realm, rule.level)];
-
-        if (expectedDungeonKey) {
-            return expectedDungeonKey === currentDungeonKey;
+        if (source === 'boss') {
+            const expectedDungeonKey = GameData.BOSS_DROP_DUNGEON_BY_SOURCE[GameData.normalizeLookupKey(rule.bossName)];
+            if (expectedDungeonKey) {
+                return expectedDungeonKey === currentDungeonKey;
+            }
+            return !GameData.GEAR_DROP_LOCATION_MAPS_LOADED;
         }
 
-        return !GameData.GEAR_DROP_LOCATION_MAPS_LOADED;
+        const expectedDungeonKeys = GameData.REALM_DROP_DUNGEON_BY_SOURCE_LEVEL[GameData.buildRealmDropLocationKey(rule.realm, rule.level)];
+        if (expectedDungeonKeys?.size) {
+            return expectedDungeonKeys.has(currentDungeonKey);
+        }
+
+        if (GameData.GEAR_DROP_LOCATION_MAPS_LOADED) {
+            return GameData.isCurrentDungeonLevelMatchingRule(rule, context);
+        }
+
+        return true;
     }
 
     static getEntType(name: string): any {

@@ -77,6 +77,14 @@ type TransferSyncAnchorCandidate = {
     state: LevelSyncState;
 };
 
+type LevelTriggerSpec = {
+    roomId: number;
+    triggerName: string;
+    triggerX: number;
+    triggerMinY: number;
+    triggerMaxY: number;
+};
+
 export class LevelHandler {
     private static readonly DOORSTATE_CLOSED = 0;
     private static readonly DOORSTATE_STATIC = 1;
@@ -95,6 +103,26 @@ export class LevelHandler {
     private static readonly DEEPGARD_DRAGON_MINIBOSS_TRIGGER_X = -2560;
     private static readonly DEEPGARD_DRAGON_MINIBOSS_TRIGGER_MIN_Y = -3100;
     private static readonly DEEPGARD_DRAGON_MINIBOSS_TRIGGER_MAX_Y = -1750;
+    private static readonly BACK_ALLEY_DEALS_BOSS_ROOM_ID = 2553897284;
+    private static readonly BACK_ALLEY_DEALS_BOSS_TRIGGER_X = 25480;
+    private static readonly BACK_ALLEY_DEALS_BOSS_TRIGGER_MIN_Y = 2550;
+    private static readonly BACK_ALLEY_DEALS_BOSS_TRIGGER_MAX_Y = 3400;
+    private static readonly PRODIGAL_SON_DEFECTOR_TRIGGERS: readonly LevelTriggerSpec[] = [
+        {
+            roomId: 1971923064,
+            triggerName: 'am_Trigger_01',
+            triggerX: 9840,
+            triggerMinY: -1790,
+            triggerMaxY: -1090
+        },
+        {
+            roomId: 2061059764,
+            triggerName: 'am_Trigger_01',
+            triggerX: 18240,
+            triggerMinY: -1550,
+            triggerMaxY: -750
+        }
+    ];
     private static craftTownTutorialHelperIdsCache: number[] | null = null;
     private static readonly GOBLIN_RIVER_BOSS_INTRO_TEXTS = new Set<string>([
         "You're the one that killed our Kraken!",
@@ -2505,6 +2533,79 @@ export class LevelHandler {
         }
     }
 
+    private static maybeTriggerBackAlleyDealsBossIntro(
+        client: Client,
+        previousX: number,
+        currentX: number,
+        currentY: number
+    ): void {
+        const currentLevel = LevelConfig.normalizeLevelName(client.currentLevel);
+        if (currentLevel !== 'JC_Mission2' && currentLevel !== 'JC_Mission2Hard') {
+            return;
+        }
+
+        const roomId = LevelHandler.BACK_ALLEY_DEALS_BOSS_ROOM_ID;
+        const triggerKey = `${currentLevel}:${roomId}:am_Trigger_Boss`;
+        if (client.triggeredLevelStates.has(triggerKey)) {
+            return;
+        }
+
+        const crossedTrigger =
+            previousX < LevelHandler.BACK_ALLEY_DEALS_BOSS_TRIGGER_X &&
+            currentX >= LevelHandler.BACK_ALLEY_DEALS_BOSS_TRIGGER_X;
+        const insideTriggerBand =
+            currentY >= LevelHandler.BACK_ALLEY_DEALS_BOSS_TRIGGER_MIN_Y &&
+            currentY <= LevelHandler.BACK_ALLEY_DEALS_BOSS_TRIGGER_MAX_Y;
+
+        if (!crossedTrigger || !insideTriggerBand) {
+            return;
+        }
+
+        for (const other of LevelHandler.forLevelRecipients(client, true)) {
+            if (!other.triggeredLevelStates.has(triggerKey)) {
+                other.triggeredLevelStates.add(triggerKey);
+                LevelHandler.sendRoomTriggerState(other, roomId, 'am_Trigger_Boss');
+            }
+        }
+    }
+
+    private static maybeTriggerProdigalSonDefectorMoment(
+        client: Client,
+        previousX: number,
+        currentX: number,
+        currentY: number
+    ): void {
+        const currentLevel = LevelConfig.normalizeLevelName(client.currentLevel);
+        if (currentLevel !== 'JC_Mission3' && currentLevel !== 'JC_Mission3Hard') {
+            return;
+        }
+
+        for (const trigger of LevelHandler.PRODIGAL_SON_DEFECTOR_TRIGGERS) {
+            const triggerKey = `${currentLevel}:${trigger.roomId}:${trigger.triggerName}`;
+            if (client.triggeredLevelStates.has(triggerKey)) {
+                continue;
+            }
+
+            const crossedTrigger =
+                previousX < trigger.triggerX &&
+                currentX >= trigger.triggerX;
+            const insideTriggerBand =
+                currentY >= trigger.triggerMinY &&
+                currentY <= trigger.triggerMaxY;
+
+            if (!crossedTrigger || !insideTriggerBand) {
+                continue;
+            }
+
+            for (const other of LevelHandler.forLevelRecipients(client, true)) {
+                if (!other.triggeredLevelStates.has(triggerKey)) {
+                    other.triggeredLevelStates.add(triggerKey);
+                    LevelHandler.sendRoomTriggerState(other, trigger.roomId, trigger.triggerName);
+                }
+            }
+        }
+    }
+
     private static sendRoomTriggerState(client: Client, roomId: number, triggerName: string): void {
         const bb = new BitBuffer(false);
         bb.writeMethod26(`${Math.max(0, Math.round(roomId))}^Trigger^${triggerName}`);
@@ -3831,6 +3932,20 @@ export class LevelHandler {
             }
 
             LevelHandler.maybeTriggerDeepgardDragonMiniBossIntro(
+                client,
+                previousX,
+                Number(ent.x ?? 0),
+                Number(ent.y ?? 0)
+            );
+
+            LevelHandler.maybeTriggerBackAlleyDealsBossIntro(
+                client,
+                previousX,
+                Number(ent.x ?? 0),
+                Number(ent.y ?? 0)
+            );
+
+            LevelHandler.maybeTriggerProdigalSonDefectorMoment(
                 client,
                 previousX,
                 Number(ent.x ?? 0),

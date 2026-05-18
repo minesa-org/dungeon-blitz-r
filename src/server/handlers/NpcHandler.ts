@@ -32,6 +32,10 @@ export class NpcHandler {
     private static readonly RETURN_DIALOGUE_CHAR_MS = 1;
     private static readonly DEFAULT_TURN_IN_STARS = 3;
     private static readonly DEFAULT_DIALOGUE_LANGUAGE = 'en';
+    private static readonly ATTACK_OF_OPPORTUNITY_MISSION_ID = 233;
+    private static readonly ATTACK_OF_OPPORTUNITY_HARD_MISSION_ID = 254;
+    private static readonly ATTACK_OF_OPPORTUNITY_SATELLITE_IDS = new Set([234, 235, 236]);
+    private static readonly ATTACK_OF_OPPORTUNITY_HARD_SATELLITE_IDS = new Set([255, 256, 257]);
     private static readonly STONE_ORACLE_MISSION_BY_MOAI_KEY: Readonly<Record<string, { missionId: number; bit: number }>> = {
         ommmoai01: { missionId: MissionID.StoneOraclesSpeak, bit: 1 },
         ommmoai02: { missionId: MissionID.StoneOraclesSpeak, bit: 2 },
@@ -111,11 +115,16 @@ export class NpcHandler {
 
                 if (dialogueId === 2 && matched.state === NpcHandler.MISSION_NOT_STARTED) {
                     const missionDef = MissionLoader.getMissionDef(missionId);
-                    const initialState = NpcHandler.getInitialMissionState(missionDef);
+                    const aggregateProgress = NpcHandler.getAggregateMissionStartProgress(
+                        client.character,
+                        missionDef
+                    );
+                    const initialState = aggregateProgress?.state ?? NpcHandler.getInitialMissionState(missionDef);
                     NpcHandler.setMissionState(
                         client.character,
                         missionId,
-                        initialState
+                        initialState,
+                        aggregateProgress ? { currCount: aggregateProgress.currCount } : {}
                     );
                     NpcHandler.resetQuestTrackerForStartedDungeonMission(
                         client.character,
@@ -123,6 +132,12 @@ export class NpcHandler {
                         initialState
                     );
                     NpcHandler.sendMissionAdded(client, missionId, initialState);
+                    if (aggregateProgress && aggregateProgress.currCount > 0) {
+                        NpcHandler.sendMissionProgress(client, missionId, aggregateProgress.currCount);
+                    }
+                    if (aggregateProgress?.becameReadyToTurnIn) {
+                        NpcHandler.sendMissionComplete(client, missionId);
+                    }
                     didMutate = true;
                 } else if (dialogueId === 2 && matched.primedContactOffer) {
                     NpcHandler.setMissionState(
@@ -179,6 +194,19 @@ export class NpcHandler {
                         // Сохраняем прогресс
                         if (client.userId) {
                             await NpcHandler.persistCharacter(client);
+                        }
+
+                        const followupMissionId = NpcHandler.autoAcceptFollowupMission(
+                            client.character,
+                            missionDef?.ReturnName ?? missionDef?.ContactName ?? ''
+                        );
+                        if (followupMissionId > 0) {
+                            const followupDef = MissionLoader.getMissionDef(followupMissionId);
+                            NpcHandler.sendMissionAdded(
+                                client,
+                                followupMissionId,
+                                NpcHandler.getInitialMissionState(followupDef)
+                            );
                         }
 
                         didMutate = true;
@@ -309,6 +337,78 @@ export class NpcHandler {
                 primedContactOffer: best.primedContactOffer
             }
             : null;
+    }
+
+    private static autoAcceptFollowupMission(character: Character, npcName: string): number {
+        const normalizedNpc = NpcHandler.normalizeMissionNpcKey(npcName);
+        if (!normalizedNpc) {
+            return 0;
+        }
+
+        for (let missionId = 1; missionId <= MissionLoader.getTotalMissions(); missionId++) {
+            if (NpcHandler.getMissionState(character, missionId) !== NpcHandler.MISSION_NOT_STARTED) {
+                continue;
+            }
+
+            const missionDef = MissionLoader.getMissionDef(missionId);
+            if (!missionDef) {
+                continue;
+            }
+
+            const contactKey = NpcHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '');
+            const returnKey = NpcHandler.getMissionReturnNpcKey(missionDef);
+            const startsAtReturnOnly = !contactKey && Boolean(returnKey) && returnKey === normalizedNpc;
+            if (!startsAtReturnOnly) {
+                continue;
+            }
+
+            if (!NpcHandler.canStartMission(character, missionDef)) {
+                continue;
+            }
+
+            const initialState = NpcHandler.getInitialMissionState(missionDef);
+            NpcHandler.setMissionState(character, missionId, initialState, { currCount: 0 });
+            return missionId;
+        }
+
+        return 0;
+    }
+
+    private static getAggregateMissionStartProgress(
+        character: Character,
+        missionDef: MissionDef | undefined
+    ): { state: number; currCount: number; becameReadyToTurnIn: boolean } | null {
+        if (!missionDef) {
+            return null;
+        }
+
+        const missionId = Number(missionDef.MissionID ?? 0);
+        const satelliteIds =
+            missionId === NpcHandler.ATTACK_OF_OPPORTUNITY_MISSION_ID
+                ? NpcHandler.ATTACK_OF_OPPORTUNITY_SATELLITE_IDS
+                : missionId === NpcHandler.ATTACK_OF_OPPORTUNITY_HARD_MISSION_ID
+                    ? NpcHandler.ATTACK_OF_OPPORTUNITY_HARD_SATELLITE_IDS
+                    : null;
+        if (!satelliteIds) {
+            return null;
+        }
+
+        const completeCount = Math.max(1, Number(missionDef.CompleteCount ?? 1));
+        const currCount = Math.min(
+            completeCount,
+            Array.from(satelliteIds).reduce((count, satelliteId) => {
+                return count + (NpcHandler.getMissionState(character, satelliteId) >= NpcHandler.MISSION_CLAIMED ? 1 : 0);
+            }, 0)
+        );
+        const becameReadyToTurnIn = currCount >= completeCount;
+
+        return {
+            state: becameReadyToTurnIn
+                ? NpcHandler.MISSION_READY_TO_TURN_IN
+                : NpcHandler.MISSION_IN_PROGRESS,
+            currCount,
+            becameReadyToTurnIn
+        };
     }
 
     private static canStartMission(character: Character, missionDef: MissionDef): boolean {
@@ -845,6 +945,24 @@ export class NpcHandler {
             fink: 'nrcaptfink',
             captain: 'nrcaptfink',
             npccaptain: 'nrcaptfink',
+            npcorder01: 'vhjackal02',
+            npcorder02: 'vhodin01',
+            npcorder03: 'vhfabmab01',
+            npcorder04: 'vhodin01',
+            npcorder01hard: 'vhjackal02hard',
+            npcorder02hard: 'vhodin01hard',
+            npcorder03hard: 'vhfabmab01hard',
+            npcorder04hard: 'vhodin01hard',
+            npcrebel01: 'vhrebel01',
+            npcrebel02: 'vhrebel02',
+            npcrebel01hard: 'vhrebel01hard',
+            npcrebel02hard: 'vhrebel02hard',
+            npcvagrant02: 'vhskitts01',
+            npcvagrant01: 'vhvagrant01',
+            npcvagrant02hard: 'vhskitts01hard',
+            npcvagrant01hard: 'vhvagrant01hard',
+            npcmonk01: 'vhmonk01',
+            npcmonk01hard: 'vhmonk01hard',
             affric: 'nraffric',
             npcaffric: 'nraffric',
             odem: 'nrodem',
@@ -885,6 +1003,24 @@ export class NpcHandler {
             pecky: 'nrpecky',
             captainfink: 'nrcaptfink',
             fink: 'nrcaptfink',
+            npcorder01: 'vhjackal02',
+            npcorder02: 'vhodin01',
+            npcorder03: 'vhfabmab01',
+            npcorder04: 'vhodin01',
+            npcorder01hard: 'vhjackal02hard',
+            npcorder02hard: 'vhodin01hard',
+            npcorder03hard: 'vhfabmab01hard',
+            npcorder04hard: 'vhodin01hard',
+            npcrebel01: 'vhrebel01',
+            npcrebel02: 'vhrebel02',
+            npcrebel01hard: 'vhrebel01hard',
+            npcrebel02hard: 'vhrebel02hard',
+            npcvagrant02: 'vhskitts01',
+            npcvagrant01: 'vhvagrant01',
+            npcvagrant02hard: 'vhskitts01hard',
+            npcvagrant01hard: 'vhvagrant01hard',
+            npcmonk01: 'vhmonk01',
+            npcmonk01hard: 'vhmonk01hard',
             npcodem: 'odem',
             npcodemhard: 'odemhard'
         };

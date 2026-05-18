@@ -139,6 +139,14 @@ function decodeMissionProgressPacket(payload: Buffer): { missionId: number; prog
     };
 }
 
+function decodeMissionAddedPacket(payload: Buffer): { missionId: number; active: number } {
+    const br = new BitReader(payload);
+    return {
+        missionId: br.readMethod4(),
+        active: br.readMethod6(1)
+    };
+}
+
 function decodeMissionIdPacket(payload: Buffer): number {
     const br = new BitReader(payload);
     return br.readMethod4();
@@ -1483,6 +1491,76 @@ async function testJarvisDoesNotAutoTurnInRecoverRingsWhileInProgress(): Promise
     );
 }
 
+async function testStrategicWeaknessStartsWithCompletedSatelliteProgress(): Promise<void> {
+    const client = createFakeClient(
+        'JadeCity',
+        {
+            [String(MissionID.DeliverToSwamp)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.TempleOfLostDreams)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.TheWestWing)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.TheEastWing)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            }
+        },
+        0
+    );
+    client.character.level = 30;
+    client.character.CurrentLevel = { name: 'JadeCity', x: 5688, y: -1921 };
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(14130338));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.AttackOfOpportunity)]?.state ?? 0),
+        1,
+        'Strategic Weakness should start in progress when only two of three satellites are complete'
+    );
+    assert.equal(
+        Number(client.character.missions[String(MissionID.AttackOfOpportunity)]?.currCount ?? 0),
+        2,
+        'Strategic Weakness should count already-claimed West Wing and East Wing on pickup'
+    );
+
+    const missionAdded = client.sentPackets.find((entry) => entry.id === 0x85);
+    assert.ok(missionAdded, 'accepting Strategic Weakness should push the mission to the client');
+    assert.deepEqual(
+        decodeMissionAddedPacket(missionAdded!.payload),
+        {
+            missionId: MissionID.AttackOfOpportunity,
+            active: 1
+        },
+        'Strategic Weakness should be sent as an active mission'
+    );
+
+    const progressPacket = client.sentPackets.find((entry) => entry.id === 0x83);
+    assert.ok(progressPacket, 'accepting Strategic Weakness should push existing satellite progress');
+    assert.deepEqual(
+        decodeMissionProgressPacket(progressPacket!.payload),
+        {
+            missionId: MissionID.AttackOfOpportunity,
+            progress: 2
+        },
+        'Strategic Weakness should visually advance to 2/3 immediately'
+    );
+}
+
 async function main(): Promise<void> {
     ensureDataLoaded();
     await testTutorialBoatCompletionPersistsDungeonHoverStats();
@@ -1514,6 +1592,7 @@ async function main(): Promise<void> {
     await testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod();
     await testCompletedTowerDoesNotRepairAcceptedYornakAtDane();
     await testJarvisDoesNotAutoTurnInRecoverRingsWhileInProgress();
+    await testStrategicWeaknessStartsWithCompletedSatelliteProgress();
     console.log('quest_flow_regression: ok');
 }
 
