@@ -1745,7 +1745,6 @@ function localizePowerSentence(source) {
         'Smash and Taunt your foes with a wave attack.': 'Dalga saldirisiyla dusmanlari ezer ve kiskirtir.',
         'Return some damage back to your attackers. Gain increased Hate for the duration.': 'Saldirganlara aldigin hasarin bir kismini geri yansitir. Sure boyunca nefret kazanimin artar.',
         "Your party's attacks apply Scorched and gain bonus damage against Scorched targets.": 'Grubunun saldirilari Kavrulmus uygular ve Kavrulmus hedeflere karsi bonus hasar kazanir.',
-        'Your party’s attacks apply Scorched and gain bonus damage against Scorched targets.': 'Grubunun saldirilari Kavrulmus uygular ve Kavrulmus hedeflere karsi bonus hasar kazanir.',
         'Shroud yourself with shadow energy. Your next attack will deal bonus damage and end the effect.': 'Kendini golge enerjisiyle sarar. Sonraki saldirin bonus hasar verir ve etkiyi bitirir.',
         'Leaps to target dealing damage at take off and impact. Deals extra damage to Ignited targets.': 'Hedefe sicrar; kalkista ve carpmada hasar verir. Tutusmus hedeflere ek hasar verir.',
         'Leaps to target dealing damage at take off and impact. Deals extra damage to Ignited targets': 'Hedefe sicrar; kalkista ve carpmada hasar verir. Tutusmus hedeflere ek hasar verir.',
