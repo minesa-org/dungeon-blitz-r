@@ -126,6 +126,23 @@ function parsePetReward(payload: Buffer): { typeId: number; specialId: number; l
     };
 }
 
+function parseConsumableUpdate(payload: Buffer): { consumableId: number; total: number } {
+    const br = new BitReader(payload);
+    return {
+        consumableId: br.readMethod6(5),
+        total: br.readMethod4()
+    };
+}
+
+function parseConsumableReward(payload: Buffer): { consumableId: number; amount: number; suppress: boolean } {
+    const br = new BitReader(payload);
+    return {
+        consumableId: br.readMethod6(5),
+        amount: br.readMethod4(),
+        suppress: br.readMethod15()
+    };
+}
+
 function parseLockboxReveal(payload: Buffer): { packId: number; rewardIndex: number; hasName: number; name: string } {
     const br = new BitReader(payload);
     return {
@@ -283,12 +300,144 @@ async function testOpenTreasureTroveEggRewardGrantsEligibleLevelTenPet(): Promis
     });
 }
 
+async function testOpenTreasureTroveEggRewardSkipsOwnedPetTypes(): Promise<void> {
+    const client = createFakeClient();
+    client.character.gold = 100;
+    client.character.DragonKeys = 1;
+    client.character.lockboxes = [{ lockboxID: 1, count: 1 }];
+
+    const eggPets = PetConfig.getHatchablePetsForEggName('GenericBrown');
+    assert.ok(eggPets.length > 1, 'GenericBrown should have multiple possible pet rewards');
+    const remainingPet = eggPets[eggPets.length - 1];
+    client.character.pets = eggPets.slice(0, -1).map((pet, index) => ({
+        typeID: Number(pet?.PetID ?? 0),
+        special_id: index + 1,
+        level: 1,
+        xp: 0
+    }));
+
+    await withMockedRandom([0.02, 0, 0.5], async () => {
+        await LockboxHandler.handleLockboxReward(client as never, Buffer.alloc(0));
+    });
+
+    const grantedPet = client.character.pets[client.character.pets.length - 1];
+    assert.equal(
+        Number(grantedPet?.typeID ?? 0),
+        Number(remainingPet?.PetID ?? 0),
+        'egg reward should choose an unowned pet type instead of duplicating the first rolled type'
+    );
+
+    const petPacket = client.sentPackets.find((packet) => packet.id === 0x37);
+    assert.ok(petPacket, 'unowned egg pet reward should send a new pet packet');
+    assert.deepEqual(parsePetReward(petPacket!.payload), {
+        typeId: Number(remainingPet?.PetID ?? 0),
+        specialId: eggPets.length,
+        level: 10,
+        suppress: false
+    });
+}
+
+async function testOpenTreasureTroveExhaustedEggPoolConvertsToPetFood(): Promise<void> {
+    const client = createFakeClient();
+    client.character.gold = 100;
+    client.character.DragonKeys = 1;
+    client.character.lockboxes = [{ lockboxID: 1, count: 1 }];
+
+    const eggPets = PetConfig.getHatchablePetsForEggName('GenericBrown');
+    assert.ok(eggPets.length > 0, 'GenericBrown should have possible pet rewards');
+    client.character.pets = eggPets.map((pet, index) => ({
+        typeID: Number(pet?.PetID ?? 0),
+        special_id: index + 1,
+        level: 1,
+        xp: 0
+    }));
+
+    await withMockedRandom([0.02, 0, 0.5], async () => {
+        await LockboxHandler.handleLockboxReward(client as never, Buffer.alloc(0));
+    });
+
+    const petFoodId = GameData.getConsumableId('PetFood');
+    assert.ok(petFoodId > 0, 'consumable data should include PetFood');
+    assert.equal(client.character.pets.length, eggPets.length, 'exhausted egg pool should not add a duplicate pet');
+    assert.deepEqual(client.character.consumables, [{ consumableID: petFoodId, count: 1 }]);
+
+    const revealPacket = client.sentPackets.find((packet) => packet.id === 0x108);
+    const updatePacket = client.sentPackets.find((packet) => packet.id === 0x10C);
+    const rewardPacket = client.sentPackets.find((packet) => packet.id === 0x10B);
+    const petPacket = client.sentPackets.find((packet) => packet.id === 0x37);
+    assert.ok(revealPacket, 'converted pet reward should still send the reveal packet');
+    assert.ok(updatePacket, 'converted pet reward should send a consumable inventory update');
+    assert.ok(rewardPacket, 'converted pet reward should send a consumable reward popup');
+    assert.equal(petPacket, undefined, 'converted pet reward should not send a new pet packet');
+    assert.deepEqual(parseLockboxReveal(revealPacket!.payload), {
+        packId: 1,
+        rewardIndex: 7,
+        hasName: 1,
+        name: 'PetFood'
+    });
+    assert.deepEqual(parseConsumableUpdate(updatePacket!.payload), {
+        consumableId: petFoodId,
+        total: 1
+    });
+    assert.deepEqual(parseConsumableReward(rewardPacket!.payload), {
+        consumableId: petFoodId,
+        amount: 1,
+        suppress: false
+    });
+}
+
+async function testOpenTreasureTroveOwnedDirectPetConvertsToPetFood(): Promise<void> {
+    const client = createFakeClient();
+    client.character.gold = 100;
+    client.character.DragonKeys = 1;
+    client.character.lockboxes = [{ lockboxID: 1, count: 1 }];
+
+    const directPet = PetConfig.PET_TYPES.find((pet) => String(pet?.PetName ?? '') === 'Lockbox01L01');
+    assert.ok(directPet, 'pet config should include the direct lockbox pet');
+    client.character.pets = [{
+        typeID: Number(directPet!.PetID ?? 0),
+        special_id: 1,
+        level: 1,
+        xp: 0
+    }];
+
+    await withMockedRandom([0.01, 0.5], async () => {
+        await LockboxHandler.handleLockboxReward(client as never, Buffer.alloc(0));
+    });
+
+    const petFoodId = GameData.getConsumableId('PetFood');
+    assert.ok(petFoodId > 0, 'consumable data should include PetFood');
+    assert.equal(client.character.pets.length, 1, 'owned direct pet reward should not add a duplicate pet');
+    assert.deepEqual(client.character.consumables, [{ consumableID: petFoodId, count: 1 }]);
+
+    const revealPacket = client.sentPackets.find((packet) => packet.id === 0x108);
+    const rewardPacket = client.sentPackets.find((packet) => packet.id === 0x10B);
+    const petPacket = client.sentPackets.find((packet) => packet.id === 0x37);
+    assert.ok(revealPacket, 'converted direct pet reward should still send the reveal packet');
+    assert.ok(rewardPacket, 'converted direct pet reward should send a consumable reward popup');
+    assert.equal(petPacket, undefined, 'converted direct pet reward should not send a new pet packet');
+    assert.deepEqual(parseLockboxReveal(revealPacket!.payload), {
+        packId: 1,
+        rewardIndex: 7,
+        hasName: 1,
+        name: 'PetFood'
+    });
+    assert.deepEqual(parseConsumableReward(rewardPacket!.payload), {
+        consumableId: petFoodId,
+        amount: 1,
+        suppress: false
+    });
+}
+
 async function main(): Promise<void> {
     ensureGameDataLoaded();
     await testBuyTreasureTroveUpdatesInventoryAndSendsDelta();
     await testBuyDragonKeysUpdatesAccountState();
     await testOpenTreasureTroveConsumesCountsAndGrantsReward();
     await testOpenTreasureTroveEggRewardGrantsEligibleLevelTenPet();
+    await testOpenTreasureTroveEggRewardSkipsOwnedPetTypes();
+    await testOpenTreasureTroveExhaustedEggPoolConvertsToPetFood();
+    await testOpenTreasureTroveOwnedDirectPetConvertsToPetFood();
     console.log('lockbox_regression: ok');
 }
 

@@ -5,6 +5,13 @@ import { Config } from '../core/config';
 import { GameData } from '../core/GameData';
 
 export class JsonAdapter implements IDatabase {
+    private static readonly DEFAULT_CHARACTER_NAME = 'default';
+    private static readonly DEFAULT_CHARACTER_LEVEL = 50;
+    private static readonly DEFAULT_CHARACTER_GOLD = 100000000;
+    private static readonly DEFAULT_CHARACTER_MAMMOTH_IDOLS = 10000;
+    private static readonly DEFAULT_CHARACTER_DRAGON_KEYS = 100;
+    private static readonly DEFAULT_CHARACTER_TROVE_CHESTS = 100;
+    private static readonly TROVE_LOCKBOX_ID = 1;
     private static readonly renameRetryDelaysMs = [25, 50, 100, 200, 350];
     private static readonly saveQueues = new Map<string, Promise<void>>();
     private static renameFile = (fromPath: string, toPath: string): Promise<void> =>
@@ -30,6 +37,10 @@ export class JsonAdapter implements IDatabase {
             return character;
         }
 
+        if (this.normalizeCharacterName(character.name) === JsonAdapter.DEFAULT_CHARACTER_NAME) {
+            JsonAdapter.applyDefaultCharacterGrant(character);
+        }
+
         const xp = Math.max(0, Number(character.xp ?? 0));
         const normalizedLevel = GameData.getPlayerLevelFromXp(xp);
         if (Number(character.level ?? 1) !== normalizedLevel) {
@@ -37,6 +48,31 @@ export class JsonAdapter implements IDatabase {
         }
 
         return character;
+    }
+
+    private static applyDefaultCharacterGrant(character: Character): void {
+        character.level = JsonAdapter.DEFAULT_CHARACTER_LEVEL;
+        character.xp = Math.max(
+            Number(character.xp ?? 0),
+            GameData.PLAYER_XP_THRESHOLDS[JsonAdapter.DEFAULT_CHARACTER_LEVEL] ?? 0
+        );
+        character.gold = JsonAdapter.DEFAULT_CHARACTER_GOLD;
+        character.mammothIdols = JsonAdapter.DEFAULT_CHARACTER_MAMMOTH_IDOLS;
+        character.DragonKeys = JsonAdapter.DEFAULT_CHARACTER_DRAGON_KEYS;
+
+        const lockboxes = Array.isArray(character.lockboxes) ? character.lockboxes : [];
+        const troveEntry = lockboxes.find((entry: any) =>
+            Number(entry?.lockboxID ?? 0) === JsonAdapter.TROVE_LOCKBOX_ID
+        );
+        if (troveEntry) {
+            troveEntry.count = JsonAdapter.DEFAULT_CHARACTER_TROVE_CHESTS;
+        } else {
+            lockboxes.push({
+                lockboxID: JsonAdapter.TROVE_LOCKBOX_ID,
+                count: JsonAdapter.DEFAULT_CHARACTER_TROVE_CHESTS
+            });
+        }
+        character.lockboxes = lockboxes;
     }
 
     private async readSaveFile(userId: number): Promise<UserSaveData | null> {

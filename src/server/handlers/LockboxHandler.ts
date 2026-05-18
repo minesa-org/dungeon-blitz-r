@@ -29,6 +29,12 @@ interface ResolvedLockboxReward {
     rarity: string;
     gearId?: number;
     goldAmount?: number;
+    convertedFrom?: {
+        index: number;
+        type: LockboxRewardType;
+        name: string;
+        reason: string;
+    };
     selectionDebug: {
         topLevelRoll: number;
         topLevelChancePercent: number;
@@ -55,6 +61,7 @@ interface WeightedRewardPick {
 
 export class LockboxHandler {
     private static readonly TROVE_LOCKBOX_ID = 1;
+    private static readonly DUPLICATE_PET_FALLBACK_REWARD_NAME = 'PetFood';
     private static readonly TROVE_OPTIONS: Record<number, { quantity: number; cost: number }> = {
         0: { quantity: 1, cost: 50000 },
         1: { quantity: 10, cost: 375000 },
@@ -226,6 +233,11 @@ export class LockboxHandler {
             `[LockboxHandler] Treasure Trove opened by ${String(client.character.name ?? 'Unknown')}: ` +
             `rewardIndex=${reward.index} type=${reward.type} rarity=${reward.rarity} name="${reward.grantName}" ` +
             `gearId=${Number(reward.gearId ?? 0)} gold=${Number(reward.goldAmount ?? 0)} ` +
+            (
+                reward.convertedFrom
+                    ? `convertedFrom=${reward.convertedFrom.type}:${reward.convertedFrom.index}:${reward.convertedFrom.reason} `
+                    : ''
+            ) +
             `topRoll=${LockboxHandler.formatChanceRoll(reward.selectionDebug.topLevelRoll)} ` +
             `topChance=${LockboxHandler.formatPercent(reward.selectionDebug.topLevelChancePercent)} ` +
             `topBand=${LockboxHandler.formatPercent(reward.selectionDebug.topLevelBandStartPercent)}-${LockboxHandler.formatPercent(reward.selectionDebug.topLevelBandEndPercent)} ` +
@@ -292,11 +304,6 @@ export class LockboxHandler {
     private static buildRewardPool(character: any): LockboxRewardPoolSnapshot {
         const className = String(character?.class ?? 'paladin').trim().toLowerCase();
         const ownedMounts = new Set<number>(PetHandler.normalizeMountState(character));
-        const ownedPetTypes = new Set<number>(
-            (Array.isArray(character?.pets) ? character.pets : [])
-                .map((pet: any) => Number(pet?.typeID ?? 0))
-                .filter((typeId: number) => typeId > 0)
-        );
         const ownedDyes = new Set<number>(
             (Array.isArray(character?.OwnedDyes) ? character.OwnedDyes : [])
                 .map((dyeId: unknown) => Number(dyeId))
@@ -320,11 +327,6 @@ export class LockboxHandler {
             if (reward.type === 'mount' && reward.name) {
                 const mountId = GameData.getMountId(reward.name);
                 return mountId <= 0 || !ownedMounts.has(mountId);
-            }
-
-            if (reward.type === 'pet' && reward.name) {
-                const petDef = PetConfig.PET_TYPES.find((pet) => String(pet.PetName) === reward.name);
-                return !petDef || !ownedPetTypes.has(Number(petDef.PetID ?? 0));
             }
 
             if (reward.type === 'dye') {
@@ -355,6 +357,7 @@ export class LockboxHandler {
         rewardPoolSnapshot: LockboxRewardPoolSnapshot = LockboxHandler.buildRewardPool(character)
     ): ResolvedLockboxReward {
         const className = String(character?.class ?? 'paladin').trim().toLowerCase();
+        const ownedPetTypes = LockboxHandler.getOwnedPetTypeIds(character);
         const ownedDyes = new Set<number>(
             (Array.isArray(character?.OwnedDyes) ? character.OwnedDyes : [])
                 .map((dyeId: unknown) => Number(dyeId))
@@ -414,9 +417,12 @@ export class LockboxHandler {
         const rewardName = selectedReward.name ?? '';
         if (selectedReward.type === 'egg') {
             const eligiblePets = PetConfig.getHatchablePetsForEggName(rewardName);
+            const availablePets = eligiblePets.filter((pet) => {
+                const petTypeId = Number(pet?.PetID ?? 0);
+                return petTypeId > 0 && !ownedPetTypes.has(petTypeId);
+            });
             const secondaryRoll = Math.random();
-            const petDef = PetConfig.resolveRandomPetForEggName(rewardName, secondaryRoll);
-            if (!petDef) {
+            if (eligiblePets.length === 0) {
                 return {
                     index: selectedReward.index,
                     type: 'gold',
@@ -427,14 +433,35 @@ export class LockboxHandler {
                     selectionDebug
                 };
             }
+            if (availablePets.length === 0) {
+                return LockboxHandler.buildDuplicatePetFallbackReward(
+                    selectedReward,
+                    LockboxHandler.withSecondarySelection(selectionDebug, secondaryRoll, 0),
+                    'owned_pet_pool_exhausted'
+                );
+            }
+
+            const petDef = LockboxHandler.resolveRandomPetFromPool(availablePets, secondaryRoll);
             return {
                 index: selectedReward.index,
                 type: 'egg',
                 grantName: String(petDef.PetName ?? rewardName),
                 packetName: String(petDef.PetName ?? rewardName),
                 rarity: String(petDef.DisplayRarity ?? 'M'),
-                selectionDebug: LockboxHandler.withSecondarySelection(selectionDebug, secondaryRoll, eligiblePets.length)
+                selectionDebug: LockboxHandler.withSecondarySelection(selectionDebug, secondaryRoll, availablePets.length)
             };
+        }
+
+        if (selectedReward.type === 'pet') {
+            const petDef = PetConfig.PET_TYPES.find((pet) => String(pet?.PetName ?? '') === rewardName);
+            const petTypeId = Number(petDef?.PetID ?? 0);
+            if (petTypeId > 0 && ownedPetTypes.has(petTypeId)) {
+                return LockboxHandler.buildDuplicatePetFallbackReward(
+                    selectedReward,
+                    selectionDebug,
+                    'duplicate_pet_type'
+                );
+            }
         }
 
         return {
@@ -451,6 +478,48 @@ export class LockboxHandler {
     private static getAvailableClassGearIds(className: string, ownedGearIds: Set<number>): number[] {
         const classGearIds = LockboxHandler.CLASS_GEAR_IDS[className] ?? LockboxHandler.CLASS_GEAR_IDS.paladin;
         return classGearIds.filter((gearId) => !ownedGearIds.has(gearId));
+    }
+
+    private static getOwnedPetTypeIds(character: any): Set<number> {
+        const ownedPetTypes = new Set<number>();
+        for (const pet of PetHandler.normalizePetCollection(character)) {
+            const typeId = Number(pet?.typeID ?? 0);
+            if (typeId > 0) {
+                ownedPetTypes.add(typeId);
+            }
+        }
+        return ownedPetTypes;
+    }
+
+    private static resolveRandomPetFromPool(pets: any[], randomValue: number): any {
+        const normalizedRandom = Number.isFinite(randomValue) ? Math.max(0, Math.min(randomValue, 0.999999999)) : 0;
+        return pets[Math.floor(normalizedRandom * pets.length)] ?? pets[0];
+    }
+
+    private static buildDuplicatePetFallbackReward(
+        sourceReward: LockboxRewardDefinition,
+        selectionDebug: ResolvedLockboxReward['selectionDebug'],
+        reason: string
+    ): ResolvedLockboxReward {
+        const fallbackReward = LockboxHandler.LOCKBOX_REWARD_POOL.find((reward) =>
+            reward.type === 'consumable' &&
+            reward.name === LockboxHandler.DUPLICATE_PET_FALLBACK_REWARD_NAME
+        );
+        const fallbackName = fallbackReward?.name ?? LockboxHandler.DUPLICATE_PET_FALLBACK_REWARD_NAME;
+        return {
+            index: fallbackReward?.index ?? sourceReward.index,
+            type: 'consumable',
+            grantName: fallbackName,
+            packetName: fallbackName,
+            rarity: LockboxHandler.resolveRewardRarity('consumable', fallbackName),
+            convertedFrom: {
+                index: sourceReward.index,
+                type: sourceReward.type,
+                name: sourceReward.name ?? '',
+                reason
+            },
+            selectionDebug
+        };
     }
 
     private static pickWeightedReward(rewardPool: LockboxRewardDefinition[]): WeightedRewardPick | null {

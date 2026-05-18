@@ -119,6 +119,13 @@ export class SocialHandler {
         return bb.toBuffer();
     }
 
+    private static buildPublicChatPayload(senderEntityId: number, message: string): Buffer {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(Math.max(0, Number(senderEntityId ?? 0)));
+        bb.writeMethod13(message);
+        return bb.toBuffer();
+    }
+
     private static buildGroupmateMapPayload(senderName: string, mapX: number, mapY: number): Buffer {
         const bb = new BitBuffer(false);
         bb.writeMethod26(senderName);
@@ -910,7 +917,13 @@ export class SocialHandler {
             }
         }
 
-        SocialHandler.relayToLevel(client, 0x2c, data, false, true);
+        SocialHandler.relayToLevel(
+            client,
+            0x2c,
+            SocialHandler.buildPublicChatPayload(client.clientEntID, message),
+            false,
+            true
+        );
     }
 
     static handlePrivateMessage(client: Client, data: Buffer): void {
