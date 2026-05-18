@@ -99,19 +99,19 @@
 	</RewardpackType>
 	<RewardpackType>
 		<RewardItem>Gold</RewardItem>
-		<Value>3000000</Value>
+		<Value>1000000</Value>
 		<RewardType>Gold</RewardType>
 		<Rarity>L</Rarity>
 	</RewardpackType>
 	<RewardpackType>
 		<RewardItem>Gold</RewardItem>
-		<Value>1500000</Value>
+		<Value>500000</Value>
 		<RewardType>Gold</RewardType>
 		<Rarity>R</Rarity>
 	</RewardpackType>
 	<RewardpackType>
 		<RewardItem>Gold</RewardItem>
-		<Value>750000</Value>
+		<Value>250000</Value>
 		<RewardType>Gold</RewardType>
 		<Rarity>M</Rarity>
 	</RewardpackType>
@@ -150,13 +150,13 @@
 	</RewardpackType>
 	<RewardpackType>
 		<RewardItem>Gold</RewardItem>
-		<Value>1500000</Value>
+		<Value>500000</Value>
 		<RewardType>Gold</RewardType>
 		<Rarity>R</Rarity>
 	</RewardpackType>
 	<RewardpackType>
 		<RewardItem>Gold</RewardItem>
-		<Value>750000</Value>
+		<Value>250000</Value>
 		<RewardType>Gold</RewardType>
 		<Rarity>M</Rarity>
 	</RewardpackType>
@@ -174,7 +174,7 @@
 	</RewardpackType>
 	<RewardpackType>
 		<RewardItem>Gold</RewardItem>
-		<Value>3000000</Value>
+		<Value>1000000</Value>
 		<RewardType>Gold</RewardType>
 		<Rarity>L</Rarity>
 	</RewardpackType>

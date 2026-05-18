@@ -3502,6 +3502,16 @@ export class LevelHandler {
             } else {
                 targetLevel = "NewbieRoad";
             }
+        } else if (
+            lastDoorTarget &&
+            LevelConfig.has(lastDoorTarget) &&
+            LevelConfig.isDungeonLevel(lastDoorTarget) &&
+            targetLevel === LevelConfig.normalizeLevelName(client.currentLevel)
+        ) {
+            console.log(
+                `[Level] Client requested current overworld '${targetLevel}' after dungeon door ${client.lastDoorId}; using last door target ${lastDoorTarget}`
+            );
+            targetLevel = lastDoorTarget;
         } else if (!LevelConfig.has(targetLevel) && lastDoorTarget && LevelConfig.has(lastDoorTarget)) {
             console.log(`[Level] Invalid transfer target '${targetLevel}', falling back to last door target ${lastDoorTarget}`);
             targetLevel = lastDoorTarget;

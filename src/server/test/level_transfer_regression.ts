@@ -50,6 +50,9 @@ function createClient(): any {
         mountTransferGraceUntil: 0,
         startedRoomEvents: new Set<string>(),
         knownEntityIds: new Set<number>(),
+        pendingLoot: new Map(),
+        processedRewardSources: new Set<string>(),
+        triggeredLevelStates: new Set<string>(),
         sentPackets,
         armPendingTransferGrace() {
             return undefined;
@@ -798,6 +801,95 @@ function testCemeteryHillGeneralSvenDoorTargetsMiniMission9(): void {
         doorId: 209,
         target: 'CH_MiniMission9'
     });
+}
+
+function testDreadHopeSpringsDoorTargetsHardMission4(): void {
+    const client = createClient();
+    client.currentLevel = 'EmeraldGladesHard';
+    client.character = createCharacter('DreadGladeRunner');
+    client.character.CurrentLevel = { name: 'EmeraldGladesHard', x: 7800, y: 640 };
+    client.character.missions = {
+        [String(MissionID.HopeSpringsEternalHard)]: {
+            state: 1,
+            currCount: 0
+        }
+    };
+
+    assert.equal(LevelConfig.has('EG_Mission4Hard'), true, 'Dread Hope Springs Eternal dungeon must exist in level_config');
+    assert.equal(LevelConfig.isDungeonLevel('EG_Mission4Hard'), true, 'Dread Hope Springs Eternal should be treated as a dungeon');
+
+    LevelHandler.handleOpenDoor(client as never, createOpenDoorPacket(104));
+
+    assert.equal(client.lastDoorId, 104);
+    assert.equal(
+        client.lastDoorTargetLevel,
+        'EG_Mission4Hard',
+        'Dread Emerald Glades door 104 should start a transfer to Dread Hope Springs Eternal'
+    );
+    const doorTargetPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x2E);
+    assert.ok(doorTargetPacket);
+    assert.deepEqual(parseDoorTargetPacket(doorTargetPacket.payload), {
+        doorId: 104,
+        target: 'EG_Mission4Hard'
+    });
+}
+
+async function testDreadHopeSpringsTransferRequestEntersHardMission4(): Promise<void> {
+    const client = createClient();
+    client.token = 4104;
+    client.currentLevel = 'EmeraldGladesHard';
+    client.lastDoorId = 104;
+    client.lastDoorTargetLevel = 'EG_Mission4Hard';
+    client.character = createCharacter('DreadGladeRunner');
+    client.character.CurrentLevel = { name: 'EmeraldGladesHard', x: 7800, y: 640 };
+    client.character.missions = {
+        [String(MissionID.HopeSpringsEternalHard)]: {
+            state: 1,
+            currCount: 0
+        }
+    };
+
+    await LevelHandler.handleLevelTransferRequest(
+        client as never,
+        createLevelTransferPacket(4104, 'EG_Mission4Hard')
+    );
+
+    const enterWorldPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x21);
+    assert.ok(enterWorldPacket, 'accepted Dread Hope Springs transfer should send an enter-world packet');
+    assert.equal(
+        parseEnterWorldLevelPacket(enterWorldPacket.payload).internalName,
+        'EG_Mission4Hard',
+        'accepted Dread Hope Springs transfer should enter the hard dungeon instead of reloading Dread Emerald Glades'
+    );
+}
+
+async function testDreadHopeSpringsTransferRequestRecoversFromCurrentLevelEcho(): Promise<void> {
+    const client = createClient();
+    client.token = 4105;
+    client.currentLevel = 'EmeraldGladesHard';
+    client.lastDoorId = 104;
+    client.lastDoorTargetLevel = 'EG_Mission4Hard';
+    client.character = createCharacter('DreadGladeRunner');
+    client.character.CurrentLevel = { name: 'EmeraldGladesHard', x: 7800, y: 640 };
+    client.character.missions = {
+        [String(MissionID.HopeSpringsEternalHard)]: {
+            state: 1,
+            currCount: 0
+        }
+    };
+
+    await LevelHandler.handleLevelTransferRequest(
+        client as never,
+        createLevelTransferPacket(4105, 'EmeraldGladesHard')
+    );
+
+    const enterWorldPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x21);
+    assert.ok(enterWorldPacket, 'current-level echoes after dungeon doors should still send an enter-world packet');
+    assert.equal(
+        parseEnterWorldLevelPacket(enterWorldPacket.payload).internalName,
+        'EG_Mission4Hard',
+        'current-level echoes after Dread Hope Springs should recover to the last accepted dungeon door target'
+    );
 }
 
 function testLockedDungeonDoorReportsLockedAndDoesNotOpen(): void {
@@ -1944,6 +2036,9 @@ async function main(): Promise<void> {
         testEmeraldGladesDreadPortalSpawnsAtGate();
         testEmeraldGladesDreadPortalReturnSpawnsAtGate();
         testCemeteryHillGeneralSvenDoorTargetsMiniMission9();
+        testDreadHopeSpringsDoorTargetsHardMission4();
+        await testDreadHopeSpringsTransferRequestEntersHardMission4();
+        await testDreadHopeSpringsTransferRequestRecoversFromCurrentLevelEcho();
         testLockedDungeonDoorReportsLockedAndDoesNotOpen();
         await testLockedDungeonTransferRequestIsBlocked();
 

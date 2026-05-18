@@ -189,14 +189,23 @@ async function testOpenTreasureTroveConsumesCountsAndGrantsReward(): Promise<voi
     client.character.gold = 100;
     client.character.DragonKeys = 1;
     client.character.lockboxes = [{ lockboxID: 1, count: 1 }];
+    const debugLogs: string[] = [];
+    const originalConsoleLog = console.log;
 
-    await withMockedRandom([0.86, 0.5], async () => {
-        await LockboxHandler.handleLockboxReward(client as never, Buffer.alloc(0));
-    });
+    console.log = (...args: unknown[]) => {
+        debugLogs.push(args.map((arg) => String(arg)).join(' '));
+    };
+    try {
+        await withMockedRandom([0.85, 0.5], async () => {
+            await LockboxHandler.handleLockboxReward(client as never, Buffer.alloc(0));
+        });
+    } finally {
+        console.log = originalConsoleLog;
+    }
 
     assert.deepEqual(client.character.lockboxes, [], 'opening the final treasure trove should remove the lockbox entry');
     assert.equal(client.character.DragonKeys, 0, 'opening a treasure trove should consume one Dragon Key');
-    assert.equal(client.character.gold, 1500100, 'gold rewards should be persisted on the character');
+    assert.equal(client.character.gold, 500100, 'gold rewards should be persisted on the character');
     assert.equal(client.character.SilverSigils, 100, 'opening a treasure trove should always award Royal Sigils');
 
     const revealPacket = client.sentPackets.find((packet) => packet.id === 0x108);
@@ -211,12 +220,29 @@ async function testOpenTreasureTroveConsumesCountsAndGrantsReward(): Promise<voi
         packId: 1,
         rewardIndex: 17,
         hasName: 1,
-        name: '1,500,000 Gold'
+        name: '500,000 Gold'
     });
     assert.deepEqual(parseGoldReward(goldRewardPacket!.payload), {
-        amount: 1500000,
+        amount: 500000,
         suppress: false
     });
+    assert.equal(
+        debugLogs.some((line) =>
+            line.includes('[LockboxHandler] Treasure Trove opened by Neodev:') &&
+            line.includes('rewardIndex=17') &&
+            line.includes('type=gold') &&
+            line.includes('rarity=N/A') &&
+            line.includes('topRoll=85.000%') &&
+            line.includes('topChance=3.000%') &&
+            line.includes('topBand=83.000%-86.000%') &&
+            line.includes('poolEntries=20') &&
+            line.includes('poolWeight=100') &&
+            line.includes('remainingTroves=0') &&
+            line.includes('remainingKeys=0')
+        ),
+        true,
+        'opening a treasure trove should emit a concise debug summary of the chosen reward and pool'
+    );
 }
 
 async function testOpenTreasureTroveEggRewardGrantsEligibleLevelTenPet(): Promise<void> {
@@ -228,7 +254,7 @@ async function testOpenTreasureTroveEggRewardGrantsEligibleLevelTenPet(): Promis
         PetConfig.getHatchablePetsForEggName('GenericBrown').map((pet) => Number(pet?.PetID ?? 0))
     );
 
-    await withMockedRandom([0.11, 0, 0.5], async () => {
+    await withMockedRandom([0.02, 0, 0.5], async () => {
         await LockboxHandler.handleLockboxReward(client as never, Buffer.alloc(0));
     });
 
