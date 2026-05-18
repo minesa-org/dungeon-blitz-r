@@ -1316,6 +1316,101 @@ function testWolfsEndRoomDialogueTranslationsCoverExtractedSource(): void {
     assert.deepEqual(missing, [], "Wolf's End room dialogue should have Turkish translations");
 }
 
+function isHomeRoomDialogueSegment(value: string): boolean {
+    if (!/[A-Za-z]{2,}/.test(value)) {
+        return false;
+    }
+    if (/^(?:am_|a_|symbol|instance|Symbol|mc_|btn_|_|NPC_|FXP_|SND_|a_Sound|Gold_|Bronze|Silver|Untouchable)/.test(value)) {
+        return false;
+    }
+    if (/^(?:default|neutral|enemy|Hard|Normal|Run|Bolster|Loop|Idle|Spawn|Windup|HitReact|BackToIdle|PoofInternal|HumanFireNova|Open|Closed|Close|Lowered|Raised|Up|Down|Left|Right|Start|Stop|Done|Door|Gate|Nothing|Bah!|Gah!)$/i.test(value)) {
+        return false;
+    }
+    if (/^(?:Camera|End|Free)$/i.test(value)) {
+        return false;
+    }
+    if (/^(?:\d+\s+)?(?:Camera|Shake|End|SpawnCue|RemoveCue|QuickFirePower|FirePower|Revive|Collision(?:On|Off)?|SetLevelMoment|PlaySound|Sound|SetMusic|SetRoomActive|Teleport|AddMarker|RemoveMarker|Fade|Focus|Lock|Unlock|Disable|Enable|Show|Hide|Wait|SetEmote|Effect|Animate|Ambush|BossMusic|Music|RemoveCue)\b/i.test(value)) {
+        return false;
+    }
+    if (/^[A-Za-z0-9_]+(?:\s+[A-Za-z0-9_]+){0,2}$/.test(value) && !/[.!?,:'|#]/.test(value)) {
+        return false;
+    }
+
+    return true;
+}
+
+function addHomeRoomDialogueCandidate(raw: string, out: Set<string>): void {
+    const value = unescapeActionScriptString(raw).trim();
+    if (!value) {
+        return;
+    }
+
+    for (const part of value.split(/=@|=|:|\+\d+/)) {
+        const clean = part
+            .replace(/^[@:]+/, '')
+            .replace(/^\d+\s+[A-Za-z0-9_]+\s+/, '')
+            .replace(/^(?:\s*<[^>]+>\s*)+/, '')
+            .replace(/^\^t\s*/, '')
+            .trim()
+            .replace(/\s+/g, ' ');
+        if (isHomeRoomDialogueSegment(clean)) {
+            out.add(clean);
+        }
+    }
+}
+
+function collectHomeScriptFiles(root: string, out: string[] = []): string[] {
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        const entryPath = path.join(root, entry.name);
+        if (entry.isDirectory()) {
+            collectHomeScriptFiles(entryPath, out);
+            continue;
+        }
+        if (!entry.name.endsWith('.as')) {
+            continue;
+        }
+
+        const relative = path.relative(path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts'), entryPath).split(path.sep).join('/');
+        if (/^(?:a_Room_(?:MainTutorial|GuildHallTutorial2|Main|Village|GuildHall|GuildHallInterior|Stables|Armory|Chambers|TrainingGround|Library)|LevelsHome_fla\/.*)\.as$/.test(relative)) {
+            out.push(entryPath);
+        }
+    }
+
+    return out;
+}
+
+function testHomeRoomDialogueTranslationsCoverExtractedSource(): void {
+    const dataDir = path.resolve(__dirname, '../data');
+    const scriptRoot = path.resolve(__dirname, '../../../build/npc-dialogue-level-scripts/scripts');
+    if (!fs.existsSync(scriptRoot)) {
+        return;
+    }
+
+    const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
+        translations?: Record<string, string>;
+    };
+    const required = new Set<string>(['I will not fall! To me, brothers!']);
+
+    for (const filePath of collectHomeScriptFiles(scriptRoot)) {
+        const source = fs.readFileSync(filePath, 'utf8');
+        for (const match of source.matchAll(/\.(sayOn(?:Activate|Alert|Bloodied|Death|Interact|Spawn))\s*=\s*"((?:\\.|[^"\\])*)"/g)) {
+            addHomeRoomDialogueCandidate(match[2] ?? '', required);
+        }
+        for (const match of source.matchAll(/(?:cutScene\w+|Script_\w+|cutscene|closingSkit|parrotLeave)\s*=\s*\[((?:.|\n)*?)\];/g)) {
+            for (const stringMatch of (match[1] ?? '').matchAll(/"((?:\\.|[^"\\])*)"/g)) {
+                addHomeRoomDialogueCandidate(stringMatch[1] ?? '', required);
+            }
+        }
+        for (const match of source.matchAll(/\.Skit\("((?:\\.|[^"\\])*)"\)/g)) {
+            addHomeRoomDialogueCandidate(match[1] ?? '', required);
+        }
+    }
+
+    const missing = [...required].filter((line) => !String(translations.translations?.[line] ?? '').trim()).sort();
+    assert.ok(required.size > 30, 'Home room dialogue inventory should include CraftTown and CraftTownTutorial scripts');
+    assert.deepEqual(missing, [], 'Home room dialogue should have Turkish translations');
+}
+
 function testValhavenWelcomePartyRoomDialogueTranslationsCoverExtractedSource(): void {
     const dataDir = path.resolve(__dirname, '../data');
     const translations = JSON.parse(fs.readFileSync(path.join(dataDir, 'DialogueTranslations.tr.json'), 'utf8')) as {
@@ -1818,6 +1913,7 @@ async function main(): Promise<void> {
     testCemeteryHillRoomDialogueTranslationsCoverExtractedSource();
     testWolfsEndEnemyRoomDialogueTranslationsCoverExtractedSource();
     testWolfsEndRoomDialogueTranslationsCoverExtractedSource();
+    testHomeRoomDialogueTranslationsCoverExtractedSource();
     testValhavenWelcomePartyRoomDialogueTranslationsCoverExtractedSource();
     testValhavenRoomDialogueTranslationsCoverExtractedSource();
     testShazariRoomDialogueTranslationsCoverExtractedSource();
