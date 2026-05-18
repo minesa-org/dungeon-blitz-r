@@ -19,6 +19,7 @@ export class LevelConfig {
     private static LEVELS: Record<string, LevelSpec> = {};
     private static DOOR_MAP: Map<string, string> = new Map(); // Key: "LevelName_DoorID"
     private static LEVEL_NAME_CANONICAL: Record<string, string> = {};
+    private static LEVEL_NAME_COMPACT_CANONICAL: Record<string, string> = {};
     private static readonly NON_DUNGEON_OVERRIDES = new Set([
         'CraftTown',
         'CraftTownTutorial'
@@ -122,6 +123,33 @@ export class LevelConfig {
         return Boolean(this.DEFAULT_SPAWNS[levelName]);
     }
 
+    private static compactLevelLookupKey(levelName: string | null | undefined): string {
+        return String(levelName ?? '')
+            .trim()
+            .replace(/\\/g, '/')
+            .replace(/^.*\//, '')
+            .replace(/^a_Level_/i, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '');
+    }
+
+    private static registerCanonicalLevelName(alias: string | null | undefined, canonical: string): void {
+        const raw = String(alias ?? '').trim();
+        if (!raw) {
+            return;
+        }
+
+        const lower = raw.toLowerCase();
+        if (!LevelConfig.LEVEL_NAME_CANONICAL[lower]) {
+            LevelConfig.LEVEL_NAME_CANONICAL[lower] = canonical;
+        }
+
+        const compact = LevelConfig.compactLevelLookupKey(raw);
+        if (compact && !LevelConfig.LEVEL_NAME_COMPACT_CANONICAL[compact]) {
+            LevelConfig.LEVEL_NAME_COMPACT_CANONICAL[compact] = canonical;
+        }
+    }
+
     static load(dataDir: string) {
         // Load Level Config
         try {
@@ -141,7 +169,9 @@ export class LevelConfig {
                     const isHard = parts.length > 4 && parts[4] === 'Hard';
 
                     LevelConfig.LEVELS[name] = { swf, mapId, baseId, isDungeon, isHard };
-                    LevelConfig.LEVEL_NAME_CANONICAL[name.toLowerCase()] = name;
+                    LevelConfig.registerCanonicalLevelName(name, name);
+                    LevelConfig.registerCanonicalLevelName(swf, name);
+                    LevelConfig.registerCanonicalLevelName(swf.split('/').pop(), name);
                 }
             }
             console.log(`[LevelConfig] Loaded ${Object.keys(LevelConfig.LEVELS).length} levels.`);
@@ -200,7 +230,12 @@ export class LevelConfig {
             return canonical;
         }
 
-        const compact = raw.toLowerCase().replace(/[^a-z0-9]+/g, "");
+        const compact = this.compactLevelLookupKey(raw);
+        const compactCanonical = this.LEVEL_NAME_COMPACT_CANONICAL[compact];
+        if (compactCanonical) {
+            return compactCanonical;
+        }
+
         return this.LEVEL_ALIASES[compact] || raw;
     }
 

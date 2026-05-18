@@ -1309,7 +1309,7 @@ function testUnlockedForgottenForgeDoorOpensWithoutPersistedMission(): void {
     assert.ok(doorStatePacket);
     assert.deepEqual(parseDoorStatePacket(doorStatePacket.payload), {
         doorId: 106,
-        state: 1,
+        state: 2,
         target: 'OMM_Mission6'
     });
 
@@ -1378,7 +1378,7 @@ function testUnearthingThePastDoorRequiresAcceptedSigginMission(): void {
     assert.ok(doorStatePacket);
     assert.deepEqual(parseDoorStatePacket(doorStatePacket.payload), {
         doorId: 101,
-        state: 1,
+        state: 2,
         target: 'SD_Mission1'
     });
 }

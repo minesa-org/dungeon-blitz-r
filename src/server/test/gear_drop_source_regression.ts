@@ -26,6 +26,46 @@ function excludedGearIdsExcept(...allowedGearIds: number[]): number[] {
     return allDropGearIds().filter((gearId) => !allowed.has(gearId));
 }
 
+function testValhavenLevelNamesNormalizeFromInternalSwfNames(): void {
+    const jadeCityLevels = [
+        'JC_Mission1',
+        'JC_Mission2',
+        'JC_Mission3',
+        'JC_Mission4',
+        'JC_Mission5',
+        'JC_Mission6',
+        'JC_Mission7',
+        'JC_Mission8',
+        'JC_Mission9',
+        'JC_Mission10',
+        'JC_Mission11',
+        'JC_Mini1',
+        'JC_Mini2'
+    ];
+
+    for (const levelName of jadeCityLevels) {
+        const internalName = `a_Level_${levelName.replace(/^JC_/, 'JC')}`;
+        assert.equal(
+            LevelConfig.normalizeLevelName(internalName),
+            levelName,
+            `${internalName} should normalize to ${levelName}`
+        );
+        assert.equal(
+            LevelConfig.normalizeLevelName(`LevelsJC.swf/${internalName}`),
+            levelName,
+            `SWF path for ${internalName} should normalize to ${levelName}`
+        );
+
+        const hardLevelName = `${levelName}Hard`;
+        const hardInternalName = `${internalName}Hard`;
+        assert.equal(
+            LevelConfig.normalizeLevelName(hardInternalName),
+            hardLevelName,
+            `${hardInternalName} should normalize to ${hardLevelName}`
+        );
+    }
+}
+
 function testRealmDropsRequireMatchingDungeon(): void {
     const onlyHuman12MageGloves = excludedGearIdsExcept(522);
     assert.equal(
@@ -63,6 +103,133 @@ function testMummyDropsRequireMausoleum(): void {
         GameData.getGearIdForEntity('Mummy', 'Mage', onlyMummy14MageBoots, 'CH_Mission5'),
         0,
         'Mummy14 realm gear should not drop in a different Cemetery Hill dungeon'
+    );
+}
+
+function testJadeCityRealmDropsUseCanonicalDungeonNames(): void {
+    const onlyHuman27MageStaff = excludedGearIdsExcept(1048);
+    assert.equal(
+        GameData.getGearIdForEntity('BrigandCryomancer', 'Mage', onlyHuman27MageStaff, 'JC_Mission11'),
+        1048,
+        'Human27 realm gear should drop from Human mobs in the client-authored Jade City source'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('BrigandCryomancer', 'Mage', onlyHuman27MageStaff, 'JC_Mission9'),
+        0,
+        'Human27 realm gear should not leak into Hiding Out'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('BrigandCryomancer', 'Mage', onlyHuman27MageStaff, 'JC_Mission2'),
+        0,
+        'Human27 realm gear should not use neighboring Jade City dungeon base levels as fallback'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('BrigandCryomancer', 'Mage', onlyHuman27MageStaff, 'BT_Mission1'),
+        0,
+        'Human27 realm gear should not leak into unrelated dungeons'
+    );
+
+    const onlyShade27MageGear = excludedGearIdsExcept(1047, 1051, 1055, 1062);
+    assert.notEqual(
+        GameData.getGearIdForEntity('ShadeSummoner', 'Mage', onlyShade27MageGear, 'JC_Mission5'),
+        0,
+        'Shade27 realm gear should drop from Shade lieutenants in Fable of the Lost Temple'
+    );
+    assert.notEqual(
+        GameData.getGearIdForEntity('ShadeSummoner', 'Mage', onlyShade27MageGear, 'a_Level_JCMission5'),
+        0,
+        'Shade27 realm gear should drop when the current level is supplied as the internal SWF level name'
+    );
+    assert.notEqual(
+        GameData.getGearIdForEntity('ShadeSummoner', 'Mage', onlyShade27MageGear, 'LevelsJC.swf/a_Level_JCMission5'),
+        0,
+        'Shade27 realm gear should drop when the current level is supplied as a SWF path'
+    );
+
+    const onlyDemon29MageGear = excludedGearIdsExcept(1131, 1139, 1146, 1157);
+    assert.notEqual(
+        GameData.getGearIdForEntity('GreaterDemonMaligner', 'Mage', onlyDemon29MageGear, 'JC_Mission5'),
+        0,
+        'Demon29 realm gear should drop from Demon lieutenants in Fable of the Lost Temple'
+    );
+
+    const onlySkeleton28MageGear = excludedGearIdsExcept(1039, 1065);
+    assert.notEqual(
+        GameData.getGearIdForEntity('BoneGolem', 'Mage', onlySkeleton28MageGear, 'JC_Mission3'),
+        0,
+        'Skeleton28 realm gear should drop in its client-authored Jade City source'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('BoneGolem', 'Mage', onlySkeleton28MageGear, 'JC_Mission5'),
+        0,
+        'Skeleton28 realm gear should not leak into Fable via authored base level fallback'
+    );
+
+    const onlyRatling29MageGear = excludedGearIdsExcept(1138, 1149);
+    assert.notEqual(
+        GameData.getGearIdForEntity('RatlingShamanHood', 'Mage', onlyRatling29MageGear, 'JC_Mission4'),
+        0,
+        'Ratling29 realm gear should drop in its client-authored Jade City source'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('RatlingShamanHood', 'Mage', onlyRatling29MageGear, 'JC_Mission9'),
+        0,
+        'Ratling29 realm gear should not leak into Hiding Out'
+    );
+
+    const onlyRaptor29MageGear = excludedGearIdsExcept(1137, 1145);
+    assert.notEqual(
+        GameData.getGearIdForEntity('SewerRaptorGreater', 'Mage', onlyRaptor29MageGear, 'JC_Mission4'),
+        0,
+        'Raptor29 realm gear should drop in its client-authored Jade City source'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('SewerRaptorGreater', 'Mage', onlyRaptor29MageGear, 'JC_Mission9'),
+        0,
+        'Raptor29 realm gear should not leak into Hiding Out'
+    );
+
+    const onlyImperial27MageGear = excludedGearIdsExcept(1040, 1045, 1052, 1053, 1067);
+    assert.notEqual(
+        GameData.getGearIdForEntity('ImperialGuard', 'Mage', onlyImperial27MageGear, 'JC_Mission1'),
+        0,
+        'Imperial27 realm gear should drop in its client-authored Jade City source'
+    );
+
+    const onlySpirit29MageGear = excludedGearIdsExcept(1130, 1143);
+    assert.notEqual(
+        GameData.getGearIdForEntity('SpiritGoblinLt1', 'Mage', onlySpirit29MageGear, 'JC_Mission6'),
+        0,
+        'Spirit29 realm gear should drop in its client-authored Jade City source'
+    );
+}
+
+function testRealmLevelSourcesCanMapToMultipleDungeons(): void {
+    const onlyImperial29MageNatureStaff = excludedGearIdsExcept(1140);
+    assert.equal(
+        GameData.getGearIdForEntity('ImperialGuard', 'Mage', onlyImperial29MageNatureStaff, 'JC_Mini1'),
+        1140,
+        'Imperial29 realm gear should drop in its client-authored Jade City source'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('ImperialGuard', 'Mage', onlyImperial29MageNatureStaff, 'JC_Mission8'),
+        0,
+        'Imperial29 realm gear should not use matching base level when the client source map points elsewhere'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('ImperialGuard', 'Mage', onlyImperial29MageNatureStaff, 'JC_Mission4'),
+        0,
+        'Imperial29 realm gear should not drop in Imperial dungeons with a different source level'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('ImperialMagi2', 'Mage', onlyImperial29MageNatureStaff, 'JC_Mini1'),
+        1140,
+        'Imperial level-29 mage gear should drop from Imperial Jade City lieutenants in the client source'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('ImperialMagi2', 'Mage', onlyImperial29MageNatureStaff, 'JC_Mission7'),
+        0,
+        'Imperial level-29 mage gear should not drop in neighboring Imperial dungeons with a different dungeon level'
     );
 }
 
@@ -126,8 +293,11 @@ function main(): void {
     LevelConfig.load(dataDir);
     GameData.load(dataDir);
 
+    testValhavenLevelNamesNormalizeFromInternalSwfNames();
     testRealmDropsRequireMatchingDungeon();
     testMummyDropsRequireMausoleum();
+    testJadeCityRealmDropsUseCanonicalDungeonNames();
+    testRealmLevelSourcesCanMapToMultipleDungeons();
     testBossDropsRequireBossAndDungeon();
 
     console.log('gear_drop_source_regression passed');
