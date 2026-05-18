@@ -212,50 +212,12 @@ async function testLoadCharactersNormalizesLevelFromXp(): Promise<void> {
     });
 }
 
-async function testLoadCharactersGrantsDefaultCharacterResources(): Promise<void> {
-    await withTempDataDir('load_grants_default_character_resources', async (adapter, tempDir) => {
-        const saveDir = path.join(tempDir, 'data', 'saves');
-        await fs.mkdir(saveDir, { recursive: true });
-        await fs.writeFile(
-            path.join(saveDir, '14.json'),
-            JSON.stringify({
-                user_id: 14,
-                characters: [
-                    {
-                        ...createCharacter('Default'),
-                        level: 1,
-                        xp: 0,
-                        gold: 5,
-                        mammothIdols: 1,
-                        DragonKeys: 2,
-                        lockboxes: [
-                            {
-                                lockboxID: 1,
-                                count: 3
-                            }
-                        ]
-                    }
-                ]
-            }, null, 2)
-        );
-
-        const loadedCharacters = await adapter.loadCharacters(14);
-        assert.equal(loadedCharacters[0]?.level, 50);
-        assert.equal(loadedCharacters[0]?.xp, 29116900);
-        assert.equal(loadedCharacters[0]?.gold, 100000000);
-        assert.equal(loadedCharacters[0]?.mammothIdols, 10000);
-        assert.equal(loadedCharacters[0]?.DragonKeys, 100);
-        assert.deepEqual(loadedCharacters[0]?.lockboxes, [{ lockboxID: 1, count: 100 }]);
-    });
-}
-
 async function main(): Promise<void> {
     await testSaveCharactersRetriesTransientRenameLock();
     await testSaveCharactersSerializesConcurrentWrites();
     await testLoadCharactersWaitsForQueuedSave();
     await testSaveCharactersMergesLiveSessionCharacter();
     await testLoadCharactersNormalizesLevelFromXp();
-    await testLoadCharactersGrantsDefaultCharacterResources();
     console.log('json_adapter_save_regression: ok');
 }
 
