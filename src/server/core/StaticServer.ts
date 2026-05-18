@@ -36,7 +36,6 @@ export class StaticServer {
     private selectedSwfCache: { key: string; buffer: Buffer } | null;
     private readonly flashVersion = 'cbq';
     private readonly gameVersion = 'cbp';
-    private readonly runtimeVersion = '20260517-class82-scene-cache-safe';
 
     constructor(
         port: number = Config.STATIC_PORT,
@@ -75,7 +74,7 @@ export class StaticServer {
     }
 
     private getSelectedSwfUrl(): string {
-        return `/p/cbp/DungeonBlitz.swf?fv=${this.flashVersion}&gv=${this.gameVersion}&rv=${this.runtimeVersion}`;
+        return `/p/cbp/DungeonBlitz.swf?fv=${this.flashVersion}&gv=${this.gameVersion}`;
     }
 
     private normalizeLocale(value: unknown): 'en' | 'tr' | null {

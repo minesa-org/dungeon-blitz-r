@@ -142,10 +142,15 @@ export class CombatHandler {
 
     private static readonly PLAYER_OUT_OF_COMBAT_REGEN_DELAY_MS = 5_000;
     private static readonly PLAYER_OUT_OF_COMBAT_REGEN_INTERVAL_MS = 1_000;
-    private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS = 5_500;
-    private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS = 500;
+    // Original CombatState.as: REGEN_INTERVAL = 500, CANREGEN_TIME = 6000 - REGEN_INTERVAL,
+    // const_1217 = 0.01 for brain/NPC entities.
+    private static readonly ORIGINAL_REGEN_INTERVAL_MS = 500;
+    private static readonly ORIGINAL_CAN_REGEN_TIME_MS = 6_000 - CombatHandler.ORIGINAL_REGEN_INTERVAL_MS;
+    private static readonly ORIGINAL_BRAIN_REGEN_RATE = 0.01;
+    private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS = CombatHandler.ORIGINAL_CAN_REGEN_TIME_MS;
+    private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS = CombatHandler.ORIGINAL_REGEN_INTERVAL_MS;
     private static readonly PLAYER_REGEN_RATE = 0.1;
-    private static readonly HOSTILE_REGEN_RATE = 0.01;
+    private static readonly HOSTILE_REGEN_RATE = CombatHandler.ORIGINAL_BRAIN_REGEN_RATE;
     private static readonly POWER_HIT_CLIENT_AUTHORITY_BOSS_LEVELS = new Set([
         'JC_Mission1',
         'JC_Mission1Hard'
@@ -435,8 +440,8 @@ export class CombatHandler {
         return Boolean(entity?.dead) || Number(entity?.entState ?? EntityState.ACTIVE) === EntityState.DEAD;
     }
 
-    private static isBossEntity(entity: any): boolean {
-        return GameData.isBossEntity(entity);
+    private static isDungeonBossEntity(levelScope: string, entity: any): boolean {
+        return GameData.isDungeonBossEntity(getScopeLevelName(levelScope), entity);
     }
 
     private static levelHasDeadPlayer(levelScope: string): boolean {
@@ -651,7 +656,7 @@ export class CombatHandler {
         if (!entity || entity.isPlayer || Number(entity.team ?? 0) !== EntityTeam.ENEMY) {
             return;
         }
-        if (!CombatHandler.isBossEntity(entity) || !CombatHandler.levelHasDeadPlayer(levelScope)) {
+        if (!CombatHandler.isDungeonBossEntity(levelScope, entity) || !CombatHandler.levelHasDeadPlayer(levelScope)) {
             return;
         }
 
@@ -774,9 +779,7 @@ export class CombatHandler {
         }
 
         client.enemyDeathRegenArmed = true;
-        const firstTickActivityAt = nowMs -
-            CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS -
-            CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS;
+        const firstTickActivityAt = nowMs - CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS;
 
         for (const [entityId, entity] of levelMap.entries()) {
             if (entityId <= 0 || entityId === client.clientEntID) {
@@ -785,7 +788,7 @@ export class CombatHandler {
             if (
                 Boolean(entity?.isPlayer) ||
                 Number(entity?.team ?? 0) !== EntityTeam.ENEMY ||
-                !CombatHandler.isBossEntity(entity)
+                !CombatHandler.isDungeonBossEntity(levelScope, entity)
             ) {
                 continue;
             }
