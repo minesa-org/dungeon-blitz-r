@@ -27,9 +27,8 @@ function resolveBaseSwfPath(): string {
 
 const BASE_SWF_PATH = resolveBaseSwfPath();
 const MULTIPLAYER_HOST = Config.MULTIPLAYER_HOST;
-const SWF_RUNTIME_VERSION = '20260517-class82-scene-cache-safe';
-const LOCAL_REFRESH_URL = `http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp&rv=${SWF_RUNTIME_VERSION}`;
-const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp&rv=${SWF_RUNTIME_VERSION}`;
+const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp';
+const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp`;
 const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
 const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
