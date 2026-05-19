@@ -98,10 +98,10 @@ function main(): void {
     assert.match(context, /lastCombatDebug: .*power=PuckMelee1#2020/);
     assert.match(context, /lastCombatDebug: .*sourceSlot=MeleePower/);
     assert.match(context, /lastCombatDebug: .*castAnim=Melee/);
-    assert.match(context, /lastCombatDebug: .*sourceArt=Animation_Puck\.swf\/a__Animation,custom=Animation_Puck\.swf\/Shadow2/);
+    assert.match(context, /lastCombatDebug: .*sourceArt=Animation_Puck\.swf\/a__Animation,custom=Animation_Puck\.swf\/Demon/);
     assert.match(context, /suspectEnemies:/);
     assert.match(context, /DemonHarrier2#301/);
-    assert.match(context, /art=Animation_Puck\.swf\/a__Animation,custom=Animation_Puck\.swf\/Shadow2/);
+    assert.match(context, /art=Animation_Puck\.swf\/a__Animation,custom=Animation_Puck\.swf\/Demon/);
     assert.match(context, /powers=melee:PuckMelee1,ranged:PuckShot,extra:PuckMelee2/);
 }
 

@@ -17,8 +17,8 @@ import {
 } from "./swfPatchUtils";
 
 const DEFAULT_SWF = resolveDefaultSwf();
-const FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE = 2048;
-const PREVIOUS_FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE = 3072;
+const FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE = 1024;
+const PREVIOUS_FORCED_FULLSCREEN_ENTITY_BITMAP_SIZES = [2048, 3072];
 
 type Operand = [Instruction["operands"][number][0], number];
 type InsertedInstruction =
@@ -354,11 +354,9 @@ function patchSwf(swfPath: string, verify: boolean): void {
     return;
   }
 
-  const previousRanges = findForcedEntityBitmapDimensions(
-    instructions,
-    abc.multinameNames,
-    PREVIOUS_FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE,
-  );
+  const previousRanges = PREVIOUS_FORCED_FULLSCREEN_ENTITY_BITMAP_SIZES
+    .map((size) => findForcedEntityBitmapDimensions(instructions, abc.multinameNames, size))
+    .find((rangesForSize) => rangesForSize.length === 2) ?? [];
   const ranges = previousRanges.length === 2 ? previousRanges : findDynamicEntityBitmapDimensions(instructions, abc.multinameNames);
   const forcedDimensions = assembleInserted([
     pushInteger(FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE),

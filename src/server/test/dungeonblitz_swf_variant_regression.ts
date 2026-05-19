@@ -35,9 +35,11 @@ const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
 const SUPERANIM_METHOD200_SAFE_PIXELS = 65536;
 const SUPERANIM_METHOD982_SAFE_PIXELS = 4194304;
 const SUPERANIM_METHOD982_SAFE_AXIS = 8191;
-const SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE = 2048;
+const SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE = 1024;
 const SAFE_SCREEN_BITMAP_WIDTH = 2048;
 const SAFE_SCREEN_BITMAP_HEIGHT = 1152;
+const MAX_CLASS33_CACHE_BITMAP_WIDTH = 2048;
+const MAX_CLASS33_CACHE_BITMAP_HEIGHT = 1152;
 
 function getStringMatches(swfPath: string, target: string): number[] {
     const ctx = parseSwf(swfPath);
@@ -259,6 +261,48 @@ function assertGameMethod1070ChatBubbleCrashGuard(swfPath: string): void {
     );
 }
 
+function assertGameMethod1946RenderCrashGuard(swfPath: string): void {
+    const { abc, methodBody, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_1946');
+    const errorName = abc.multinameNames.findIndex((name) => name === 'Error');
+    assert.notEqual(errorName, -1, 'Error multiname not found');
+
+    const pushScopeIndex = instructions.findIndex((instruction) => instruction.opcode === 0x30);
+    assert.notEqual(pushScopeIndex, -1, 'Game.method_1946 pushscope not found');
+
+    const firstBodyInstruction = instructions[pushScopeIndex + 1];
+    assert.ok(firstBodyInstruction, 'Game.method_1946 body is empty');
+
+    assert.equal(
+        methodBody.exceptions.some((entry) =>
+            entry.from === firstBodyInstruction.offset &&
+            entry.type === errorName &&
+            entry.target > entry.to
+        ),
+        true,
+        'Game.method_1946 render body must be caught so stale snapshot state cannot crash'
+    );
+
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0xd0 &&
+            instructions[index + 1]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 1], abc.multinameNames) === 'main' &&
+            instructions[index + 2]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 2], abc.multinameNames) === 'var_147' &&
+            instructions[index + 3]?.opcode === 0x2a &&
+            instructions[index + 4]?.opcode === 0x11 &&
+            instructions[index + 5]?.opcode === 0x29 &&
+            instructions[index + 6]?.opcode === 0x47 &&
+            instructions[index + 7]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 7], abc.multinameNames) === 'bitmapData' &&
+            instructions[index + 8]?.opcode === 0x11 &&
+            instructions[index + 9]?.opcode === 0x47
+        ),
+        true,
+        'Game.method_1946 must skip capture before hiding layers when the transition bitmap is missing'
+    );
+}
+
 function assertEntityMethod900GfxGuard(swfPath: string): void {
     const { abc, instructions } = getInstanceMethodCode(swfPath, 'Entity', 'method_900');
 
@@ -315,6 +359,85 @@ function assertEntityMethod853GfxGuard(swfPath: string): void {
         ),
         true,
         'Entity.method_853 must skip animation-facing updates when gfx internals are already cleared'
+    );
+}
+
+function assertEntityMethod511LayerReferenceGuard(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'Entity', 'method_511');
+    const guardIndex = instructions.findIndex((instruction, index) =>
+            instruction.opcode === 0xd0 &&
+            instructions[index + 1]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 1], abc.multinameNames) === 'gfx' &&
+            instructions[index + 2]?.opcode === 0x2a &&
+            instructions[index + 3]?.opcode === 0x11 &&
+            instructions[index + 4]?.opcode === 0x29 &&
+            instructions[index + 5]?.opcode === 0x47 &&
+            instructions[index + 6]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 6], abc.multinameNames) === 'm_TheDO' &&
+            instructions[index + 7]?.opcode === 0x11 &&
+            instructions[index + 8]?.opcode === 0x47 &&
+            instructions[index + 9]?.opcode === 0xd2 &&
+            instructions[index + 10]?.opcode === 0x2a &&
+            instructions[index + 11]?.opcode === 0x11 &&
+            instructions[index + 12]?.opcode === 0x29 &&
+            instructions[index + 13]?.opcode === 0x47 &&
+            instructions[index + 14]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 14], abc.multinameNames) === 'gfx' &&
+            instructions[index + 15]?.opcode === 0x2a &&
+            instructions[index + 16]?.opcode === 0x11 &&
+            instructions[index + 17]?.opcode === 0x29 &&
+            instructions[index + 18]?.opcode === 0x47 &&
+            instructions[index + 19]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 19], abc.multinameNames) === 'm_TheDO' &&
+            instructions[index + 20]?.opcode === 0x2a &&
+            instructions[index + 21]?.opcode === 0x11 &&
+            instructions[index + 22]?.opcode === 0x29 &&
+            instructions[index + 23]?.opcode === 0x47 &&
+            instructions[index + 24]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 24], abc.multinameNames) === 'parent' &&
+            instructions[index + 25]?.opcode === 0xd0 &&
+            instructions[index + 26]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 26], abc.multinameNames) === 'var_1' &&
+            instructions[index + 27]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 27], abc.multinameNames) === 'playerEntLayer' &&
+            instructions[index + 28]?.opcode === 0xab &&
+            instructions[index + 29]?.opcode === 0x11 &&
+            instructions[index + 30]?.opcode === 0x47
+    );
+
+    assert.notEqual(
+        guardIndex,
+        -1,
+        'Entity.method_511 must skip spawn/reset layer sorting when the reference DisplayObject is stale or detached'
+    );
+
+    const expressionIndex = instructions.findIndex((instruction, index) =>
+        index > guardIndex &&
+        instruction.opcode === 0xd0 &&
+        instructions[index + 1]?.opcode === 0x66 &&
+        u30OperandName(instructions[index + 1], abc.multinameNames) === 'var_1' &&
+        instructions[index + 2]?.opcode === 0x66 &&
+        u30OperandName(instructions[index + 2], abc.multinameNames) === 'playerEntLayer' &&
+        instructions[index + 3]?.opcode === 0xd0 &&
+        instructions[index + 4]?.opcode === 0x66 &&
+        u30OperandName(instructions[index + 4], abc.multinameNames) === 'gfx' &&
+        instructions[index + 5]?.opcode === 0x66 &&
+        u30OperandName(instructions[index + 5], abc.multinameNames) === 'm_TheDO'
+    );
+    assert.notEqual(expressionIndex, -1, 'Entity.method_511 guarded layer expression not found');
+
+    const guardOffset = instructions[guardIndex].offset;
+    const expressionOffset = instructions[expressionIndex].offset;
+    assert.equal(
+        instructions.some((instruction) =>
+            instruction.offset < guardOffset &&
+            instruction.opcode >= 0x0c &&
+            instruction.opcode <= 0x1a &&
+            instruction.operands[0]?.[0] === 's24' &&
+            instruction.offset + instruction.size + instruction.operands[0][1] === expressionOffset
+        ),
+        false,
+        'Entity.method_511 branches entering the layer expression must pass through the guard first'
     );
 }
 
@@ -579,6 +702,64 @@ function assertClass23BitmapDataGuardWindow(swfPath: string): void {
     );
 }
 
+function assertClass33LevelCompleteSafeBitmapData(swfPath: string): void {
+    const { abc, methodBody, instructions } = getInstanceMethodCode(swfPath, 'class_33', 'method_298');
+
+    const constructorIndex = instructions.findIndex((instruction, index) =>
+            instruction.opcode === 0x5d &&
+            u30OperandName(instruction, abc.multinameNames) === 'BitmapData' &&
+            instructions[index + 1]?.opcode === 0xd2 &&
+            instructions[index + 2]?.opcode === 0xd3 &&
+            instructions[index + 3]?.opcode === 0x26 &&
+            instructions[index + 4]?.opcode === 0x24 &&
+            instructions[index + 4]?.operands[0]?.[1] === 0 &&
+            instructions[index + 5]?.opcode === 0x4a &&
+            u30OperandName(instructions[index + 5], abc.multinameNames) === 'BitmapData' &&
+            instructions[index + 5]?.operands[1]?.[1] === 4
+    );
+
+    assert.notEqual(
+        constructorIndex,
+        -1,
+        'class_33.method_298 cached UI BitmapData allocation must use clamped dynamic dimensions'
+    );
+
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0x60 &&
+            u30OperandName(instruction, abc.multinameNames) === 'Math' &&
+            instructions[index + 1]?.opcode === 0xd2 &&
+            instructions[index + 2]?.opcode === 0x25 &&
+            instructions[index + 2]?.operands[0]?.[1] === MAX_CLASS33_CACHE_BITMAP_WIDTH &&
+            instructions[index + 3]?.opcode === 0x46 &&
+            u30OperandName(instructions[index + 3], abc.multinameNames) === 'min' &&
+            instructions[index + 6]?.opcode === 0x60 &&
+            u30OperandName(instructions[index + 6], abc.multinameNames) === 'Math' &&
+            instructions[index + 7]?.opcode === 0xd3 &&
+            instructions[index + 8]?.opcode === 0x25 &&
+            instructions[index + 8]?.operands[0]?.[1] === MAX_CLASS33_CACHE_BITMAP_HEIGHT &&
+            instructions[index + 9]?.opcode === 0x46 &&
+            u30OperandName(instructions[index + 9], abc.multinameNames) === 'min'
+        ),
+        true,
+        'class_33.method_298 cached UI BitmapData dimensions must be clamped without enlarging small hit boxes'
+    );
+
+    const construct = instructions[constructorIndex + 5];
+    const errorName = abc.multinameNames.findIndex((name) => name === 'Error');
+    assert.notEqual(errorName, -1, 'Error multiname not found');
+    assert.equal(
+        methodBody.exceptions.some((entry) =>
+            entry.from <= instructions[constructorIndex].offset &&
+            entry.to >= construct.offset + construct.size &&
+            entry.type === errorName &&
+            entry.target > construct.offset
+        ),
+        true,
+        'class_33.method_298 BitmapData allocation must be caught so cached UI screens cannot crash'
+    );
+}
+
 function assertGameMethod1947SafeScreenBitmapData(swfPath: string): void {
     const { abc, methodBody, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_1947');
     const constructorIndex = instructions.findIndex((instruction, index) =>
@@ -615,6 +796,27 @@ function assertGameMethod1947SafeScreenBitmapData(swfPath: string): void {
         ),
         true,
         'Game.method_1947 screen BitmapData allocation must be caught so door transitions cannot crash'
+    );
+
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0xd0 &&
+            instructions[index + 1]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 1], abc.multinameNames) === 'main' &&
+            instructions[index + 2]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 2], abc.multinameNames) === 'var_374' &&
+            instructions[index + 3]?.opcode === 0x2a &&
+            instructions[index + 4]?.opcode === 0x11 &&
+            instructions[index + 5]?.opcode === 0x29 &&
+            instructions[index + 6]?.opcode === 0x10 &&
+            instructions[index + 7]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 7], abc.multinameNames) === 'parent' &&
+            instructions[index + 8]?.opcode === 0xd0 &&
+            instructions[index + 9]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 9], abc.multinameNames) === 'main'
+        ),
+        true,
+        'Game.method_1947 must guard getChildIndex when the transition anchor is no longer a child'
     );
 }
 
@@ -802,9 +1004,11 @@ function testBaseAndLocalVariantKeepClass82BitmapDataGuard(): void {
 
 function testBaseAndLocalVariantKeepClass23BitmapDataGuard(): void {
     assertClass23BitmapDataGuardWindow(BASE_SWF_PATH);
+    assertClass33LevelCompleteSafeBitmapData(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
     withTempSwf(buffer, (tempPath) => {
         assertClass23BitmapDataGuardWindow(tempPath);
+        assertClass33LevelCompleteSafeBitmapData(tempPath);
     });
 }
 
@@ -836,11 +1040,13 @@ function testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData(): void {
 
 function testBaseAndLocalVariantKeepGameMethod1325SuperAnimCrashGuard(): void {
     assertGameMethod1325SuperAnimCrashGuard(BASE_SWF_PATH);
+    assertGameMethod1946RenderCrashGuard(BASE_SWF_PATH);
     assertGameMethod1970EntityUpdateCrashGuard(BASE_SWF_PATH);
     assertGameMethod1070ChatBubbleCrashGuard(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
     withTempSwf(buffer, (tempPath) => {
         assertGameMethod1325SuperAnimCrashGuard(tempPath);
+        assertGameMethod1946RenderCrashGuard(tempPath);
         assertGameMethod1970EntityUpdateCrashGuard(tempPath);
         assertGameMethod1070ChatBubbleCrashGuard(tempPath);
     });
@@ -849,10 +1055,12 @@ function testBaseAndLocalVariantKeepGameMethod1325SuperAnimCrashGuard(): void {
 function testBaseAndLocalVariantKeepEntityMethod900GfxGuard(): void {
     assertEntityMethod900GfxGuard(BASE_SWF_PATH);
     assertEntityMethod853GfxGuard(BASE_SWF_PATH);
+    assertEntityMethod511LayerReferenceGuard(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
     withTempSwf(buffer, (tempPath) => {
         assertEntityMethod900GfxGuard(tempPath);
         assertEntityMethod853GfxGuard(tempPath);
+        assertEntityMethod511LayerReferenceGuard(tempPath);
     });
 }
 

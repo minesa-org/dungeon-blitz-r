@@ -615,3 +615,271 @@ Context:
     - RatlingShaman#21473594 team=2 room=0 rank=Minion level=50 pos=(13574,3374) dist=1074 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=43322 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Animation_Goblin.swf/RatlingShaman|Gfx_Paladin_1.swf/MaceAbomination08|Gfx_Paladin_1.swf/OffhandScepter09 powers=melee:GoblinMeleeS,ranged:GoblinFireball
     - RatlingArmor#21211450 team=2 room=0 rank=Minion level=50 pos=(13498,3379) dist=1150 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=43322 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
 
+[2026-05-19T04:34:05.696Z] User 10: ArgumentError: Error #2025: The supplied DisplayObject must be a child of the caller.
+	at flash.display::DisplayObjectContainer/getChildIndex()
+	at Game/method_1947()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=58489 char=Telahair level=JadeCity instance=(none) scope=JadeCity room=0 playerEnt=58489
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=(none) hp=100/100
+  player: Telahair#58489 team=1 room=0 rank=(none) level=50 pos=(5914,799) dist=0 hp=(unknown) lastCombatAgeMs=(none) flags=ownerToken=58489
+  suspectEnemies:
+    - RatlingMace#25289849 team=2 room=0 rank=Minion level=(unknown) pos=(6228,799) dist=314 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=58489 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - RatlingSword#25355385 team=2 room=0 rank=Minion level=(unknown) pos=(6292,799) dist=378 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=58489 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordGoblin01|Gfx_Paladin_1.swf/OffhandSabre08 powers=melee:GoblinMeleeS
+    - SewerRaptor#25420921 team=2 room=0 rank=Minion level=(unknown) pos=(6373,799) dist=459 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=58489 art=Animation_Raptor.swf/a__Animation,custom=Animation_Raptor.swf/Horned|Animation_Raptor.swf/Sewer powers=melee:RaptorMeleeS
+    - RatlingMace#25224313 team=2 room=0 rank=Minion level=(unknown) pos=(6400,799) dist=486 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=58489 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - BrigandCutthroat#24896633 team=2 room=0 rank=Lieutenant level=(unknown) pos=(5120,799) dist=794 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=58489 art=Animation_Rogue.swf/a__Animation,custom=Gfx_Rogue_1.swf/Null|Gfx_Rogue_1.swf/Brigand|Gfx_Rogue_1.swf/BootFootThug|Gfx_Rogue_1.swf/Thug|Gfx_Rogue_1.swf/SashThug|Gfx_Rogue_1.swf/GloveSpike|Gfx_Rogue_1.swf/GloveNinja|Gfx_Paladin_1.swf/RapierSewer|Gfx_Paladin_1.swf/OffhandSewer powers=melee:HumanMeleeMR,extra:HumanSpinStrike
+    - RatlingMace#25158777 team=2 room=0 rank=Minion level=(unknown) pos=(5118,799) dist=796 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=58489 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - RatlingArmor#24962169 team=2 room=0 rank=Minion level=(unknown) pos=(5026,799) dist=888 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=58489 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
+    - BrigandBrawler#24831097 team=2 room=0 rank=Lieutenant level=(unknown) pos=(4967,799) dist=947 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=58489 art=Animation_Paladin.swf/a__Animation,custom=Gfx_Paladin_1.swf/Null|Gfx_Paladin_1.swf/Bandit2|Gfx_Paladin_1.swf/ArmorHunter|Gfx_Paladin_1.swf/BootThug|Gfx_Paladin_1.swf/GloveThug|Gfx_Paladin_1.swf/MaceSewer|Gfx_Paladin_1.swf/FlapBig powers=melee:HumanMeleeM,extra:HumanCleave
+
+[2026-05-19T04:36:48.127Z] User 10: ArgumentError: Error #2015: Invalid BitmapData.
+	at flash.display::BitmapData/ctor()
+	at flash.display::BitmapData()
+	at SuperAnimData$/method_806()
+	at SuperAnimData$/method_1563()
+	at Game/method_1923()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=10589 char=Telahair level=JC_Mission2 instance=10589 scope=JC_Mission2#10589 room=2021732904 playerEnt=10589
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=10961 hp=34056/68109
+  player: Telahair#10589 team=1 room=0 rank=(none) level=50 pos=(17047,3379) dist=0 hp=34056/68109 lastCombatAgeMs=(none) flags=ownerToken=10589
+  lastCombat: 0x0A PowerHit ageMs=10961 scope=JC_Mission2#10589 source=Telahair#10589(team=1,room=0) target=RatlingShamanHood#20982109(team=2,room=0) powerId=1243 damage=2660
+  lastCombatDebug: power=HeavyDagger#1243 castAnim=Shoot targetMethod=ProjectilePlayer powerGfx=FireGfx:SFX_1.swf/a_BladeImpact|ProjGfx:SFX_1.swf/a_ThrowingBlade04 targetArt=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Animation_Goblin.swf/RatlingShaman|Animation_Goblin.swf/RatlingShaman2|Gfx_Paladin_1.swf/MaceCyclops08|Gfx_Paladin_1.swf/OffhandScepter06
+  suspectEnemies:
+    - TreasureChestEmpty#15346013 team=2 room=0 rank=(none) level=50 pos=(16201,1879) dist=1722 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=10589 art=Animation_Environmentals.swf/a__ChestAnimation
+    - RatlingSword#16787805 team=2 room=0 rank=Minion level=50 pos=(19825,1819) dist=3186 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=10589 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordGoblin01|Gfx_Paladin_1.swf/OffhandSabre08 powers=melee:GoblinMeleeS
+    - RatlingArmor#16656733 team=2 room=0 rank=Minion level=50 pos=(19872,1819) dist=3227 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=10589 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
+    - BrigandBrawler#16722269 team=2 room=0 rank=Lieutenant level=50 pos=(19962,1819) dist=3306 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=10589 art=Animation_Paladin.swf/a__Animation,custom=Gfx_Paladin_1.swf/Null|Gfx_Paladin_1.swf/Bandit2|Gfx_Paladin_1.swf/ArmorHunter|Gfx_Paladin_1.swf/BootThug|Gfx_Paladin_1.swf/GloveThug|Gfx_Paladin_1.swf/MaceSewer|Gfx_Paladin_1.swf/FlapBig powers=melee:HumanMeleeM,extra:HumanCleave
+    - RatlingArmor#16918877 team=2 room=0 rank=Minion level=50 pos=(20013,1819) dist=3351 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=10589 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
+    - RatlingMace#16853341 team=2 room=0 rank=Minion level=50 pos=(20066,1819) dist=3398 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=10589 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - RatlingArmor#16329053 team=2 room=0 rank=Minion level=50 pos=(21332,1819) dist=4560 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=10589 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
+    - RatlingMace#16066909 team=2 room=0 rank=Minion level=50 pos=(21390,1819) dist=4615 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=10589 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+
+[2026-05-19T11:18:45.508Z] User 10: ArgumentError: Error #2015: Invalid BitmapData.
+	at flash.display::BitmapData/ctor()
+	at flash.display::BitmapData()
+	at SuperAnimData$/method_806()
+	at SuperAnimData$/method_1563()
+	at Game/method_1923()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=32548 char=Telahair level=JC_Mission2 instance=32548 scope=JC_Mission2#32548 room=2021732904 playerEnt=32548
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=22901 hp=68109/68109
+  player: Telahair#32548 team=1 room=0 rank=(none) level=50 pos=(19386,1770) dist=0 hp=68109/68109 lastCombatAgeMs=(none) flags=ownerToken=32548
+  lastCombat: 0x0A PowerHit ageMs=22901 scope=JC_Mission2#32548 source=Telahair#32548(team=1,room=0) target=RatlingShamanHood#20938532(team=2,room=0) powerId=5952 damage=13065
+  lastCombatDebug: power=SoulShatter10#5952 castAnim=RapierUber targetMethod=Melee powerGfx=CastGfx:SFX_3.swf/a_Carnifex|HitGfx:SFX_3.swf/a_CarnifexHitReact targetArt=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Animation_Goblin.swf/RatlingShaman|Animation_Goblin.swf/RatlingShaman2|Gfx_Paladin_1.swf/MaceCyclops08|Gfx_Paladin_1.swf/OffhandScepter06
+  suspectEnemies:
+    - RatlingSword#16809764 team=2 room=0 rank=Minion level=50 pos=(19825,1819) dist=442 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=32548 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordGoblin01|Gfx_Paladin_1.swf/OffhandSabre08 powers=melee:GoblinMeleeS
+    - RatlingArmor#16678692 team=2 room=0 rank=Minion level=50 pos=(19872,1819) dist=488 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=32548 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
+    - BrigandBrawler#16744228 team=2 room=0 rank=Lieutenant level=50 pos=(19962,1819) dist=578 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=32548 art=Animation_Paladin.swf/a__Animation,custom=Gfx_Paladin_1.swf/Null|Gfx_Paladin_1.swf/Bandit2|Gfx_Paladin_1.swf/ArmorHunter|Gfx_Paladin_1.swf/BootThug|Gfx_Paladin_1.swf/GloveThug|Gfx_Paladin_1.swf/MaceSewer|Gfx_Paladin_1.swf/FlapBig powers=melee:HumanMeleeM,extra:HumanCleave
+    - RatlingArmor#16940836 team=2 room=0 rank=Minion level=50 pos=(20013,1819) dist=629 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=32548 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
+    - RatlingMace#16875300 team=2 room=0 rank=Minion level=50 pos=(20066,1819) dist=682 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=32548 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - RatlingArmor#16351012 team=2 room=0 rank=Minion level=50 pos=(21332,1819) dist=1947 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=32548 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
+    - RatlingMace#16088868 team=2 room=0 rank=Minion level=50 pos=(21390,1819) dist=2005 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=32548 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - RatlingSword#16416548 team=2 room=0 rank=Minion level=50 pos=(21423,1819) dist=2038 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=32548 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordGoblin01|Gfx_Paladin_1.swf/OffhandSabre08 powers=melee:GoblinMeleeS
+
+[2026-05-19T11:29:32.623Z] User 10: ArgumentError: Error #2015: Invalid BitmapData.
+	at flash.display::BitmapData/ctor()
+	at flash.display::BitmapData()
+	at class_23/method_942()
+	at class_23/method_1753()
+	at Game/method_1296()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=35009 char=Telahair level=JadeCity instance=(none) scope=JadeCity room=0 playerEnt=35009
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=(none) hp=100/100
+  player: Telahair#35009 team=1 room=0 rank=(none) level=50 pos=(5864,799) dist=0 hp=(unknown) lastCombatAgeMs=(none) flags=ownerToken=35009
+  suspectEnemies:
+    - RatlingMace#3115201 team=2 room=0 rank=Minion level=(unknown) pos=(6228,799) dist=364 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=35009 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - RatlingSword#3180737 team=2 room=0 rank=Minion level=(unknown) pos=(6292,799) dist=428 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=35009 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordGoblin01|Gfx_Paladin_1.swf/OffhandSabre08 powers=melee:GoblinMeleeS
+    - SewerRaptor#3246273 team=2 room=0 rank=Minion level=(unknown) pos=(6373,799) dist=509 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=35009 art=Animation_Raptor.swf/a__Animation,custom=Animation_Raptor.swf/Horned|Animation_Raptor.swf/Sewer powers=melee:RaptorMeleeS
+    - RatlingMace#3049665 team=2 room=0 rank=Minion level=(unknown) pos=(6400,799) dist=536 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=35009 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - BrigandCutthroat#2721985 team=2 room=0 rank=Lieutenant level=(unknown) pos=(5120,799) dist=744 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=35009 art=Animation_Rogue.swf/a__Animation,custom=Gfx_Rogue_1.swf/Null|Gfx_Rogue_1.swf/Brigand|Gfx_Rogue_1.swf/BootFootThug|Gfx_Rogue_1.swf/Thug|Gfx_Rogue_1.swf/SashThug|Gfx_Rogue_1.swf/GloveSpike|Gfx_Rogue_1.swf/GloveNinja|Gfx_Paladin_1.swf/RapierSewer|Gfx_Paladin_1.swf/OffhandSewer powers=melee:HumanMeleeMR,extra:HumanSpinStrike
+    - RatlingMace#2984129 team=2 room=0 rank=Minion level=(unknown) pos=(5118,799) dist=746 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=35009 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - RatlingArmor#2787521 team=2 room=0 rank=Minion level=(unknown) pos=(5026,799) dist=838 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=35009 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
+    - BrigandBrawler#2656449 team=2 room=0 rank=Lieutenant level=(unknown) pos=(4967,799) dist=897 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=35009 art=Animation_Paladin.swf/a__Animation,custom=Gfx_Paladin_1.swf/Null|Gfx_Paladin_1.swf/Bandit2|Gfx_Paladin_1.swf/ArmorHunter|Gfx_Paladin_1.swf/BootThug|Gfx_Paladin_1.swf/GloveThug|Gfx_Paladin_1.swf/MaceSewer|Gfx_Paladin_1.swf/FlapBig powers=melee:HumanMeleeM,extra:HumanCleave
+
+[2026-05-19T11:36:59.945Z] User 10: ArgumentError: Error #2025: The supplied DisplayObject must be a child of the caller.
+	at flash.display::DisplayObjectContainer/getChildIndex()
+	at Game/method_1947()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=11619 char=Telahair level=JC_Mission2 instance=11619 scope=JC_Mission2#11619 room=2021732904 playerEnt=11619
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=57620 hp=68109/68109
+  player: Telahair#11619 team=1 room=0 rank=(none) level=50 pos=(21906,1728) dist=0 hp=68109/68109 lastCombatAgeMs=(none) flags=ownerToken=11619
+  lastCombat: 0x79 BuffTickDot ageMs=57620 scope=JC_Mission2#11619 source=Telahair#11619(team=1,room=0) target=BrigandCryomancer#16461155(team=2,room=0) powerId=1333 damage=24276
+  lastCombatDebug: power=PoisonLance10#1333 castAnim=LungeStrike targetMethod=Cleave powerGfx=HitGfx:SFX_1.swf/a_BladeImpactPoison_Random_1_3 targetArt=Animation_Mage.swf/a__Animation,custom=Gfx_Mage_1.swf/Null|Gfx_Mage_1.swf/Male|Gfx_Mage_1.swf/Cryo|Gfx_Mage_1.swf/DressThug|Gfx_Mage_1.swf/DressThugMale|Gfx_Mage_1.swf/GlovesThug|Gfx_Mage_1.swf/ShoulderThug|Gfx_Mage_1.swf/BootsThug|Gfx_Mage_1.swf/HandInsect|Gfx_Mage_1.swf/FocusThug|Gfx_Mage_1.swf/StaffThug3
+  suspectEnemies:
+    - NephitSpireMarker#18492771 team=2 room=0 rank=Minion level=50 pos=(21948,3359) dist=1632 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=11619 art=Animation_Environmentals.swf/a__Marker
+    - NephitSpireMarker#18558307 team=2 room=0 rank=Minion level=50 pos=(22709,3387) dist=1843 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=11619 art=Animation_Environmentals.swf/a__Marker
+    - RatlingArmor#18951523 team=2 room=0 rank=Minion level=50 pos=(23759,4419) dist=3267 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=11619 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
+    - RatlingSword#18689379 team=2 room=0 rank=Minion level=50 pos=(23884,4419) dist=3340 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=11619 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordGoblin01|Gfx_Paladin_1.swf/OffhandSabre08 powers=melee:GoblinMeleeS
+    - RatlingShamanHood#18623843 team=2 room=0 rank=Lieutenant level=50 pos=(23965,4419) dist=3388 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=11619 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Animation_Goblin.swf/RatlingShaman|Animation_Goblin.swf/RatlingShaman2|Gfx_Paladin_1.swf/MaceCyclops08|Gfx_Paladin_1.swf/OffhandScepter06 powers=melee:GoblinMeleeM,ranged:GoblinFireball,extra:GoblinFlames
+    - NephitSpireMarker#19279203 team=2 room=0 rank=Minion level=50 pos=(24942,3278) dist=3409 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=11619 art=Animation_Environmentals.swf/a__Marker
+    - RatlingMace#18754915 team=2 room=0 rank=Minion level=50 pos=(24022,4419) dist=3423 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=11619 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - SewerRaptor2#19148131 team=2 room=0 rank=Minion level=50 pos=(24047,4419) dist=3439 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=11619 art=Animation_Raptor.swf/a__Animation,custom=Animation_Raptor.swf/Horned|Animation_Raptor.swf/Sewer powers=melee:RaptorMeleeS
+
+[2026-05-19T22:11:08.110Z] User 10: ArgumentError: Error #2015: Invalid BitmapData.
+	at flash.display::BitmapData/ctor()
+	at flash.display::BitmapData()
+	at class_23/method_942()
+	at class_23/method_1753()
+	at Game/method_1296()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=46302 char=Telahair level=JadeCity instance=(none) scope=JadeCity room=0 playerEnt=46302
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=(none) hp=100/100
+  player: Telahair#46302 team=1 room=0 rank=(none) level=50 pos=(5864,799) dist=0 hp=(unknown) lastCombatAgeMs=(none) flags=ownerToken=46302
+  suspectEnemies:
+    - RatlingMace#3126494 team=2 room=0 rank=Minion level=(unknown) pos=(6228,799) dist=364 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=46302 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - RatlingSword#3192030 team=2 room=0 rank=Minion level=(unknown) pos=(6292,799) dist=428 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=46302 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordGoblin01|Gfx_Paladin_1.swf/OffhandSabre08 powers=melee:GoblinMeleeS
+    - SewerRaptor#3257566 team=2 room=0 rank=Minion level=(unknown) pos=(6373,799) dist=509 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=46302 art=Animation_Raptor.swf/a__Animation,custom=Animation_Raptor.swf/Horned|Animation_Raptor.swf/Sewer powers=melee:RaptorMeleeS
+    - RatlingMace#3060958 team=2 room=0 rank=Minion level=(unknown) pos=(6400,799) dist=536 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=46302 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - BrigandCutthroat#2733278 team=2 room=0 rank=Lieutenant level=(unknown) pos=(5120,799) dist=744 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=46302 art=Animation_Rogue.swf/a__Animation,custom=Gfx_Rogue_1.swf/Null|Gfx_Rogue_1.swf/Brigand|Gfx_Rogue_1.swf/BootFootThug|Gfx_Rogue_1.swf/Thug|Gfx_Rogue_1.swf/SashThug|Gfx_Rogue_1.swf/GloveSpike|Gfx_Rogue_1.swf/GloveNinja|Gfx_Paladin_1.swf/RapierSewer|Gfx_Paladin_1.swf/OffhandSewer powers=melee:HumanMeleeMR,extra:HumanSpinStrike
+    - RatlingMace#2995422 team=2 room=0 rank=Minion level=(unknown) pos=(5118,799) dist=746 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=46302 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Gfx_Paladin_1.swf/SwordDryad01|Gfx_Paladin_1.swf/OffhandSabre05 powers=melee:GoblinMeleeS
+    - RatlingArmor#2798814 team=2 room=0 rank=Minion level=(unknown) pos=(5026,799) dist=838 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=46302 art=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Null|Animation_Goblin.swf/Ratling|Animation_Goblin.swf/Ratling2|Gfx_Paladin_1.swf/AxeDwarf04 powers=melee:GoblinMeleeS2
+    - BrigandBrawler#2667742 team=2 room=0 rank=Lieutenant level=(unknown) pos=(4967,799) dist=897 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=46302 art=Animation_Paladin.swf/a__Animation,custom=Gfx_Paladin_1.swf/Null|Gfx_Paladin_1.swf/Bandit2|Gfx_Paladin_1.swf/ArmorHunter|Gfx_Paladin_1.swf/BootThug|Gfx_Paladin_1.swf/GloveThug|Gfx_Paladin_1.swf/MaceSewer|Gfx_Paladin_1.swf/FlapBig powers=melee:HumanMeleeM,extra:HumanCleave
+
+[2026-05-19T22:20:54.409Z] User 10: TypeError: Error #2007: Parameter child must be non-null.
+	at flash.display::DisplayObjectContainer/getChildIndex()
+	at Entity/method_511()
+	at Entity/method_1826()
+	at Entity/ResetEntType()
+	at Entity()
+	at Room/SpawnCue()
+	at Room/CueHookSpawn()
+	at a_Cue/Spawn()
+	at a_Room_JCMission2_08/UpdatePhaseOne()
+	at Room/method_1027()
+	at Level/method_1003()
+	at Game/method_1296()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=6660 char=Telahair level=JC_Mission2 instance=6660 scope=JC_Mission2#6660 room=2553897284 playerEnt=6660
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=26591 hp=68109/68109
+  player: Telahair#6660 team=1 room=0 rank=(none) level=50 pos=(25692,3259) dist=0 hp=68109/68109 lastCombatAgeMs=(none) flags=ownerToken=6660
+  lastCombat: 0x0A PowerHit ageMs=26591 scope=JC_Mission2#6660 source=Telahair#6660(team=1,room=0) target=RatlingShaman#18815492(team=2,room=0) powerId=5952 damage=13978
+  lastCombatDebug: power=SoulShatter10#5952 castAnim=RapierUber targetMethod=Melee powerGfx=CastGfx:SFX_3.swf/a_Carnifex|HitGfx:SFX_3.swf/a_CarnifexHitReact targetArt=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Animation_Goblin.swf/RatlingShaman|Gfx_Paladin_1.swf/MaceAbomination08|Gfx_Paladin_1.swf/OffhandScepter09
+  suspectEnemies:
+    - GreaterBoneGolem#22223364 team=2 room=2553897284 rank=Boss level=50 pos=(24945,3278) dist=747 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=6660 art=Animation_Cyclops.swf/a__Animation,custom=Animation_Cyclops.swf/BoneNew|Animation_Cyclops.swf/DreadBlade03|Animation_Cyclops.swf/BoneHelmNew powers=melee:DreadMelee,ranged:BoneGolemShot,extra:DreadSlam
+    - GreaterBoneGolem2#22157828 team=2 room=2553897284 rank=Boss level=50 pos=(26457,3279) dist=765 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=6660 art=Animation_Abomination.swf/a__Animation,custom=Animation_Abomination.swf/MummyNew|Animation_Abomination.swf/BoneNew|Animation_Abomination.swf/SkullNew powers=melee:MummyMeleeL,extra:MummySmashWave
+    - DefectorMage#19208708 team=2 room=0 rank=Boss level=50 pos=(25967,3259) dist=275 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=6660 art=Animation_Mage.swf/a__Animation,custom=Gfx_Mage_1.swf/Null|Gfx_Mage_1.swf/Male|Gfx_Mage_1.swf/Sly|Gfx_Mage_1.swf/DressJade|Gfx_Mage_1.swf/DressJadeMale|Gfx_Mage_1.swf/GlovesOni|Gfx_Mage_1.swf/ShoulderOni|Gfx_Mage_1.swf/BootsOni|Gfx_Mage_1.swf/FocusSewer|Gfx_Mage_1.swf/StaffSewer1|Gfx_Mage_1.swf/HandInsect
+    - NephitSpireMarker#19274244 team=2 room=0 rank=Minion level=50 pos=(24942,3278) dist=750 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=6660 art=Animation_Environmentals.swf/a__Marker
+    - NephitSpireMarker#19339780 team=2 room=0 rank=Minion level=50 pos=(26453,3279) dist=761 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=6660 art=Animation_Environmentals.swf/a__Marker
+    - NephitSpireMarker#19470852 team=2 room=0 rank=Minion level=50 pos=(26660,3199) dist=970 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=6660 art=Animation_Environmentals.swf/a__Marker
+    - NephitSpireMarker#18553348 team=2 room=0 rank=Minion level=50 pos=(22709,3387) dist=2986 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=6660 art=Animation_Environmentals.swf/a__Marker
+    - NephitSpireMarker#18487812 team=2 room=0 rank=Minion level=50 pos=(21948,3359) dist=3745 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=6660 art=Animation_Environmentals.swf/a__Marker
+
+[2026-05-19T22:34:59.981Z] User 10: TypeError: Error #1009: Cannot access a property or method of a null object reference.
+	at Entity/method_438()
+	at Entity/DoEmote()
+	at Entity/method_340()
+	at Entity/StartSkit()
+	at CutScene/method_761()
+	at Room/method_1027()
+	at Level/method_1003()
+	at Game/method_1296()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=7418 char=Telahair level=JC_Mission2 instance=7418 scope=JC_Mission2#7418 room=2553897284 playerEnt=7418
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=24229 hp=68109/68109
+  cutscene: activeScope=JC_Mission2#7418 room=2553897284
+  player: Telahair#7418 team=1 room=0 rank=(none) level=50 pos=(25694,3259) dist=0 hp=68109/68109 lastCombatAgeMs=(none) flags=ownerToken=7418
+  lastCombat: 0x79 BuffTickDot ageMs=24229 scope=JC_Mission2#7418 source=Telahair#7418(team=1,room=0) target=RatlingShamanHood#18619642(team=2,room=0) powerId=5952 damage=8067
+  lastCombatDebug: power=SoulShatter10#5952 castAnim=RapierUber targetMethod=Melee powerGfx=CastGfx:SFX_3.swf/a_Carnifex|HitGfx:SFX_3.swf/a_CarnifexHitReact targetArt=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Animation_Goblin.swf/RatlingShaman|Animation_Goblin.swf/RatlingShaman2|Gfx_Paladin_1.swf/MaceCyclops08|Gfx_Paladin_1.swf/OffhandScepter06
+  suspectEnemies:
+    - GreaterBoneGolem#22224122 team=2 room=2553897284 rank=Boss level=50 pos=(24945,3279) dist=749 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=7418 art=Animation_Cyclops.swf/a__Animation,custom=Animation_Cyclops.swf/BoneNew|Animation_Cyclops.swf/DreadBlade03|Animation_Cyclops.swf/BoneHelmNew powers=melee:DreadMelee,ranged:BoneGolemShot,extra:DreadSlam
+    - GreaterBoneGolem2#22158586 team=2 room=2553897284 rank=Boss level=50 pos=(26457,3279) dist=763 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=7418 art=Animation_Abomination.swf/a__Animation,custom=Animation_Abomination.swf/MummyNew|Animation_Abomination.swf/BoneNew|Animation_Abomination.swf/SkullNew powers=melee:MummyMeleeL,extra:MummySmashWave
+    - DefectorMage#19209466 team=2 room=0 rank=Boss level=50 pos=(25967,3259) dist=273 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=7418 art=Animation_Mage.swf/a__Animation,custom=Gfx_Mage_1.swf/Null|Gfx_Mage_1.swf/Male|Gfx_Mage_1.swf/Sly|Gfx_Mage_1.swf/DressJade|Gfx_Mage_1.swf/DressJadeMale|Gfx_Mage_1.swf/GlovesOni|Gfx_Mage_1.swf/ShoulderOni|Gfx_Mage_1.swf/BootsOni|Gfx_Mage_1.swf/FocusSewer|Gfx_Mage_1.swf/StaffSewer1|Gfx_Mage_1.swf/HandInsect
+    - NephitSpireMarker#19275002 team=2 room=0 rank=Minion level=50 pos=(24942,3278) dist=752 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=7418 art=Animation_Environmentals.swf/a__Marker
+    - NephitSpireMarker#19340538 team=2 room=0 rank=Minion level=50 pos=(26453,3279) dist=759 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=7418 art=Animation_Environmentals.swf/a__Marker
+    - NephitSpireMarker#19471610 team=2 room=0 rank=Minion level=50 pos=(26660,3199) dist=968 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=7418 art=Animation_Environmentals.swf/a__Marker
+    - NephitSpireMarker#18554106 team=2 room=0 rank=Minion level=50 pos=(22709,3387) dist=2988 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=7418 art=Animation_Environmentals.swf/a__Marker
+    - NephitSpireMarker#18488570 team=2 room=0 rank=Minion level=50 pos=(21948,3359) dist=3747 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=7418 art=Animation_Environmentals.swf/a__Marker
+
+[2026-05-19T22:52:51.692Z] User 10: ArgumentError: Error #2015: Invalid BitmapData.
+	at flash.display::BitmapData/ctor()
+	at flash.display::BitmapData()
+	at class_33/method_298()
+	at class_33()
+	at class_32/method_1()
+	at ScreenLevelComplete/OnCreateScreen()
+	at class_32/Display()
+	at LinkUpdater/method_1145()
+	at LinkUpdater/method_1081()
+	at LinkUpdater/method_1750()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=12531 char=Telahair level=JC_Mission2 instance=12531 scope=JC_Mission2#12531 room=2553897284 playerEnt=12531
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=30961 hp=68109/68109
+  player: Telahair#12531 team=1 room=0 rank=(none) level=50 pos=(25680,3259) dist=0 hp=68109/68109 lastCombatAgeMs=(none) flags=ownerToken=12531
+  lastCombat: 0x79 BuffTickDot ageMs=30961 scope=JC_Mission2#12531 source=Telahair#12531(team=1,room=0) target=RatlingShamanHood#18624755(team=2,room=0) powerId=5952 damage=4034
+  lastCombatDebug: power=SoulShatter10#5952 castAnim=RapierUber targetMethod=Melee powerGfx=CastGfx:SFX_3.swf/a_Carnifex|HitGfx:SFX_3.swf/a_CarnifexHitReact targetArt=Animation_Goblin.swf/a__Animation,custom=Animation_Goblin.swf/Ratling|Animation_Goblin.swf/RatlingShaman|Animation_Goblin.swf/RatlingShaman2|Gfx_Paladin_1.swf/MaceCyclops08|Gfx_Paladin_1.swf/OffhandScepter06
+  suspectEnemies:
+    - NephitSpireMarker#18559219 team=2 room=0 rank=Minion level=50 pos=(22709,3387) dist=2974 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=12531 art=Animation_Environmentals.swf/a__Marker
+    - NephitSpireMarker#18493683 team=2 room=0 rank=Minion level=50 pos=(21948,3359) dist=3733 hp=(unknown) lastCombatAgeMs=(none) flags=clientSpawned,ownerToken=12531 art=Animation_Environmentals.swf/a__Marker
+
+[2026-05-19T22:56:35.546Z] User 10: ArgumentError: Error #2015: Invalid BitmapData.
+	at flash.display::BitmapData/ctor()
+	at flash.display::BitmapData()
+	at class_33/method_298()
+	at class_33()
+	at class_32/Display()
+	at Game/method_1649()
+	at LinkUpdater/method_1379()
+	at LinkUpdater/method_1081()
+	at LinkUpdater/method_1750()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=51046 char=Telahair level=CraftTown instance=(none) scope=CraftTown room=0 playerEnt=0
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=(none) hp=100/100
+  suspectEnemies: none known in current scope
+
+[2026-05-19T23:14:33.444Z] User 10: ArgumentError: Error #2015: Invalid BitmapData.
+	at flash.display::BitmapData/ctor()
+	at flash.display::BitmapData()
+	at class_82/method_193()
+	at class_123/method_1740()
+	at class_123/method_1604()
+	at Level/method_1195()
+	at Game/method_1445()
+	at Game/method_789()
+	at Game/method_1636()
+	at Main/method_1284()
+Context:
+  session: userId=10 token=0 char=Telahair level=NewbieRoad instance=(none) scope=(none) room=-1 playerEnt=0
+  lastDoor: id=(none) target=(none)
+  combat: lastActivityAgeMs=(none) hp=100/100
+  suspectEnemies: none known in current scope
+
