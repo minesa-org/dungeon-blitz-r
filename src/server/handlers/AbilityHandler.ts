@@ -340,6 +340,7 @@ export class AbilityHandler {
             targetRank: claimResult.targetRank,
             applied: claimResult.applied
         });
+        AbilityHandler.sendPremiumPurchase(client, 'AbilitySpeedup', idolCost);
         AbilityHandler.sendAbilityResearchDone(client, abilityId);
         AbilityHandler.refreshPlayerSnapshot(client);
     }
@@ -621,6 +622,17 @@ export class AbilityHandler {
         const bb = new BitBuffer();
         bb.writeMethod6(abilityId, 7);
         client.sendBitBuffer(0xBF, bb);
+    }
+
+    private static sendPremiumPurchase(client: Client, itemName: string, cost: number): void {
+        if (cost <= 0) {
+            return;
+        }
+
+        const bb = new BitBuffer();
+        bb.writeMethod13(itemName);
+        bb.writeMethod4(cost);
+        client.sendBitBuffer(0xB5, bb);
     }
 
     private static refreshPlayerSnapshot(client: Client): void {

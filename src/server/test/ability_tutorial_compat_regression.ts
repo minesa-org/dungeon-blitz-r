@@ -257,6 +257,11 @@ async function testAbilitySpeedupAppliesCompletedRank(): Promise<void> {
     );
     assert.deepEqual(client.character.SkillResearch, {});
     assert.equal(client.character.mammothIdols, 90);
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0xB5),
+        true,
+        'ability speedup should refresh the idol UI like other premium speedups'
+    );
     assert.equal(client.sentPackets.some((packet) => packet.id === 0xBF), true);
 }
 
