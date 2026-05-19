@@ -15,6 +15,7 @@ import { getEquippedGearGoldFind } from '../utils/GearGoldBonuses';
 import { getActivePotionBonuses } from '../utils/ConsumableState';
 import { normalizeCharacterMaterials } from '../utils/MaterialInventory';
 import { PetHandler } from './PetHandler';
+import { EntityState } from '../core/Entity';
 
 const db = new JsonAdapter();
 
@@ -486,6 +487,51 @@ export class RewardHandler {
             && rewardClass !== 'HealthOnly';
     }
 
+    private static isEntityDefeated(entity: any): boolean {
+        if (!entity || typeof entity !== 'object') {
+            return false;
+        }
+
+        if (Boolean(entity.dead) || Number(entity.entState ?? EntityState.ACTIVE) === EntityState.DEAD) {
+            return true;
+        }
+
+        const hp = Number(entity.hp ?? NaN);
+        if (Number.isFinite(hp) && hp <= 0) {
+            return true;
+        }
+
+        const maxHp = Math.max(0, Number(entity.maxHp ?? 0));
+        const healthDelta = Number(entity.healthDelta ?? entity.health_delta ?? NaN);
+        return maxHp > 0 && Number.isFinite(healthDelta) && healthDelta <= -maxHp;
+    }
+
+    private static isRewardSourceDefeated(client: Client, sourceId: number, sourceEntity: any): boolean {
+        if (RewardHandler.isEntityDefeated(sourceEntity)) {
+            return true;
+        }
+
+        const scopeKey = getClientLevelScope(client);
+        const scopedEntity = scopeKey ? GlobalState.levelEntities.get(scopeKey)?.get(sourceId) : null;
+        if (RewardHandler.isEntityDefeated(scopedEntity)) {
+            return true;
+        }
+
+        return sourceId > 0 && scopeKey
+            ? GlobalState.entityLastRewardNonces.has(`${scopeKey}:${sourceId}`)
+            : false;
+    }
+
+    private static isClientDefeated(client: Client): boolean {
+        if (Number(client.authoritativeCurrentHp ?? 1) <= 0) {
+            return true;
+        }
+
+        const playerEntity = client.entities.get(client.clientEntID) ??
+            (client.currentLevel ? GlobalState.levelEntities.get(getClientLevelScope(client))?.get(client.clientEntID) : null);
+        return RewardHandler.isEntityDefeated(playerEntity);
+    }
+
     private static isHardDungeon(levelName: string | null | undefined): boolean {
         return /Hard$/i.test(String(levelName ?? '').trim());
     }
@@ -599,21 +645,39 @@ export class RewardHandler {
         const isDungeonLevel = RewardHandler.isDungeonLevel(client.currentLevel);
         const isDungeonEnemyReward = isDungeonLevel && Boolean(entName) && Boolean(entType) && sourceEntity && !sourceEntity.isPlayer;
         const entRank = String(entType?.EntRank ?? 'Minion');
+        const isIntroEnemy = entName.startsWith('Intro');
+        const isChainsEnemy = entName.startsWith('Chains');
+        const isLargeEnemy = entRank === 'Lieutenant' || entRank === 'MiniBoss' || entRank === 'Boss';
+        const allowItemDrop = !isChainsEnemy && (!isIntroEnemy || isLargeEnemy);
+        const rewardClass = String(entType?.RewardClass ?? '');
+        const sourceDefeated = RewardHandler.isRewardSourceDefeated(client, reward.sourceId, sourceEntity);
+        const blockLiveSourceForDefeatedClient = isDungeonEnemyReward &&
+            !sourceDefeated &&
+            RewardHandler.isClientDefeated(client);
+        const fixedItemSourceAllowed = rewardClass !== 'FixedItem' ||
+            reward.dropItem ||
+            reward.dropGear ||
+            sourceDefeated;
+        const shouldApplyDropTables = isDungeonEnemyReward &&
+            allowItemDrop &&
+            itemLootAllowedByClass &&
+            fixedItemSourceAllowed &&
+            !blockLiveSourceForDefeatedClient;
         const baseMaterialChance = RewardHandler.MATERIAL_DROP_CHANCE_BY_RANK[entRank] ?? RewardHandler.MATERIAL_DROP_CHANCE_BY_RANK.Minion;
         const packetMaterialMultiplier = RewardHandler.sanitizeDropMultiplier(reward.gearMultiplier);
         const packetItemMultiplier = RewardHandler.sanitizeDropMultiplier(reward.itemMultiplier);
         const materialFindRate = petBonuses.craftFind + charmBonuses.craftFind + potionBonuses.craftFind;
         const itemFindRate = petBonuses.itemFind + charmBonuses.itemFind + potionBonuses.itemFind;
         const goldFindRate = petBonuses.goldFind + charmBonuses.goldFind + gearGoldFind + potionBonuses.goldFind;
-        const shouldRollMaterial = isDungeonLevel && Boolean(realm) && itemLootAllowedByClass && (reward.dropMaterial || isDungeonEnemyReward);
-        const shouldRollGear = isDungeonLevel && itemLootAllowedByClass && (reward.dropGear || isDungeonEnemyReward);
+        const shouldRollMaterial = shouldApplyDropTables && Boolean(realm);
+        const shouldRollGear = shouldApplyDropTables;
         const materialChance = shouldRollMaterial
             ? RewardHandler.resolveMaterialDropChance(entType, reward)
             : 0;
         const gearChance = shouldRollGear
             ? RewardHandler.resolveGearDropChance(entType, reward)
             : 0;
-        const dyeDebug = isDungeonLevel
+        const dyeDebug = shouldApplyDropTables
             ? RewardHandler.resolveDyeDropRarityDebug(client, entType)
             : {
                 eligible: false,
@@ -627,11 +691,6 @@ export class RewardHandler {
             };
 
         // Küçük Intro düşmanlar (Minion rank) ve Chains entitylerinden eşya düşmez
-        const isIntroEnemy = entName.startsWith('Intro');
-        const isChainsEnemy = entName.startsWith('Chains');
-        const isLargeEnemy = entRank === 'Lieutenant' || entRank === 'MiniBoss' || entRank === 'Boss';
-        const allowItemDrop = !isChainsEnemy && (!isIntroEnemy || isLargeEnemy);
-
         let materialRoll: number | null = null;
         let materialRarity: 'M' | 'R' | 'L' | null = null;
         let materialRarityRoll: number | null = null;
@@ -685,13 +744,16 @@ export class RewardHandler {
                 character: client.character?.name ?? '',
                 level: client.currentLevel,
                 sourceId: reward.sourceId,
+                receiverId: reward.receiverId,
                 entName,
                 entRank,
-                rewardClass: String(entType?.RewardClass ?? ''),
+                rewardClass,
                 playerClass,
                 realm,
                 allowItemDrop,
                 itemLootAllowedByClass,
+                sourceDefeated,
+                blockLiveSourceForDefeatedClient,
                 rolls: {
                     material: {
                         attempted: shouldRollMaterial,
@@ -717,6 +779,8 @@ export class RewardHandler {
                         packetMultiplier: packetItemMultiplier,
                         packetRawMultiplier: reward.itemMultiplier,
                         packetDropItem: reward.dropItem,
+                        packetDropGear: reward.dropGear,
+                        packetDropMaterial: reward.dropMaterial,
                         petFind: petBonuses.itemFind,
                         charmFind: charmBonuses.itemFind,
                         potionFind: potionBonuses.itemFind,
@@ -729,6 +793,7 @@ export class RewardHandler {
                         rarityTotalChances: RewardHandler.buildTierTotalChances(gearChance, gearTierWeights),
                         rarityRoll: gearTierRoll,
                         tier: gearId > 0 ? gearTier : null,
+                        rolledTier: gearTierRoll !== null ? gearTier : null,
                         gearId
                     },
                     dye: {

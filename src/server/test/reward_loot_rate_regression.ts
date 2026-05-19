@@ -347,7 +347,10 @@ async function testEnemyMaterialDropsWithoutExplicitDropFlag(): Promise<void> {
         isPlayer: false,
         team: 2,
         x: 120,
-        y: 220
+        y: 220,
+        hp: 0,
+        maxHp: 100,
+        dead: true
     });
     setContributors(getClientLevelScope(alpha as never), sourceId, ['gamma']);
 
@@ -359,6 +362,69 @@ async function testEnemyMaterialDropsWithoutExplicitDropFlag(): Promise<void> {
     });
 
     assert.ok(findLoot(alpha, 'material'), 'enemy material should still drop when the boss roll succeeds and the packet omitted the material flag');
+}
+
+async function testLiveEnemyDoesNotDropItemLootForDefeatedPlayer(): Promise<void> {
+    const alpha = createFakeClient(9, 'Iota');
+    alpha.authoritativeCurrentHp = 0;
+    GlobalState.sessionsByToken.set(alpha.token, alpha as never);
+
+    const sourceId = 9009;
+    addLevelEntity(alpha, {
+        id: sourceId,
+        name: 'GoblinBoss1',
+        isPlayer: false,
+        team: 2,
+        x: 120,
+        y: 220,
+        hp: 100,
+        maxHp: 100,
+        dead: false
+    });
+    setContributors(getClientLevelScope(alpha as never), sourceId, ['iota']);
+
+    await withMockedRandom([0.0, 0.0, 0.0, 0.0, 0.0, 0.0], async () => {
+        await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId, {
+            dropItem: false,
+            dropGear: false,
+            dropMaterial: false,
+            itemMultiplier: 10,
+            gearMultiplier: 10
+        }));
+    });
+
+    assert.equal(hasItemLoot(alpha), false, 'live enemy reward packets should not create ghost item loot while the player is defeated');
+}
+
+async function testLiveFixedItemEnemyDoesNotDropWhenPacketHasNoItemFlags(): Promise<void> {
+    const alpha = createFakeClient(10, 'Kappa');
+    GlobalState.sessionsByToken.set(alpha.token, alpha as never);
+
+    const sourceId = 9010;
+    addLevelEntity(alpha, {
+        id: sourceId,
+        name: 'GoblinBoss1',
+        isPlayer: false,
+        team: 2,
+        x: 120,
+        y: 220,
+        hp: 100,
+        maxHp: 100,
+        dead: false
+    });
+    setContributors(getClientLevelScope(alpha as never), sourceId, ['kappa']);
+
+    await withMockedRandom([0.0, 0.0, 0.0, 0.0, 0.0, 0.0], async () => {
+        await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId, {
+            dropItem: false,
+            dropGear: false,
+            dropMaterial: false,
+            itemMultiplier: 10,
+            gearMultiplier: 10
+        }));
+    });
+
+    assert.equal(hasItemLoot(alpha), false, 'live FixedItem enemies should not create ghost item loot from packets with no item flags');
 }
 
 async function testGearRarityTracksValueTier(): Promise<void> {
@@ -465,7 +531,10 @@ async function testMaterialRarityTracksValueTier(): Promise<void> {
         isPlayer: false,
         team: 2,
         x: 120,
-        y: 220
+        y: 220,
+        hp: 0,
+        maxHp: 100,
+        dead: true
     });
     setContributors(getClientLevelScope(alpha as never), sourceId, ['epsilon']);
 
@@ -496,7 +565,10 @@ async function testMaterialRarityTracksValueTier(): Promise<void> {
         isPlayer: false,
         team: 2,
         x: 120,
-        y: 220
+        y: 220,
+        hp: 0,
+        maxHp: 100,
+        dead: true
     });
     setContributors(getClientLevelScope(alpha as never), sourceId, ['epsilon']);
 
@@ -514,6 +586,7 @@ async function main(): Promise<void> {
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
     const levelEntities = new Map(GlobalState.levelEntities);
     const combatContributions = new Map(GlobalState.combatContributions);
+    const entityLastRewardNonces = new Map(GlobalState.entityLastRewardNonces);
 
     try {
         GlobalState.sessionsByToken.clear();
@@ -539,16 +612,31 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.combatContributions.clear();
+        GlobalState.entityLastRewardNonces.clear();
         await testEnemyMaterialDropsWithoutExplicitDropFlag();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.combatContributions.clear();
+        GlobalState.entityLastRewardNonces.clear();
+        await testLiveEnemyDoesNotDropItemLootForDefeatedPlayer();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLastRewardNonces.clear();
+        await testLiveFixedItemEnemyDoesNotDropWhenPacketHasNoItemFlags();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLastRewardNonces.clear();
         testGearRarityWeightsScaleByRank();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.combatContributions.clear();
+        GlobalState.entityLastRewardNonces.clear();
         await testGearRarityTracksValueTier();
 
         GlobalState.sessionsByToken.clear();
@@ -566,6 +654,7 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.levelEntities = levelEntities;
         GlobalState.combatContributions = combatContributions;
+        GlobalState.entityLastRewardNonces = entityLastRewardNonces;
     }
 }
 
