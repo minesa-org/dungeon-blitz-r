@@ -158,6 +158,7 @@ export class Client {
     public syncAnchorStartedAt: number = 0;
     public syncAnchorToken: number = 0;
     public syncAnchorCharacterName: string = "";
+    public syncQuestProgress: number | undefined;
     public pendingTransferUntil: number = 0;
     public mountTransferGraceUntil: number = 0;
     public startedRoomEvents: Set<string> = new Set();
@@ -338,6 +339,7 @@ export class Client {
         this.syncAnchorStartedAt = 0;
         this.syncAnchorToken = 0;
         this.syncAnchorCharacterName = "";
+        this.syncQuestProgress = undefined;
         this.pendingTransferUntil = 0;
         this.mountTransferGraceUntil = 0;
         this.startedRoomEvents.clear();
@@ -474,8 +476,40 @@ export class Client {
             syncEntryY: this.entryHasCoord ? entryY : undefined,
             syncEntryHasCoord: this.entryHasCoord,
             syncRoomId,
-            syncStartedRoomIds
+            syncStartedRoomIds,
+            syncQuestProgress: Number.isFinite(Number(this.character.questTrackerState))
+                ? Math.max(0, Math.min(100, Math.round(Number(this.character.questTrackerState))))
+                : undefined,
+            sourceDoorId: this.lastDoorId >= 0 ? Math.round(Number(this.lastDoorId)) : undefined,
+            sourceDoorLevel: LevelConfig.normalizeLevelName(this.currentLevel) || undefined,
+            sourceDoorTargetLevel: LevelConfig.normalizeLevelName(this.lastDoorTargetLevel) || undefined
         });
+    }
+
+    private repairDungeonLocationBeforeSave(): void {
+        if (!this.character) {
+            return;
+        }
+
+        const safeReturn = LevelConfig.resolveDungeonSafeReturn(
+            this.currentLevel || this.character.CurrentLevel?.name,
+            this.entryLevel || undefined,
+            this.character,
+            {
+                x: this.entryX,
+                y: this.entryY,
+                hasCoord: this.entryHasCoord
+            }
+        );
+        if (!safeReturn) {
+            return;
+        }
+
+        this.character.CurrentLevel = {
+            name: safeReturn.level,
+            x: safeReturn.x,
+            y: safeReturn.y
+        };
     }
 
     private cleanupSessionState(snapshot: SessionCleanupSnapshot, transferInProgress: boolean): void {
@@ -589,6 +623,7 @@ export class Client {
         const persistSnapshot = options?.persistSnapshot !== false;
 
         if (persistSnapshot && snapshot.userId && this.character) {
+            this.repairDungeonLocationBeforeSave();
             await db.saveCharacterSnapshot(snapshot.userId, this.character).catch((err) => {
                 console.error(`[Client] Failed to persist character before ${reason}:`, err);
             });
@@ -614,6 +649,7 @@ export class Client {
         const snapshot = this.createSessionCleanupSnapshot();
 
         if (snapshot.userId && this.character) {
+            this.repairDungeonLocationBeforeSave();
             void db.saveCharacterSnapshot(snapshot.userId, this.character).catch((err) => {
                 console.error('[Client] Failed to persist character on disconnect:', err);
             });

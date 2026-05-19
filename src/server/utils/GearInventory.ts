@@ -64,8 +64,45 @@ export function dedupeInventoryGears(rawInventory: unknown): GearEntry[] {
         }
     }
 
-    return orderedKeys
+    const result = orderedKeys
         .map((key) => deduped.get(key))
+        .filter((entry): entry is GearEntry => Boolean(entry));
+
+    return collapseToHighestTier(result);
+}
+
+function collapseToHighestTier(entries: GearEntry[]): GearEntry[] {
+    const bestByGearId = new Map<number, GearEntry>();
+    const insertionOrder: number[] = [];
+
+    for (const entry of entries) {
+        const existing = bestByGearId.get(entry.gearID);
+        if (!existing) {
+            insertionOrder.push(entry.gearID);
+            bestByGearId.set(entry.gearID, entry);
+            continue;
+        }
+
+        if (entry.tier > existing.tier) {
+            if (gearModifierScore(entry) === 0 && gearModifierScore(existing) > 0) {
+                entry.runes = [...existing.runes];
+                entry.colors = [...existing.colors];
+            }
+            bestByGearId.set(entry.gearID, entry);
+        } else if (entry.tier === existing.tier) {
+            if (gearModifierScore(entry) > gearModifierScore(existing)) {
+                bestByGearId.set(entry.gearID, entry);
+            }
+        } else {
+            if (gearModifierScore(existing) === 0 && gearModifierScore(entry) > 0) {
+                existing.runes = [...entry.runes];
+                existing.colors = [...entry.colors];
+            }
+        }
+    }
+
+    return insertionOrder
+        .map((gearId) => bestByGearId.get(gearId))
         .filter((entry): entry is GearEntry => Boolean(entry));
 }
 
@@ -91,8 +128,24 @@ export function upsertInventoryGear(
         return { inserted: false, inventory };
     }
 
-    const duplicate = inventory.some((entry) => entry.gearID === normalizedGearId && entry.tier === normalizedTier);
-    if (!duplicate) {
+    const existingIndex = inventory.findIndex((entry) => entry.gearID === normalizedGearId);
+    if (existingIndex >= 0) {
+        const existing = inventory[existingIndex];
+        if (existing.tier >= normalizedTier) {
+            return { inserted: false, inventory };
+        }
+        const newEntry: GearEntry = {
+            gearID: normalizedGearId,
+            tier: normalizedTier,
+            runes: Array.isArray(runes) ? runes.map((value) => Number(value ?? 0)).slice(0, 3) : [0, 0, 0],
+            colors: Array.isArray(colors) ? colors.map((value) => Number(value ?? 0)).slice(0, 2) : [0, 0]
+        };
+        if (gearModifierScore(newEntry) === 0 && gearModifierScore(existing) > 0) {
+            newEntry.runes = [...existing.runes];
+            newEntry.colors = [...existing.colors];
+        }
+        inventory[existingIndex] = newEntry;
+    } else {
         inventory.push({
             gearID: normalizedGearId,
             tier: normalizedTier,
@@ -105,5 +158,5 @@ export function upsertInventoryGear(
         character.inventoryGears = inventory;
     }
 
-    return { inserted: !duplicate, inventory };
+    return { inserted: true, inventory };
 }

@@ -288,6 +288,37 @@ function testBossDropsRequireBossAndDungeon(): void {
     );
 }
 
+function testOwnedMagicGearDoesNotBlockRareGear(): void {
+    const defectorMageMageIds = [1049, 1058, 1063];
+    const ownedDefectorMagic = defectorMageMageIds.map((gearId) => GameData.buildGearTierKey(gearId, 0));
+
+    assert.ok(
+        defectorMageMageIds.includes(
+            GameData.getGearIdForEntity('DefectorMage', 'Mage', undefined, 'JC_Mission3', 1, ownedDefectorMagic)
+        ),
+        'owning DefectorMage magic gear should not block the same boss gear at rare tier'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('DefectorMage', 'Mage', undefined, 'JC_Mission3', 0, ownedDefectorMagic),
+        0,
+        'owning DefectorMage magic gear should still block duplicate magic-tier drops'
+    );
+
+    const shadeMageIds = [1047, 1051, 1055, 1062];
+    const ownedShadeMagic = shadeMageIds.map((gearId) => GameData.buildGearTierKey(gearId, 0));
+    assert.ok(
+        shadeMageIds.includes(
+            GameData.getGearIdForEntity('ShadeSummoner', 'Mage', undefined, 'JC_Mission5', 1, ownedShadeMagic)
+        ),
+        'owning realm magic gear should not block the same realm gear at rare tier'
+    );
+    assert.equal(
+        GameData.getGearIdForEntity('ShadeSummoner', 'Mage', undefined, 'JC_Mission5', 0, ownedShadeMagic),
+        0,
+        'owning realm magic gear should still block duplicate magic-tier drops'
+    );
+}
+
 function main(): void {
     const dataDir = path.resolve(__dirname, '../data');
     LevelConfig.load(dataDir);
@@ -299,6 +330,7 @@ function main(): void {
     testJadeCityRealmDropsUseCanonicalDungeonNames();
     testRealmLevelSourcesCanMapToMultipleDungeons();
     testBossDropsRequireBossAndDungeon();
+    testOwnedMagicGearDoesNotBlockRareGear();
 
     console.log('gear_drop_source_regression passed');
 }

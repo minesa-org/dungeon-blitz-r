@@ -81,9 +81,9 @@ async function testPickupAllowsHigherTierUpgradeForOwnedGear(): Promise<void> {
 
     await RewardHandler.handlePickupLootdrop(alpha as never, buildPickupPayload(990002));
 
-    assert.equal(alpha.character.inventoryGears.length, 2, 'higher-tier duplicate should still be added');
-    assert.equal(alpha.character.inventoryGears[1]?.gearID, gearId);
-    assert.equal(alpha.character.inventoryGears[1]?.tier, 2, 'higher-tier duplicate should preserve the upgrade tier');
+    assert.equal(alpha.character.inventoryGears.length, 1, 'higher-tier should upgrade in-place, not add alongside');
+    assert.equal(alpha.character.inventoryGears[0]?.gearID, gearId);
+    assert.equal(alpha.character.inventoryGears[0]?.tier, 2, 'upgraded entry should have the higher tier');
     assert.equal(alpha.sentPackets.some((packet) => packet.id === 0x33), true, 'higher-tier pickup should emit a gear reward packet');
 }
 
@@ -96,11 +96,10 @@ function testInventoryNormalizerRemovesSameTierDuplicates(): void {
     ];
 
     const normalized = normalizeCharacterInventoryGears(alpha.character);
-    assert.equal(normalized.length, 2, 'same gear + same tier should collapse into one inventory entry');
+    assert.equal(normalized.length, 1, 'same gearID should collapse to single highest-tier entry');
     assert.equal(normalized[0]?.gearID, 58);
-    assert.equal(normalized[0]?.tier, 0);
-    assert.deepEqual(normalized[0]?.runes, [91, 0, 0], 'normalizer should keep richer duplicate data');
-    assert.equal(normalized[1]?.tier, 1, 'higher-tier copy should remain as a valid upgrade');
+    assert.equal(normalized[0]?.tier, 1, 'normalizer should keep highest tier');
+    assert.deepEqual(normalized[0]?.runes, [91, 0, 0], 'normalizer should transfer modifiers from lower tier if higher has none');
 }
 
 async function testPickupSkipsStaleDuplicateGear(): Promise<void> {

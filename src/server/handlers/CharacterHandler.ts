@@ -111,6 +111,24 @@ export class CharacterHandler {
         return TransferTokenAllocator.allocate(targetLevel);
     }
 
+    private static repairUnsafeSavedDungeonLocation(character: Character): boolean {
+        const safeReturn = LevelConfig.resolveDungeonSafeReturn(
+            character.CurrentLevel?.name,
+            undefined,
+            character
+        );
+        if (!safeReturn) {
+            return false;
+        }
+
+        character.CurrentLevel = {
+            name: safeReturn.level,
+            x: safeReturn.x,
+            y: safeReturn.y
+        };
+        return true;
+    }
+
     private static isSessionStale(session: Client): boolean {
         return session.socket.destroyed || session.socket.readyState !== 'open';
     }
@@ -823,6 +841,12 @@ export class CharacterHandler {
             return;
         }
 
+        const didRepairUnsafeLocation = CharacterHandler.repairUnsafeSavedDungeonLocation(char);
+        if (didRepairUnsafeLocation) {
+            client.characters = CharacterHandler.upsertCharacterList(client.characters, char);
+            await db.saveCharacters(client.userId, client.characters);
+        }
+
         client.character = char;
         await BuildingHandler.syncCompletionState(client);
         await ForgeHandler.syncCompletionState(client);
@@ -832,6 +856,8 @@ export class CharacterHandler {
     }
 
     private static sendEnterWorld(client: Client, char: Character): void {
+        CharacterHandler.repairUnsafeSavedDungeonLocation(char);
+
         // Determine Level
         const currentLevelName = char.CurrentLevel?.name || "NewbieRoad";
         const previousLevelName =
@@ -859,6 +885,7 @@ export class CharacterHandler {
              let syncRoomId: number | undefined;
              let syncStartedRoomIds: number[] | undefined;
              let syncEntryLevel: string | undefined;
+             let syncQuestProgress: number | undefined;
 
              if (isDungeonLevel) {
                  const normalizedTarget = LevelConfig.normalizeLevelName(currentLevelName);
@@ -879,6 +906,9 @@ export class CharacterHandler {
                      // it receives room event start packets before the level SWF is loaded.
                      // Room progress will sync naturally as the Flash client loads rooms.
                      syncEntryLevel = LevelConfig.normalizeLevelName(other.entryLevel) || undefined;
+                     syncQuestProgress = Number.isFinite(Number(other.character.questTrackerState))
+                         ? Math.max(0, Math.min(100, Math.round(Number(other.character.questTrackerState))))
+                         : undefined;
                      console.log(`[EnterWorld] Syncing dungeon instance for ${char.name} with party anchor ${other.character.name} (instanceId=${levelInstanceId})`);
                      break;
                  }
@@ -902,7 +932,8 @@ export class CharacterHandler {
                 syncAnchorCharacterName,
                 syncRoomId,
                 syncStartedRoomIds,
-                syncEntryLevel
+                syncEntryLevel,
+                syncQuestProgress
             });
             GlobalState.pendingExtended.set(token, true);
         }
@@ -1011,6 +1042,9 @@ export class CharacterHandler {
             entry.syncAnchorCharacterName ??
             (LevelConfig.isDungeonLevel(entry.targetLevel) ? entry.character.name : '')
         ).trim();
+        client.syncQuestProgress = Number.isFinite(Number(entry.syncQuestProgress))
+            ? Math.max(0, Math.min(100, Math.round(Number(entry.syncQuestProgress))))
+            : undefined;
         client.currentRoomId = Number.isFinite(Number(entry.syncRoomId)) && Number(entry.syncRoomId) >= 0
             ? Math.round(Number(entry.syncRoomId))
             : 0;
@@ -1095,7 +1129,8 @@ export class CharacterHandler {
             syncAnchorCharacterName: client.syncAnchorCharacterName || undefined,
             syncEntryLevel: entry.syncEntryLevel,
             syncRoomId: entry.syncRoomId,
-            syncStartedRoomIds: entry.syncStartedRoomIds
+            syncStartedRoomIds: entry.syncStartedRoomIds,
+            syncQuestProgress: client.syncQuestProgress
         });
         const characterKey = normalizeCharacterKey(client.character.name);
         if (characterKey) {
@@ -1112,6 +1147,7 @@ export class CharacterHandler {
             hasCoord: entry.newHasCoord ?? false
         };
         LevelHandler.prepareGoblinRiverDungeonEntryState(client);
+        LevelHandler.prepareDungeonQuestProgressState(client);
         await MissionHandler.prepareFullClearDungeonEntry(client);
 
         // Send Player Data (0x10)
@@ -1138,7 +1174,6 @@ export class CharacterHandler {
             payloadPreview: DebugLogger.previewBuffer(pdBuffer)
         });
 
-        MissionHandler.syncFullClearDungeonEntryMissionToClient(client);
         MissionHandler.syncMissionStateToClient(client);
         CharacterHandler.sendBootstrappedStoryMission(client, storyRepair.addedMissionId);
 

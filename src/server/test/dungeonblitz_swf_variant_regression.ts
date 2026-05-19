@@ -394,6 +394,29 @@ function assertGameMethod1947SafeScreenBitmapData(swfPath: string): void {
     );
 }
 
+function assertDungeonQuestHelperPrefersDungeonProgress(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'Game', 'SelectMissionToTrack');
+    const hasDungeonGuard = instructions.some((instruction, index) => {
+        const window = instructions.slice(index, index + 16);
+        return (
+            instruction.opcode === 0xd0 &&
+            window[1]?.opcode === 0x66 &&
+            u30OperandName(window[1], abc.multinameNames) === 'level' &&
+            window.some((item) => item.opcode === 0x66 && u30OperandName(item, abc.multinameNames) === 'bInstanced') &&
+            window.some((item) => item.opcode === 0x68 && u30OperandName(item, abc.multinameNames) === 'mTrackedMission') &&
+            window.some((item) => item.opcode === 0x66 && u30OperandName(item, abc.multinameNames) === 'screenQuestTracker') &&
+            window.some((item) => item.opcode === 0x4f && u30OperandName(item, abc.multinameNames) === 'Refresh') &&
+            window.some((item) => item.opcode === 0x47)
+        );
+    });
+
+    assert.equal(
+        hasDungeonGuard,
+        true,
+        'Game.SelectMissionToTrack must clear only visual tracked missions in instanced dungeons'
+    );
+}
+
 function assertSuperAnimMethod200BitmapDataGuard(swfPath: string): void {
     assertBitmapDataGuardWindow(swfPath, 10, 11, 'SuperAnimData.method_200 direct allocation');
     assertBitmapDataGuardWindow(swfPath, 25, 26, 'SuperAnimData.method_200 cropped allocation');
@@ -572,6 +595,14 @@ function testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData(): void {
     });
 }
 
+function testBaseAndLocalVariantKeepDungeonQuestHelperGuard(): void {
+    assertDungeonQuestHelperPrefersDungeonProgress(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertDungeonQuestHelperPrefersDungeonProgress(tempPath);
+    });
+}
+
 function main(): void {
     testLocalVariantUsesLocalhostAndPort8000();
     testMultiplayerVariantUsesRemoteHostAndDefaultAssetPath();
@@ -582,6 +613,7 @@ function main(): void {
     testBaseAndLocalVariantKeepSuperAnimMethod806FullscreenBitmapData();
     testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard();
     testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData();
+    testBaseAndLocalVariantKeepDungeonQuestHelperGuard();
     console.log('dungeonblitz_swf_variant_regression: ok');
 }
 

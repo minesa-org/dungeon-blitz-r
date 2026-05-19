@@ -752,7 +752,7 @@ function testEmeraldGladesDreadPortalSpawnsAtGate(): void {
     character.PreviousLevel = { name: 'OldMineMountain', x: 18552, y: 4021 };
 
     assert.deepEqual(
-        LevelConfig.getSpawnCoordinates(character, 'EmeraldGlades', 'EmeraldGladesHard'),
+        LevelConfig.getSpawnCoordinates(character, 'EmeraldGlades', 'EmeraldGladesHard', 300),
         { x: 2331, y: 2251, hasCoord: true },
         'Emerald Glades -> Dread Emerald Glades should land at the matching Dreadfold gate'
     );
@@ -764,9 +764,170 @@ function testEmeraldGladesDreadPortalReturnSpawnsAtGate(): void {
     character.PreviousLevel = { name: 'OldMineMountainHard', x: 18552, y: 4021 };
 
     assert.deepEqual(
-        LevelConfig.getSpawnCoordinates(character, 'EmeraldGladesHard', 'EmeraldGlades'),
+        LevelConfig.getSpawnCoordinates(character, 'EmeraldGladesHard', 'EmeraldGlades', 300),
         { x: 2331, y: 2251, hasCoord: true },
         'Dread Emerald Glades -> Emerald Glades should land at the matching Dreadfold gate'
+    );
+}
+
+function testDoorAwareTravelSpawnUsesTargetPortalFromSwfData(): void {
+    const character = createCharacter('TravelScout');
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'ShazariDesert', 'Castle', 1),
+        { x: 16059, y: 1656, hasCoord: true },
+        'Shazari Desert door 1 should land at Castle Hocke door 4, not Castle Hocke default spawn'
+    );
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'ShazariDesertHard', 'CastleHard', 1),
+        { x: 16059, y: 1656, hasCoord: true },
+        'Dread Shazari Desert door 1 should land at Dread Castle Hocke door 4'
+    );
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'CemeteryHill', 'BridgeTown', 1),
+        { x: 6365, y: 1880, hasCoord: true },
+        'Cemetery Hill door 1 should land at Felbridge door 2'
+    );
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'CemeteryHillHard', 'BridgeTownHard', 1),
+        { x: 6365, y: 1880, hasCoord: true },
+        'Dread Cemetery Hill door 1 should land at Dread Felbridge door 2'
+    );
+}
+
+function testDoorAwareTravelSpawnDistinguishesMultipleDoorsToSameMap(): void {
+    const character = createCharacter('TravelScout');
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'CemeteryHill', 'BridgeTown', 3),
+        { x: 13666, y: 500, hasCoord: true },
+        'Cemetery Hill door 3 should land at Felbridge door 5 instead of reusing Felbridge door 2/default spawn'
+    );
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'BridgeTown', 'CemeteryHill', 2),
+        { x: 7419, y: 372, hasCoord: true },
+        'Felbridge door 2 should land at Cemetery Hill door 1'
+    );
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'BridgeTown', 'CemeteryHill', 5),
+        { x: 19328, y: -1090, hasCoord: true },
+        'Felbridge door 5 should land at Cemetery Hill door 3, proving map-level fallback no longer masks the second portal'
+    );
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'BridgeTownHard', 'CemeteryHillHard', 5),
+        { x: 19328, y: -1090, hasCoord: true },
+        'Dread Felbridge door 5 should land at Dread Cemetery Hill door 3'
+    );
+}
+
+function testDoorAwareDreadPortalSpawnUsesTargetPortal(): void {
+    const character = createCharacter('DreadScout');
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'JadeCity', 'JadeCityHard', 300),
+        { x: 19337, y: -682, hasCoord: true },
+        'Valhaven Dreadfold gate should land at the matching Dread Valhaven gate instead of the city default spawn'
+    );
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'JadeCityHard', 'JadeCity', 300),
+        { x: 19337, y: -682, hasCoord: true },
+        'Dread Valhaven return gate should land at the matching Valhaven gate'
+    );
+}
+
+function testDoorAwareStoryGatewayOverridesResolvedTargets(): void {
+    const character = createCharacter('StoryScout');
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'BridgeTown', 'Castle', 3),
+        { x: -1280, y: -1940, hasCoord: true },
+        'Felbridge Castle Hocke gateway resolves to Castle door 1 after the story gate opens'
+    );
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'ShazariDesert', 'JadeCity', 2),
+        { x: 10399, y: 1043, hasCoord: true },
+        'Shazari Valhaven gateway resolves to Jade City door 1 after the story gate opens'
+    );
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'BridgeTown', 'SwampRoadConnection', 1),
+        { x: 10588, y: 456, hasCoord: true },
+        'Felbridge Arachnae gateway resolves to Swamp Road Connection door 2 after the story gate opens'
+    );
+}
+
+function testTravelSpawnWithoutDoorContextUsesSavedOrDefaultTargetSpawn(): void {
+    const character = createCharacter('FallbackScout');
+
+    assert.deepEqual(
+        LevelConfig.getSpawnCoordinates(character, 'BridgeTown', 'SwampRoadConnection'),
+        { x: 0, y: 0, hasCoord: true },
+        'without an active source door, travel no longer uses the old manual map-level safety fallback'
+    );
+}
+
+function testResolvedTransferUsesDoorAwareSpawnOnlyForActiveDoorTarget(): void {
+    const character = createCharacter('TransferScout');
+    const client = createClient();
+    client.currentLevel = 'ShazariDesert';
+    client.lastDoorId = 1;
+    client.lastDoorTargetLevel = 'Castle';
+
+    assert.deepEqual(
+        (LevelHandler as any).resolveDungeonExitSpawn(client, character, 'ShazariDesert', 'Castle', null),
+        { x: 16059, y: 1656, hasCoord: true },
+        'active Shazari Desert door transfer should use the matching Castle Hocke portal spawn'
+    );
+
+    client.currentLevel = 'BridgeTown';
+    client.lastDoorId = 5;
+    client.lastDoorTargetLevel = 'Castle';
+
+    assert.deepEqual(
+        (LevelHandler as any).resolveDungeonExitSpawn(client, character, 'BridgeTown', 'SwampRoadConnection', null),
+        { x: 0, y: 0, hasCoord: true },
+        'a stale lastDoorId must not act as a door-aware spawn when it does not target this transfer'
+    );
+}
+
+function testRecoveredTransferTokenPreservesDoorTravelContext(): void {
+    const character = createCharacter('RecoveredValhavenRunner');
+    character.CurrentLevel = { name: 'JadeCity', x: 10399, y: 1043 };
+    GlobalState.usedTransferTokens.set(6200, {
+        character,
+        userId: 41,
+        targetLevel: 'JadeCity',
+        previousLevel: 'CraftTown',
+        sourceDoorId: 300,
+        sourceDoorLevel: 'JadeCity',
+        sourceDoorTargetLevel: 'JadeCityHard'
+    });
+
+    const recoveredClient = createClient();
+    const recovered = (LevelHandler as any).recoverTransferSessionState(recoveredClient, 6200);
+
+    assert.ok(recovered);
+    assert.equal(recoveredClient.currentLevel, 'JadeCity');
+    assert.equal(recoveredClient.lastDoorId, 300);
+    assert.equal(recoveredClient.lastDoorTargetLevel, 'JadeCityHard');
+    assert.deepEqual(
+        (LevelHandler as any).resolveDungeonExitSpawn(
+            recoveredClient,
+            character,
+            'JadeCity',
+            'JadeCityHard',
+            null
+        ),
+        { x: 19337, y: -682, hasCoord: true },
+        'a transfer recovered on a new socket should still use the fixed door 300 portal spawn'
     );
 }
 
@@ -889,6 +1050,83 @@ async function testDreadHopeSpringsTransferRequestRecoversFromCurrentLevelEcho()
         parseEnterWorldLevelPacket(enterWorldPacket.payload).internalName,
         'EG_Mission4Hard',
         'current-level echoes after Dread Hope Springs should recover to the last accepted dungeon door target'
+    );
+}
+
+async function testDreadValhavenGateTransferUsesDoorPortalSpawn(): Promise<void> {
+    GlobalState.pendingWorld.clear();
+    GlobalState.tokenChar.clear();
+
+    const client = createClient();
+    client.token = 4106;
+    client.currentLevel = 'JadeCity';
+    client.clientEntID = 9106;
+    client.lastDoorId = 300;
+    client.lastDoorTargetLevel = 'JadeCityHard';
+    client.character = createCharacter('ValhavenRunner');
+    client.character.CurrentLevel = { name: 'JadeCityHard', x: 10399, y: 1043 };
+    client.character.PreviousLevel = { name: 'JadeCity', x: 10399, y: 1043 };
+    client.character.missions = {
+        [String(MissionID.Capstone)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        }
+    };
+    client.entities.set(9106, { id: 9106, x: 10399, y: 1043 });
+
+    await LevelHandler.handleLevelTransferRequest(
+        client as never,
+        createLevelTransferPacket(4106, 'JadeCityHard')
+    );
+
+    assert.deepEqual(
+        client.character.CurrentLevel,
+        { name: 'JadeCityHard', x: 19337, y: -682 },
+        'Jade City Dreadfold gate should overwrite stale Dread Valhaven entrance saves with the door 300 portal spawn'
+    );
+}
+
+async function testDreadValhavenGateTransferRecoversFromCurrentLevelEcho(): Promise<void> {
+    GlobalState.pendingWorld.clear();
+    GlobalState.tokenChar.clear();
+
+    const client = createClient();
+    client.token = 4107;
+    client.currentLevel = 'JadeCity';
+    client.clientEntID = 9107;
+    client.lastDoorId = 300;
+    client.lastDoorTargetLevel = 'JadeCityHard';
+    client.character = createCharacter('ValhavenEchoRunner');
+    client.character.CurrentLevel = { name: 'JadeCity', x: 10399, y: 1043 };
+    client.character.missions = {
+        [String(MissionID.Capstone)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        }
+    };
+    client.entities.set(9107, { id: 9107, x: 10399, y: 1043 });
+
+    await LevelHandler.handleLevelTransferRequest(
+        client as never,
+        createLevelTransferPacket(4107, 'JadeCity')
+    );
+
+    const enterWorldPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x21);
+    assert.ok(enterWorldPacket, 'current-level echo after the Valhaven Dreadfold gate should still transfer');
+    assert.equal(
+        parseEnterWorldLevelPacket(enterWorldPacket.payload).internalName,
+        'JadeCityHard',
+        'current-level echoes after the Valhaven Dreadfold gate should recover to Dread Valhaven'
+    );
+
+    assert.deepEqual(
+        client.character.CurrentLevel,
+        { name: 'JadeCityHard', x: 19337, y: -682 },
+        'current-level echo after the Valhaven Dreadfold gate should still save the door 300 portal spawn'
     );
 }
 
@@ -1909,12 +2147,26 @@ function testEnterWorldTokenSkipsTargetLevelEntityIds(): void {
     assert.equal(GlobalState.tokenChar.get(4097)?.character, character);
 }
 
-function testDungeonEnterWorldKeepsAuthoredBaseLevelForEnemyScaling(): void {
-    const client = createClient();
+function testDungeonMapPacketLevelKeepsAuthoredBaseLevelForEnemyScaling(): void {
     const character = createCharacter('Scaled');
     character.level = 50;
-    character.CurrentLevel = { name: 'GoblinRiverDungeon', x: 0, y: 0 };
-    character.PreviousLevel = { name: 'NewbieRoad', x: 1421, y: 826 };
+
+    const resolvedMapLevel = (CharacterHandler as any).resolveDungeonMapPacketLevel(
+        'GoblinRiverDungeon',
+        LevelConfig.get('GoblinRiverDungeon').mapId,
+        character
+    );
+    const resolvedBaseLevel = LevelConfig.get('GoblinRiverDungeon').baseId;
+
+    assert.equal(resolvedMapLevel, 50, 'dungeon map level should follow the player level');
+    assert.equal(resolvedBaseLevel, 3, 'dungeon base level must stay authored so enemies receive the map/base scaling delta');
+}
+
+function testEnterWorldRepairsUnsafeSavedDungeonLocation(): void {
+    const client = createClient();
+    const character = createCharacter('RecoveredValhavenCrawler');
+    character.CurrentLevel = { name: 'JC_Mission1', x: 0, y: 0 };
+    character.PreviousLevel = { name: 'WolfsEnd', x: 1210, y: 880 };
 
     withMockedRandom(
         [(4099.5 / 0x10000)],
@@ -1925,11 +2177,81 @@ function testDungeonEnterWorldKeepsAuthoredBaseLevelForEnemyScaling(): void {
 
     const enterWorldPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x21);
     assert.ok(enterWorldPacket, 'character selection should send an enter-world packet');
-
     const decoded = parseEnterWorldLevelPacket(enterWorldPacket.payload);
-    assert.equal(decoded.internalName, 'GoblinRiverDungeon');
-    assert.equal(decoded.mapLevel, 50, 'dungeon map level should follow the player level');
-    assert.equal(decoded.baseLevel, 3, 'dungeon base level must stay authored so enemies receive the map/base scaling delta');
+    assert.equal(decoded.internalName, 'JadeCity');
+    assert.equal(character.CurrentLevel?.name, 'JadeCity');
+    assert.notEqual(character.CurrentLevel?.name, 'JC_Mission1');
+}
+
+function testDungeonSafeReturnUsesExplicitEntryCoordinates(): void {
+    const character = createCharacter('CrashRunner');
+    character.CurrentLevel = { name: 'Castle', x: 16040, y: 1650 };
+    character.PreviousLevel = { name: 'BridgeTown', x: 3944, y: 838 };
+
+    const safeReturn = LevelConfig.resolveDungeonSafeReturn(
+        'AC_Mission6',
+        'Castle',
+        character,
+        { x: 16059, y: 1656, hasCoord: true }
+    );
+
+    assert.deepEqual(safeReturn, {
+        level: 'Castle',
+        x: 16059,
+        y: 1656,
+        hasCoord: true
+    });
+}
+
+function testBuildTransferSyncStateKeepsTeleportCallerReturnPoint(): void {
+    const client = createClient();
+    client.currentLevel = 'Castle';
+    client.clientEntID = 77;
+    client.entities.set(77, { x: 15123, y: 1600 });
+    client.character = createCharacter('PartyFollower');
+
+    const leader = createClient();
+    leader.token = 12345;
+    leader.currentLevel = 'AC_Mission6';
+    leader.character = createCharacter('PartyLeader');
+    leader.playerSpawned = true;
+    leader.levelInstanceId = 'dungeon-42';
+    leader.entryLevel = 'JadeCity';
+    leader.entryX = 10430;
+    leader.entryY = 1058;
+    leader.entryHasCoord = true;
+    leader.currentRoomId = 3;
+    leader.startedRoomEvents = new Set([
+        'AC_Mission6:0',
+        'AC_Mission6:1',
+        'AC_Mission6:3'
+    ]);
+    leader.character.questTrackerState = 45;
+    GlobalState.sessionsByToken.set(12345, leader as any);
+
+    const syncState = (LevelHandler as any).buildTransferSyncState(
+        client,
+        'AC_Mission6',
+        {
+            targetLevel: 'AC_Mission6',
+            levelInstanceId: 'dungeon-42',
+            x: 8200,
+            y: 400,
+            hasCoord: true,
+            syncAnchorToken: 12345,
+            syncAnchorCharacterName: 'PartyLeader',
+            syncRoomId: 3,
+            syncStartedRoomIds: [0, 1, 3],
+            syncQuestProgress: 45
+        }
+    );
+
+    assert.equal(syncState.syncEntryLevel, 'Castle');
+    assert.equal(syncState.syncEntryX, 15123);
+    assert.equal(syncState.syncEntryY, 1600);
+    assert.equal(syncState.syncEntryHasCoord, true);
+    assert.equal(syncState.levelInstanceId, 'dungeon-42');
+    assert.equal(syncState.syncRoomId, 3);
 }
 
 function testLevelTransferTokenSkipsTargetLevelEntityAndLivePlayerIds(): void {
@@ -2064,7 +2386,10 @@ async function main(): Promise<void> {
         GlobalState.transferTokenAliases.clear();
         GlobalState.levelEntities.clear();
 
-        testDungeonEnterWorldKeepsAuthoredBaseLevelForEnemyScaling();
+        testDungeonMapPacketLevelKeepsAuthoredBaseLevelForEnemyScaling();
+        testEnterWorldRepairsUnsafeSavedDungeonLocation();
+        testDungeonSafeReturnUsesExplicitEntryCoordinates();
+        testBuildTransferSyncStateKeepsTeleportCallerReturnPoint();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();
@@ -2137,10 +2462,19 @@ async function main(): Promise<void> {
         testCemeteryHillZeroSavedCoordsFallBackToAuthoredSpawn();
         testEmeraldGladesDreadPortalSpawnsAtGate();
         testEmeraldGladesDreadPortalReturnSpawnsAtGate();
+        testDoorAwareTravelSpawnUsesTargetPortalFromSwfData();
+        testDoorAwareTravelSpawnDistinguishesMultipleDoorsToSameMap();
+        testDoorAwareDreadPortalSpawnUsesTargetPortal();
+        testDoorAwareStoryGatewayOverridesResolvedTargets();
+        testTravelSpawnWithoutDoorContextUsesSavedOrDefaultTargetSpawn();
+        testResolvedTransferUsesDoorAwareSpawnOnlyForActiveDoorTarget();
+        testRecoveredTransferTokenPreservesDoorTravelContext();
         testCemeteryHillGeneralSvenDoorTargetsMiniMission9();
         testDreadHopeSpringsDoorTargetsHardMission4();
         await testDreadHopeSpringsTransferRequestEntersHardMission4();
         await testDreadHopeSpringsTransferRequestRecoversFromCurrentLevelEcho();
+        await testDreadValhavenGateTransferUsesDoorPortalSpawn();
+        await testDreadValhavenGateTransferRecoversFromCurrentLevelEcho();
         testLockedDungeonDoorReportsLockedAndDoesNotOpen();
         await testLockedDungeonTransferRequestIsBlocked();
 

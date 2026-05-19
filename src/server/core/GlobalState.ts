@@ -21,6 +21,10 @@ export interface PendingTransfer {
     syncEntryHasCoord?: boolean;
     syncRoomId?: number;
     syncStartedRoomIds?: number[];
+    syncQuestProgress?: number;
+    sourceDoorId?: number;
+    sourceDoorLevel?: string;
+    sourceDoorTargetLevel?: string;
 }
 
 export type SharedDungeonProgressState = {

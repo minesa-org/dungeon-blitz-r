@@ -1,7 +1,11 @@
 import { strict as assert } from 'assert';
+import * as path from 'path';
+import { LevelConfig } from '../core/LevelConfig';
 import { Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
+import { MissionLoader } from '../data/MissionLoader';
 import { LevelHandler } from '../handlers/LevelHandler';
+import { MissionHandler } from '../handlers/MissionHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 
 type FakeClient = {
@@ -10,6 +14,11 @@ type FakeClient = {
     characters: Character[];
     currentLevel: string;
     levelInstanceId: string;
+    syncQuestProgress?: number;
+    playerSpawned?: boolean;
+    sentPackets?: Array<{ id: number; payload: Buffer }>;
+    send?: (id: number, payload: Buffer) => void;
+    sendBitBuffer?: (id: number, bb: BitBuffer) => void;
 };
 
 function createCharacter(): Character {
@@ -39,6 +48,15 @@ function createQuestProgressPacket(progress: number): Buffer {
     const bb = new BitBuffer();
     bb.writeMethod4(progress);
     return bb.toBuffer();
+}
+
+function ensureLevelConfigLoaded(): void {
+    if (!LevelConfig.isDungeonLevel('AC_Mission6')) {
+        LevelConfig.load(path.resolve(__dirname, '../data'));
+    }
+    if (!MissionLoader.getMissionDef(187)) {
+        MissionLoader.load(path.resolve(__dirname, '../data'));
+    }
 }
 
 async function testQuestProgressUpdatePersistsCharacterSnapshot(): Promise<void> {
@@ -125,10 +143,64 @@ async function testTutorialDungeonQuestProgressStaysAtIntroBaselineUntilDropTuto
     assert.equal(saveCalls, 0);
 }
 
+function testNormalDungeonEntryStartsAtDungeonProgress(): void {
+    ensureLevelConfigLoaded();
+    const client = createClient();
+    client.currentLevel = 'AC_Mission6';
+    client.character.CurrentLevel = { name: 'AC_Mission6', x: 0, y: 0 };
+    client.character.questTrackerState = 73;
+    client.playerSpawned = true;
+    client.sentPackets = [];
+    client.send = (id: number, payload: Buffer) => {
+        client.sentPackets!.push({ id, payload });
+    };
+
+    LevelHandler.prepareDungeonQuestProgressState(client as never);
+
+    assert.equal(client.character.questTrackerState, 0);
+    assert.equal(client.sentPackets.length, 1);
+    assert.equal(client.sentPackets[0].id, 0xB7);
+}
+
+function testSyncedDungeonEntryUsesKnownDungeonProgress(): void {
+    ensureLevelConfigLoaded();
+    const client = createClient();
+    client.currentLevel = 'AC_Mission6';
+    client.character.CurrentLevel = { name: 'AC_Mission6', x: 0, y: 0 };
+    client.character.questTrackerState = 73;
+    client.syncQuestProgress = 42;
+    client.playerSpawned = true;
+    client.sentPackets = [];
+    client.send = (id: number, payload: Buffer) => {
+        client.sentPackets!.push({ id, payload });
+    };
+
+    LevelHandler.prepareDungeonQuestProgressState(client as never);
+
+    assert.equal(client.character.questTrackerState, 42);
+    assert.equal(client.sentPackets.length, 1);
+    assert.equal(client.sentPackets[0].id, 0xB7);
+}
+
+function testOverworldEntryKeepsSideQuestProgress(): void {
+    ensureLevelConfigLoaded();
+    const client = createClient();
+    client.currentLevel = 'Castle';
+    client.character.CurrentLevel = { name: 'Castle', x: 0, y: 0 };
+    client.character.questTrackerState = 73;
+
+    LevelHandler.prepareDungeonQuestProgressState(client as never);
+
+    assert.equal(client.character.questTrackerState, 73);
+}
+
 async function main(): Promise<void> {
     await testQuestProgressUpdatePersistsCharacterSnapshot();
     await testQuestProgressUpdateDoesNotRegressCompletedCraftTownTutorial();
     await testTutorialDungeonQuestProgressStaysAtIntroBaselineUntilDropTutorial();
+    testNormalDungeonEntryStartsAtDungeonProgress();
+    testSyncedDungeonEntryUsesKnownDungeonProgress();
+    testOverworldEntryKeepsSideQuestProgress();
     console.log('quest_progress_persistence_regression: ok');
 }
 

@@ -233,7 +233,9 @@ export class GameData {
     private static filterGearDropsForClass(
         dropIds: number[] | undefined,
         className: string | null | undefined,
-        excludedGearIds?: Iterable<number>
+        excludedGearIds?: Iterable<number>,
+        desiredTier?: number | null,
+        excludedGearKeys?: Iterable<string>
     ): number[] {
         if (!Array.isArray(dropIds) || dropIds.length === 0) {
             return [];
@@ -249,16 +251,34 @@ export class GameData {
             }
         }
 
+        const normalizedDesiredTier = GameData.normalizeGearTier(desiredTier);
+        const excludedKeys = new Set<string>();
+        if (excludedGearKeys) {
+            for (const key of excludedGearKeys) {
+                const normalized = String(key ?? '').trim();
+                if (normalized) {
+                    excludedKeys.add(normalized);
+                }
+            }
+        }
+        const isExcluded = (gearId: number): boolean => {
+            if (excluded.has(gearId)) {
+                return true;
+            }
+            return normalizedDesiredTier !== null
+                && excludedKeys.has(GameData.buildGearTierKey(gearId, normalizedDesiredTier));
+        };
+
         const allowedIds = GameData.CLASS_GEAR_IDS[String(className ?? '').trim().toLowerCase()];
         if (!allowedIds) {
             return dropIds
                 .map((id) => Number(id))
-                .filter((id) => Number.isFinite(id) && !excluded.has(id));
+                .filter((id) => Number.isFinite(id) && !isExcluded(id));
         }
 
         return dropIds
             .map((id) => Number(id))
-            .filter((id) => Number.isFinite(id) && allowedIds.has(id) && !excluded.has(id));
+            .filter((id) => Number.isFinite(id) && allowedIds.has(id) && !isExcluded(id));
     }
 
     private static pickRandomGearId(
@@ -266,9 +286,11 @@ export class GameData {
         className: string | null | undefined,
         excludedGearIds?: Iterable<number>,
         context?: GearDropContext,
-        source?: GearDropSource
+        source?: GearDropSource,
+        desiredTier?: number | null,
+        excludedGearKeys?: Iterable<string>
     ): number {
-        const classFiltered = GameData.filterGearDropsForClass(dropIds, className, excludedGearIds);
+        const classFiltered = GameData.filterGearDropsForClass(dropIds, className, excludedGearIds, desiredTier, excludedGearKeys);
         const filtered = source
             ? classFiltered.filter((gearId) => GameData.isGearDropAllowedForSource(gearId, context, source))
             : classFiltered;
@@ -276,6 +298,21 @@ export class GameData {
             return 0;
         }
         return filtered[Math.floor(Math.random() * filtered.length)] ?? 0;
+    }
+
+    static buildGearTierKey(gearId: number, tier: number): string {
+        return `${Math.max(0, Math.round(Number(gearId) || 0))}:${Math.max(0, Math.min(2, Math.round(Number(tier) || 0)))}`;
+    }
+
+    private static normalizeGearTier(tier: number | null | undefined): number | null {
+        if (tier === null || tier === undefined) {
+            return null;
+        }
+        const normalized = Number(tier);
+        if (!Number.isFinite(normalized)) {
+            return null;
+        }
+        return Math.max(0, Math.min(2, Math.round(normalized)));
     }
 
     private static loadGearDropRules(dataDir: string): void {
@@ -688,7 +725,9 @@ export class GameData {
         entName: string,
         className?: string,
         excludedGearIds?: Iterable<number>,
-        currentLevel?: string | null
+        currentLevel?: string | null,
+        desiredTier?: number | null,
+        excludedGearKeys?: Iterable<string>
     ): number {
         const entType = GameData.getEntType(entName);
         if (!entType) {
@@ -704,7 +743,7 @@ export class GameData {
         const baseEntName = GameData.normalizeEntityDropName(entName);
         const bossDrops = GameData.GEAR_DATA.boss_drops?.[entName] ?? GameData.GEAR_DATA.boss_drops?.[baseEntName];
         if (bossDrops) {
-            return GameData.pickRandomGearId(bossDrops, className, excludedGearIds, context, 'boss');
+            return GameData.pickRandomGearId(bossDrops, className, excludedGearIds, context, 'boss', desiredTier, excludedGearKeys);
         }
 
         if (String(entType.EntRank ?? '').trim() === 'Boss') {
@@ -713,7 +752,7 @@ export class GameData {
 
         const realm = String(entType.Realm ?? '');
         const realmDrops = GameData.GEAR_DATA.realm_drops?.[realm];
-        const realmGearId = GameData.pickRandomGearId(realmDrops, className, excludedGearIds, context, 'realm');
+        const realmGearId = GameData.pickRandomGearId(realmDrops, className, excludedGearIds, context, 'realm', desiredTier, excludedGearKeys);
         if (realmGearId > 0) {
             return realmGearId;
         }

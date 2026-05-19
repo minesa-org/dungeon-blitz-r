@@ -20,9 +20,9 @@ export interface PendingTeleport {
     hasCoord: boolean;
     syncAnchorToken?: number;
     syncAnchorCharacterName?: string;
-    syncEntryLevel?: string;
     syncRoomId?: number;
     syncStartedRoomIds?: number[];
+    syncQuestProgress?: number;
 }
 
 export function normalizeCharacterKey(value: unknown): string {

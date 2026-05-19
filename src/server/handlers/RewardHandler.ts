@@ -533,28 +533,29 @@ export class RewardHandler {
         return true;
     }
 
-    private static collectOwnedGearIds(client: Client): Set<number> {
-        const owned = new Set<number>();
+    private static collectOwnedGearTierKeys(client: Client): Set<string> {
+        const owned = new Set<string>();
+        const addGear = (gearId: unknown, tier: unknown): void => {
+            const normalizedGearId = Number(gearId ?? 0);
+            if (!Number.isFinite(normalizedGearId) || normalizedGearId <= 0) {
+                return;
+            }
+            const normalizedTier = Math.max(0, Math.min(2, Math.round(Number(tier ?? 0) || 0)));
+            for (let t = 0; t <= normalizedTier; t++) {
+                owned.add(GameData.buildGearTierKey(normalizedGearId, t));
+            }
+        };
 
         for (const rawGear of Array.isArray(client.character?.inventoryGears) ? client.character.inventoryGears : []) {
-            const gearId = Number(rawGear?.gearID ?? 0);
-            if (gearId > 0) {
-                owned.add(gearId);
-            }
+            addGear(rawGear?.gearID, rawGear?.tier);
         }
 
         for (const rawGear of Array.isArray(client.character?.equippedGears) ? client.character.equippedGears : []) {
-            const gearId = Number(rawGear?.gearID ?? 0);
-            if (gearId > 0) {
-                owned.add(gearId);
-            }
+            addGear(rawGear?.gearID, rawGear?.tier);
         }
 
         for (const reward of client.pendingLoot.values()) {
-            const gearId = Number(reward?.gear ?? 0);
-            if (gearId > 0) {
-                owned.add(gearId);
-            }
+            addGear(reward?.gear, reward?.tier ?? 0);
         }
 
         return owned;
@@ -592,7 +593,7 @@ export class RewardHandler {
         const entType = entName ? GameData.getEntType(entName) : null;
         const entLevel = Math.max(1, Number(entType?.Level ?? 1));
         const playerClass = String(client.character?.class ?? '');
-        const ownedGearIds = RewardHandler.collectOwnedGearIds(client);
+        const ownedGearTierKeys = RewardHandler.collectOwnedGearTierKeys(client);
         const realm = String(entType?.Realm ?? RewardHandler.DUNGEON_REALM_MAP[client.currentLevel] ?? '');
         const itemLootAllowedByClass = RewardHandler.rewardClassAllowsItemLoot(entType);
         const isDungeonLevel = RewardHandler.isDungeonLevel(client.currentLevel);
@@ -654,11 +655,18 @@ export class RewardHandler {
         if (allowItemDrop && gearChance > 0) {
             gearRoll = Math.random();
             if (gearRoll < gearChance) {
-                gearId = GameData.getGearIdForEntity(entName, playerClass, ownedGearIds, client.currentLevel);
                 const tierResult = RewardHandler.resolveGearTierDebug(client, entRank);
                 gearTier = tierResult.tier;
                 gearTierRoll = tierResult.tierRoll;
                 gearTierWeights = tierResult.tierWeights;
+                gearId = GameData.getGearIdForEntity(
+                    entName,
+                    playerClass,
+                    undefined,
+                    client.currentLevel,
+                    gearTier,
+                    ownedGearTierKeys
+                );
             }
         }
         let goldBeforeFind = gold;

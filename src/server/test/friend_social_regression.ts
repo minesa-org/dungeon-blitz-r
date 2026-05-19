@@ -19,7 +19,6 @@ type FakeClient = {
     character: Character;
     characters: Character[];
     currentLevel: string;
-    levelInstanceId: string;
     entryLevel: string;
     currentRoomId: number;
     clientEntID: number;
@@ -55,7 +54,6 @@ function createFakeClient(name: string, friends: Array<{ name: string; isRequest
         character,
         characters: [character],
         currentLevel: '',
-        levelInstanceId: '',
         entryLevel: '',
         currentRoomId: 0,
         clientEntID: 0,
@@ -83,13 +81,6 @@ function buildNamePacket(name: string): Buffer {
     return bb.toBuffer();
 }
 
-function buildPublicChatPacket(senderEntityId: number, message: string): Buffer {
-    const bb = new BitBuffer(false);
-    bb.writeMethod9(senderEntityId);
-    bb.writeMethod13(message);
-    return bb.toBuffer();
-}
-
 function decodeFriendUpdate(payload: Buffer): { name: string; isRequest: boolean } {
     const br = new BitReader(payload);
     return {
@@ -101,14 +92,6 @@ function decodeFriendUpdate(payload: Buffer): { name: string; isRequest: boolean
 function decodeFriendRemoved(payload: Buffer): string {
     const br = new BitReader(payload);
     return br.readMethod13();
-}
-
-function decodePublicChat(payload: Buffer): { senderEntityId: number; message: string } {
-    const br = new BitReader(payload);
-    return {
-        senderEntityId: br.readMethod4(),
-        message: br.readMethod13()
-    };
 }
 
 function ensureLevelConfigLoaded(): void {
@@ -200,39 +183,10 @@ function testTeleportToPlayerCapturesDungeonAnchorState(): void {
     assert.equal(pendingTeleport?.y, 2333);
     assert.equal(pendingTeleport?.syncAnchorToken, target.token);
     assert.equal(pendingTeleport?.syncAnchorCharacterName, target.character.name);
-    assert.equal(pendingTeleport?.syncEntryLevel, 'NewbieRoad');
     assert.equal(pendingTeleport?.syncRoomId, 15);
     assert.deepEqual(pendingTeleport?.syncStartedRoomIds, [0, 4, 15]);
     assert.equal(caller.lastDoorTargetLevel, 'TutorialDungeon');
     assert.equal(caller.sentPackets.some((packet) => packet.id === 0x2E), true);
-}
-
-async function testPublicChatRewritesSenderEntityId(): Promise<void> {
-    const sender = createFakeClient('Speaker');
-    const recipient = createFakeClient('Listener');
-    sender.currentLevel = 'CraftTown';
-    recipient.currentLevel = 'CraftTown';
-    sender.clientEntID = 321;
-    recipient.clientEntID = 322;
-    sender.playerSpawned = true;
-    recipient.playerSpawned = true;
-
-    GlobalState.sessionsByToken.set(sender.token, sender as never);
-    GlobalState.sessionsByToken.set(recipient.token, recipient as never);
-
-    await SocialHandler.handlePublicChat(sender as never, buildPublicChatPacket(0, 'hello'));
-
-    const chatPacket = recipient.sentPackets.find((packet) => packet.id === 0x2c);
-    assert.ok(chatPacket, 'public chat should be relayed to players in the same level');
-    assert.deepEqual(decodePublicChat(chatPacket!.payload), {
-        senderEntityId: 321,
-        message: 'hello'
-    });
-    assert.equal(
-        sender.sentPackets.some((packet) => packet.id === 0x2c),
-        false,
-        'public chat should not echo through the level relay to the sender'
-    );
 }
 
 async function main(): Promise<void> {
@@ -269,9 +223,6 @@ async function main(): Promise<void> {
         GlobalState.partyByMember.clear();
         GlobalState.pendingTeleports.clear();
         testTeleportToPlayerCapturesDungeonAnchorState();
-
-        GlobalState.sessionsByToken.clear();
-        await testPublicChatRewritesSenderEntityId();
     } finally {
         GlobalState.sessionsByCharacterName = sessionsByCharacterName;
         GlobalState.sessionsByToken = sessionsByToken;

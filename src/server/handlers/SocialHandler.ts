@@ -119,13 +119,6 @@ export class SocialHandler {
         return bb.toBuffer();
     }
 
-    private static buildPublicChatPayload(senderEntityId: number, message: string): Buffer {
-        const bb = new BitBuffer(false);
-        bb.writeMethod4(Math.max(0, Number(senderEntityId ?? 0)));
-        bb.writeMethod13(message);
-        return bb.toBuffer();
-    }
-
     private static buildGroupmateMapPayload(senderName: string, mapX: number, mapY: number): Buffer {
         const bb = new BitBuffer(false);
         bb.writeMethod26(senderName);
@@ -769,6 +762,9 @@ export class SocialHandler {
         const syncStartedRoomIds = shouldSyncDungeonProgress
             ? SocialHandler.getStartedRoomIdsForLevel(target, targetLevel)
             : undefined;
+        const syncQuestProgress = shouldSyncDungeonProgress && Number.isFinite(Number(target.character?.questTrackerState))
+            ? Math.max(0, Math.min(100, Math.round(Number(target.character?.questTrackerState))))
+            : undefined;
 
         return {
             targetLevel,
@@ -778,9 +774,9 @@ export class SocialHandler {
             hasCoord,
             syncAnchorToken: target.token > 0 ? target.token : undefined,
             syncAnchorCharacterName: target.character?.name,
-            syncEntryLevel: shouldSyncDungeonProgress ? LevelConfig.normalizeLevelName(target.entryLevel) : undefined,
             syncRoomId,
-            syncStartedRoomIds
+            syncStartedRoomIds,
+            syncQuestProgress
         };
     }
 
@@ -917,13 +913,7 @@ export class SocialHandler {
             }
         }
 
-        SocialHandler.relayToLevel(
-            client,
-            0x2c,
-            SocialHandler.buildPublicChatPayload(client.clientEntID, message),
-            false,
-            true
-        );
+        SocialHandler.relayToLevel(client, 0x2c, data, false, true);
     }
 
     static handlePrivateMessage(client: Client, data: Buffer): void {

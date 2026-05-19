@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const CLASS_NAME = 'a_Room_CHM01RYagagaBoss';
+const BOSS_CLASS_NAME = 'a_Room_CHM01RYagagaBoss';
+const TRAP_CLASS_NAME = 'a_Room_CHmini45';
 
 function parseArgs(argv) {
   const args = {
@@ -35,8 +36,9 @@ function usage() {
     'Usage:',
     '  node src/server/scripts/patch-levelsch-wither-ambush.js [--verify] [--swf <path>] [--ffdec <path>]',
     '',
-    'Patches LevelsCH a_Room_CHM01RYagagaBoss so boss ambush waves still spawn',
-    'when a health threshold is skipped by a fast boss kill or sparse phase tick.'
+    'Patches LevelsCH so Wither the Witch ambushes behave correctly:',
+    '- boss health-threshold waves still spawn if a threshold is skipped',
+    '- the a_Room_CHmini45 visible alpha and hidden jackal pack aggro at the entry line'
   ].join('\n'));
 }
 
@@ -57,6 +59,8 @@ function detectFfdec(repoRoot, preferred) {
   candidates.push(
     path.join(repoRoot, 'build', 'ffdec', 'ffdec-cli.jar'),
     path.join(repoRoot, 'build', 'ffdec', 'ffdec.jar'),
+    path.join(repoRoot, 'build', 'tools', 'ffdec_26.0.0', 'ffdec-cli.jar'),
+    path.join(repoRoot, 'build', 'tools', 'ffdec_26.0.0', 'ffdec.jar'),
     path.join(repoRoot, 'build', 'tools', 'ffdec_25.0.0', 'ffdec-cli.jar'),
     path.join(repoRoot, 'build', 'tools', 'ffdec_25.0.0', 'ffdec.jar')
   );
@@ -86,17 +90,25 @@ function runFfdec(ffdecPath, args) {
   });
 }
 
-function exportRoomScript(ffdecPath, workRoot, swfPath) {
-  fs.rmSync(workRoot, { recursive: true, force: true });
-  fs.mkdirSync(workRoot, { recursive: true });
-  runFfdec(ffdecPath, ['-selectclass', CLASS_NAME, '-export', 'script', workRoot, swfPath]);
+function exportRoomScript(ffdecPath, workRoot, swfPath, className) {
+  runFfdec(ffdecPath, ['-selectclass', className, '-export', 'script', workRoot, swfPath]);
 
-  const roomPath = path.join(workRoot, 'scripts', `${CLASS_NAME}.as`);
+  const roomPath = path.join(workRoot, 'scripts', `${className}.as`);
   if (!fs.existsSync(roomPath)) {
     throw new Error(`FFDec export did not produce ${roomPath}`);
   }
 
   return roomPath;
+}
+
+function exportRoomScripts(ffdecPath, workRoot, swfPath) {
+  fs.rmSync(workRoot, { recursive: true, force: true });
+  fs.mkdirSync(workRoot, { recursive: true });
+
+  return {
+    boss: exportRoomScript(ffdecPath, workRoot, swfPath, BOSS_CLASS_NAME),
+    trap: exportRoomScript(ffdecPath, workRoot, swfPath, TRAP_CLASS_NAME)
+  };
 }
 
 function findMethodRange(source, methodName) {
@@ -143,9 +155,34 @@ function normalizeBlock(block, eol) {
   return block.trim().replace(/\n/g, eol);
 }
 
-function patchRoomSource(source) {
+function removeOptionalBossEntryAmbushPatch(source) {
+  const eol = source.includes('\r\n') ? '\r\n' : '\n';
+  let patched = source;
+
+  const entryField = `      public var bEntryAmbushTriggered:Boolean;${eol}      ${eol}`;
+  if (patched.includes(entryField)) {
+    patched = patched.replace(entryField, '');
+  }
+
+  const initialPhaseLine = `         param1.initialPhase = this.PhaseEntryAmbush;${eol}`;
+  if (patched.includes(initialPhaseLine)) {
+    patched = patched.replace(initialPhaseLine, '');
+  }
+
+  if (patched.includes('public function PhaseEntryAmbush(param1:a_GameHook) : void')) {
+    const range = findMethodRange(patched, 'PhaseEntryAmbush');
+    patched = `${patched.slice(0, range.start)}${patched.slice(range.end)}`;
+    patched = patched.replace(`${eol}      ${eol}      ${eol}      public function PhaseFight`, `${eol}      ${eol}      public function PhaseFight`);
+  }
+
+  return patched;
+}
+
+function patchBossRoomSource(source) {
+  source = removeOptionalBossEntryAmbushPatch(source);
+
   try {
-    verifyRoomSource(source, 'current source');
+    verifyBossRoomSource(source, 'current source');
     return source;
   } catch (_error) {
     // Continue into the source patch path below.
@@ -215,11 +252,11 @@ function patchRoomSource(source) {
     `, eol)
   );
 
-  verifyRoomSource(patched, 'patched source');
+  verifyBossRoomSource(patched, 'patched source');
   return patched;
 }
 
-function verifyRoomSource(source, label) {
+function verifyBossRoomSource(source, label) {
   const required = [
     'public var bWaveOneTriggered:Boolean;',
     'public var bWaveTwoTriggered:Boolean;',
@@ -238,31 +275,217 @@ function verifyRoomSource(source, label) {
       throw new Error(`${label} is missing required marker: ${marker}`);
     }
   }
+
+  const forbidden = [
+    'public var bEntryAmbushTriggered:Boolean;',
+    'param1.initialPhase = this.PhaseEntryAmbush;',
+    'public function PhaseEntryAmbush(param1:a_GameHook) : void'
+  ];
+
+  for (const marker of forbidden) {
+    if (source.includes(marker)) {
+      throw new Error(`${label} still contains obsolete boss entry ambush marker: ${marker}`);
+    }
+  }
+}
+
+function insertAfterMethod(source, methodName, insertion) {
+  const range = findMethodRange(source, methodName);
+  return `${source.slice(0, range.end)}${insertion}${source.slice(range.end)}`;
+}
+
+function patchTrapRoomSource(source) {
+  const eol = source.includes('\r\n') ? '\r\n' : '\n';
+  let patched = source;
+
+  const obsoleteTrapField = `      public var bTrapAmbushTriggered:Boolean;${eol}      ${eol}`;
+  if (patched.includes(obsoleteTrapField)) {
+    patched = patched.replace(obsoleteTrapField, '');
+  }
+
+  const obsoleteHiddenPackField = `      public var bHiddenPackTriggered:Boolean;${eol}      ${eol}`;
+  if (patched.includes(obsoleteHiddenPackField)) {
+    patched = patched.replace(obsoleteHiddenPackField, '');
+  }
+
+  if (!patched.includes('public var bEntryLineAmbushTriggered:Boolean;')) {
+    patched = replaceExact(
+      patched,
+      `      public var am_Foreground:MovieClip;${eol}`,
+      [
+        '      public var am_Foreground:MovieClip;',
+        '      ',
+        '      public var bEntryLineAmbushTriggered:Boolean;',
+        ''
+      ].join(eol),
+      'entry line ambush trigger state field'
+    );
+  }
+
+  if (patched.includes('public function PhaseHiddenPackTrap(param1:a_GameHook) : void')) {
+    const range = findMethodRange(patched, 'PhaseHiddenPackTrap');
+    patched = `${patched.slice(0, range.start)}${patched.slice(range.end)}`;
+  }
+
+  if (patched.includes('public function PhaseTrapAmbush(param1:a_GameHook) : void')) {
+    const range = findMethodRange(patched, 'PhaseTrapAmbush');
+    patched = `${patched.slice(0, range.start)}${patched.slice(range.end)}`;
+  }
+
+  if (patched.includes('public function PhaseHiddenPackOnAlphaAlert(param1:a_GameHook) : void')) {
+    const range = findMethodRange(patched, 'PhaseHiddenPackOnAlphaAlert');
+    patched = `${patched.slice(0, range.start)}${patched.slice(range.end)}`;
+  }
+
+  if (patched.includes('public function PhaseLinkHiddenPackAggroTeam(param1:a_GameHook) : void')) {
+    const range = findMethodRange(patched, 'PhaseLinkHiddenPackAggroTeam');
+    patched = `${patched.slice(0, range.start)}${patched.slice(range.end)}`;
+  }
+
+  const initRoomMethod = normalizeBlock(`
+      public function InitRoom(param1:a_GameHook) : void
+      {
+         param1.initialPhase = this.PhaseEntryLineAmbush;
+      }
+  `, eol);
+
+  if (patched.includes('public function InitRoom(param1:a_GameHook) : void')) {
+    patched = replaceMethod(patched, 'InitRoom', initRoomMethod);
+  } else {
+    patched = insertAfterMethod(patched, TRAP_CLASS_NAME, `${eol}      ${eol}${initRoomMethod}`);
+  }
+
+  const entryLineAmbushPhaseMethod = normalizeBlock(`
+      public function PhaseEntryLineAmbush(param1:a_GameHook) : void
+      {
+         var _loc2_:Object = param1.linkToRoom.var_1.clientEnt;
+         if(!this.bEntryLineAmbushTriggered && _loc2_ && _loc2_.currRoom == param1.linkToRoom && _loc2_.physPosX >= 856)
+         {
+            this.bEntryLineAmbushTriggered = true;
+            this.AggroEntryLineEntity(param1,"__id624_",_loc2_);
+            this.AggroEntryLineEntity(param1,"__id618_",_loc2_);
+            this.AggroEntryLineEntity(param1,"__id620_",_loc2_);
+            this.AggroEntryLineEntity(param1,"__id621_",_loc2_);
+            this.AggroEntryLineEntity(param1,"__id622_",_loc2_);
+            param1.SetPhase(null);
+         }
+      }
+  `, eol);
+
+  if (patched.includes('public function PhaseEntryLineAmbush(param1:a_GameHook) : void')) {
+    patched = replaceMethod(patched, 'PhaseEntryLineAmbush', entryLineAmbushPhaseMethod);
+  } else {
+    patched = insertAfterMethod(patched, 'InitRoom', `${eol}      ${eol}${entryLineAmbushPhaseMethod}`);
+  }
+
+  const aggroEntryLineEntityMethod = normalizeBlock(`
+      public function AggroEntryLineEntity(param1:a_GameHook, param2:String, param3:Object) : void
+      {
+         var _loc4_:Object = param1.linkToRoom.method_35(param2);
+         if(_loc4_ && _loc4_.brain)
+         {
+            _loc4_.brain.bDeepSleep = false;
+            _loc4_.brain.AddHate(param3,0,false);
+         }
+      }
+  `, eol);
+
+  if (patched.includes('public function AggroEntryLineEntity(param1:a_GameHook, param2:String, param3:Object) : void')) {
+    patched = replaceMethod(patched, 'AggroEntryLineEntity', aggroEntryLineEntityMethod);
+  } else {
+    patched = insertAfterMethod(patched, 'PhaseEntryLineAmbush', `${eol}      ${eol}${aggroEntryLineEntityMethod}`);
+  }
+
+  verifyTrapRoomSource(patched, 'patched source');
+  return patched;
+}
+
+function verifyTrapRoomSource(source, label) {
+  const required = [
+    'public var __id618_:ac_JackalPackmate2;',
+    'public var __id622_:ac_JackalPackmate;',
+    'public var __id620_:ac_DogRogue;',
+    'public var __id621_:ac_JackalPackmate2;',
+    'public var __id624_:ac_JackalAlpha;',
+    'public var bEntryLineAmbushTriggered:Boolean;',
+    'param1.initialPhase = this.PhaseEntryLineAmbush;',
+    'public function PhaseEntryLineAmbush(param1:a_GameHook) : void',
+    'var _loc2_:Object = param1.linkToRoom.var_1.clientEnt;',
+    '!this.bEntryLineAmbushTriggered && _loc2_ && _loc2_.currRoom == param1.linkToRoom && _loc2_.physPosX >= 856',
+    'this.bEntryLineAmbushTriggered = true;',
+    'this.AggroEntryLineEntity(param1,"__id624_",_loc2_);',
+    'this.AggroEntryLineEntity(param1,"__id618_",_loc2_);',
+    'this.AggroEntryLineEntity(param1,"__id620_",_loc2_);',
+    'this.AggroEntryLineEntity(param1,"__id621_",_loc2_);',
+    'this.AggroEntryLineEntity(param1,"__id622_",_loc2_);',
+    'param1.SetPhase(null);',
+    'public function AggroEntryLineEntity(param1:a_GameHook, param2:String, param3:Object) : void',
+    'var _loc4_:Object = param1.linkToRoom.method_35(param2);',
+    '_loc4_.brain.bDeepSleep = false;',
+    '_loc4_.brain.AddHate(param3,0,false);'
+  ];
+
+  for (const marker of required) {
+    if (!source.includes(marker)) {
+      throw new Error(`${label} is missing expected room marker: ${marker}`);
+    }
+  }
+
+  const forbidden = [
+    'public var bTrapAmbushTriggered:Boolean;',
+    'public var bHiddenPackTriggered:Boolean;',
+    'public function PhaseTrapAmbush(param1:a_GameHook) : void',
+    'public function PhaseHiddenPackTrap(param1:a_GameHook) : void',
+    'public function PhaseHiddenPackOnAlphaAlert(param1:a_GameHook) : void',
+    'public function PhaseLinkHiddenPackAggroTeam(param1:a_GameHook) : void',
+    'PhaseHiddenPackOnAlphaAlert',
+    'PhaseLinkHiddenPackAggroTeam',
+    'brain.target',
+    'param1.linkToRoom.GetTarget();',
+    'physPosX >= 12200',
+    'physPosX >= 19400',
+    'this.__id624_.Aggro();',
+    'this.__id618_.Aggro();',
+    'this.__id620_.Aggro();',
+    'this.__id621_.Aggro();',
+    'this.__id622_.Aggro();',
+    'aggroTeamID = this.__id624_.aggroTeamID'
+  ];
+
+  for (const marker of forbidden) {
+    if (source.includes(marker)) {
+      throw new Error(`${label} still contains obsolete a_Room_CHmini45 trap marker: ${marker}`);
+    }
+  }
 }
 
 function patchSwf(repoRoot, ffdecPath, swfPath) {
   const workRoot = path.join(repoRoot, 'build', 'ffdec-levelsch-wither-ambush', path.basename(swfPath, path.extname(swfPath)));
   const patchedSwfPath = path.join(workRoot, `${path.basename(swfPath, path.extname(swfPath))}.patched.swf`);
-  const roomPath = exportRoomScript(ffdecPath, workRoot, swfPath);
-  const original = fs.readFileSync(roomPath, 'utf8');
-  const patched = patchRoomSource(original);
+  const roomPaths = exportRoomScripts(ffdecPath, workRoot, swfPath);
+  const bossOriginal = fs.readFileSync(roomPaths.boss, 'utf8');
+  const trapOriginal = fs.readFileSync(roomPaths.trap, 'utf8');
+  const bossPatched = patchBossRoomSource(bossOriginal);
+  const trapPatched = patchTrapRoomSource(trapOriginal);
 
-  if (patched === original) {
-    console.log(`SWF already contains the Wither ambush patch: ${swfPath}`);
+  if (bossPatched === bossOriginal && trapPatched === trapOriginal) {
+    console.log(`SWF already contains the Wither ambush patches: ${swfPath}`);
     return;
   }
 
-  fs.writeFileSync(roomPath, patched, 'utf8');
-  runFfdec(ffdecPath, ['-importScript', swfPath, patchedSwfPath, path.dirname(roomPath)]);
+  fs.writeFileSync(roomPaths.boss, bossPatched, 'utf8');
+  fs.writeFileSync(roomPaths.trap, trapPatched, 'utf8');
+  runFfdec(ffdecPath, ['-importScript', swfPath, patchedSwfPath, path.dirname(roomPaths.boss)]);
   fs.copyFileSync(patchedSwfPath, swfPath);
-  console.log(`Patched Wither ambush waves in ${swfPath}`);
+  console.log(`Patched Wither ambush behavior in ${swfPath}`);
 }
 
 function verifySwf(repoRoot, ffdecPath, swfPath) {
   const workRoot = path.join(repoRoot, 'build', 'ffdec-levelsch-wither-ambush-verify', path.basename(swfPath, path.extname(swfPath)));
-  const roomPath = exportRoomScript(ffdecPath, workRoot, swfPath);
-  verifyRoomSource(fs.readFileSync(roomPath, 'utf8'), swfPath);
-  console.log(`Verified Wither ambush waves in ${swfPath}`);
+  const roomPaths = exportRoomScripts(ffdecPath, workRoot, swfPath);
+  verifyBossRoomSource(fs.readFileSync(roomPaths.boss, 'utf8'), swfPath);
+  verifyTrapRoomSource(fs.readFileSync(roomPaths.trap, 'utf8'), swfPath);
+  console.log(`Verified Wither ambush behavior in ${swfPath}`);
 }
 
 function main() {
