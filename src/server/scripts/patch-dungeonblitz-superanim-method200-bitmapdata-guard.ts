@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as path from "path";
 import {
   applyPatchesToBody,
@@ -15,17 +16,7 @@ import {
   writeU30,
 } from "./swfPatchUtils";
 
-const DEFAULT_SWF = path.resolve(
-  __dirname,
-  "..",
-  "..",
-  "client",
-  "content",
-  "localhost",
-  "p",
-  "cbp",
-  "DungeonBlitz.swf",
-);
+const DEFAULT_SWF = resolveDefaultSwf();
 const METHOD982_SAFE_TOTAL_PIXELS = 4194304;
 const METHOD982_PREVIOUS_SAFE_TOTAL_PIXELS = 65536;
 const METHOD982_OLDER_SAFE_TOTAL_PIXELS = 4096;
@@ -39,6 +30,15 @@ type Operand = [Instruction["operands"][number][0], number];
 type InsertedInstruction =
   | { label: string }
   | { opcode: number; operands?: Operand[]; branchTo?: string };
+
+function resolveDefaultSwf(): string {
+  const candidates = [
+    path.resolve(__dirname, "..", "..", "client", "content", "localhost", "p", "cbp", "DungeonBlitz.swf"),
+    path.resolve(__dirname, "..", "..", "..", "client", "content", "localhost", "p", "cbp", "DungeonBlitz.swf"),
+    path.resolve(process.cwd(), "src", "client", "content", "localhost", "p", "cbp", "DungeonBlitz.swf"),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
+}
 
 function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
   let swfPath = DEFAULT_SWF;
@@ -464,6 +464,47 @@ function findRequiredInt(abc: ReturnType<typeof parseAbc>, value: number): numbe
   return index;
 }
 
+function opcode(op: number, operands: Operand[] = []): Buffer {
+  return Buffer.concat([Buffer.from([op]), ...operands.map(([kind, value]) => operandBytes(kind, value))]);
+}
+
+function findMethod200TfRemoveChildCall(
+  instructions: Instruction[],
+  abc: ReturnType<typeof parseAbc>,
+): { blockStart: number; blockEnd: number } {
+  for (let index = 2; index < instructions.length; index += 1) {
+    const call = instructions[index];
+    if (
+      call.opcode !== 0x4f ||
+      u30OperandName(call, abc.multinameNames) !== "removeChild" ||
+      call.operands[1]?.[1] !== 1
+    ) {
+      continue;
+    }
+
+    const receiver = instructions[index - 2];
+    const child = instructions[index - 1];
+    if (receiver.opcode === 0x60 && u30OperandName(receiver, abc.multinameNames) === "tf" && getLocalOperand(child) === 1) {
+      return {
+        blockStart: receiver.offset,
+        blockEnd: call.offset + call.size,
+      };
+    }
+  }
+
+  throw new PatchError("Could not find SuperAnimData.method_200 tf.removeChild bitmap cleanup.");
+}
+
+function buildMethod200RemoveChildGuard(parentName: number, tfName: number, originalCallLength: number): Buffer {
+  return Buffer.concat([
+    opcode(0xd1), // getlocal1, the Bitmap removed from tf
+    opcode(0x66, [["u30", parentName]]),
+    opcode(0x60, [["u30", tfName]]),
+    opcode(0xab), // parent == tf
+    opcode(0x12, [["s24", originalCallLength]]), // skip tf.removeChild(bitmap) when false
+  ]);
+}
+
 function findBitmapDataConstructor(
   instructions: Instruction[],
   abc: ReturnType<typeof parseAbc>,
@@ -717,6 +758,8 @@ function patchMethod200(swfPath: string, verify: boolean): boolean {
   const croppedCtor = findBitmapDataConstructor(instructions, abc, 25, 26);
   const widthName = findRequiredMultiname(abc, "width");
   const heightName = findRequiredMultiname(abc, "height");
+  const parentName = findRequiredMultiname(abc, "parent");
+  const tfName = findRequiredMultiname(abc, "tf");
   const totalPixelsIntIndex = findRequiredInt(abc, METHOD200_SAFE_TOTAL_PIXELS);
   const previousTotalPixelsIntIndex = findRequiredInt(abc, METHOD200_PREVIOUS_SAFE_TOTAL_PIXELS);
   const directGuard = assembleInserted(productDimensionGuard(10, 11, totalPixelsIntIndex, 128));
@@ -744,13 +787,20 @@ function patchMethod200(swfPath: string, verify: boolean): boolean {
     croppedCtor.offset,
     legacyPushshortProductCroppedGuard,
   );
+  const removeChildCall = findMethod200TfRemoveChildCall(instructions, abc);
+  const removeChildGuard = buildMethod200RemoveChildGuard(
+    parentName,
+    tfName,
+    removeChildCall.blockEnd - removeChildCall.blockStart,
+  );
+  const removeChildGuardPatched = hasExactGuardBefore(code, removeChildCall.blockStart, removeChildGuard);
 
-  if (directPatched && croppedPatched) {
+  if (directPatched && croppedPatched && removeChildGuardPatched) {
     return false;
   }
 
   if (verify) {
-    throw new PatchError(`${swfPath}: verify failed; SuperAnimData.method_200 BitmapData guards are missing.`);
+    throw new PatchError(`${swfPath}: verify failed; SuperAnimData.method_200 BitmapData/removeChild guards are missing.`);
   }
 
   const edits: Array<{ start: number; end: number; data: Buffer }> = [];
@@ -811,6 +861,9 @@ function patchMethod200(swfPath: string, verify: boolean): boolean {
     } else {
       edits.push({ start: croppedCtor.offset, end: croppedCtor.offset, data: croppedGuard });
     }
+  }
+  if (!removeChildGuardPatched) {
+    edits.push({ start: removeChildCall.blockStart, end: removeChildCall.blockStart, data: removeChildGuard });
   }
 
   const patchedCode = applyCodeEditsAndAdjustBranches(code, instructions, edits);

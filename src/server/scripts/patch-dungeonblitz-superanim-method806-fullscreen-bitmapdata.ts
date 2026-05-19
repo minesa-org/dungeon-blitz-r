@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as path from "path";
 import {
   applyPatchesToBody,
@@ -15,22 +16,22 @@ import {
   writeU30,
 } from "./swfPatchUtils";
 
-const DEFAULT_SWF = path.resolve(
-  __dirname,
-  "..",
-  "..",
-  "client",
-  "content",
-  "localhost",
-  "p",
-  "cbp",
-  "DungeonBlitz.swf",
-);
-const FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE = 3072;
+const DEFAULT_SWF = resolveDefaultSwf();
+const FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE = 2048;
+const PREVIOUS_FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE = 3072;
 
 type Operand = [Instruction["operands"][number][0], number];
 type InsertedInstruction =
   | { opcode: number; operands?: Operand[] };
+
+function resolveDefaultSwf(): string {
+  const candidates = [
+    path.resolve(__dirname, "..", "..", "client", "content", "localhost", "p", "cbp", "DungeonBlitz.swf"),
+    path.resolve(__dirname, "..", "..", "..", "client", "content", "localhost", "p", "cbp", "DungeonBlitz.swf"),
+    path.resolve(process.cwd(), "src", "client", "content", "localhost", "p", "cbp", "DungeonBlitz.swf"),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
+}
 
 function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
   let swfPath = DEFAULT_SWF;
@@ -263,6 +264,44 @@ function findDynamicEntityBitmapDimensions(
   return ranges;
 }
 
+function findForcedEntityBitmapDimensions(
+  instructions: Instruction[],
+  names: string[],
+  forcedSize: number,
+): Array<{ start: number; end: number }> {
+  const ranges: Array<{ start: number; end: number }> = [];
+
+  for (let index = 0; index < instructions.length - 5; index += 1) {
+    const find = instructions[index];
+    const width = instructions[index + 1];
+    const height = instructions[index + 2];
+    const pushTrue = instructions[index + 3];
+    const pushZero = instructions[index + 4];
+    const construct = instructions[index + 5];
+    if (
+      find.opcode === 0x5d &&
+      u30OperandName(find, names) === "BitmapData" &&
+      width.opcode === 0x25 &&
+      width.operands[0]?.[1] === forcedSize &&
+      height.opcode === 0x25 &&
+      height.operands[0]?.[1] === forcedSize &&
+      pushTrue.opcode === 0x26 &&
+      pushZero.opcode === 0x24 &&
+      pushZero.operands[0]?.[1] === 0 &&
+      construct.opcode === 0x4a &&
+      u30OperandName(construct, names) === "BitmapData" &&
+      construct.operands[1]?.[1] === 4
+    ) {
+      ranges.push({
+        start: width.offset,
+        end: pushTrue.offset,
+      });
+    }
+  }
+
+  return ranges;
+}
+
 function countForcedFullscreenEntityBitmapConstructors(instructions: Instruction[], names: string[]): number {
   return instructions.filter((instruction, index) =>
     instruction.opcode === 0x5d &&
@@ -315,7 +354,12 @@ function patchSwf(swfPath: string, verify: boolean): void {
     return;
   }
 
-  const ranges = findDynamicEntityBitmapDimensions(instructions, abc.multinameNames);
+  const previousRanges = findForcedEntityBitmapDimensions(
+    instructions,
+    abc.multinameNames,
+    PREVIOUS_FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE,
+  );
+  const ranges = previousRanges.length === 2 ? previousRanges : findDynamicEntityBitmapDimensions(instructions, abc.multinameNames);
   const forcedDimensions = assembleInserted([
     pushInteger(FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE),
     pushInteger(FORCED_FULLSCREEN_ENTITY_BITMAP_SIZE),

@@ -35,7 +35,7 @@ const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
 const SUPERANIM_METHOD200_SAFE_PIXELS = 65536;
 const SUPERANIM_METHOD982_SAFE_PIXELS = 4194304;
 const SUPERANIM_METHOD982_SAFE_AXIS = 8191;
-const SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE = 3072;
+const SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE = 2048;
 const SAFE_SCREEN_BITMAP_WIDTH = 2048;
 const SAFE_SCREEN_BITMAP_HEIGHT = 1152;
 
@@ -114,8 +114,208 @@ function getStaticMethodCode(swfPath: string, className: string, methodName: str
     const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
     return {
         abc,
+        methodBody,
         instructions: disassemble(code, `${className}.${methodName}`)
     };
+}
+
+function assertGameMethod1325SuperAnimCrashGuard(swfPath: string): void {
+    const { abc, methodBody, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_1325');
+    const callIndex = instructions.findIndex((instruction) =>
+        instruction.opcode === 0x46 &&
+        u30OperandName(instruction, abc.multinameNames) === 'method_105' &&
+        instruction.operands[1]?.[1] === 0
+    );
+    assert.notEqual(callIndex, -1, 'Game.method_1325 SuperAnimInstance.method_105 call not found');
+
+    const call = instructions[callIndex];
+    const receiver = instructions[callIndex - 1];
+    assert.equal(getLocalOperand(receiver), 2, 'Game.method_1325 must call method_105 on the current SuperAnimInstance');
+
+    const errorName = abc.multinameNames.findIndex((name) => name === 'Error');
+    const finishedName = abc.multinameNames.findIndex((name) => name === 'm_bFinished');
+    assert.notEqual(errorName, -1, 'Error multiname not found');
+    assert.notEqual(finishedName, -1, 'm_bFinished multiname not found');
+
+    const guard = methodBody.exceptions.find((entry) =>
+        entry.from <= receiver.offset &&
+        entry.to >= call.offset + call.size &&
+        entry.type === errorName &&
+        entry.target > call.offset
+    );
+    assert.ok(guard, 'Game.method_1325 must catch SuperAnimInstance.method_105 render errors');
+
+    const handlerWindow = instructions.filter((instruction) =>
+        instruction.offset >= guard.target &&
+        instruction.offset < guard.target + 40
+    );
+    assert.equal(
+        handlerWindow.some((instruction) =>
+            instruction.opcode === 0x61 &&
+            instruction.operands[0]?.[1] === finishedName
+        ),
+        true,
+        'Game.method_1325 SuperAnim crash handler must mark the instance finished'
+    );
+}
+
+function assertGameMethod1970EntityUpdateCrashGuard(swfPath: string): void {
+    const { abc, methodBody, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_1970');
+    const callIndex = instructions.findIndex((instruction) =>
+        instruction.opcode === 0x46 &&
+        u30OperandName(instruction, abc.multinameNames) === 'method_1770' &&
+        instruction.operands[1]?.[1] === 0
+    );
+    assert.notEqual(callIndex, -1, 'Game.method_1970 Entity.method_1770 call not found');
+
+    const call = instructions[callIndex];
+    const receiver = instructions[callIndex - 1];
+    assert.equal(getLocalOperand(receiver), 2, 'Game.method_1970 must call method_1770 on the current Entity');
+
+    const errorName = abc.multinameNames.findIndex((name) => name === 'Error');
+    assert.notEqual(errorName, -1, 'Error multiname not found');
+
+    const guard = methodBody.exceptions.find((entry) =>
+        entry.from <= receiver.offset &&
+        entry.to >= call.offset + call.size &&
+        entry.type === errorName &&
+        entry.target > call.offset
+    );
+    assert.ok(guard, 'Game.method_1970 must catch Entity.method_1770 update errors');
+
+    const handlerWindow = instructions.filter((instruction) =>
+        instruction.offset >= guard.target &&
+        instruction.offset < guard.target + 60
+    );
+    const clientEntName = abc.multinameNames.findIndex((name) => name === 'clientEnt');
+    const destroyEntityName = abc.multinameNames.findIndex((name) => name === 'DestroyEntity');
+    const spliceName = abc.multinameNames.findIndex((name) => name === 'splice');
+    assert.notEqual(clientEntName, -1, 'clientEnt multiname not found');
+    assert.notEqual(destroyEntityName, -1, 'DestroyEntity multiname not found');
+    assert.notEqual(spliceName, -1, 'splice multiname not found');
+    assert.equal(
+        handlerWindow.some((instruction) =>
+            instruction.opcode === 0x66 &&
+            instruction.operands[0]?.[1] === clientEntName
+        ),
+        true,
+        'Game.method_1970 entity update crash handler must not destroy the client entity'
+    );
+    assert.equal(
+        handlerWindow.some((instruction) =>
+            instruction.opcode === 0x4f &&
+            instruction.operands[0]?.[1] === destroyEntityName
+        ),
+        true,
+        'Game.method_1970 entity update crash handler must destroy the failed entity'
+    );
+    assert.equal(
+        handlerWindow.some((instruction) =>
+            instruction.opcode === 0x4f &&
+            instruction.operands[0]?.[1] === spliceName
+        ),
+        true,
+        'Game.method_1970 entity update crash handler must remove the failed entity from the entity list'
+    );
+}
+
+function assertGameMethod1070ChatBubbleCrashGuard(swfPath: string): void {
+    const { abc, methodBody, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_1070');
+    const callIndex = instructions.findIndex((instruction) =>
+        instruction.opcode === 0x4f &&
+        u30OperandName(instruction, abc.multinameNames) === 'method_901' &&
+        instruction.operands[1]?.[1] === 0
+    );
+    assert.notEqual(callIndex, -1, 'Game.method_1070 ChatBubble.method_901 call not found');
+
+    const call = instructions[callIndex];
+    const receiver = instructions[callIndex - 1];
+    assert.equal(getLocalOperand(receiver), 1, 'Game.method_1070 must call method_901 on the current ChatBubble');
+
+    const errorName = abc.multinameNames.findIndex((name) => name === 'Error');
+    const validName = abc.multinameNames.findIndex((name) => name === 'bIAmValid');
+    assert.notEqual(errorName, -1, 'Error multiname not found');
+    assert.notEqual(validName, -1, 'bIAmValid multiname not found');
+
+    const guard = methodBody.exceptions.find((entry) =>
+        entry.from <= receiver.offset &&
+        entry.to >= call.offset + call.size &&
+        entry.type === errorName &&
+        entry.target > call.offset
+    );
+    assert.ok(guard, 'Game.method_1070 must catch ChatBubble.method_901 update errors');
+
+    const handlerWindow = instructions.filter((instruction) =>
+        instruction.offset >= guard.target &&
+        instruction.offset < guard.target + 40
+    );
+    assert.equal(
+        handlerWindow.some((instruction) =>
+            instruction.opcode === 0x61 &&
+            instruction.operands[0]?.[1] === validName
+        ),
+        true,
+        'Game.method_1070 ChatBubble crash handler must invalidate the failed bubble'
+    );
+}
+
+function assertEntityMethod900GfxGuard(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'Entity', 'method_900');
+
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0xd0 &&
+            instructions[index + 1]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 1], abc.multinameNames) === 'gfx' &&
+            instructions[index + 2]?.opcode === 0x2a &&
+            instructions[index + 3]?.opcode === 0x11 &&
+            instructions[index + 4]?.opcode === 0x29 &&
+            instructions[index + 5]?.opcode === 0x47 &&
+            instructions[index + 6]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 6], abc.multinameNames) === 'm_TheDO' &&
+            instructions[index + 7]?.opcode === 0x11 &&
+            instructions[index + 8]?.opcode === 0x47
+        ),
+        true,
+        'Entity.method_900 must skip position updates when gfx or gfx.m_TheDO is already cleared'
+    );
+}
+
+function assertEntityMethod853GfxGuard(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'Entity', 'method_853');
+
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0xd0 &&
+            instructions[index + 1]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 1], abc.multinameNames) === 'gfx' &&
+            instructions[index + 2]?.opcode === 0x2a &&
+            instructions[index + 3]?.opcode === 0x11 &&
+            instructions[index + 4]?.opcode === 0x29 &&
+            instructions[index + 5]?.opcode === 0x47 &&
+            instructions[index + 6]?.opcode === 0x2a &&
+            instructions[index + 7]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 7], abc.multinameNames) === 'm_TheDO' &&
+            instructions[index + 8]?.opcode === 0x11 &&
+            instructions[index + 9]?.opcode === 0x29 &&
+            instructions[index + 10]?.opcode === 0x47 &&
+            instructions[index + 11]?.opcode === 0x2a &&
+            instructions[index + 12]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 12], abc.multinameNames) === 'm_Data' &&
+            instructions[index + 13]?.opcode === 0x2a &&
+            instructions[index + 14]?.opcode === 0x11 &&
+            instructions[index + 15]?.opcode === 0x29 &&
+            instructions[index + 16]?.opcode === 0x29 &&
+            instructions[index + 17]?.opcode === 0x47 &&
+            instructions[index + 18]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 18], abc.multinameNames) === 'var_36' &&
+            instructions[index + 19]?.opcode === 0x11 &&
+            instructions[index + 20]?.opcode === 0x29 &&
+            instructions[index + 21]?.opcode === 0x47
+        ),
+        true,
+        'Entity.method_853 must skip animation-facing updates when gfx internals are already cleared'
+    );
 }
 
 function getInstanceMethodCode(swfPath: string, className: string, methodName: string) {
@@ -133,6 +333,7 @@ function getInstanceMethodCode(swfPath: string, className: string, methodName: s
     const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
     return {
         abc,
+        methodBody,
         instructions: disassemble(code, `${className}.${methodName}`)
     };
 }
@@ -379,7 +580,7 @@ function assertClass23BitmapDataGuardWindow(swfPath: string): void {
 }
 
 function assertGameMethod1947SafeScreenBitmapData(swfPath: string): void {
-    const { abc, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_1947');
+    const { abc, methodBody, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_1947');
     const constructorIndex = instructions.findIndex((instruction, index) =>
         instruction.opcode === 0x5d &&
         u30OperandName(instruction, abc.multinameNames) === 'BitmapData' &&
@@ -393,6 +594,27 @@ function assertGameMethod1947SafeScreenBitmapData(swfPath: string): void {
         constructorIndex,
         -1,
         'Game.method_1947 screen BitmapData allocation must use safe fixed dimensions'
+    );
+
+    const construct = instructions.find((instruction, index) =>
+        index > constructorIndex &&
+        instruction.opcode === 0x4a &&
+        u30OperandName(instruction, abc.multinameNames) === 'BitmapData' &&
+        instruction.operands[1]?.[1] === 3
+    );
+    assert.ok(construct, 'Game.method_1947 screen BitmapData constructor call not found');
+
+    const errorName = abc.multinameNames.findIndex((name) => name === 'Error');
+    assert.notEqual(errorName, -1, 'Error multiname not found');
+    assert.equal(
+        methodBody.exceptions.some((entry) =>
+            entry.from <= instructions[constructorIndex].offset &&
+            entry.to >= construct.offset + construct.size &&
+            entry.type === errorName &&
+            entry.target > construct.offset
+        ),
+        true,
+        'Game.method_1947 screen BitmapData allocation must be caught so door transitions cannot crash'
     );
 }
 
@@ -417,6 +639,26 @@ function assertMainMethod561DoesNotClampMaxScale(swfPath: string): void {
 function assertSuperAnimMethod200BitmapDataGuard(swfPath: string): void {
     assertBitmapDataGuardWindow(swfPath, 10, 11, 'SuperAnimData.method_200 direct allocation');
     assertBitmapDataGuardWindow(swfPath, 25, 26, 'SuperAnimData.method_200 cropped allocation');
+
+    const { abc, instructions } = getStaticMethodCode(swfPath, 'SuperAnimData', 'method_200');
+    assert.equal(
+        instructions.some((instruction, index) =>
+            getLocalOperand(instruction) === 1 &&
+            instructions[index + 1]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 1], abc.multinameNames) === 'parent' &&
+            instructions[index + 2]?.opcode === 0x60 &&
+            u30OperandName(instructions[index + 2], abc.multinameNames) === 'tf' &&
+            instructions[index + 3]?.opcode === 0xab &&
+            instructions[index + 4]?.opcode === 0x12 &&
+            instructions[index + 5]?.opcode === 0x60 &&
+            u30OperandName(instructions[index + 5], abc.multinameNames) === 'tf' &&
+            getLocalOperand(instructions[index + 6]) === 1 &&
+            instructions[index + 7]?.opcode === 0x4f &&
+            u30OperandName(instructions[index + 7], abc.multinameNames) === 'removeChild'
+        ),
+        true,
+        'SuperAnimData.method_200 must only remove rendered gear bitmaps when they are still children of tf'
+    );
 }
 
 function assertSuperAnimMethod806FullscreenBitmapData(swfPath: string): void {
@@ -592,6 +834,28 @@ function testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData(): void {
     });
 }
 
+function testBaseAndLocalVariantKeepGameMethod1325SuperAnimCrashGuard(): void {
+    assertGameMethod1325SuperAnimCrashGuard(BASE_SWF_PATH);
+    assertGameMethod1970EntityUpdateCrashGuard(BASE_SWF_PATH);
+    assertGameMethod1070ChatBubbleCrashGuard(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertGameMethod1325SuperAnimCrashGuard(tempPath);
+        assertGameMethod1970EntityUpdateCrashGuard(tempPath);
+        assertGameMethod1070ChatBubbleCrashGuard(tempPath);
+    });
+}
+
+function testBaseAndLocalVariantKeepEntityMethod900GfxGuard(): void {
+    assertEntityMethod900GfxGuard(BASE_SWF_PATH);
+    assertEntityMethod853GfxGuard(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertEntityMethod900GfxGuard(tempPath);
+        assertEntityMethod853GfxGuard(tempPath);
+    });
+}
+
 function testBaseAndLocalVariantKeepMainMethod561UnclampedScale(): void {
     assertMainMethod561DoesNotClampMaxScale(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
@@ -610,6 +874,8 @@ function main(): void {
     testBaseAndLocalVariantKeepSuperAnimMethod806FullscreenBitmapData();
     testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard();
     testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData();
+    testBaseAndLocalVariantKeepGameMethod1325SuperAnimCrashGuard();
+    testBaseAndLocalVariantKeepEntityMethod900GfxGuard();
     testBaseAndLocalVariantKeepMainMethod561UnclampedScale();
     console.log('dungeonblitz_swf_variant_regression: ok');
 }

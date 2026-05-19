@@ -48,6 +48,22 @@ export interface KeepTutorialState {
     helperWaveUseSmallNext: boolean;
 }
 
+export interface ClientCombatEventSnapshot {
+    atMs: number;
+    levelScope: string;
+    packet: string;
+    sourceId: number;
+    sourceName: string;
+    sourceTeam: number;
+    sourceRoomId: number;
+    targetId: number;
+    targetName: string;
+    targetTeam: number;
+    targetRoomId: number;
+    powerId?: number;
+    damage?: number;
+}
+
 interface SessionCleanupSnapshot {
     userId: number | null;
     token: number;
@@ -202,6 +218,7 @@ export class Client {
     public lastDungeonCutsceneStartAt: number = 0;
     public lastDungeonCutsceneEndScope: string = "";
     public lastDungeonCutsceneEndAt: number = 0;
+    public lastCombatEvent: ClientCombatEventSnapshot | null = null;
 
     constructor(socket: net.Socket, router: PacketRouter) {
         this.socket = socket;
@@ -390,6 +407,7 @@ export class Client {
         this.lastDungeonCutsceneStartAt = 0;
         this.lastDungeonCutsceneEndScope = "";
         this.lastDungeonCutsceneEndAt = 0;
+        this.lastCombatEvent = null;
     }
 
     private clearIdentityState(): void {

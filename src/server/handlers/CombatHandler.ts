@@ -1,4 +1,4 @@
-import { Client, clearKeepTutorialTimers } from '../core/Client';
+import { Client, ClientCombatEventSnapshot, clearKeepTutorialTimers } from '../core/Client';
 import { BitReader } from '../network/protocol/bitReader';
 import { GlobalState } from '../core/GlobalState';
 import { BitBuffer } from '../network/protocol/bitBuffer';
@@ -79,6 +79,12 @@ type PlayerHitResolution = {
 type NpcHitResolution = {
     entity: any | null;
     killed: boolean;
+};
+
+type CombatInteractionContext = {
+    packet: string;
+    powerId?: number;
+    damage?: number;
 };
 
 export class CombatHandler {
@@ -545,7 +551,40 @@ export class CombatHandler {
         return CombatHandler.POWER_HIT_CLIENT_AUTHORITY_BOSS_NAMES.has(entityName);
     }
 
-    private static noteCombatInteraction(levelScope: string, sourceId: number, targetId: number, fallbackClient: Client, atMs: number = Date.now()): void {
+    private static buildCombatEventSnapshot(
+        levelScope: string,
+        sourceId: number,
+        sourceEntity: any,
+        targetId: number,
+        targetEntity: any,
+        context: CombatInteractionContext,
+        atMs: number
+    ): ClientCombatEventSnapshot {
+        return {
+            atMs,
+            levelScope,
+            packet: context.packet,
+            sourceId,
+            sourceName: String(sourceEntity?.name ?? sourceEntity?.EntName ?? sourceEntity?.entName ?? ''),
+            sourceTeam: Number(sourceEntity?.team ?? 0),
+            sourceRoomId: Number(sourceEntity?.roomId ?? sourceEntity?.room_id ?? -1),
+            targetId,
+            targetName: String(targetEntity?.name ?? targetEntity?.EntName ?? targetEntity?.entName ?? ''),
+            targetTeam: Number(targetEntity?.team ?? 0),
+            targetRoomId: Number(targetEntity?.roomId ?? targetEntity?.room_id ?? -1),
+            powerId: context.powerId,
+            damage: context.damage
+        };
+    }
+
+    private static noteCombatInteraction(
+        levelScope: string,
+        sourceId: number,
+        targetId: number,
+        fallbackClient: Client,
+        atMs: number = Date.now(),
+        context: CombatInteractionContext = { packet: 'combat' }
+    ): void {
         if (!levelScope || sourceId <= 0 || targetId <= 0) {
             return;
         }
@@ -560,12 +599,23 @@ export class CombatHandler {
         const hostileTarget = targetEntity && !targetEntity.isPlayer && Number(targetEntity.team ?? 0) === EntityTeam.ENEMY
             ? targetEntity
             : null;
+        const snapshot = CombatHandler.buildCombatEventSnapshot(
+            levelScope,
+            sourceId,
+            sourceEntity,
+            targetId,
+            targetEntity,
+            context,
+            atMs
+        );
 
         if (sourceSession && hostileTarget && getClientLevelScope(sourceSession) === levelScope) {
             CombatHandler.notePlayerCombatActivity(sourceSession, atMs);
+            sourceSession.lastCombatEvent = snapshot;
         }
         if (targetSession && hostileSource && getClientLevelScope(targetSession) === levelScope) {
             CombatHandler.notePlayerCombatActivity(targetSession, atMs);
+            targetSession.lastCombatEvent = snapshot;
         }
         if (hostileSource) {
             CombatHandler.noteHostileCombatActivity(hostileSource, atMs);
@@ -1652,7 +1702,11 @@ export class CombatHandler {
         }
 
         if (damage > 0) {
-            CombatHandler.noteCombatInteraction(levelScope, sourceId, targetId, client);
+            CombatHandler.noteCombatInteraction(levelScope, sourceId, targetId, client, Date.now(), {
+                packet: '0x0A PowerHit',
+                powerId: info.powerId,
+                damage
+            });
         }
 
         CombatHandler.maybeRecordNpcContribution(levelScope, targetId, sourceId, damage, client);
@@ -1893,7 +1947,11 @@ export class CombatHandler {
         }
 
         if (damage > 0) {
-            CombatHandler.noteCombatInteraction(levelScope, sourceId, targetId, client);
+            CombatHandler.noteCombatInteraction(levelScope, sourceId, targetId, client, Date.now(), {
+                packet: '0x79 BuffTickDot',
+                powerId: info.powerId,
+                damage
+            });
         }
 
         CombatHandler.maybeRecordNpcContribution(levelScope, targetId, sourceId, damage, client);
