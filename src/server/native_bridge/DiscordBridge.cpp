@@ -191,6 +191,7 @@ bool DiscordBridge::tryRestoreSession() {
                 if (!result.Successful()) {
                     std::cerr << "[DiscordBridge] RefreshToken failed: " << result.ToString() << std::endl;
                     clearCachedTokens();
+                    beginAuthorizationAfterTokenFailure();
                     return;
                 }
 
@@ -455,6 +456,7 @@ void DiscordBridge::bindDiscordEvents() {
                 if (!result.Successful()) {
                     std::cerr << "[DiscordBridge] Token refresh on expiration failed: " << result.ToString() << std::endl;
                     clearCachedTokens();
+                    beginAuthorizationAfterTokenFailure();
                     return;
                 }
 
@@ -732,6 +734,14 @@ bool DiscordBridge::tryUseLoadedLobby(std::uint64_t lobbyId, const std::string& 
     return true;
 }
 
+void DiscordBridge::beginAuthorizationAfterTokenFailure() {
+    const auto auth = beginDeviceAuthorization();
+    if (auth) {
+        std::cout << "{\"type\":\"auth\",\"verificationUri\":\"" << jsonEscape(auth->verificationUri)
+                  << "\",\"userCode\":\"" << jsonEscape(auth->userCode) << "\"}" << std::endl;
+    }
+}
+
 std::string DiscordBridge::buildLobbySecret() const {
     if (!config_.lobbySecret.empty()) {
         return config_.lobbySecret;
@@ -752,6 +762,7 @@ void DiscordBridge::connectWithToken(discordpp::AuthorizationTokenType tokenType
             if (!updateResult.Successful()) {
                 std::cerr << "[DiscordBridge] UpdateToken failed: " << updateResult.ToString() << std::endl;
                 clearCachedTokens();
+                beginAuthorizationAfterTokenFailure();
                 return;
             }
 
@@ -799,7 +810,10 @@ void DiscordBridge::persistTokens() const {
     std::cerr << "[DiscordBridge] Saved token cache to: " << config_.tokenCachePath << std::endl;
 }
 
-void DiscordBridge::clearCachedTokens() const {
+void DiscordBridge::clearCachedTokens() {
+    accessToken_.clear();
+    refreshToken_.clear();
+
     if (config_.tokenCachePath.empty()) {
         return;
     }

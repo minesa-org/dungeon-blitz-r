@@ -79,11 +79,12 @@ class DiscordBridge {
         const ChannelLinkError& error
     ) const;
     bool tryUseLoadedLobby(std::uint64_t lobbyId, const std::string& channelId, bool emitWaitingStatus);
+    void beginAuthorizationAfterTokenFailure();
     std::string buildLobbySecret() const;
     void connectWithToken(discordpp::AuthorizationTokenType tokenType, const std::string& accessToken);
     bool loadCachedTokens();
     void persistTokens() const;
-    void clearCachedTokens() const;
+    void clearCachedTokens();
 
     DiscordBridgeConfig config_;
     DiscordMessageCallback onDiscordMessage_;
