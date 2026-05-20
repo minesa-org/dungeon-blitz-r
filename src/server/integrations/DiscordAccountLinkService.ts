@@ -21,6 +21,9 @@ interface DiscordTokenResponse {
     error_description?: string;
 }
 
+const DEFAULT_PUBLIC_REDIRECT_URI =
+    'https://discord-github-assistant-bot.vercel.app/api/discord/link/callback';
+
 export interface DiscordLinkStartResult {
     ok: boolean;
     reason: string;
@@ -71,7 +74,7 @@ export class DiscordAccountLinkService {
             return {
                 ok: false,
                 reason: 'not-configured',
-                message: 'Discord account linking requires DISCORD_APPLICATION_ID, DISCORD_CLIENT_SECRET, and DISCORD_ACCOUNT_LINK_REDIRECT_URI.'
+                message: 'Discord account linking requires DISCORD_APPLICATION_ID and DISCORD_CLIENT_SECRET.'
             };
         }
 
@@ -177,8 +180,7 @@ export class DiscordAccountLinkService {
             return `${baseUrl.replace(/\/+$/, '')}/api/discord/link/callback`;
         }
 
-        const port = Config.STATIC_PORT === 80 ? '' : `:${Config.STATIC_PORT}`;
-        return `http://${Config.HOST}${port}/api/discord/link/callback`;
+        return DEFAULT_PUBLIC_REDIRECT_URI;
     }
 
     private signState(payload: LinkStatePayload): string {
