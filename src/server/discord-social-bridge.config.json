@@ -1,6 +1,7 @@
 {
   "enabled": false,
-  "nativeBridgeEnabled": false,
+  "nativeBridgeEnabled": true,
+  "chatRelayMode": "native",
   "appId": "1447954255452311695",
   "channelId": "1296158709529055253",
   "deviceFlow": false,

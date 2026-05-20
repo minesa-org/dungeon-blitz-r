@@ -10,10 +10,12 @@ import { DiscordAccountLinkStore } from './DiscordAccountLinkStore';
 import { DiscordSocialServerApi } from './DiscordSocialServerApi';
 
 export type DiscordChatScope = 'public' | 'party' | 'guild' | 'officer';
+type DiscordChatRelayMode = 'native' | 'bot' | 'both' | 'off';
 
 interface DiscordSocialBridgeConfig {
     enabled?: boolean;
     nativeBridgeEnabled?: boolean;
+    chatRelayMode?: string;
     appId?: string;
     channelId?: string;
     deviceFlow?: boolean;
@@ -130,6 +132,30 @@ function parseInteger(value: string | number | undefined, fallback: number): num
     return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : fallback;
 }
 
+function parseChatRelayMode(value: string | undefined, fallback: DiscordChatRelayMode): DiscordChatRelayMode {
+    switch (String(value ?? '').trim().toLowerCase()) {
+        case 'native':
+        case 'sdk':
+        case 'social-sdk':
+        case 'social_sdk':
+            return 'native';
+        case 'bot':
+        case 'rest':
+        case 'channel':
+            return 'bot';
+        case 'both':
+        case 'all':
+            return 'both';
+        case 'off':
+        case 'none':
+        case 'false':
+        case '0':
+            return 'off';
+        default:
+            return fallback;
+    }
+}
+
 function buildStatusPayload(text: string): Buffer {
     const bb = new BitBuffer(false);
     bb.writeMethod13(text);
@@ -150,6 +176,7 @@ class DiscordSocialBridge {
     private readonly config: DiscordSocialBridgeConfig;
     private readonly enabled: boolean;
     private readonly nativeBridgeEnabled: boolean;
+    private readonly chatRelayMode: DiscordChatRelayMode;
     private readonly appId: string;
     private readonly channelId: string;
     private readonly deviceFlow: boolean;
@@ -172,6 +199,10 @@ class DiscordSocialBridge {
         this.nativeBridgeEnabled = parseBoolean(
             process.env.DISCORD_SOCIAL_NATIVE_BRIDGE_ENABLED,
             this.config.nativeBridgeEnabled ?? false
+        );
+        this.chatRelayMode = parseChatRelayMode(
+            process.env.DISCORD_SOCIAL_CHAT_RELAY_MODE,
+            parseChatRelayMode(this.config.chatRelayMode, 'native')
         );
         this.appId = String(process.env.DISCORD_SOCIAL_APP_ID ?? this.config.appId ?? '').trim();
         this.channelId = String(process.env.DISCORD_SOCIAL_BRIDGE_CHANNEL_ID ?? this.config.channelId ?? '').trim();
@@ -264,13 +295,22 @@ class DiscordSocialBridge {
             return;
         }
 
-        void this.forwardToDiscordChannel({
-            ...payload,
-            senderName,
-            message
-        });
+        if (this.chatRelayMode === 'bot' || this.chatRelayMode === 'both') {
+            void this.forwardToDiscordChannel({
+                ...payload,
+                senderName,
+                message
+            });
+        }
+
+        if (this.chatRelayMode !== 'native' && this.chatRelayMode !== 'both') {
+            return;
+        }
 
         if (!this.ready || !this.child) {
+            if (this.logPayloads) {
+                console.log('[DiscordSocialBridge] Native Social SDK bridge is not ready; skipping outbound lobby chat.');
+            }
             return;
         }
 
