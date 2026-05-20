@@ -5,13 +5,18 @@
 
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <unordered_map>
+#include <vector>
 
 namespace dungeon_blitz::bridge {
 namespace {
+
+constexpr int CHANNEL_ALREADY_LINKED_ERROR_CODE = 50237;
 
 std::optional<std::string> extractJsonField(const std::string& json, const std::string& key) {
     const auto token = "\"" + key + "\"";
@@ -101,6 +106,26 @@ std::string resolveUserName(const discordpp::UserHandle& user) {
     }
 
     return "";
+}
+
+ChannelLinkError captureChannelLinkError(const discordpp::ClientResult& result) {
+    ChannelLinkError error {};
+    error.errorCode = result.ErrorCode();
+    error.httpStatus = static_cast<int>(result.Status());
+    error.error = result.Error();
+    error.responseBody = result.ResponseBody();
+    error.summary = result.ToString();
+    return error;
+}
+
+std::string channelLinkErrorJsonFields(const ChannelLinkError& error) {
+    std::ostringstream out;
+    out << "\"errorCode\":" << error.errorCode
+        << ",\"httpStatus\":" << error.httpStatus
+        << ",\"error\":\"" << jsonEscape(error.error) << "\""
+        << ",\"responseBody\":\"" << jsonEscape(error.responseBody) << "\""
+        << ",\"summary\":\"" << jsonEscape(error.summary) << "\"";
+    return out.str();
 }
 
 } // namespace
@@ -310,20 +335,36 @@ bool DiscordBridge::linkChannelToLobby(const std::string& lobbyId, const std::st
     client_->LinkChannelToLobby(
         std::strtoull(lobbyId.c_str(), nullptr, 10),
         std::strtoull(channelId.c_str(), nullptr, 10),
-        [lobbyId, channelId](discordpp::ClientResult linkResult) {
+        [this, lobbyId, channelId](discordpp::ClientResult linkResult) {
             if (!linkResult.Successful()) {
                 std::cerr << "[DiscordBridge] LinkChannelToLobby failed: " << linkResult.ToString() << std::endl;
-                std::cout << "{\"type\":\"status\",\"text\":\"Discord lobby channel linking failed: "
-                          << jsonEscape(linkResult.ToString()) << "\"}" << std::endl;
+                const auto error = captureChannelLinkError(linkResult);
+                if (error.errorCode == CHANNEL_ALREADY_LINKED_ERROR_CODE) {
+                    inspectLinkedChannelConflict(lobbyId, channelId, error);
+                    return;
+                }
+
+                emitChannelLinkFailed(lobbyId, channelId, error);
                 return;
             }
 
             std::cerr << "[DiscordBridge] Channel linked to lobby successfully." << std::endl;
-            std::cout << "{\"type\":\"channel_linked\",\"lobbyId\":\"" << jsonEscape(lobbyId)
-                      << "\",\"channelId\":\"" << jsonEscape(channelId) << "\"}" << std::endl;
+            emitChannelLinked(lobbyId, channelId, false);
         }
     );
 
+    return true;
+}
+
+bool DiscordBridge::useLobby(const std::string& lobbyId, const std::string& channelId) {
+    const auto parsedLobbyId = std::strtoull(lobbyId.c_str(), nullptr, 10);
+    if (client_ == nullptr || parsedLobbyId == 0) {
+        return false;
+    }
+
+    pendingLinkedLobbyId_ = parsedLobbyId;
+    pendingLinkedChannelId_ = channelId;
+    (void)tryUseLoadedLobby(parsedLobbyId, channelId, true);
     return true;
 }
 
@@ -387,6 +428,8 @@ void DiscordBridge::bindDiscordEvents() {
                 clientReady_.store(false);
                 lobbyReady_.store(false);
                 lobbyId_ = 0;
+                pendingLinkedLobbyId_ = 0;
+                pendingLinkedChannelId_.clear();
                 std::cerr << "[DiscordBridge] Client disconnected. error=" << static_cast<int>(error)
                           << " detail=" << errorDetail << std::endl;
             }
@@ -435,6 +478,27 @@ void DiscordBridge::bindDiscordEvents() {
             }
 
             handleIncomingDiscordMessage(*messageHandle);
+        }
+    );
+
+    const auto tryPendingLinkedLobby = [this](std::uint64_t lobbyId) {
+        if (pendingLinkedLobbyId_ == 0 || pendingLinkedLobbyId_ != lobbyId) {
+            return;
+        }
+
+        (void)tryUseLoadedLobby(lobbyId, pendingLinkedChannelId_, false);
+    };
+
+    client_->SetLobbyCreatedCallback(tryPendingLinkedLobby);
+    client_->SetLobbyUpdatedCallback(tryPendingLinkedLobby);
+    client_->SetLobbyMemberAddedCallback(
+        [tryPendingLinkedLobby](std::uint64_t lobbyId, std::uint64_t) {
+            tryPendingLinkedLobby(lobbyId);
+        }
+    );
+    client_->SetLobbyMemberUpdatedCallback(
+        [tryPendingLinkedLobby](std::uint64_t lobbyId, std::uint64_t) {
+            tryPendingLinkedLobby(lobbyId);
         }
     );
 }
@@ -511,6 +575,161 @@ void DiscordBridge::stopCallbackPump() {
     if (callbackPumpThread_.joinable()) {
         callbackPumpThread_.join();
     }
+}
+
+void DiscordBridge::inspectLinkedChannelConflict(
+    const std::string& lobbyId,
+    const std::string& channelId,
+    ChannelLinkError error
+) {
+    if (client_ == nullptr) {
+        emitChannelLinkFailed(lobbyId, channelId, error);
+        return;
+    }
+
+    const auto targetChannelId = std::strtoull(channelId.c_str(), nullptr, 10);
+    if (targetChannelId == 0) {
+        emitChannelLinkFailed(lobbyId, channelId, error);
+        return;
+    }
+
+    struct LookupState {
+        std::size_t pendingGuilds { 0 };
+        bool completed { false };
+        std::uint64_t targetChannelId { 0 };
+        std::string lobbyId;
+        std::string channelId;
+        ChannelLinkError error;
+    };
+
+    client_->GetUserGuilds(
+        [this, lobbyId, channelId, targetChannelId, error](discordpp::ClientResult result, std::vector<discordpp::GuildMinimal> guilds) {
+            if (!result.Successful() || guilds.empty() || client_ == nullptr) {
+                emitChannelLinkFailed(lobbyId, channelId, error);
+                return;
+            }
+
+            auto state = std::make_shared<LookupState>();
+            state->pendingGuilds = guilds.size();
+            state->targetChannelId = targetChannelId;
+            state->lobbyId = lobbyId;
+            state->channelId = channelId;
+            state->error = error;
+
+            for (const auto& guild : guilds) {
+                client_->GetGuildChannels(
+                    guild.Id(),
+                    [this, state](discordpp::ClientResult channelResult, std::vector<discordpp::GuildChannel> channels) {
+                        if (state->completed) {
+                            return;
+                        }
+
+                        if (channelResult.Successful()) {
+                            for (const auto& channel : channels) {
+                                if (channel.Id() != state->targetChannelId) {
+                                    continue;
+                                }
+
+                                const auto linkedLobby = channel.LinkedLobby();
+                                if (!linkedLobby) {
+                                    state->completed = true;
+                                    emitChannelLinkFailed(state->lobbyId, state->channelId, state->error);
+                                    return;
+                                }
+
+                                state->completed = true;
+                                const auto existingLobbyId = linkedLobby->LobbyId();
+                                const auto existingApplicationId = linkedLobby->ApplicationId();
+                                const auto requestedLobbyId = std::strtoull(state->lobbyId.c_str(), nullptr, 10);
+                                const auto currentApplicationId = std::strtoull(config_.appId.c_str(), nullptr, 10);
+
+                                if (existingLobbyId == requestedLobbyId) {
+                                    emitChannelLinked(state->lobbyId, state->channelId, false);
+                                    return;
+                                }
+
+                                if (existingApplicationId == currentApplicationId &&
+                                    tryUseLoadedLobby(existingLobbyId, state->channelId, false)) {
+                                    return;
+                                }
+
+                                emitChannelLinkConflict(
+                                    state->lobbyId,
+                                    state->channelId,
+                                    existingLobbyId,
+                                    existingApplicationId,
+                                    state->error
+                                );
+                                return;
+                            }
+                        }
+
+                        if (state->pendingGuilds > 0) {
+                            --state->pendingGuilds;
+                        }
+
+                        if (state->pendingGuilds == 0 && !state->completed) {
+                            state->completed = true;
+                            emitChannelLinkFailed(state->lobbyId, state->channelId, state->error);
+                        }
+                    }
+                );
+            }
+        }
+    );
+}
+
+void DiscordBridge::emitChannelLinked(const std::string& lobbyId, const std::string& channelId, bool reusedExisting) const {
+    std::cout << "{\"type\":\"channel_linked\",\"lobbyId\":\"" << jsonEscape(lobbyId)
+              << "\",\"channelId\":\"" << jsonEscape(channelId)
+              << "\",\"reusedExisting\":" << (reusedExisting ? "true" : "false") << "}" << std::endl;
+}
+
+void DiscordBridge::emitChannelLinkFailed(
+    const std::string& lobbyId,
+    const std::string& channelId,
+    const ChannelLinkError& error
+) const {
+    std::cout << "{\"type\":\"channel_link_failed\",\"lobbyId\":\"" << jsonEscape(lobbyId)
+              << "\",\"channelId\":\"" << jsonEscape(channelId) << "\","
+              << channelLinkErrorJsonFields(error) << "}" << std::endl;
+}
+
+void DiscordBridge::emitChannelLinkConflict(
+    const std::string& lobbyId,
+    const std::string& channelId,
+    std::uint64_t existingLobbyId,
+    std::uint64_t existingApplicationId,
+    const ChannelLinkError& error
+) const {
+    std::cout << "{\"type\":\"channel_link_conflict\",\"lobbyId\":\"" << jsonEscape(lobbyId)
+              << "\",\"channelId\":\"" << jsonEscape(channelId)
+              << "\",\"existingLobbyId\":\"" << existingLobbyId
+              << "\",\"existingApplicationId\":\"" << existingApplicationId << "\","
+              << channelLinkErrorJsonFields(error) << "}" << std::endl;
+}
+
+bool DiscordBridge::tryUseLoadedLobby(std::uint64_t lobbyId, const std::string& channelId, bool emitWaitingStatus) {
+    if (client_ == nullptr || lobbyId == 0) {
+        return false;
+    }
+
+    const auto lobby = client_->GetLobbyHandle(lobbyId);
+    if (!lobby) {
+        if (emitWaitingStatus) {
+            std::cout << "{\"type\":\"status\",\"text\":\"Waiting for Discord SDK to load existing linked lobby "
+                      << lobbyId << ".\"}" << std::endl;
+        }
+        return false;
+    }
+
+    lobbyId_ = lobbyId;
+    lobbyReady_.store(true);
+    pendingLinkedLobbyId_ = 0;
+    pendingLinkedChannelId_.clear();
+    std::cerr << "[DiscordBridge] Reusing existing linked Discord lobby " << lobbyId << "." << std::endl;
+    emitChannelLinked(std::to_string(lobbyId), channelId, true);
+    return true;
 }
 
 std::string DiscordBridge::buildLobbySecret() const {

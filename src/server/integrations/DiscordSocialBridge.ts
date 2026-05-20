@@ -18,6 +18,7 @@ interface DiscordSocialBridgeConfig {
     chatRelayMode?: string;
     appId?: string;
     channelId?: string;
+    lobbySecret?: string;
     deviceFlow?: boolean;
     gameWindowPid?: number;
     enableChannelLinking?: boolean;
@@ -74,6 +75,20 @@ interface NativeBridgeInboundChannelLinked extends NativeBridgeInboundBase {
     type: 'channel_linked';
     lobbyId?: string;
     channelId?: string;
+    reusedExisting?: boolean;
+}
+
+interface NativeBridgeInboundChannelLinkFailure extends NativeBridgeInboundBase {
+    type: 'channel_link_failed' | 'channel_link_conflict';
+    lobbyId?: string;
+    channelId?: string;
+    existingLobbyId?: string;
+    existingApplicationId?: string;
+    errorCode?: number;
+    httpStatus?: number;
+    error?: string;
+    responseBody?: string;
+    summary?: string;
 }
 
 interface NativeBridgeInboundSendResult extends NativeBridgeInboundBase {
@@ -90,6 +105,7 @@ type NativeBridgeInbound =
     | NativeBridgeInboundAuth
     | NativeBridgeInboundLobbyReady
     | NativeBridgeInboundChannelLinked
+    | NativeBridgeInboundChannelLinkFailure
     | NativeBridgeInboundSendResult;
 
 const CONFIG_CANDIDATES = [
@@ -195,6 +211,7 @@ class DiscordSocialBridge {
     private readonly chatRelayMode: DiscordChatRelayMode;
     private readonly appId: string;
     private readonly channelId: string;
+    private readonly lobbySecret: string;
     private readonly deviceFlow: boolean;
     private readonly gameWindowPid: number;
     private readonly enableChannelLinking: boolean;
@@ -209,6 +226,8 @@ class DiscordSocialBridge {
     private ready = false;
     private nativeLobbyReady = false;
     private nativeChannelLinked = false;
+    private nativeChannelLinkFailed = false;
+    private currentDiscordUserId = '';
     private started = false;
     private readonly pendingNativeOutbound: Array<Record<string, unknown>> = [];
 
@@ -225,6 +244,7 @@ class DiscordSocialBridge {
         );
         this.appId = String(process.env.DISCORD_SOCIAL_APP_ID ?? this.config.appId ?? '').trim();
         this.channelId = String(process.env.DISCORD_SOCIAL_BRIDGE_CHANNEL_ID ?? this.config.channelId ?? '').trim();
+        this.lobbySecret = String(process.env.DISCORD_SOCIAL_LOBBY_SECRET ?? this.config.lobbySecret ?? '').trim();
         this.deviceFlow = parseBoolean(process.env.DISCORD_SOCIAL_DEVICE_FLOW, this.config.deviceFlow ?? false);
         this.gameWindowPid = parseInteger(process.env.DISCORD_SOCIAL_GAME_WINDOW_PID, this.config.gameWindowPid ?? 0);
         this.enableChannelLinking = parseBoolean(
@@ -274,6 +294,8 @@ class DiscordSocialBridge {
             this.ready = false;
             this.nativeLobbyReady = false;
             this.nativeChannelLinked = false;
+            this.nativeChannelLinkFailed = false;
+            this.currentDiscordUserId = '';
             this.child = null;
             console.warn(`[DiscordSocialBridge] Native bridge exited (code=${code ?? 'null'}, signal=${signal ?? 'null'}).`);
         });
@@ -294,6 +316,7 @@ class DiscordSocialBridge {
             type: 'initialize',
             appId: this.appId,
             channelId: this.channelId,
+            lobbySecret: this.lobbySecret,
             deviceFlow: this.deviceFlow,
             gameWindowPid: this.gameWindowPid,
             enableChannelLinking: this.enableChannelLinking,
@@ -325,6 +348,10 @@ class DiscordSocialBridge {
         }
 
         if (this.chatRelayMode !== 'native' && this.chatRelayMode !== 'both') {
+            return;
+        }
+
+        if (this.nativeChannelLinkFailed) {
             return;
         }
 
@@ -403,7 +430,7 @@ class DiscordSocialBridge {
         }
 
         if (this.enableChannelLinking && this.channelId && this.serverApi.isEnabled()) {
-            return this.nativeChannelLinked;
+            return this.nativeChannelLinked && !this.nativeChannelLinkFailed;
         }
 
         return true;
@@ -476,10 +503,17 @@ class DiscordSocialBridge {
                 return;
             case 'channel_linked':
                 this.nativeChannelLinked = true;
+                this.nativeChannelLinkFailed = false;
                 console.log(
-                    `[DiscordSocialBridge] Discord Social SDK lobby ${payload.lobbyId ?? 'unknown'} linked to channel ${payload.channelId ?? 'unknown'}.`
+                    `[DiscordSocialBridge] Discord Social SDK lobby ${payload.lobbyId ?? 'unknown'} ${payload.reusedExisting ? 'reused existing link for' : 'linked to'} channel ${payload.channelId ?? 'unknown'}.`
                 );
                 this.flushPendingNativeOutbound();
+                return;
+            case 'channel_link_conflict':
+                void this.handleChannelLinkConflict(payload);
+                return;
+            case 'channel_link_failed':
+                this.handleChannelLinkFailed(payload);
                 return;
             case 'send_result':
                 if (!payload.ok) {
@@ -495,6 +529,8 @@ class DiscordSocialBridge {
 
     private async handleLobbyReady(payload: NativeBridgeInboundLobbyReady): Promise<void> {
         this.nativeLobbyReady = true;
+        this.nativeChannelLinkFailed = false;
+        this.currentDiscordUserId = String(payload.userId ?? '').trim();
         if (!this.enableChannelLinking) {
             this.flushPendingNativeOutbound();
             return;
@@ -512,6 +548,59 @@ class DiscordSocialBridge {
             lobbyId: payload.lobbyId,
             channelId: this.channelId
         });
+    }
+
+    private async handleChannelLinkConflict(payload: NativeBridgeInboundChannelLinkFailure): Promise<void> {
+        const existingLobbyId = String(payload.existingLobbyId ?? '').trim();
+        const existingApplicationId = String(payload.existingApplicationId ?? '').trim();
+        if (!existingLobbyId) {
+            this.handleChannelLinkFailed(payload);
+            return;
+        }
+
+        if (existingApplicationId && existingApplicationId !== this.appId) {
+            this.nativeChannelLinkFailed = true;
+            this.pendingNativeOutbound.splice(0);
+            this.broadcastStatus(
+                `Discord channel is already linked to lobby ${existingLobbyId} for another app; unlink it or choose another channel.`
+            );
+            return;
+        }
+
+        if (!this.currentDiscordUserId) {
+            this.nativeChannelLinkFailed = true;
+            this.pendingNativeOutbound.splice(0);
+            this.broadcastStatus('Discord channel is already linked, but the bridge could not identify the authorized Discord user.');
+            return;
+        }
+
+        const granted = await this.serverApi.grantCanLinkLobby(existingLobbyId, this.currentDiscordUserId);
+        if (!granted) {
+            this.nativeChannelLinkFailed = true;
+            this.pendingNativeOutbound.splice(0);
+            this.broadcastStatus('Discord channel is already linked, and the bridge could not grant access to the existing lobby.');
+            return;
+        }
+
+        console.warn(
+            `[DiscordSocialBridge] Channel ${payload.channelId ?? this.channelId} is already linked to lobby ${existingLobbyId}; trying to reuse that lobby.`
+        );
+        this.sendControlMessage({
+            type: 'use_lobby',
+            lobbyId: existingLobbyId,
+            channelId: payload.channelId ?? this.channelId
+        });
+    }
+
+    private handleChannelLinkFailed(payload: NativeBridgeInboundChannelLinkFailure): void {
+        this.nativeChannelLinkFailed = true;
+        this.pendingNativeOutbound.splice(0);
+        const code = Number.isFinite(payload.errorCode) && payload.errorCode ? ` code=${payload.errorCode}` : '';
+        const summary = String(payload.error || payload.summary || payload.responseBody || 'unknown error').trim();
+        const conflictHint = payload.errorCode === 50237
+            ? ' The Discord channel is already linked to another lobby; use the same DISCORD_SOCIAL_LOBBY_SECRET or unlink that lobby before retrying.'
+            : '';
+        this.broadcastStatus(`Discord lobby channel linking failed${code}: ${summary}${conflictHint}`);
     }
 
     private broadcastStatus(text: string): void {

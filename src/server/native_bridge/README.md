@@ -77,6 +77,8 @@ By default the server looks for:
 - `DISCORD_SOCIAL_CHAT_RELAY_MODE=both` sends to both paths.
 - Native Social SDK lobby/chat support requires `DISCORD_SOCIAL_NATIVE_BRIDGE_ENABLED=true`.
 - Linked channel support requires `DISCORD_BOT_TOKEN` and `enableChannelLinking` because Discord's server API must grant `CanLinkLobby`.
+- Discord channels can be linked to only one lobby at a time. If Discord returns `50237`, the channel is already linked; set `DISCORD_SOCIAL_LOBBY_SECRET` to the same lobby secret when you need to reuse that lobby, or unlink the old lobby/channel link before retrying.
+- The bridge will try to reuse an already linked lobby when it belongs to the same Discord application and the SDK loads it for the authorized user.
 
 ## Reverse engineering workflow (optional)
 

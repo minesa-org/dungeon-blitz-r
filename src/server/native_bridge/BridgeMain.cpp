@@ -191,6 +191,7 @@ int main() {
         if (*type == "initialize") {
             dungeon_blitz::bridge::DiscordBridgeConfig config {};
             config.appId = extractJsonString(trimmed, "appId").value_or("");
+            config.lobbySecret = extractJsonString(trimmed, "lobbySecret").value_or("");
             config.linkedChannelId = extractJsonString(trimmed, "channelId").value_or("");
             config.tokenCachePath = extractJsonString(trimmed, "tokenCachePath").value_or("");
             config.gameWindowPid = extractJsonInt(trimmed, "gameWindowPid", 0);
@@ -229,6 +230,15 @@ int main() {
                 emitJson("{\"type\":\"status\",\"text\":\"Discord Social SDK lobby send is not available yet.\"}");
             }
 
+            continue;
+        }
+
+        if (*type == "use_lobby") {
+            const auto lobbyId = extractJsonString(trimmed, "lobbyId").value_or("");
+            const auto channelId = extractJsonString(trimmed, "channelId").value_or("");
+            if (!bridge.useLobby(lobbyId, channelId)) {
+                emitJson("{\"type\":\"status\",\"text\":\"Existing Discord linked lobby is not loaded yet.\"}");
+            }
             continue;
         }
 
