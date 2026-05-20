@@ -5,6 +5,7 @@ import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
 import { MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
+import { CombatHandler } from '../handlers/CombatHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
 import { MissionHandler } from '../handlers/MissionHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
@@ -565,6 +566,331 @@ async function testValhavenDungeonChainAutoAcceptsProdigalSon(): Promise<void> {
     }
 }
 
+async function testBackAlleyScriptedMageRemovalDoesNotCompleteDungeon(): Promise<void> {
+    const cases: Array<{ level: string; missionId: MissionID; scriptedMageName: string; prerequisites: MissionID[] }> = [
+        {
+            level: 'JC_Mission2',
+            missionId: MissionID.BackAlleyDeals,
+            scriptedMageName: 'DefectorMage',
+            prerequisites: [MissionID.MeetWithOdin]
+        },
+        {
+            level: 'JC_Mission2Hard',
+            missionId: MissionID.BackAlleyDealsHard,
+            scriptedMageName: 'DefectorMageHard',
+            prerequisites: [MissionID.MeetWithOdinHard]
+        }
+    ];
+
+    for (const testCase of cases) {
+        const client = createValhavenDungeonChainClient(
+            testCase.level,
+            testCase.missionId,
+            testCase.prerequisites
+        );
+        client.forcedDungeonCompletionScope = '';
+        client.character.questTrackerState = 0;
+
+        const levelScope = getClientLevelScope(client as never);
+        const scriptedMage = {
+            id: 80101,
+            name: testCase.scriptedMageName,
+            isPlayer: false,
+            team: 2,
+            entRank: 'Boss',
+            roomId: 8,
+            dead: true,
+            hp: 0,
+            entState: 6
+        };
+
+        GlobalState.sessionsByToken.set(client.token, client as never);
+        GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+            [scriptedMage.id, scriptedMage]
+        ]));
+
+        await MissionHandler.handleForcedDungeonBossCompletion(client as never, scriptedMage);
+        await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket(100, 0, 1));
+
+        assert.equal(
+            String((client as any).pendingDungeonCompletionScope ?? ''),
+            '',
+            `${testCase.level} scripted DefectorMage cleanup must not arm dungeon completion`
+        );
+        assert.equal(
+            client.sentPackets.some((packet) => packet.id === 0x87),
+            false,
+            `${testCase.level} scripted DefectorMage cleanup must not send dungeon-complete stats`
+        );
+        assert.equal(
+            Number(client.character.questTrackerState ?? 0),
+            0,
+            `${testCase.level} scripted DefectorMage cleanup must not mark progress complete`
+        );
+    }
+}
+
+async function testBackAlleyRequiresBothGolemBossesBeforeCompletion(): Promise<void> {
+    const cases: Array<{
+        level: string;
+        missionId: MissionID;
+        firstBossName: string;
+        secondBossName: string;
+        prerequisites: MissionID[];
+    }> = [
+        {
+            level: 'JC_Mission2',
+            missionId: MissionID.BackAlleyDeals,
+            firstBossName: 'GreaterBoneGolem',
+            secondBossName: 'GreaterBoneGolem2',
+            prerequisites: [MissionID.MeetWithOdin]
+        },
+        {
+            level: 'JC_Mission2Hard',
+            missionId: MissionID.BackAlleyDealsHard,
+            firstBossName: 'GreaterBoneGolemHard',
+            secondBossName: 'GreaterBoneGolem2Hard',
+            prerequisites: [MissionID.MeetWithOdinHard]
+        }
+    ];
+
+    for (const testCase of cases) {
+        const client = createValhavenDungeonChainClient(
+            testCase.level,
+            testCase.missionId,
+            testCase.prerequisites
+        );
+        client.levelInstanceId = `${testCase.level.toLowerCase()}-partial-golem-flow`;
+        client.forcedDungeonCompletionScope = '';
+        client.character.questTrackerState = 0;
+
+        const levelScope = getClientLevelScope(client as never);
+        const firstBoss = {
+            id: 80201,
+            name: testCase.firstBossName,
+            isPlayer: false,
+            team: 2,
+            entRank: 'Boss',
+            roomId: 8,
+            clientSpawned: true,
+            playerDamageContributed: true,
+            dead: true,
+            hp: 0,
+            entState: 6
+        };
+
+        GlobalState.sessionsByToken.set(client.token, client as never);
+        GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+            [firstBoss.id, firstBoss]
+        ]));
+
+        await MissionHandler.handleForcedDungeonBossCompletion(client as never, firstBoss);
+        await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket(100, 0, 1));
+
+        assert.equal(
+            String((client as any).pendingDungeonCompletionScope ?? ''),
+            '',
+            `${testCase.level} must not queue completion after only the first golem is defeated`
+        );
+        assert.equal(
+            client.sentPackets.some((packet) => packet.id === 0x87),
+            false,
+            `${testCase.level} must not send dungeon-complete stats after only the first golem is defeated`
+        );
+        assert.equal(
+            Number(client.character.questTrackerState ?? 0),
+            0,
+            `${testCase.level} must not mark progress complete after only the first golem is defeated`
+        );
+
+        const secondBoss = {
+            id: 80202,
+            name: testCase.secondBossName,
+            isPlayer: false,
+            team: 2,
+            entRank: 'Boss',
+            roomId: 8,
+            clientSpawned: true,
+            playerDamageContributed: true,
+            dead: true,
+            hp: 0,
+            entState: 6
+        };
+        GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+            [firstBoss.id, firstBoss],
+            [secondBoss.id, secondBoss]
+        ]));
+
+        await MissionHandler.handleForcedDungeonBossCompletion(client as never, secondBoss);
+
+        assert.equal(
+            String((client as any).pendingDungeonCompletionScope ?? ''),
+            levelScope,
+            `${testCase.level} should queue completion once both golems are defeated`
+        );
+        assert.equal(
+            Boolean((client as any).pendingDungeonCompletionWaitForCutsceneEnd),
+            true,
+            `${testCase.level} should still wait for the defeat cutscene after both golems are defeated`
+        );
+    }
+}
+
+async function testBackAlleySpawnGlitchBossDeathDoesNotCompleteDungeon(): Promise<void> {
+    const cases: Array<{
+        level: string;
+        missionId: MissionID;
+        bossName: string;
+        prerequisites: MissionID[];
+    }> = [
+        {
+            level: 'JC_Mission2',
+            missionId: MissionID.BackAlleyDeals,
+            bossName: 'GreaterBoneGolem2',
+            prerequisites: [MissionID.MeetWithOdin]
+        },
+        {
+            level: 'JC_Mission2Hard',
+            missionId: MissionID.BackAlleyDealsHard,
+            bossName: 'GreaterBoneGolem2Hard',
+            prerequisites: [MissionID.MeetWithOdinHard]
+        }
+    ];
+
+    for (const testCase of cases) {
+        const client = createValhavenDungeonChainClient(
+            testCase.level,
+            testCase.missionId,
+            testCase.prerequisites
+        );
+        client.levelInstanceId = `${testCase.level.toLowerCase()}-spawn-glitch-flow`;
+        client.forcedDungeonCompletionScope = '';
+        client.character.questTrackerState = 0;
+
+        const levelScope = getClientLevelScope(client as never);
+        const spawnedBoss = {
+            id: 80302,
+            name: testCase.bossName,
+            isPlayer: false,
+            team: 2,
+            entRank: 'Boss',
+            roomId: 8,
+            clientSpawned: true,
+            dead: true,
+            hp: 0,
+            entState: 6
+        };
+
+        GlobalState.sessionsByToken.set(client.token, client as never);
+        GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+            [spawnedBoss.id, spawnedBoss]
+        ]));
+
+        await MissionHandler.handleForcedDungeonBossCompletion(client as never, spawnedBoss);
+        await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket(100, 0, 1));
+
+        assert.equal(
+            String((client as any).pendingDungeonCompletionScope ?? ''),
+            '',
+            `${testCase.level} must not queue completion when a client-spawned golem dies without player damage`
+        );
+        assert.equal(
+            client.sentPackets.some((packet) => packet.id === 0x87),
+            false,
+            `${testCase.level} must not send dungeon-complete stats for a spawn-time golem death`
+        );
+        assert.equal(
+            Number(client.character.questTrackerState ?? 0),
+            0,
+            `${testCase.level} must not mark progress complete for a spawn-time golem death`
+        );
+    }
+}
+
+async function testBackAlleyEnemySpawnDamageDoesNotCountAsPlayerDamage(): Promise<void> {
+    const client = createValhavenDungeonChainClient(
+        'JC_Mission2',
+        MissionID.BackAlleyDeals,
+        [MissionID.MeetWithOdin]
+    );
+    client.levelInstanceId = 'jc-mission2-enemy-spawn-damage';
+    client.forcedDungeonCompletionScope = '';
+    client.character.questTrackerState = 0;
+    (client as any).clientEntID = 90001;
+
+    const levelScope = getClientLevelScope(client as never);
+    const firstBoss = {
+        id: 90002,
+        name: 'GreaterBoneGolem',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        roomId: 8,
+        clientSpawned: true,
+        playerDamageContributed: true,
+        dead: true,
+        hp: 0,
+        entState: 6
+    };
+    const secondBoss = {
+        id: 90003,
+        name: 'GreaterBoneGolem2',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        roomId: 8,
+        clientSpawned: true,
+        ownerToken: client.token,
+        dead: true,
+        hp: 0,
+        entState: 6
+    };
+    const spawnDamageSource = {
+        id: 90004,
+        name: 'GreaterBoneGolem2',
+        isPlayer: false,
+        team: 2,
+        roomId: 8,
+        clientSpawned: true,
+        ownerToken: client.token
+    };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [firstBoss.id, firstBoss],
+        [secondBoss.id, secondBoss],
+        [spawnDamageSource.id, spawnDamageSource]
+    ]));
+
+    (CombatHandler as any).maybeRecordNpcContribution(
+        levelScope,
+        secondBoss.id,
+        spawnDamageSource.id,
+        50,
+        client
+    );
+    assert.equal(
+        Boolean((secondBoss as any).playerDamageContributed),
+        false,
+        'enemy-owned spawn damage must not be treated as player contribution'
+    );
+
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, firstBoss);
+    await MissionHandler.handleForcedDungeonBossCompletion(client as never, secondBoss);
+    await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket(100, 0, 1));
+
+    assert.equal(
+        String((client as any).pendingDungeonCompletionScope ?? ''),
+        '',
+        'Back Alley Deals must not complete when the second golem only has enemy spawn damage'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x87),
+        false,
+        'Back Alley Deals must not send dungeon-complete stats for enemy spawn damage'
+    );
+}
+
 function testLoginRepairAcceptsMissingValhavenDungeonChainQuest(): void {
     const cases: Array<{
         currentLevel: string;
@@ -744,6 +1070,10 @@ async function main(): Promise<void> {
         await testDungeonCompletionDoesNotCreateUnstartedMission();
         await testAcceptedForgottenForgeCompletionWaitsForTurnIn();
         await testValhavenDungeonChainAutoAcceptsProdigalSon();
+        await testBackAlleyScriptedMageRemovalDoesNotCompleteDungeon();
+        await testBackAlleyRequiresBothGolemBossesBeforeCompletion();
+        await testBackAlleySpawnGlitchBossDeathDoesNotCompleteDungeon();
+        await testBackAlleyEnemySpawnDamageDoesNotCountAsPlayerDamage();
         testLoginRepairAcceptsMissingValhavenDungeonChainQuest();
         await testMeyloursEmbersClaimsAdohiRewardAndPrimesGlades();
         GlobalState.sessionsByToken.clear();

@@ -90,7 +90,7 @@ export class SystemHandler {
         return data.toString('utf-8');
     }
 
-    private static buildCrashContext(client: Client): string {
+    static buildCrashContext(client: Client): string {
         const nowMs = Date.now();
         const levelScope = getClientLevelScope(client);
         const levelMap = levelScope ? GlobalState.levelEntities.get(levelScope) ?? null : null;

@@ -1,4 +1,5 @@
 import type { Client } from './Client';
+import { BitReader } from '../network/protocol/bitReader';
 
 function parseBooleanEnv(name: string, fallback: boolean): boolean {
     const raw = process.env[name];
@@ -29,6 +30,11 @@ function limitHex(data: Buffer, maxBytes: number): string {
 
     return `${data.subarray(0, maxBytes).toString('hex')}...(${data.length} bytes)`;
 }
+
+type PacketEntityRef = {
+    role: string;
+    id: number;
+};
 
 export const DebugConfig = {
     enabled: parseBooleanEnv('DEBUG_ENABLED', false),
@@ -138,11 +144,20 @@ export class DebugLogger {
             return 'user=- token=0 char=- level=- ent=0';
         }
 
+        const pendingLevel = String(client.pendingDebugLevel || '').trim();
+        const currentLevel = String(client.currentLevel || '').trim();
+        const characterLevel = String(client.character?.CurrentLevel?.name ?? '').trim();
+        const debugLevel =
+            pendingLevel ||
+            (client.playerSpawned ? currentLevel : characterLevel) ||
+            currentLevel ||
+            '-';
+
         return [
             `user=${client.userId ?? '-'}`,
             `token=${client.token ?? 0}`,
             `char=${client.character?.name ?? '-'}`,
-            `level=${client.currentLevel || '-'}`,
+            `level=${debugLevel}`,
             `ent=${client.clientEntID || 0}`
         ].join(' ');
     }
@@ -152,6 +167,129 @@ export class DebugLogger {
             ? data.toString('hex')
             : limitHex(data, DebugConfig.payloadPreviewBytes);
         return `payload=${hex}`;
+    }
+
+    private static getJadeCityBossDisplayName(levelName: string, entityName: string): string {
+        if (String(levelName ?? '').trim() !== 'JC_Mission2') {
+            return '';
+        }
+
+        switch (String(entityName ?? '').trim()) {
+            case 'GreaterBoneGolem':
+                return 'Seelie Ravager';
+            case 'GreaterBoneGolem2':
+                return 'Mortis Golem';
+            default:
+                return '';
+        }
+    }
+
+    private static getEntityDisplayName(client: Client, entity: any): string {
+        const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
+        const explicitDisplayName = String(entity?.displayName ?? entity?.display_name ?? '').trim();
+        const levelName = String(client.currentLevel || client.character?.CurrentLevel?.name || '').trim();
+        return explicitDisplayName || DebugLogger.getJadeCityBossDisplayName(levelName, entityName) || entityName || '(unknown)';
+    }
+
+    private static formatEntityRef(client: Client, ref: PacketEntityRef): string | null {
+        if (!Number.isFinite(ref.id) || ref.id <= 0) {
+            return null;
+        }
+
+        const entity = client.entities?.get(ref.id);
+        if (!entity) {
+            return `${ref.role}:unknown#${ref.id}`;
+        }
+
+        const displayName = DebugLogger.getEntityDisplayName(client, entity);
+        const rawName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
+        const details: string[] = [
+            `${ref.role}:${displayName}#${ref.id}`
+        ];
+
+        if (rawName && rawName !== displayName) {
+            details.push(`type=${rawName}`);
+        }
+
+        const team = Number(entity?.team ?? NaN);
+        if (Number.isFinite(team)) {
+            details.push(`team=${Math.round(team)}`);
+        }
+
+        const roomId = Number(entity?.roomId ?? entity?.room ?? NaN);
+        if (Number.isFinite(roomId)) {
+            details.push(`room=${Math.round(roomId)}`);
+        }
+
+        const hp = Number(entity?.hp ?? NaN);
+        const maxHp = Number(entity?.maxHp ?? NaN);
+        const healthDelta = Number(entity?.healthDelta ?? entity?.health_delta ?? NaN);
+        if (Number.isFinite(hp) && Number.isFinite(maxHp) && maxHp > 0) {
+            details.push(`hp=${Math.round(hp)}/${Math.round(maxHp)}`);
+        } else if (Number.isFinite(healthDelta) && healthDelta !== 0) {
+            details.push(`hpDelta=${Math.round(healthDelta)}`);
+        }
+
+        return details.join(',');
+    }
+
+    private static readMethod4(data: Buffer): number | null {
+        try {
+            return new BitReader(data).readMethod4();
+        } catch {
+            return null;
+        }
+    }
+
+    private static readMethod9Refs(data: Buffer, roles: string[]): PacketEntityRef[] {
+        const refs: PacketEntityRef[] = [];
+        const br = new BitReader(data);
+        try {
+            for (const role of roles) {
+                refs.push({
+                    role,
+                    id: br.readMethod9()
+                });
+            }
+        } catch {
+            return refs;
+        }
+        return refs;
+    }
+
+    private static parsePacketEntityRefs(packetId: number, data: Buffer): PacketEntityRef[] {
+        switch (packetId) {
+            case 0x07:
+            case 0x0E: {
+                const id = DebugLogger.readMethod4(data);
+                return id ? [{ role: 'entity', id }] : [];
+            }
+            case 0x09: {
+                const id = DebugLogger.readMethod4(data);
+                return id ? [{ role: 'source', id }] : [];
+            }
+            case 0x0A:
+                return DebugLogger.readMethod9Refs(data, ['target', 'source']);
+            case 0x0B:
+            case 0x0C:
+            case 0x0D:
+                return DebugLogger.readMethod9Refs(data, ['entity']);
+            default:
+                return [];
+        }
+    }
+
+    private static formatPacketEntityRefs(client: Client, packetId: number, data: Buffer): string {
+        const refs = DebugLogger.parsePacketEntityRefs(packetId, data);
+        const labels = refs
+            .map((ref) => DebugLogger.formatEntityRef(client, ref))
+            .filter((value): value is string => Boolean(value));
+
+        if (!labels.length) {
+            return '';
+        }
+
+        return ` refs=[${labels.join(' ')}]`;
     }
 
     static previewBuffer(data: Buffer): string {
@@ -177,7 +315,7 @@ export class DebugLogger {
             `0x${packetId.toString(16)}`,
             `len=${data.length}`,
             DebugLogger.formatClient(client),
-            DebugLogger.formatPayload(data)
+            DebugLogger.formatPayload(data) + DebugLogger.formatPacketEntityRefs(client, packetId, data)
         ].join(' ');
         console.log(`[Debug][Packet ${direction}] ${details}`);
     }

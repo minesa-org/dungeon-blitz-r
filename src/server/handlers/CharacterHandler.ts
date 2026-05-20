@@ -252,6 +252,49 @@ export class CharacterHandler {
         });
     }
 
+    private static applyLoginStartOverride(character: Character): boolean {
+        const override = character?.loginStartOverride;
+        if (!override || typeof override !== 'object') {
+            return false;
+        }
+
+        const levelName = LevelConfig.normalizeLevelName(
+            override.level ?? override.levelName ?? override.name
+        );
+        const x = Number(override.x);
+        const y = Number(override.y);
+
+        delete character.loginStartOverride;
+
+        if (
+            !levelName ||
+            LevelConfig.isDungeonLevel(levelName) ||
+            /_Mission\d+(?:Hard)?$/i.test(levelName)
+        ) {
+            return true;
+        }
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            return true;
+        }
+
+        LevelConfig.updateSavedLevelsOnTransfer(
+            character,
+            character.CurrentLevel?.name,
+            levelName,
+            x,
+            y
+        );
+
+        if (override.questTrackerState !== undefined) {
+            const questTrackerState = Number(override.questTrackerState);
+            if (Number.isFinite(questTrackerState)) {
+                character.questTrackerState = Math.round(questTrackerState);
+            }
+        }
+
+        return true;
+    }
+
     private static buildPaperDollPacket(character: Character): BitBuffer {
         const bb = new BitBuffer(false);
 
@@ -824,6 +867,12 @@ export class CharacterHandler {
         }
 
         client.character = char;
+        const loginStartOverrideApplied = CharacterHandler.applyLoginStartOverride(char);
+        if (loginStartOverrideApplied) {
+            CharacterHandler.purgeSameCharacterGhosts(client, client.userId, char.name);
+            await db.saveCharacterSnapshot(client.userId, char);
+            client.characters = CharacterHandler.upsertCharacterList(client.characters, char);
+        }
         await BuildingHandler.syncCompletionState(client);
         await ForgeHandler.syncCompletionState(client);
         console.log(`[CharacterSelect] Selected ${char.name}`);
@@ -915,6 +964,7 @@ export class CharacterHandler {
 
         const pendingEntry = GlobalState.pendingWorld.get(token);
         const resolvedTransferToken = pendingEntry?.syncAnchorToken || token;
+        client.pendingDebugLevel = currentLevelName;
 
         const pkt = WorldEnter.buildEnterWorldPacket(
             resolvedTransferToken, // Ensure Flash client uses the Host's token for Room Event Generation Offset
@@ -976,6 +1026,7 @@ export class CharacterHandler {
         client.token = token;
         client.clientEntID = 0;
         client.currentLevel = entry.targetLevel;
+        client.pendingDebugLevel = '';
         client.levelInstanceId = LevelConfig.isDungeonLevel(entry.targetLevel)
             ? normalizeLevelInstanceId(entry.levelInstanceId) || createDungeonInstanceId(token)
             : '';

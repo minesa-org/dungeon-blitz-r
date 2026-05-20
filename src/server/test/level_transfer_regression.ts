@@ -35,6 +35,7 @@ function createClient(): any {
         characters: [],
         entities: new Map(),
         currentLevel: '',
+        pendingDebugLevel: '',
         levelInstanceId: '',
         entryLevel: '',
         entryX: 0,
@@ -654,6 +655,44 @@ function testSyncTransferSourcePositionFromLiveEntityDoesNotOverwriteDungeonRetu
         { name: 'NewbieRoad', x: 13816, y: 605 },
         'dungeon transfers should preserve the safe return point already stored in CurrentLevel'
     );
+}
+
+function testDisconnectSnapshotUsesLiveOverworldPosition(): void {
+    const character = createCharacter('Hero');
+    character.CurrentLevel = { name: 'OldMineMountain', x: 189, y: 1335 };
+    character.PreviousLevel = { name: 'NewbieRoad', x: 1421, y: 826 };
+
+    const client = Object.create(Client.prototype) as any;
+    client.character = character;
+    client.currentLevel = 'JadeCity';
+    client.clientEntID = 5501;
+    client.entities = new Map<number, any>([
+        [5501, { x: 10430.6, y: 1058.4 }]
+    ]);
+
+    client.syncSavedLocationFromLiveEntity();
+
+    assert.deepEqual(character.PreviousLevel, { name: 'OldMineMountain', x: 189, y: 1335 });
+    assert.deepEqual(character.CurrentLevel, { name: 'JadeCity', x: 10431, y: 1058 });
+}
+
+function testDisconnectSnapshotDoesNotPersistDungeonPosition(): void {
+    const character = createCharacter('Hero');
+    character.CurrentLevel = { name: 'JadeCity', x: 10431, y: 1058 };
+    character.PreviousLevel = { name: 'OldMineMountain', x: 189, y: 1335 };
+
+    const client = Object.create(Client.prototype) as any;
+    client.character = character;
+    client.currentLevel = 'JC_Mission3';
+    client.clientEntID = 5501;
+    client.entities = new Map<number, any>([
+        [5501, { x: 512, y: 768 }]
+    ]);
+
+    client.syncSavedLocationFromLiveEntity();
+
+    assert.deepEqual(character.CurrentLevel, { name: 'JadeCity', x: 10431, y: 1058 });
+    assert.deepEqual(character.PreviousLevel, { name: 'OldMineMountain', x: 189, y: 1335 });
 }
 
 function testResolveDungeonExitSpawnUsesRecordedDungeonEntryCoords(): void {
@@ -1318,6 +1357,7 @@ function testUnlockedForgottenForgeDoorOpensWithoutPersistedMission(): void {
 
     assert.equal(client.lastDoorId, 106);
     assert.equal(client.lastDoorTargetLevel, 'OMM_Mission6');
+    assert.equal(client.pendingDebugLevel, 'OMM_Mission6');
     assert.equal(client.sentPackets.some((packet: { id: number }) => packet.id === 0x2E), true);
     assert.equal(
         client.character.missions[String(MissionID.ForgottenForge)],
@@ -2129,6 +2169,8 @@ async function main(): Promise<void> {
         testSyncTransferSourcePositionFromLiveEntityUsesOverworldCoords();
 
         testSyncTransferSourcePositionFromLiveEntityDoesNotOverwriteDungeonReturnPoint();
+        testDisconnectSnapshotUsesLiveOverworldPosition();
+        testDisconnectSnapshotDoesNotPersistDungeonPosition();
 
         testResolveDungeonExitSpawnUsesRecordedDungeonEntryCoords();
         testResolveDungeonExitSpawnUsesCraftTownTutorialStartPoint();

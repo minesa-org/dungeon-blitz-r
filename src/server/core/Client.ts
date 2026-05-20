@@ -158,6 +158,7 @@ export class Client {
     public clientEntID: number = 0;
     public entities: Map<number, any> = new Map();
     public currentLevel: string = "";
+    public pendingDebugLevel: string = "";
     public craftTownHostCharacter: Character | null = null;
     public levelInstanceId: string = "";
     public entryLevel: string = "";
@@ -341,6 +342,7 @@ export class Client {
         this.clientEntID = 0;
         this.entities.clear();
         this.currentLevel = "";
+        this.pendingDebugLevel = "";
         this.levelInstanceId = "";
         this.entryLevel = "";
         this.entryX = 0;
@@ -496,6 +498,38 @@ export class Client {
         });
     }
 
+    private syncSavedLocationFromLiveEntity(): void {
+        if (!this.character) {
+            return;
+        }
+
+        const currentLevel = LevelConfig.normalizeLevelName(
+            this.currentLevel || String(this.character.CurrentLevel?.name ?? '')
+        );
+        if (!currentLevel || !LevelConfig.isSaveAllowedLevel(currentLevel)) {
+            return;
+        }
+
+        const entity = this.clientEntID > 0 ? this.entities.get(this.clientEntID) : null;
+        if (!entity) {
+            return;
+        }
+
+        const x = Number(entity.x);
+        const y = Number(entity.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+            return;
+        }
+
+        LevelConfig.updateSavedLevelsOnTransfer(
+            this.character,
+            this.character.CurrentLevel?.name,
+            currentLevel,
+            Math.round(x),
+            Math.round(y)
+        );
+    }
+
     private cleanupSessionState(snapshot: SessionCleanupSnapshot, transferInProgress: boolean): void {
         const { GlobalState } = require('./GlobalState') as typeof import('./GlobalState');
         const { EntityHandler } = require('../handlers/EntityHandler') as typeof import('../handlers/EntityHandler');
@@ -607,6 +641,7 @@ export class Client {
         const persistSnapshot = options?.persistSnapshot !== false;
 
         if (persistSnapshot && snapshot.userId && this.character) {
+            this.syncSavedLocationFromLiveEntity();
             await db.saveCharacterSnapshot(snapshot.userId, this.character).catch((err) => {
                 console.error(`[Client] Failed to persist character before ${reason}:`, err);
             });
@@ -632,6 +667,7 @@ export class Client {
         const snapshot = this.createSessionCleanupSnapshot();
 
         if (snapshot.userId && this.character) {
+            this.syncSavedLocationFromLiveEntity();
             void db.saveCharacterSnapshot(snapshot.userId, this.character).catch((err) => {
                 console.error('[Client] Failed to persist character on disconnect:', err);
             });

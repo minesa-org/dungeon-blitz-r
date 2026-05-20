@@ -3401,6 +3401,9 @@ export class LevelHandler {
         if (targetLevel) {
             client.lastDoorId = doorId;
             client.lastDoorTargetLevel = targetLevel;
+            if (targetLevel !== currentLevel) {
+                client.pendingDebugLevel = targetLevel;
+            }
             client.armPendingTransferGrace();
             PetHandler.armMountTravelProtection(client, 5000, false);
             const bb = new BitBuffer();
@@ -3796,6 +3799,7 @@ export class LevelHandler {
             newHasCoord, newX, newY,
             hostChar
         );
+        client.pendingDebugLevel = targetLevel;
 
         DebugLogger.logProgress('EnterWorld:transferPacket', client, activeCharacter, {
             previousLevel: oldLevel,

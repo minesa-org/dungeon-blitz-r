@@ -12,6 +12,7 @@ import { LevelHandler } from './LevelHandler';
 import { EntityState, EntityTeam } from '../core/Entity';
 import { EntityHandler } from './EntityHandler';
 import { MissionHandler } from './MissionHandler';
+import { DebugLogger } from '../core/Debug';
 import { areClientsInSameParty, getClientCharacterKey, sharesRoomIds, shouldShareCombatView } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope, getScopeLevelName } from '../core/LevelScope';
 import {
@@ -1597,6 +1598,20 @@ export class CombatHandler {
         }
 
         const sourceEntity = CombatHandler.resolveLevelEntity(levelScope, sourceId);
+        if (sourceEntity && !sourceEntity.isPlayer && Number(sourceEntity.team ?? 0) === EntityTeam.ENEMY) {
+            DebugLogger.logProgress('Combat:ignoredEnemySourceContribution', fallbackClient, fallbackClient.character, {
+                levelScope,
+                sourceId,
+                sourceName: String(sourceEntity?.name ?? sourceEntity?.EntName ?? sourceEntity?.entName ?? ''),
+                sourceTeam: Number(sourceEntity?.team ?? 0),
+                targetId,
+                targetName: String(targetEntity?.name ?? targetEntity?.EntName ?? targetEntity?.entName ?? ''),
+                targetTeam: Number(targetEntity?.team ?? 0),
+                damage
+            });
+            return;
+        }
+
         const summonerId = Number(sourceEntity?.summonerId ?? 0);
         const ownerToken = Number(sourceEntity?.ownerToken ?? 0);
 
@@ -1610,6 +1625,16 @@ export class CombatHandler {
             return;
         }
 
+        targetEntity.playerDamageContributed = true;
+        DebugLogger.logProgress('Combat:playerNpcContribution', sourceSession, sourceSession.character, {
+            levelScope,
+            sourceId,
+            sourceName: String(sourceEntity?.name ?? sourceEntity?.EntName ?? sourceEntity?.entName ?? ''),
+            contributor: sourceSession.character?.name ?? '',
+            targetId,
+            targetName: String(targetEntity?.name ?? targetEntity?.EntName ?? targetEntity?.entName ?? ''),
+            damage
+        });
         CombatHandler.recordContribution(levelScope, targetId, sourceSession, damage);
     }
 

@@ -91,6 +91,43 @@ async function testReloadCurrentCharacterFromSaveKeepsUnsavedCharacterWhenMissin
     assert.equal(client.characters[1], character);
 }
 
+function testLoginStartOverrideMovesCharacterAndConsumesOverride(): void {
+    const character = createCharacter('Telahair');
+    character.CurrentLevel = { name: 'NewbieRoad', x: 1946, y: 710 };
+    character.PreviousLevel = { name: 'NewbieRoad', x: 1421, y: 826 };
+    character.questTrackerState = 100;
+    character.loginStartOverride = {
+        level: 'JadeCity',
+        x: 10430,
+        y: 1058,
+        questTrackerState: 0
+    };
+
+    const applied = (CharacterHandler as any).applyLoginStartOverride(character);
+
+    assert.equal(applied, true);
+    assert.deepEqual(character.CurrentLevel, { name: 'JadeCity', x: 10430, y: 1058 });
+    assert.deepEqual(character.PreviousLevel, { name: 'NewbieRoad', x: 1946, y: 710 });
+    assert.equal(character.questTrackerState, 0);
+    assert.equal(character.loginStartOverride, undefined);
+}
+
+function testLoginStartOverrideDoesNotMoveIntoDungeon(): void {
+    const character = createCharacter('Telahair');
+    character.CurrentLevel = { name: 'NewbieRoad', x: 1946, y: 710 };
+    character.loginStartOverride = {
+        level: 'JC_Mission2',
+        x: 0,
+        y: 0
+    };
+
+    const applied = (CharacterHandler as any).applyLoginStartOverride(character);
+
+    assert.equal(applied, true);
+    assert.deepEqual(character.CurrentLevel, { name: 'NewbieRoad', x: 1946, y: 710 });
+    assert.equal(character.loginStartOverride, undefined);
+}
+
 function testAbilityRepairSyncsUnlockedActiveAbilityIntoLearnedAbilities(): void {
     const character = createCharacter('Neodevil');
     character.learnedAbilities = [
@@ -458,6 +495,8 @@ function testMissingBootstrappedMissionDoesNotReplayGoblinAssaultAssignment(): v
 async function main(): Promise<void> {
     await testReloadCurrentCharacterFromSavePrefersFreshDiskState();
     await testReloadCurrentCharacterFromSaveKeepsUnsavedCharacterWhenMissingOnDisk();
+    testLoginStartOverrideMovesCharacterAndConsumesOverride();
+    testLoginStartOverrideDoesNotMoveIntoDungeon();
     testAbilityRepairSyncsUnlockedActiveAbilityIntoLearnedAbilities();
     testPaperDollPacketNormalizesLegacyLowercaseGender();
     testCraftTownLoginRepairsCompletedKeepQuestProgress();
