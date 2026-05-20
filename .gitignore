@@ -9,3 +9,7 @@ temp
 build/
 logs/
 src/server/data/runtime/*crash*.log
+.env
+src/server/.env
+src/server/.discord-social-token.json
+src/server/native_bridge/build/

@@ -34,6 +34,7 @@ import { AbilityHandler } from './handlers/AbilityHandler';
 import { DebugLogger } from './core/Debug';
 import { GuildHandler } from './handlers/GuildHandler';
 import { ForgeHandler } from './handlers/ForgeHandler';
+import { discordSocialBridge } from './integrations/DiscordSocialBridge';
 import * as path from 'path';
 
 import { StaticServer } from './core/StaticServer';
@@ -50,6 +51,7 @@ NpcDialogueLoader.load(dataDir);
 DialogueTranslationLoader.load(dataDir);
 NpcLoader.load(dataDir);
 DebugLogger.logStartup();
+discordSocialBridge.initialize();
 
 // Initialize Router
 const router = new PacketRouter();

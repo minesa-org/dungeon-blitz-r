@@ -11,6 +11,7 @@ import { LevelHandler } from './LevelHandler';
 import { MissionHandler } from './MissionHandler';
 import { PetHandler } from './PetHandler';
 import { DialogueTranslationLoader } from '../data/DialogueTranslationLoader';
+import { discordSocialBridge } from '../integrations/DiscordSocialBridge';
 import {
     ensureCharacterSocialState,
     FriendEntry,
@@ -1054,6 +1055,15 @@ export class SocialHandler {
             }
         }
 
+        if (client.character && message) {
+            discordSocialBridge.relay({
+                scope: 'public',
+                senderName: client.character.name,
+                message,
+                levelName: client.currentLevel || undefined
+            });
+        }
+
         SocialHandler.relayToLevel(client, 0x2c, data, false, true);
     }
 
@@ -1650,6 +1660,14 @@ export class SocialHandler {
             SocialHandler.sendChatStatus(client, 'You are not in a party.');
             return;
         }
+
+        discordSocialBridge.relay({
+            scope: 'party',
+            senderName: client.character.name,
+            message,
+            levelName: client.currentLevel || undefined,
+            partyId: party.partyId
+        });
 
         const payload = SocialHandler.buildGroupChatPayload(client.character.name, message);
         for (const member of party.group.members) {
