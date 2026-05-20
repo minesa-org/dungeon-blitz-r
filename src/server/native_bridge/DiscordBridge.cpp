@@ -310,13 +310,17 @@ bool DiscordBridge::linkChannelToLobby(const std::string& lobbyId, const std::st
     client_->LinkChannelToLobby(
         std::strtoull(lobbyId.c_str(), nullptr, 10),
         std::strtoull(channelId.c_str(), nullptr, 10),
-        [](discordpp::ClientResult linkResult) {
+        [lobbyId, channelId](discordpp::ClientResult linkResult) {
             if (!linkResult.Successful()) {
                 std::cerr << "[DiscordBridge] LinkChannelToLobby failed: " << linkResult.ToString() << std::endl;
+                std::cout << "{\"type\":\"status\",\"text\":\"Discord lobby channel linking failed: "
+                          << jsonEscape(linkResult.ToString()) << "\"}" << std::endl;
                 return;
             }
 
             std::cerr << "[DiscordBridge] Channel linked to lobby successfully." << std::endl;
+            std::cout << "{\"type\":\"channel_linked\",\"lobbyId\":\"" << jsonEscape(lobbyId)
+                      << "\",\"channelId\":\"" << jsonEscape(channelId) << "\"}" << std::endl;
         }
     );
 
@@ -329,16 +333,22 @@ bool DiscordBridge::sendToLobby(const ChatMessage& message) {
     }
 
     std::unordered_map<std::string, std::string> metadata;
-        metadata.emplace("character_name", message.username);
+    metadata.emplace("character_name", message.username);
+    const auto content = message.username.empty()
+        ? message.message
+        : message.username + ": " + message.message;
 
     client_->SendLobbyMessageWithMetadata(
         lobbyId_,
-        message.message,
+        content,
         metadata,
-        [](discordpp::ClientResult result, std::uint64_t) {
+        [](discordpp::ClientResult result, std::uint64_t messageId) {
             if (!result.Successful()) {
                 std::cerr << "[DiscordBridge] SendLobbyMessage failed: " << result.ToString() << std::endl;
             }
+            std::cout << "{\"type\":\"send_result\",\"ok\":" << (result.Successful() ? "true" : "false")
+                      << ",\"messageId\":\"" << messageId << "\",\"error\":\""
+                      << (result.Successful() ? "" : jsonEscape(result.ToString())) << "\"}" << std::endl;
         }
     );
 

@@ -70,18 +70,34 @@ interface NativeBridgeInboundLobbyReady extends NativeBridgeInboundBase {
     userId: string;
 }
 
+interface NativeBridgeInboundChannelLinked extends NativeBridgeInboundBase {
+    type: 'channel_linked';
+    lobbyId?: string;
+    channelId?: string;
+}
+
+interface NativeBridgeInboundSendResult extends NativeBridgeInboundBase {
+    type: 'send_result';
+    ok: boolean;
+    messageId?: string;
+    error?: string;
+}
+
 type NativeBridgeInbound =
     | NativeBridgeInboundStatus
     | NativeBridgeInboundChat
     | NativeBridgeInboundReady
     | NativeBridgeInboundAuth
-    | NativeBridgeInboundLobbyReady;
+    | NativeBridgeInboundLobbyReady
+    | NativeBridgeInboundChannelLinked
+    | NativeBridgeInboundSendResult;
 
 const CONFIG_CANDIDATES = [
     path.resolve(process.cwd(), 'discord-social-bridge.config.json'),
     path.resolve(__dirname, '..', 'discord-social-bridge.config.json'),
     path.resolve(__dirname, '..', '..', 'discord-social-bridge.config.json')
 ];
+const MAX_PENDING_NATIVE_MESSAGES = 50;
 
 function readConfigFile(): DiscordSocialBridgeConfig {
     for (const candidate of CONFIG_CANDIDATES) {
@@ -191,7 +207,10 @@ class DiscordSocialBridge {
     private readonly accountLinks: DiscordAccountLinkStore;
     private child: ChildProcessWithoutNullStreams | null = null;
     private ready = false;
+    private nativeLobbyReady = false;
+    private nativeChannelLinked = false;
     private started = false;
+    private readonly pendingNativeOutbound: Array<Record<string, unknown>> = [];
 
     constructor() {
         this.config = readConfigFile();
@@ -253,6 +272,8 @@ class DiscordSocialBridge {
 
         this.child.on('exit', (code, signal) => {
             this.ready = false;
+            this.nativeLobbyReady = false;
+            this.nativeChannelLinked = false;
             this.child = null;
             console.warn(`[DiscordSocialBridge] Native bridge exited (code=${code ?? 'null'}, signal=${signal ?? 'null'}).`);
         });
@@ -307,13 +328,6 @@ class DiscordSocialBridge {
             return;
         }
 
-        if (!this.ready || !this.child) {
-            if (this.logPayloads) {
-                console.log('[DiscordSocialBridge] Native Social SDK bridge is not ready; skipping outbound lobby chat.');
-            }
-            return;
-        }
-
         const outbound = {
             type: 'outbound_chat',
             scope: payload.scope,
@@ -323,6 +337,11 @@ class DiscordSocialBridge {
             guildName: payload.guildName ?? '',
             partyId: payload.partyId ?? 0
         };
+
+        if (!this.canSendNativeLobbyChat()) {
+            this.enqueueNativeOutbound(outbound);
+            return;
+        }
 
         if (this.logPayloads) {
             console.log('[DiscordSocialBridge] Outbound:', outbound);
@@ -378,6 +397,43 @@ class DiscordSocialBridge {
         this.child.stdin.write(`${JSON.stringify(payload)}\n`);
     }
 
+    private canSendNativeLobbyChat(): boolean {
+        if (!this.ready || !this.child || !this.nativeLobbyReady) {
+            return false;
+        }
+
+        if (this.enableChannelLinking && this.channelId && this.serverApi.isEnabled()) {
+            return this.nativeChannelLinked;
+        }
+
+        return true;
+    }
+
+    private enqueueNativeOutbound(payload: Record<string, unknown>): void {
+        this.pendingNativeOutbound.push(payload);
+        while (this.pendingNativeOutbound.length > MAX_PENDING_NATIVE_MESSAGES) {
+            this.pendingNativeOutbound.shift();
+        }
+
+        if (this.logPayloads) {
+            console.log('[DiscordSocialBridge] Queued native lobby chat until Social SDK lobby is ready:', payload);
+        }
+    }
+
+    private flushPendingNativeOutbound(): void {
+        if (!this.canSendNativeLobbyChat() || this.pendingNativeOutbound.length === 0) {
+            return;
+        }
+
+        const pending = this.pendingNativeOutbound.splice(0);
+        for (const payload of pending) {
+            if (this.logPayloads) {
+                console.log('[DiscordSocialBridge] Flushing native lobby chat:', payload);
+            }
+            this.sendControlMessage(payload);
+        }
+    }
+
     private handleInboundLine(line: string): void {
         const trimmed = String(line ?? '').trim();
         if (!trimmed) {
@@ -418,18 +474,36 @@ class DiscordSocialBridge {
             case 'lobby_ready':
                 void this.handleLobbyReady(payload);
                 return;
+            case 'channel_linked':
+                this.nativeChannelLinked = true;
+                console.log(
+                    `[DiscordSocialBridge] Discord Social SDK lobby ${payload.lobbyId ?? 'unknown'} linked to channel ${payload.channelId ?? 'unknown'}.`
+                );
+                this.flushPendingNativeOutbound();
+                return;
+            case 'send_result':
+                if (!payload.ok) {
+                    const error = String(payload.error ?? '').trim() || 'unknown error';
+                    console.warn(`[DiscordSocialBridge] Native lobby send failed: ${error}`);
+                    this.broadcastStatus(`Discord lobby send failed: ${error}`);
+                }
+                return;
             default:
                 console.log(`[DiscordSocialBridge] Ignored native bridge event: ${trimmed}`);
         }
     }
 
     private async handleLobbyReady(payload: NativeBridgeInboundLobbyReady): Promise<void> {
+        this.nativeLobbyReady = true;
         if (!this.enableChannelLinking) {
+            this.flushPendingNativeOutbound();
             return;
         }
 
         const granted = await this.serverApi.grantCanLinkLobby(payload.lobbyId, payload.userId);
         if (!granted) {
+            this.broadcastStatus('Discord lobby channel linking failed; lobby chat may not appear in Discord.');
+            this.flushPendingNativeOutbound();
             return;
         }
 
