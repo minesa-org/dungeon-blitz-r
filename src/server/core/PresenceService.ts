@@ -253,7 +253,11 @@ export class PresenceService {
                 ? 'dungeon'
                 : 'zone';
         const party = PresenceService.getPartySnapshot(characterName);
-        const startedAtMs = Number.isFinite(client.worldEnteredAt) ? client.worldEnteredAt : Date.now();
+        const startedAtMs = Number.isFinite(client.playSessionStartedAt) && client.playSessionStartedAt > 0
+            ? client.playSessionStartedAt
+            : Number.isFinite(client.worldEnteredAt) && client.worldEnteredAt > 0
+                ? client.worldEnteredAt
+                : Date.now();
         const className = PresenceService.formatClassName(client.character?.class);
         const disciplineName = PresenceService.formatDisciplineName(
             Number(client.character?.MasterClass ?? 0),

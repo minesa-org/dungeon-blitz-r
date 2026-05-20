@@ -25,6 +25,7 @@ export interface PendingTransfer {
     sourceDoorId?: number;
     sourceDoorLevel?: string;
     sourceDoorTargetLevel?: string;
+    playSessionStartedAt?: number;
 }
 
 export type SharedDungeonProgressState = {

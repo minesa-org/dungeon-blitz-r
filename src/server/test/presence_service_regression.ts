@@ -22,6 +22,7 @@ function createFakeClient(
 ): Record<string, unknown> {
     return {
         currentLevel,
+        playSessionStartedAt: Date.now(),
         worldEnteredAt: Date.now(),
         playerSpawned,
         character: {
@@ -57,6 +58,20 @@ function testHomePresenceUsesHomeLabelAndStatus(): void {
     assert.equal(snapshot.levelName, 'Home');
     assert.equal(snapshot.details, 'Home');
     assert.equal(snapshot.state, 'In game');
+}
+
+function testPresenceTimerUsesPlaySessionStartAcrossRegionChanges(): void {
+    const playSessionStartedAt = Date.now() - 600_000;
+    const worldEnteredAt = Date.now() - 10_000;
+    const snapshot = (PresenceService as any).toSnapshot({
+        ...createFakeClient('JadeCity'),
+        playSessionStartedAt,
+        worldEnteredAt
+    });
+
+    assert.ok(snapshot, 'presence snapshot should resolve for clients with a session start');
+    assert.equal(snapshot.startedAtMs, playSessionStartedAt);
+    assert.equal(snapshot.startedAt, new Date(playSessionStartedAt).toISOString());
 }
 
 function testCemeteryHillPresenceUsesCemeteryImage(): void {
@@ -115,6 +130,7 @@ function main(): void {
     ensureDataLoaded();
     testTutorialDungeonUsesMissionDisplayNameAndStatus();
     testHomePresenceUsesHomeLabelAndStatus();
+    testPresenceTimerUsesPlaySessionStartAcrossRegionChanges();
     testCemeteryHillPresenceUsesCemeteryImage();
     testCemeteryHillHardPresenceUsesCemeteryImage();
     testJadeCityPresenceUsesValhavenName();

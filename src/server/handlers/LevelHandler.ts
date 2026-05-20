@@ -58,6 +58,7 @@ type LevelSyncState = {
     x: number;
     y: number;
     hasCoord: boolean;
+    playSessionStartedAt?: number;
     levelInstanceId?: string;
     syncAnchorStartedAt?: number;
     syncAnchorToken?: number;
@@ -238,6 +239,9 @@ export class LevelHandler {
         target.currentRoomId = source.currentRoomId;
         target.lastDoorId = source.lastDoorId;
         target.lastDoorTargetLevel = source.lastDoorTargetLevel;
+        target.playSessionStartedAt = Number.isFinite(source.playSessionStartedAt) && source.playSessionStartedAt > 0
+            ? Math.round(source.playSessionStartedAt)
+            : Date.now();
         target.clientEntID = source.clientEntID;
         target.token = source.token;
         target.playerSpawned = source.playerSpawned;
@@ -803,6 +807,9 @@ export class LevelHandler {
             x,
             y,
             hasCoord,
+            playSessionStartedAt: Number.isFinite(client.playSessionStartedAt) && client.playSessionStartedAt > 0
+                ? Math.round(client.playSessionStartedAt)
+                : Date.now(),
             levelInstanceId: levelInstanceId || undefined,
             syncAnchorStartedAt,
             syncAnchorToken,
@@ -3120,7 +3127,8 @@ export class LevelHandler {
         sendExtended: boolean,
         syncState: LevelSyncState | null = null,
         doorContext: DoorTravelContext | null = null,
-        craftTownHostCharacter?: Character
+        craftTownHostCharacter?: Character,
+        playSessionStartedAt?: number
     ): void {
         const shouldSyncDungeonProgress = LevelConfig.isDungeonLevel(targetLevel);
         const levelInstanceId = shouldSyncDungeonProgress
@@ -3159,7 +3167,11 @@ export class LevelHandler {
                 syncQuestProgress: syncState?.syncQuestProgress,
                 sourceDoorId: doorContext?.sourceDoorId,
                 sourceDoorLevel: doorContext?.sourceLevel,
-                sourceDoorTargetLevel: doorContext?.targetLevel
+                sourceDoorTargetLevel: doorContext?.targetLevel,
+                playSessionStartedAt: Number.isFinite(Number(playSessionStartedAt ?? syncState?.playSessionStartedAt)) &&
+                    Number(playSessionStartedAt ?? syncState?.playSessionStartedAt) > 0
+                    ? Math.round(Number(playSessionStartedAt ?? syncState?.playSessionStartedAt))
+                    : undefined
             });
             GlobalState.tokenChar.set(token, {
                 character,
@@ -3930,7 +3942,10 @@ export class LevelHandler {
             sendExtendedOnTransfer,
             syncState,
             doorContext,
-            hostChar !== activeCharacter ? hostChar : undefined
+            hostChar !== activeCharacter ? hostChar : undefined,
+            Number.isFinite(client.playSessionStartedAt) && client.playSessionStartedAt > 0
+                ? Math.round(client.playSessionStartedAt)
+                : Date.now()
         );
         LevelHandler.rememberTransferTokenAlias(packetToken, newToken);
         LevelHandler.rememberTransferTokenAlias(transferToken, newToken);
