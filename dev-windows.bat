@@ -69,10 +69,12 @@ if %BRIDGE_BUILD_CODE% neq 0 (
 echo.
 
 if not defined DISCORD_SOCIAL_BRIDGE_ENABLED set DISCORD_SOCIAL_BRIDGE_ENABLED=true
+set DISCORD_SOCIAL_APP_ID=1447954255452311695
 if not defined DISCORD_SOCIAL_BRIDGE_EXECUTABLE set DISCORD_SOCIAL_BRIDGE_EXECUTABLE=%CD%\src\server\native_bridge\build\discord_social_bridge.exe
 
 :: SERVER BASLAT
 echo Starting server with Discord RPC ^(npm run dev:discord^)^...
+echo Discord Social SDK app id: %DISCORD_SOCIAL_APP_ID%
 echo Discord Social SDK bridge: %DISCORD_SOCIAL_BRIDGE_EXECUTABLE%
 echo When it's ready, open the URL shown in the logs.
 echo.

@@ -187,54 +187,6 @@ std::optional<DeviceAuthorizationInfo> DiscordBridge::beginDeviceAuthorization()
         return std::nullopt;
     }
 
-#if defined(__APPLE__)
-    auto verifier = client_->CreateAuthorizationCodeVerifier();
-    pkceVerifier_ = verifier.Verifier();
-
-    discordpp::AuthorizationArgs args {};
-    args.SetClientId(std::strtoull(config_.appId.c_str(), nullptr, 10));
-    args.SetScopes(discordpp::Client::GetDefaultCommunicationScopes());
-    args.SetCodeChallenge(verifier.Challenge());
-
-    client_->Authorize(
-        args,
-        [this](discordpp::ClientResult result, std::string code, std::string redirectUri) {
-            if (!result.Successful()) {
-                authInFlight_.store(false);
-                std::cerr << "[DiscordBridge] Authorize failed: " << result.ToString() << std::endl;
-                return;
-            }
-
-            client_->GetToken(
-                std::strtoull(config_.appId.c_str(), nullptr, 10),
-                code,
-                pkceVerifier_,
-                redirectUri,
-                [this](
-                    discordpp::ClientResult tokenResult,
-                    std::string accessToken,
-                    std::string refreshToken,
-                    discordpp::AuthorizationTokenType tokenType,
-                    int32_t,
-                    std::string
-                ) {
-                    authInFlight_.store(false);
-                    if (!tokenResult.Successful()) {
-                        std::cerr << "[DiscordBridge] GetToken failed: " << tokenResult.ToString() << std::endl;
-                        return;
-                    }
-
-                    accessToken_ = std::move(accessToken);
-                    refreshToken_ = std::move(refreshToken);
-                    persistTokens();
-                    connectWithToken(tokenType, accessToken_);
-                }
-            );
-        }
-    );
-
-    return std::nullopt;
-#else
     discordpp::DeviceAuthorizationArgs args {};
     args.SetClientId(std::strtoull(config_.appId.c_str(), nullptr, 10));
     args.SetScopes(discordpp::Client::GetDefaultCommunicationScopes());
@@ -263,7 +215,6 @@ std::optional<DeviceAuthorizationInfo> DiscordBridge::beginDeviceAuthorization()
     );
 
     return std::nullopt;
-#endif
 }
 
 bool DiscordBridge::joinOrCreateLobby() {

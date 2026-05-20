@@ -66,7 +66,6 @@ class DiscordBridge {
     std::thread callbackPumpThread_;
     std::string accessToken_;
     std::string refreshToken_;
-    std::string pkceVerifier_;
     std::uint64_t lobbyId_ { 0 };
 
     discordpp::Client* client_ { nullptr };
