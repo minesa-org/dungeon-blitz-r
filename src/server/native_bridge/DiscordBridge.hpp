@@ -17,7 +17,8 @@ struct DiscordBridgeConfig {
     std::string linkedChannelId;
     std::string playerDisplayName;
     std::string tokenCachePath;
-    bool useDeviceFlow { true };
+    int gameWindowPid { 0 };
+    bool useDeviceFlow { false };
     bool enableChannelLinking { false };
 };
 
@@ -66,6 +67,7 @@ class DiscordBridge {
     std::thread callbackPumpThread_;
     std::string accessToken_;
     std::string refreshToken_;
+    std::string pkceVerifier_;
     std::uint64_t lobbyId_ { 0 };
 
     discordpp::Client* client_ { nullptr };

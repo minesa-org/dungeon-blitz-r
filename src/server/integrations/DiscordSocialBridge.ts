@@ -15,6 +15,7 @@ interface DiscordSocialBridgeConfig {
     appId?: string;
     channelId?: string;
     deviceFlow?: boolean;
+    gameWindowPid?: number;
     enableChannelLinking?: boolean;
     executablePath?: string;
     workingDirectory?: string;
@@ -116,6 +117,15 @@ function parseBoolean(value: string | undefined, fallback: boolean): boolean {
     }
 }
 
+function parseInteger(value: string | number | undefined, fallback: number): number {
+    if (value == null) {
+        return fallback;
+    }
+
+    const parsed = typeof value === 'number' ? value : Number.parseInt(value.trim(), 10);
+    return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : fallback;
+}
+
 function buildStatusPayload(text: string): Buffer {
     const bb = new BitBuffer(false);
     bb.writeMethod13(text);
@@ -138,6 +148,7 @@ class DiscordSocialBridge {
     private readonly appId: string;
     private readonly channelId: string;
     private readonly deviceFlow: boolean;
+    private readonly gameWindowPid: number;
     private readonly enableChannelLinking: boolean;
     private readonly executablePath: string;
     private readonly workingDirectory: string;
@@ -154,7 +165,8 @@ class DiscordSocialBridge {
         this.enabled = parseBoolean(process.env.DISCORD_SOCIAL_BRIDGE_ENABLED, Boolean(this.config.enabled));
         this.appId = String(process.env.DISCORD_SOCIAL_APP_ID ?? this.config.appId ?? '').trim();
         this.channelId = String(process.env.DISCORD_SOCIAL_BRIDGE_CHANNEL_ID ?? this.config.channelId ?? '').trim();
-        this.deviceFlow = parseBoolean(process.env.DISCORD_SOCIAL_DEVICE_FLOW, this.config.deviceFlow ?? true);
+        this.deviceFlow = parseBoolean(process.env.DISCORD_SOCIAL_DEVICE_FLOW, this.config.deviceFlow ?? false);
+        this.gameWindowPid = parseInteger(process.env.DISCORD_SOCIAL_GAME_WINDOW_PID, this.config.gameWindowPid ?? 0);
         this.enableChannelLinking = parseBoolean(
             process.env.DISCORD_SOCIAL_ENABLE_CHANNEL_LINKING,
             this.config.enableChannelLinking ?? false
@@ -220,6 +232,7 @@ class DiscordSocialBridge {
             appId: this.appId,
             channelId: this.channelId,
             deviceFlow: this.deviceFlow,
+            gameWindowPid: this.gameWindowPid,
             enableChannelLinking: this.enableChannelLinking,
             tokenCachePath: this.tokenCachePath
         });

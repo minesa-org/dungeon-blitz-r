@@ -51,10 +51,12 @@ echo
 
 export DISCORD_SOCIAL_BRIDGE_ENABLED="${DISCORD_SOCIAL_BRIDGE_ENABLED:-true}"
 export DISCORD_SOCIAL_APP_ID="1447954255452311695"
+export DISCORD_SOCIAL_DEVICE_FLOW="false"
 export DISCORD_SOCIAL_BRIDGE_EXECUTABLE="${DISCORD_SOCIAL_BRIDGE_EXECUTABLE:-$ROOT_DIR/src/server/native_bridge/build/discord_social_bridge}"
 
 echo "Starting server + Discord RPC (npm run dev:with-discord)..."
 echo "Discord Social SDK app id: $DISCORD_SOCIAL_APP_ID"
+echo "Discord Social SDK device flow: $DISCORD_SOCIAL_DEVICE_FLOW"
 echo "Discord Social SDK bridge: $DISCORD_SOCIAL_BRIDGE_EXECUTABLE"
 echo "When it's ready, open the URL shown in the logs."
 echo

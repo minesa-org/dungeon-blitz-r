@@ -125,6 +125,10 @@ bool DiscordBridge::initialize(const DiscordBridgeConfig& config) {
     }
 
     client_->SetApplicationId(std::strtoull(config_.appId.c_str(), nullptr, 10));
+    if (config_.gameWindowPid > 0) {
+        client_->SetGameWindowPid(config_.gameWindowPid);
+        std::cerr << "[DiscordBridge] Using game window pid for Discord overlay: " << config_.gameWindowPid << std::endl;
+    }
     client_->AddLogCallback(
         [](std::string message, discordpp::LoggingSeverity) {
             std::cerr << "[DiscordSDK] " << message << std::endl;
@@ -184,6 +188,55 @@ bool DiscordBridge::tryRestoreSession() {
 
 std::optional<DeviceAuthorizationInfo> DiscordBridge::beginDeviceAuthorization() {
     if (!initialized_.load() || client_ == nullptr || authInFlight_.exchange(true)) {
+        return std::nullopt;
+    }
+
+    if (!config_.useDeviceFlow) {
+        auto verifier = client_->CreateAuthorizationCodeVerifier();
+        pkceVerifier_ = verifier.Verifier();
+
+        discordpp::AuthorizationArgs args {};
+        args.SetClientId(std::strtoull(config_.appId.c_str(), nullptr, 10));
+        args.SetScopes(discordpp::Client::GetDefaultCommunicationScopes());
+        args.SetCodeChallenge(verifier.Challenge());
+
+        client_->Authorize(
+            args,
+            [this](discordpp::ClientResult result, std::string code, std::string redirectUri) {
+                if (!result.Successful()) {
+                    authInFlight_.store(false);
+                    std::cerr << "[DiscordBridge] Authorize failed: " << result.ToString() << std::endl;
+                    return;
+                }
+
+                client_->GetToken(
+                    std::strtoull(config_.appId.c_str(), nullptr, 10),
+                    code,
+                    pkceVerifier_,
+                    redirectUri,
+                    [this](
+                        discordpp::ClientResult tokenResult,
+                        std::string accessToken,
+                        std::string refreshToken,
+                        discordpp::AuthorizationTokenType tokenType,
+                        int32_t,
+                        std::string
+                    ) {
+                        authInFlight_.store(false);
+                        if (!tokenResult.Successful()) {
+                            std::cerr << "[DiscordBridge] GetToken failed: " << tokenResult.ToString() << std::endl;
+                            return;
+                        }
+
+                        accessToken_ = std::move(accessToken);
+                        refreshToken_ = std::move(refreshToken);
+                        persistTokens();
+                        connectWithToken(tokenType, accessToken_);
+                    }
+                );
+            }
+        );
+
         return std::nullopt;
     }
 

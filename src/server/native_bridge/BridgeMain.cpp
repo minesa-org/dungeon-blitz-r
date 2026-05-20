@@ -137,6 +137,32 @@ bool extractJsonBool(const std::string& json, const std::string& key, bool fallb
     return fallback;
 }
 
+int extractJsonInt(const std::string& json, const std::string& key, int fallback) {
+    const auto keyToken = "\"" + key + "\"";
+    const auto keyPos = json.find(keyToken);
+    if (keyPos == std::string::npos) {
+        return fallback;
+    }
+
+    const auto colonPos = json.find(':', keyPos + keyToken.size());
+    if (colonPos == std::string::npos) {
+        return fallback;
+    }
+
+    const auto remainder = trim(json.substr(colonPos + 1));
+    if (remainder.empty()) {
+        return fallback;
+    }
+
+    try {
+        std::size_t parsedLength = 0;
+        const auto parsed = std::stoi(remainder, &parsedLength, 10);
+        return parsedLength > 0 ? parsed : fallback;
+    } catch (...) {
+        return fallback;
+    }
+}
+
 } // namespace
 
 int main() {
@@ -167,7 +193,8 @@ int main() {
             config.appId = extractJsonString(trimmed, "appId").value_or("");
             config.linkedChannelId = extractJsonString(trimmed, "channelId").value_or("");
             config.tokenCachePath = extractJsonString(trimmed, "tokenCachePath").value_or("");
-            config.useDeviceFlow = extractJsonBool(trimmed, "deviceFlow", true);
+            config.gameWindowPid = extractJsonInt(trimmed, "gameWindowPid", 0);
+            config.useDeviceFlow = extractJsonBool(trimmed, "deviceFlow", false);
             config.enableChannelLinking = extractJsonBool(trimmed, "enableChannelLinking", false);
 
             if (!bridge.initialize(config)) {
