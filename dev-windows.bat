@@ -69,12 +69,15 @@ if %BRIDGE_BUILD_CODE% neq 0 (
 echo.
 
 if not defined DISCORD_SOCIAL_BRIDGE_ENABLED set DISCORD_SOCIAL_BRIDGE_ENABLED=true
+if not defined DISCORD_SOCIAL_NATIVE_BRIDGE_ENABLED set DISCORD_SOCIAL_NATIVE_BRIDGE_ENABLED=false
 set DISCORD_SOCIAL_APP_ID=1447954255452311695
 set DISCORD_SOCIAL_DEVICE_FLOW=false
 if not defined DISCORD_SOCIAL_BRIDGE_EXECUTABLE set DISCORD_SOCIAL_BRIDGE_EXECUTABLE=%CD%\src\server\native_bridge\build\discord_social_bridge.exe
 
 :: SERVER BASLAT
 echo Starting server with Discord RPC ^(npm run dev:discord^)^...
+echo Discord channel bridge enabled: %DISCORD_SOCIAL_BRIDGE_ENABLED%
+echo Discord Social SDK native bridge enabled: %DISCORD_SOCIAL_NATIVE_BRIDGE_ENABLED%
 echo Discord Social SDK app id: %DISCORD_SOCIAL_APP_ID%
 echo Discord Social SDK device flow: %DISCORD_SOCIAL_DEVICE_FLOW%
 echo Discord Social SDK bridge: %DISCORD_SOCIAL_BRIDGE_EXECUTABLE%

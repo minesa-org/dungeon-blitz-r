@@ -1,5 +1,6 @@
 {
   "enabled": false,
+  "nativeBridgeEnabled": false,
   "appId": "1447954255452311695",
   "channelId": "1486055498691383419",
   "deviceFlow": false,

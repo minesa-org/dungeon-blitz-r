@@ -13,6 +13,7 @@ export type DiscordChatScope = 'public' | 'party' | 'guild' | 'officer';
 
 interface DiscordSocialBridgeConfig {
     enabled?: boolean;
+    nativeBridgeEnabled?: boolean;
     appId?: string;
     channelId?: string;
     deviceFlow?: boolean;
@@ -148,6 +149,7 @@ function resolveExecutablePath(config: DiscordSocialBridgeConfig): string {
 class DiscordSocialBridge {
     private readonly config: DiscordSocialBridgeConfig;
     private readonly enabled: boolean;
+    private readonly nativeBridgeEnabled: boolean;
     private readonly appId: string;
     private readonly channelId: string;
     private readonly deviceFlow: boolean;
@@ -167,6 +169,10 @@ class DiscordSocialBridge {
     constructor() {
         this.config = readConfigFile();
         this.enabled = parseBoolean(process.env.DISCORD_SOCIAL_BRIDGE_ENABLED, Boolean(this.config.enabled));
+        this.nativeBridgeEnabled = parseBoolean(
+            process.env.DISCORD_SOCIAL_NATIVE_BRIDGE_ENABLED,
+            this.config.nativeBridgeEnabled ?? false
+        );
         this.appId = String(process.env.DISCORD_SOCIAL_APP_ID ?? this.config.appId ?? '').trim();
         this.channelId = String(process.env.DISCORD_SOCIAL_BRIDGE_CHANNEL_ID ?? this.config.channelId ?? '').trim();
         this.deviceFlow = parseBoolean(process.env.DISCORD_SOCIAL_DEVICE_FLOW, this.config.deviceFlow ?? false);
@@ -187,7 +193,7 @@ class DiscordSocialBridge {
     }
 
     public initialize(): void {
-        if (!this.enabled || this.started) {
+        if (!this.enabled || !this.nativeBridgeEnabled || this.started) {
             return;
         }
 

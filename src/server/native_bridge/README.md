@@ -60,7 +60,7 @@ cd src/server/native_bridge
 ./build-macos.sh
 ```
 
-3. Set `DISCORD_SOCIAL_BRIDGE_ENABLED=true`
+3. Set `DISCORD_SOCIAL_BRIDGE_ENABLED=true` and `DISCORD_SOCIAL_NATIVE_BRIDGE_ENABLED=true`
 4. Start the server
 
 By default the server looks for:
@@ -72,6 +72,8 @@ By default the server looks for:
 
 - Inbound Discord messages are shown as game status lines, not world-chat bubbles.
 - The TypeScript relay only forwards public game chat into the native bridge by default.
+- Public game chat to a Discord channel uses `DISCORD_BOT_TOKEN` and does not require the native Social SDK bridge.
+- Native Social SDK lobby/chat support requires `DISCORD_SOCIAL_NATIVE_BRIDGE_ENABLED=true`.
 - Linked channel support requires `DISCORD_BOT_TOKEN` and `enableChannelLinking` because Discord's server API must grant `CanLinkLobby`.
 
 ## Reverse engineering workflow (optional)
