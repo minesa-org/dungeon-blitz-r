@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest an improvement or new behavior.
+title: "[Feature]: "
+type: Feature
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or goal
+      description: What should this change improve?
+      placeholder: Describe the player or developer need.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What behavior, UI, command, or system change do you want?
+      placeholder: Describe the desired result.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Pick the closest area. Maintainers may translate this into labels.
+      options:
+        - Dungeon
+        - Quest
+        - Character
+        - Multiplayer
+        - Home
+        - Loot
+        - Localization
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Mention any other approaches or tradeoffs.
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add screenshots, examples, source-game references, or related issues.
+    validations:
+      required: false

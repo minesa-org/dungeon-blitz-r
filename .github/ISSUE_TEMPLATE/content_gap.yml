@@ -1,0 +1,44 @@
+name: Missing content or unclear source behavior
+description: Report missing mission wiring, unrestored content, or behavior that needs source confirmation.
+title: "[Content]: "
+labels: ["content-missing", "needs-investigation"]
+type: Research
+body:
+  - type: dropdown
+    id: content_area
+    attributes:
+      label: Content area
+      options:
+        - Quest
+        - NPC dialogue
+        - Dungeon
+        - Item
+        - Map
+        - Asset
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: What appears missing, disconnected, or unclear?
+      placeholder: Describe what currently happens.
+    validations:
+      required: true
+  - type: textarea
+    id: investigated
+    attributes:
+      label: What was checked
+      description: Mention files, extracted scripts, screenshots, or source references already reviewed.
+      placeholder: List any evidence or investigation already done.
+    validations:
+      required: false
+  - type: textarea
+    id: question
+    attributes:
+      label: Open question
+      description: What needs a maintainer or source-behavior decision?
+      placeholder: Describe the decision or missing reference needed.
+    validations:
+      required: true

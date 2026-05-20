@@ -1,0 +1,55 @@
+name: Balance issue
+description: Report tuning problems with rewards, drops, combat, abilities, or progression.
+title: "[Balance]: "
+labels: ["balance", "gameplay"]
+type: Chore
+body:
+  - type: dropdown
+    id: balance_area
+    attributes:
+      label: Balance area
+      options:
+        - Loot
+        - Combat
+        - Ability
+        - Character
+        - Quest progression
+        - Enemy difficulty
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior
+      description: What feels too strong, too weak, too rare, too common, or too slow?
+      placeholder: Describe the current tuning problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected tuning
+      description: What range, frequency, or behavior would feel correct?
+      placeholder: Describe the target behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Add screenshots, logs, sample counts, source references, or player reports.
+      placeholder: Paste or attach evidence here.
+    validations:
+      required: false
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Game mode
+      options:
+        - Singleplayer
+        - Multiplayer
+        - Both
+        - Not sure
+    validations:
+      required: true

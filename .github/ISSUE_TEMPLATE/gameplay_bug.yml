@@ -1,0 +1,86 @@
+name: Gameplay bug
+description: Report a quest, dungeon, combat, ability, or progression problem.
+title: "[Gameplay]: "
+labels: ["gameplay"]
+type: Bug
+body:
+  - type: dropdown
+    id: gameplay_area
+    attributes:
+      label: Gameplay area
+      options:
+        - Dungeon
+        - Quest
+        - Side quest
+        - Combat
+        - Ability
+        - Character
+        - Loot
+        - Balance
+        - Multiplayer
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Specific area
+      description: Dungeon, room, quest, NPC, enemy, class, ability, or item involved.
+      placeholder: "Example: Blood and Sand, Outlander Wyrm, Paladin Discipline"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include character state, quest state, level, room, and actions when relevant.
+      placeholder: |
+        1. Use a character with ...
+        2. Enter ...
+        3. Complete ...
+        4. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected source behavior
+      description: If known, describe how the original game or intended flow behaves.
+      placeholder: Describe the expected gameplay result.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Current behavior
+      description: Describe what happens in this version.
+      placeholder: Describe the broken gameplay result.
+    validations:
+      required: true
+  - type: textarea
+    id: state
+    attributes:
+      label: Save or account state
+      description: Add account flags, quest progress, inventory, class, or any special state needed to reproduce.
+      placeholder: Add relevant state details.
+    validations:
+      required: false
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Add screenshots, logs, video, packet details, or source references if available.
+      placeholder: Paste or attach evidence here.
+    validations:
+      required: false
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Game mode
+      options:
+        - Singleplayer
+        - Multiplayer
+        - Both
+        - Not sure
+    validations:
+      required: true
