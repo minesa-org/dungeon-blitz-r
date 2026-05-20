@@ -79,6 +79,7 @@ export interface EntityProps {
     healthDelta?: number;
     buffs?: any[];
     roomId?: number;
+    ownerCharacterName?: string;
     
     // Flags
     idleReset?: boolean;
@@ -326,7 +327,6 @@ export class Entity {
         
         bb.writeMethod6(entity.entState || 0, Entity.STATE_BITS);
         bb.writeMethod6(entity.facingLeft ? 1 : 0, 1);
-        bb.writeMethod6(entity.noJumpAttack ? 1 : 0, 1);
         
         if (entity.isPlayer) {
             bb.writeMethod6(entity.level || 1, Entity.MAX_CHAR_LEVEL_BITS);

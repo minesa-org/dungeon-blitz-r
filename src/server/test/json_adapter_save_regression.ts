@@ -162,14 +162,19 @@ async function testSaveCharactersMergesLiveSessionCharacter(): Promise<void> {
 
         const liveCharacter = createCharacter('SessionHero');
         liveCharacter.level = 12;
+        liveCharacter.xp = 20300;
         liveCharacter.gold = 999;
 
-        GlobalState.sessionsByUserId.set(12, { character: liveCharacter } as never);
+        GlobalState.sessionsByToken.set(1201, {
+            token: 1201,
+            userId: 12,
+            character: liveCharacter
+        } as never);
 
         try {
             await adapter.saveCharacters(12, [staleCharacter]);
         } finally {
-            GlobalState.sessionsByUserId.delete(12);
+            GlobalState.sessionsByToken.delete(1201);
         }
 
         const savedPath = path.join(tempDir, 'data', 'saves', '12.json');
@@ -181,6 +186,45 @@ async function testSaveCharactersMergesLiveSessionCharacter(): Promise<void> {
             'live session state should win over stale character lists during saves'
         );
         assert.equal(saved.characters[0]?.gold, 999);
+    });
+}
+
+async function testSaveCharactersMergesAllLiveSameAccountCharacters(): Promise<void> {
+    await withTempDataDir('same_account_live_session_merge', async (adapter, tempDir) => {
+        const staleFleerpuh = createCharacter('Fleerpuh');
+        staleFleerpuh.gold = 10;
+
+        const liveFleerpuh = createCharacter('Fleerpuh');
+        liveFleerpuh.gold = 700;
+
+        const liveAlt = createCharacter('FleerpuhAlt');
+        liveAlt.gold = 321;
+
+        GlobalState.sessionsByToken.set(1401, {
+            token: 1401,
+            userId: 14,
+            character: liveFleerpuh
+        } as never);
+        GlobalState.sessionsByToken.set(1402, {
+            token: 1402,
+            userId: 14,
+            character: liveAlt
+        } as never);
+
+        try {
+            await adapter.saveCharacters(14, [staleFleerpuh]);
+        } finally {
+            GlobalState.sessionsByToken.delete(1401);
+            GlobalState.sessionsByToken.delete(1402);
+        }
+
+        const savedPath = path.join(tempDir, 'data', 'saves', '14.json');
+        const saved = JSON.parse(await fs.readFile(savedPath, 'utf8')) as { characters: Character[] };
+        const byName = new Map(saved.characters.map((character) => [character.name, character]));
+
+        assert.equal(byName.get('Fleerpuh')?.gold, 700);
+        assert.equal(byName.get('FleerpuhAlt')?.gold, 321);
+        assert.equal(saved.characters.length, 2, 'all live same-account characters should be preserved in one save file');
     });
 }
 
@@ -217,6 +261,7 @@ async function main(): Promise<void> {
     await testSaveCharactersSerializesConcurrentWrites();
     await testLoadCharactersWaitsForQueuedSave();
     await testSaveCharactersMergesLiveSessionCharacter();
+    await testSaveCharactersMergesAllLiveSameAccountCharacters();
     await testLoadCharactersNormalizesLevelFromXp();
     console.log('json_adapter_save_regression: ok');
 }

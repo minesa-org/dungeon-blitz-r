@@ -3,6 +3,7 @@ import * as net from 'net';
 import { Client } from '../core/Client';
 import { Character } from '../database/Database';
 import { GlobalState } from '../core/GlobalState';
+import { CharacterHandler } from '../handlers/CharacterHandler';
 import { LoginHandler } from '../handlers/LoginHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
@@ -140,6 +141,61 @@ async function testLoginVersionResetsExistingSessionBeforeChallenge(): Promise<v
     assert.equal(sentPackets.at(0)?.id, 0x12);
 }
 
+function testSameAccountDifferentCharacterGhostPurgeKeepsLiveCharacter(): void {
+    const fleerpuh = {
+        token: 444,
+        userId: 11,
+        character: createCharacter('Fleerpuh'),
+        currentLevel: 'CraftTown',
+        levelInstanceId: '',
+        clientEntID: 44,
+        playerSpawned: true,
+        socket: { destroyed: false, readyState: 'open' },
+        knownEntityIds: new Set<number>(),
+        send() {
+            return undefined;
+        }
+    };
+    const alt = {
+        token: 555,
+        userId: 11,
+        character: createCharacter('FleerpuhAlt'),
+        currentLevel: 'CraftTown',
+        levelInstanceId: '',
+        clientEntID: 55,
+        playerSpawned: true,
+        socket: { destroyed: false, readyState: 'open' },
+        knownEntityIds: new Set<number>(),
+        send() {
+            return undefined;
+        }
+    };
+
+    GlobalState.sessionsByToken.set(fleerpuh.token, fleerpuh as never);
+    GlobalState.sessionsByToken.set(alt.token, alt as never);
+    GlobalState.sessionsByCharacterName.set('fleerpuh', fleerpuh as never);
+    GlobalState.sessionsByCharacterName.set('fleerpuhalt', alt as never);
+    GlobalState.levelEntities.set('CraftTown', new Map<number, any>([
+        [44, { id: 44, name: 'Fleerpuh', isPlayer: true, ownerUserId: 11, ownerToken: 444, ownerCharacterName: 'Fleerpuh' }],
+        [55, { id: 55, name: 'FleerpuhAlt', isPlayer: true, ownerUserId: 11, ownerToken: 555, ownerCharacterName: 'FleerpuhAlt' }],
+        [77, { id: 77, name: 'OldFleerpuh', isPlayer: false, clientSpawned: true, ownerUserId: 11, ownerToken: 333, ownerCharacterName: 'Fleerpuh' }],
+        [88, { id: 88, name: 'AltSpawn', isPlayer: false, clientSpawned: true, ownerUserId: 11, ownerToken: 555, ownerCharacterName: 'FleerpuhAlt' }]
+    ]));
+
+    (CharacterHandler as any).purgeSameCharacterGhosts(fleerpuh, 11, 'Fleerpuh');
+
+    const levelMap = GlobalState.levelEntities.get('CraftTown');
+    assert.equal(levelMap?.has(44), true, 'active Fleerpuh entity should stay');
+    assert.equal(levelMap?.has(55), true, 'live same-account different character should not be purged');
+    assert.equal(levelMap?.has(77), false, 'stale same-character client-spawned entities should be purged');
+    assert.equal(levelMap?.has(88), true, 'live same-account different character spawns should not be purged');
+
+    assert.deepEqual(GlobalState.getActiveSessionsByUserId(11).map((session) => session.character?.name), [
+        'Fleerpuh',
+        'FleerpuhAlt'
+    ]);
+}
+
 async function main(): Promise<void> {
     const sessionsByCharacterName = new Map(GlobalState.sessionsByCharacterName);
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
@@ -175,6 +231,18 @@ async function main(): Promise<void> {
         GlobalState.houseVisits.clear();
 
         await testLoginVersionResetsExistingSessionBeforeChallenge();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.sessionsByUserId.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.tokenChar.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.pendingExtended.clear();
+        GlobalState.pendingTeleports.clear();
+        GlobalState.houseVisits.clear();
+
+        testSameAccountDifferentCharacterGhostPurgeKeepsLiveCharacter();
     } finally {
         GlobalState.sessionsByCharacterName = sessionsByCharacterName;
         GlobalState.sessionsByToken = sessionsByToken;

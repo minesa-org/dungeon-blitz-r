@@ -525,6 +525,7 @@ async function testDeadPlayerArmsBossRegenForNextOriginalTick(): Promise<void> {
 
     const levelScope = getClientLevelScope(player as never);
     GlobalState.levelEntities.get(levelScope)!.set(bossId, boss);
+    player.knownEntityIds.add(bossId);
     GlobalState.sessionsByToken.set(player.token, player as never);
 
     const request = new BitBuffer(false);
@@ -579,6 +580,7 @@ async function testClientDeadStateArmsBossRegenForNextOriginalTick(): Promise<vo
 
     const levelScope = getClientLevelScope(player as never);
     GlobalState.levelEntities.get(levelScope)!.set(bossId, boss);
+    player.knownEntityIds.add(bossId);
     GlobalState.sessionsByToken.set(player.token, player as never);
 
     const originalDateNow = Date.now;
@@ -633,6 +635,7 @@ async function testRespawnRequestMarksDeadBeforeArmingBossRegen(): Promise<void>
 
     const levelScope = getClientLevelScope(player as never);
     GlobalState.levelEntities.get(levelScope)!.set(bossId, boss);
+    player.knownEntityIds.add(bossId);
     GlobalState.sessionsByToken.set(player.token, player as never);
 
     const request = new BitBuffer(false);
@@ -691,6 +694,7 @@ async function testRespawnDoesNotFullHealBoss(): Promise<void> {
 
     const levelScope = getClientLevelScope(player as never);
     GlobalState.levelEntities.get(levelScope)!.set(bossId, boss);
+    player.knownEntityIds.add(bossId);
     GlobalState.sessionsByToken.set(player.token, player as never);
 
     const request = new BitBuffer(false);
@@ -746,6 +750,7 @@ async function testKnownOverworldBossNameDoesNotUseDungeonBossRegen(): Promise<v
 
     const levelScope = getClientLevelScope(player as never);
     GlobalState.levelEntities.get(levelScope)!.set(bossId, boss);
+    player.knownEntityIds.add(bossId);
     GlobalState.sessionsByToken.set(player.token, player as never);
 
     const request = new BitBuffer(false);

@@ -7,6 +7,7 @@ import { LevelConfig } from '../core/LevelConfig';
 import { SocialHandler } from '../handlers/SocialHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
+import { MissionLoader } from '../data/MissionLoader';
 
 type SentPacket = {
     id: number;
@@ -28,6 +29,10 @@ type FakeClient = {
     lastDoorId: number;
     lastDoorTargetLevel: string;
     armPendingTransferGrace: () => void;
+    socket: {
+        destroyed: boolean;
+        readyState: string;
+    };
     send: (id: number, payload: Buffer) => void;
     sendBitBuffer: (id: number, bb: BitBuffer) => void;
     sentPackets: SentPacket[];
@@ -65,6 +70,10 @@ function createFakeClient(name: string, friends: Array<{ name: string; isRequest
         armPendingTransferGrace() {
             return;
         },
+        socket: {
+            destroyed: false,
+            readyState: 'open'
+        },
         sentPackets,
         send(id: number, payload: Buffer) {
             sentPackets.push({ id, payload: Buffer.from(payload) });
@@ -81,6 +90,14 @@ function buildNamePacket(name: string): Buffer {
     return bb.toBuffer();
 }
 
+function buildQueryAnswerPacket(token: number, name: string, accepted: boolean): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod9(token);
+    bb.writeMethod26(name);
+    bb.writeMethod15(accepted);
+    return bb.toBuffer();
+}
+
 function decodeFriendUpdate(payload: Buffer): { name: string; isRequest: boolean } {
     const br = new BitReader(payload);
     return {
@@ -94,9 +111,21 @@ function decodeFriendRemoved(payload: Buffer): string {
     return br.readMethod13();
 }
 
+function decodeQueryMessageQuestion(payload: Buffer): { token: number; name: string; message: string } {
+    const br = new BitReader(payload);
+    return {
+        token: br.readMethod9(),
+        name: br.readMethod26(),
+        message: br.readMethod26()
+    };
+}
+
 function ensureLevelConfigLoaded(): void {
     if (!LevelConfig.has('TutorialDungeon')) {
         LevelConfig.load(path.resolve(__dirname, '../data'));
+    }
+    if (!MissionLoader.findPrimaryMissionByDungeon('AC_Mission6')) {
+        MissionLoader.load(path.resolve(__dirname, '../data'));
     }
 }
 
@@ -104,6 +133,7 @@ async function testAcceptPreservesExistingFriendKey(): Promise<void> {
     const requester = createFakeClient('Requester');
     const receiver = createFakeClient('Receiver', [{ name: 'requester', isRequest: true }]);
 
+    GlobalState.sessionsByToken.set(requester.token, requester as never);
     GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(requester.character.name), requester as never);
 
     await SocialHandler.handleFriendRequest(receiver as never, buildNamePacket('requester'));
@@ -121,10 +151,144 @@ async function testAcceptPreservesExistingFriendKey(): Promise<void> {
     assert.equal(receiverUpdate?.isRequest, false);
 }
 
+async function testLiveFriendRequestSendsVisiblePromptAndAccepts(): Promise<void> {
+    const requester = createFakeClient('Elmayuk');
+    const receiver = createFakeClient('Fleerpuh');
+    requester.token = 9101;
+    receiver.token = 9102;
+
+    GlobalState.sessionsByToken.set(requester.token, requester as never);
+    GlobalState.sessionsByToken.set(receiver.token, receiver as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(requester.character.name), requester as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(receiver.character.name), receiver as never);
+
+    await SocialHandler.handleFriendRequest(requester as never, buildNamePacket('Fleerpuh'));
+
+    assert.deepEqual(receiver.character.friends, [{ name: 'Elmayuk', isRequest: true }]);
+
+    const receiverRequestUpdate = receiver.sentPackets
+        .filter((packet) => packet.id === 0x92)
+        .map((packet) => decodeFriendUpdate(packet.payload))
+        .at(-1);
+    assert.deepEqual(receiverRequestUpdate, { name: 'Elmayuk', isRequest: true });
+
+    const prompt = receiver.sentPackets
+        .filter((packet) => packet.id === 0x58)
+        .map((packet) => decodeQueryMessageQuestion(packet.payload))
+        .at(-1);
+    assert.ok(prompt, 'receiver should get a visible friend-request query prompt');
+    assert.equal(prompt?.name, 'Elmayuk');
+    assert.equal(prompt?.message, 'Elmayuk wants to be your friend');
+
+    await SocialHandler.handleQueryMessageAnswer(
+        receiver as never,
+        buildQueryAnswerPacket(prompt!.token, prompt!.name, true)
+    );
+
+    assert.deepEqual(receiver.character.friends, [{ name: 'Elmayuk', isRequest: false }]);
+    assert.deepEqual(requester.character.friends, [{ name: 'Fleerpuh', isRequest: false }]);
+
+    const receiverAcceptUpdate = receiver.sentPackets
+        .filter((packet) => packet.id === 0x92)
+        .map((packet) => decodeFriendUpdate(packet.payload))
+        .at(-1);
+    const requesterAcceptUpdate = requester.sentPackets
+        .filter((packet) => packet.id === 0x92)
+        .map((packet) => decodeFriendUpdate(packet.payload))
+        .at(-1);
+
+    assert.deepEqual(receiverAcceptUpdate, { name: 'Elmayuk', isRequest: false });
+    assert.deepEqual(requesterAcceptUpdate, { name: 'Fleerpuh', isRequest: false });
+}
+
+async function testPendingFriendRequestResendsVisiblePrompt(): Promise<void> {
+    const requester = createFakeClient('Elmayuk');
+    const receiver = createFakeClient('Fleerpuh', [{ name: 'Elmayuk', isRequest: true }]);
+    requester.token = 9201;
+    receiver.token = 9202;
+
+    GlobalState.sessionsByToken.set(requester.token, requester as never);
+    GlobalState.sessionsByToken.set(receiver.token, receiver as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(requester.character.name), requester as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(receiver.character.name), receiver as never);
+
+    await SocialHandler.handleFriendRequest(requester as never, buildNamePacket('Fleerpuh'));
+
+    const prompt = receiver.sentPackets
+        .filter((packet) => packet.id === 0x58)
+        .map((packet) => decodeQueryMessageQuestion(packet.payload))
+        .at(-1);
+
+    assert.ok(prompt, 'already-pending live friend request should still show a visible prompt');
+    assert.equal(prompt?.name, 'Elmayuk');
+    assert.equal(prompt?.message, 'Elmayuk wants to be your friend');
+}
+
+async function testStaleCharacterIndexFallsBackToActiveTokenSession(): Promise<void> {
+    const requester = createFakeClient('Elmayuk');
+    const staleReceiver = createFakeClient('Fleerpuh');
+    const activeReceiver = createFakeClient('Fleerpuh');
+    requester.token = 9301;
+    staleReceiver.token = 9302;
+    activeReceiver.token = 9303;
+    staleReceiver.socket.destroyed = true;
+    staleReceiver.socket.readyState = 'closed';
+
+    GlobalState.sessionsByToken.set(requester.token, requester as never);
+    GlobalState.sessionsByToken.set(activeReceiver.token, activeReceiver as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(requester.character.name), requester as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(activeReceiver.character.name), staleReceiver as never);
+
+    await SocialHandler.handleFriendRequest(requester as never, buildNamePacket('Fleerpuh'));
+
+    assert.equal(staleReceiver.sentPackets.length, 0);
+    assert.equal(activeReceiver.sentPackets.some((packet) => packet.id === 0x58), true);
+    assert.equal(
+        GlobalState.sessionsByCharacterName.get(normalizeCharacterKey('Fleerpuh')),
+        activeReceiver as never
+    );
+}
+
+async function testLivePartyInvitePromptCreatesPartyOnAccept(): Promise<void> {
+    const inviter = createFakeClient('Elmayuk');
+    const invitee = createFakeClient('Fleerpuh');
+    inviter.token = 9401;
+    invitee.token = 9402;
+    inviter.clientEntID = 4101;
+    invitee.clientEntID = 4102;
+
+    GlobalState.sessionsByToken.set(inviter.token, inviter as never);
+    GlobalState.sessionsByToken.set(invitee.token, invitee as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(inviter.character.name), inviter as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(invitee.character.name), invitee as never);
+
+    SocialHandler.handleGroupInvite(inviter as never, buildNamePacket('Fleerpuh'));
+
+    const prompt = invitee.sentPackets
+        .filter((packet) => packet.id === 0x58)
+        .map((packet) => decodeQueryMessageQuestion(packet.payload))
+        .at(-1);
+    assert.ok(prompt, 'party invite should show a visible query prompt');
+    assert.equal(prompt?.token, inviter.clientEntID);
+    assert.equal(prompt?.name, 'Elmayuk');
+    assert.equal(prompt?.message, 'Elmayuk has invited you to join a party');
+
+    await SocialHandler.handleQueryMessageAnswer(
+        invitee as never,
+        buildQueryAnswerPacket(prompt!.token, prompt!.name, true)
+    );
+
+    const partyId = GlobalState.partyByMember.get(normalizeCharacterKey('Elmayuk'));
+    assert.ok(partyId, 'accepting a party invite should create a party for the inviter');
+    assert.equal(GlobalState.partyByMember.get(normalizeCharacterKey('Fleerpuh')), partyId);
+    assert.deepEqual(GlobalState.partyGroups.get(partyId!)?.members, ['Elmayuk', 'Fleerpuh']);
+}
+
 async function testUnfriendUsesRemovedEntryKeyForReverseUpdate(): Promise<void> {
     const requester = createFakeClient('Requester', [{ name: 'receiver', isRequest: false }]);
     const receiver = createFakeClient('Receiver', [{ name: 'Requester', isRequest: false }]);
 
+    GlobalState.sessionsByToken.set(requester.token, requester as never);
     GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(requester.character.name), requester as never);
 
     await SocialHandler.handleUnfriend(receiver as never, buildNamePacket('Requester'));
@@ -147,6 +311,12 @@ function testTeleportToPlayerCapturesDungeonAnchorState(): void {
     caller.currentLevel = 'BridgeTown';
     caller.playerSpawned = true;
     caller.clientEntID = 4001;
+    const callerMissionDef = MissionLoader.findPrimaryMissionByDungeon('TutorialDungeon');
+    if (callerMissionDef) {
+        (caller.character as any).missions = {
+            [String(callerMissionDef.MissionID)]: { state: 1 }
+        };
+    }
     target.token = 1002;
     target.currentLevel = 'TutorialDungeon';
     target.entryLevel = 'NewbieRoad';
@@ -161,6 +331,8 @@ function testTeleportToPlayerCapturesDungeonAnchorState(): void {
         'OtherLevel:2'
     ]);
 
+    GlobalState.sessionsByToken.set(caller.token, caller as never);
+    GlobalState.sessionsByToken.set(target.token, target as never);
     GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(caller.character.name), caller as never);
     GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(target.character.name), target as never);
 
@@ -186,6 +358,88 @@ function testTeleportToPlayerCapturesDungeonAnchorState(): void {
     assert.equal(pendingTeleport?.syncRoomId, 15);
     assert.deepEqual(pendingTeleport?.syncStartedRoomIds, [0, 4, 15]);
     assert.equal(caller.lastDoorTargetLevel, 'TutorialDungeon');
+    assert.equal(caller.sentPackets.some((packet) => packet.id === 0x2E), true);
+}
+
+function testTeleportToLockedPartyDungeonStartsPartyJoinTransfer(): void {
+    const caller = createFakeClient('Caller');
+    const target = createFakeClient('Target');
+    caller.token = 1101;
+    caller.currentLevel = 'AshwoodCaverns';
+    caller.playerSpawned = true;
+    caller.clientEntID = 4101;
+    target.token = 1102;
+    target.currentLevel = 'AC_Mission6';
+    target.currentRoomId = 3;
+    target.playerSpawned = true;
+    target.clientEntID = 4102;
+    target.entities.set(target.clientEntID, { x: 700, y: 800 });
+
+    GlobalState.sessionsByToken.set(caller.token, caller as never);
+    GlobalState.sessionsByToken.set(target.token, target as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(caller.character.name), caller as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(target.character.name), target as never);
+
+    const partyId = 78;
+    GlobalState.partyGroups.set(partyId, {
+        id: partyId,
+        leader: target.character.name,
+        members: [caller.character.name, target.character.name],
+        locked: false
+    });
+    GlobalState.partyByMember.set(normalizeCharacterKey(caller.character.name), partyId);
+    GlobalState.partyByMember.set(normalizeCharacterKey(target.character.name), partyId);
+
+    SocialHandler.handleTeleportToPlayer(caller as never, buildNamePacket(target.character.name));
+
+    const pendingTeleport = GlobalState.pendingTeleports.get(caller.token);
+    assert.ok(pendingTeleport, 'locked party member should still be able to join an existing party dungeon');
+    assert.equal(pendingTeleport?.targetLevel, 'AC_Mission6');
+    assert.equal(pendingTeleport?.syncAnchorToken, target.token);
+    assert.equal(caller.sentPackets.some((packet) => packet.id === 0x2E), true);
+}
+
+function testTeleportToUnlockedPartyDungeonStartsTransfer(): void {
+    const caller = createFakeClient('Caller');
+    const target = createFakeClient('Target');
+    caller.token = 1201;
+    caller.currentLevel = 'AshwoodCaverns';
+    caller.playerSpawned = true;
+    caller.clientEntID = 4201;
+    target.token = 1202;
+    target.currentLevel = 'AC_Mission6';
+    target.currentRoomId = 3;
+    target.playerSpawned = true;
+    target.clientEntID = 4202;
+    target.entities.set(target.clientEntID, { x: 701, y: 801 });
+
+    const missionDef = MissionLoader.findPrimaryMissionByDungeon('AC_Mission6');
+    assert.ok(missionDef, 'AC_Mission6 should have a primary dungeon mission');
+    (caller.character as any).missions = {
+        [String(missionDef!.MissionID)]: { state: 1 }
+    };
+
+    GlobalState.sessionsByToken.set(caller.token, caller as never);
+    GlobalState.sessionsByToken.set(target.token, target as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(caller.character.name), caller as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(target.character.name), target as never);
+
+    const partyId = 79;
+    GlobalState.partyGroups.set(partyId, {
+        id: partyId,
+        leader: target.character.name,
+        members: [caller.character.name, target.character.name],
+        locked: false
+    });
+    GlobalState.partyByMember.set(normalizeCharacterKey(caller.character.name), partyId);
+    GlobalState.partyByMember.set(normalizeCharacterKey(target.character.name), partyId);
+
+    SocialHandler.handleTeleportToPlayer(caller as never, buildNamePacket(target.character.name));
+
+    const pendingTeleport = GlobalState.pendingTeleports.get(caller.token);
+    assert.ok(pendingTeleport);
+    assert.equal(pendingTeleport?.targetLevel, 'AC_Mission6');
+    assert.equal(pendingTeleport?.syncAnchorToken, target.token);
     assert.equal(caller.sentPackets.some((packet) => packet.id === 0x2E), true);
 }
 
@@ -216,13 +470,47 @@ async function main(): Promise<void> {
         await testAcceptPreservesExistingFriendKey();
 
         GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
+        await testLiveFriendRequestSendsVisiblePromptAndAccepts();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
+        await testPendingFriendRequestResendsVisiblePrompt();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
+        await testStaleCharacterIndexFallsBackToActiveTokenSession();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyGroups.clear();
+        GlobalState.partyByMember.clear();
+        await testLivePartyInvitePromptCreatesPartyOnAccept();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
         await testUnfriendUsesRemovedEntryKeyForReverseUpdate();
 
         GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
         GlobalState.partyGroups.clear();
         GlobalState.partyByMember.clear();
         GlobalState.pendingTeleports.clear();
         testTeleportToPlayerCapturesDungeonAnchorState();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyGroups.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.pendingTeleports.clear();
+        testTeleportToLockedPartyDungeonStartsPartyJoinTransfer();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyGroups.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.pendingTeleports.clear();
+        testTeleportToUnlockedPartyDungeonStartsTransfer();
     } finally {
         GlobalState.sessionsByCharacterName = sessionsByCharacterName;
         GlobalState.sessionsByToken = sessionsByToken;

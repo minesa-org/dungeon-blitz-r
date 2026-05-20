@@ -163,6 +163,8 @@ export class Client {
     public mountTransferGraceUntil: number = 0;
     public startedRoomEvents: Set<string> = new Set();
     public knownEntityIds: Set<number> = new Set();
+    public entityIdAliases: Map<number, number> = new Map();
+    public sharedEntityRemoteUpdateDeferredIds: Set<number> = new Set();
     public pendingLoot: Map<number, PendingLootDrop> = new Map();
     public processedRewardSources: Set<string> = new Set();
     public triggeredLevelStates: Set<string> = new Set();
@@ -344,6 +346,8 @@ export class Client {
         this.mountTransferGraceUntil = 0;
         this.startedRoomEvents.clear();
         this.knownEntityIds.clear();
+        this.entityIdAliases.clear();
+        this.sharedEntityRemoteUpdateDeferredIds.clear();
         this.pendingLoot.clear();
         this.processedRewardSources.clear();
         this.dungeonRun = null;

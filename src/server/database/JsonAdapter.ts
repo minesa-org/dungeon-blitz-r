@@ -141,22 +141,23 @@ export class JsonAdapter implements IDatabase {
 
         try {
             const { GlobalState } = require('../core/GlobalState') as typeof import('../core/GlobalState');
-            const liveCharacter = this.normalizeCharacterProgress(
-                GlobalState.sessionsByUserId.get(userId)?.character
-            );
-            if (!liveCharacter) {
-                return nextCharacters;
-            }
+            const liveSessions = GlobalState.getActiveSessionsByUserId(userId);
+            for (const session of liveSessions) {
+                const liveCharacter = this.normalizeCharacterProgress(session.character);
+                if (!liveCharacter) {
+                    continue;
+                }
 
-            const normalizedName = this.normalizeCharacterName(liveCharacter?.name);
-            const index = nextCharacters.findIndex((entry) =>
-                this.normalizeCharacterName(entry?.name) === normalizedName
-            );
+                const normalizedName = this.normalizeCharacterName(liveCharacter?.name);
+                const index = nextCharacters.findIndex((entry) =>
+                    this.normalizeCharacterName(entry?.name) === normalizedName
+                );
 
-            if (index >= 0) {
-                nextCharacters[index] = liveCharacter;
-            } else {
-                nextCharacters.push(liveCharacter);
+                if (index >= 0) {
+                    nextCharacters[index] = liveCharacter;
+                } else {
+                    nextCharacters.push(liveCharacter);
+                }
             }
         } catch {
             return nextCharacters;

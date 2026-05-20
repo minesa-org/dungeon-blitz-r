@@ -50,7 +50,7 @@ function printHelp() {
             '',
             'Defaults:',
             '  exports and patches class_127 in the served DungeonBlitz SWF',
-            '  so /lang:tr, /lang: tr, /lang:en, and /lang: en pass through the client slash-command parser to the server.'
+            '  so /lang commands pass through and social commands send their resolved packet instead of null.'
         ].join('\n')
     );
 }
@@ -148,6 +148,15 @@ function verifyPatchedClass127(source, swfPath) {
     if (!source.includes('if(this.method_1940(param2))')) {
         throw new Error(`${path.basename(swfPath)} is missing the /lang passthrough guard.`);
     }
+    if (!source.includes('var _loc7_:Packet = new Packet(_loc6_);')) {
+        throw new Error(`${path.basename(swfPath)} is missing social command packet type forwarding.`);
+    }
+    if (!source.includes('var_1.serverConn.SendPacket(_loc7_);')) {
+        throw new Error(`${path.basename(swfPath)} is missing social command packet send forwarding.`);
+    }
+    if (source.includes('var_1.serverConn.SendPacket(null);')) {
+        throw new Error(`${path.basename(swfPath)} still drops social command packets.`);
+    }
 }
 
 function verifyPublicChatSenderNamePcode(source, swfPath) {
@@ -173,6 +182,7 @@ function verifyPublicChatSenderNamePcode(source, swfPath) {
 
 function patchClass127Source(source, swfPath) {
     source = patchPublicChatSenderName(source, swfPath);
+    source = patchSocialCommandPackets(source, swfPath);
 
     const oldReturn = 'return _loc2_ == "/lang:tr" || _loc2_ == "/lang:en" || _loc2_ == "\\\\lang:tr" || _loc2_ == "\\\\lang:en";';
     const newBlock = [
@@ -239,6 +249,31 @@ function patchClass127Source(source, swfPath) {
     return source.replace(methodStartPattern, patchedMethodStart);
 }
 
+function patchSocialCommandPackets(source, swfPath) {
+    if (
+        source.includes('var _loc7_:Packet = new Packet(_loc6_);') &&
+        source.includes('var_1.serverConn.SendPacket(_loc7_);') &&
+        !source.includes('var_1.serverConn.SendPacket(null);')
+    ) {
+        return source;
+    }
+
+    const socialCommandPacketPattern = /var _loc6_:uint = uint\(const_20\[param1\]\);\r?\n\s*var _loc7_:Packet = new Packet\(0\);\r?\n\s*_loc7_\.method_26\(param2\[0\]\);\r?\n\s*var_1\.serverConn\.SendPacket\(null\);/;
+    if (!socialCommandPacketPattern.test(source)) {
+        throw new Error(`${path.basename(swfPath)} has an unexpected social command packet block.`);
+    }
+
+    return source.replace(
+        socialCommandPacketPattern,
+        [
+            'var _loc6_:uint = uint(const_20[param1]);',
+            '               var _loc7_:Packet = new Packet(_loc6_);',
+            '               _loc7_.method_26(param2[0]);',
+            '               var_1.serverConn.SendPacket(_loc7_);'
+        ].join('\n')
+    );
+}
+
 function patchPublicChatSenderName(source, swfPath) {
     if (
         source.includes('var _loc5_:String = "Unknown";') &&
@@ -291,7 +326,7 @@ function patchSwf(repoRoot, ffdecPath, swfPath) {
     const scriptsDir = path.join(workRoot, 'scripts');
     runFfdec(ffdecPath, ['-importScript', swfPath, patchedSwfPath, scriptsDir]);
     fs.copyFileSync(patchedSwfPath, swfPath);
-    console.log(`Patched chat command passthrough in ${swfPath}`);
+    console.log(`Patched chat command handling in ${swfPath}`);
 }
 
 function verifySwf(repoRoot, ffdecPath, swfPath) {
@@ -305,7 +340,7 @@ function verifySwf(repoRoot, ffdecPath, swfPath) {
     verifyPatchedClass127(fs.readFileSync(classPath, 'utf8'), swfPath);
     const pcodePath = exportClass127Pcode(ffdecPath, `${workRoot}-pcode`, swfPath);
     verifyPublicChatSenderNamePcode(fs.readFileSync(pcodePath, 'utf8'), swfPath);
-    console.log(`Verified chat command passthrough in ${swfPath}`);
+    console.log(`Verified chat command handling in ${swfPath}`);
 }
 
 function main() {

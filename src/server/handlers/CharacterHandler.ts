@@ -35,6 +35,7 @@ import {
     getScopeLevelName,
     normalizeLevelInstanceId
 } from '../core/LevelScope';
+import { getCharacterRuntimeLevel, getPartyRuntimeLevelForClient } from '../core/RuntimeLevel';
 
 const db = new JsonAdapter();
 
@@ -42,15 +43,19 @@ export class CharacterHandler {
     private static readonly DYE_GOLD_COST = [0, 455, 550, 595, 650, 735, 795, 890, 965, 1075, 1155, 1285, 1385, 1520, 1685, 1810, 1985, 2180, 2380, 2600, 2845, 3090, 3375, 3710, 4025, 4410, 4790, 5225, 5705, 6215, 6750, 7340, 8020, 8690, 9455, 10300, 11230, 12185, 13255, 14405, 15635, 17010, 18475, 20050, 21725, 23650, 25640, 27835, 30165, 32730, 35540] as const;
     private static readonly DYE_IDOLS_COST = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10, 11, 11, 12, 13, 14, 16, 17] as const;
 
-    private static resolveDungeonMapPacketLevel(levelName: string, configuredLevel: number, character: Character): number {
+    private static resolveDungeonMapPacketLevel(
+        levelName: string,
+        configuredLevel: number,
+        character: Character,
+        client?: Client
+    ): number {
         if (!LevelConfig.isDungeonLevel(levelName)) {
             return configuredLevel;
         }
 
-        const xpLevel = GameData.getPlayerLevelFromXp(Math.max(0, Number(character.xp ?? 0)));
-        const characterLevel = Math.max(1, Number(character.level ?? 0));
-        const resolvedLevel = xpLevel > 1 ? xpLevel : characterLevel;
-        return Math.max(1, Math.min(50, Math.round(resolvedLevel || configuredLevel || 1)));
+        return client
+            ? getPartyRuntimeLevelForClient(client, character, configuredLevel)
+            : getCharacterRuntimeLevel(character, configuredLevel);
     }
 
     private static async saveCharacterSnapshot(client: Client): Promise<void> {
@@ -158,12 +163,17 @@ export class CharacterHandler {
 
             for (const [entityId, entityProps] of Array.from(levelMap.entries())) {
                 const normalizedEntityName = String(entityProps?.name || '').trim().toLowerCase();
+                const normalizedOwnerCharacterName = String(entityProps?.ownerCharacterName || '').trim().toLowerCase();
                 const ownerUserId = Number(entityProps?.ownerUserId ?? 0);
                 const ownerToken = Number(entityProps?.ownerToken ?? 0);
                 const isSameUser = ownerUserId > 0 && ownerUserId === userId;
-                const isSameCharacter = normalizedEntityName === normalizedCharName;
-                const isDuplicatePlayer = Boolean(entityProps?.isPlayer) && (isSameUser || isSameCharacter);
-                const isDuplicateOwnedSpawn = Boolean(entityProps?.clientSpawned) && isSameUser;
+                const isSameCharacter = Boolean(normalizedCharName) && normalizedEntityName === normalizedCharName;
+                const isSameOwnerCharacter = Boolean(normalizedOwnerCharacterName) && normalizedOwnerCharacterName === normalizedCharName;
+                const isDuplicatePlayer = Boolean(entityProps?.isPlayer) && (isSameCharacter || isSameOwnerCharacter);
+                const isDuplicateOwnedSpawn = Boolean(entityProps?.clientSpawned) && (
+                    isSameOwnerCharacter ||
+                    (!normalizedOwnerCharacterName && isSameUser)
+                );
 
                 if (!isDuplicatePlayer && !isDuplicateOwnedSpawn) {
                     continue;
@@ -941,7 +951,7 @@ export class CharacterHandler {
         // Get Level Config
         const levelSpec = LevelConfig.get(currentLevelName);
         const isHard = currentLevelName.endsWith("Hard");
-        const runtimeMapLevel = CharacterHandler.resolveDungeonMapPacketLevel(currentLevelName, levelSpec.mapId, char);
+        const runtimeMapLevel = CharacterHandler.resolveDungeonMapPacketLevel(currentLevelName, levelSpec.mapId, char, client);
         const runtimeBaseLevel = levelSpec.baseId;
 
         const pendingEntry = GlobalState.pendingWorld.get(token);
@@ -1180,6 +1190,7 @@ export class CharacterHandler {
         SocialHandler.handleSessionReady(client);
         
         // Spawn NPCs
+        EntityHandler.rescaleDungeonEntitiesForParty(client);
         LevelHandler.spawnLevelNpcs(client, entry.targetLevel);
         const restoredRoomProgress = LevelHandler.restoreTransferredRoomProgress(client, entry);
         if (!restoredRoomProgress) {

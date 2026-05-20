@@ -717,13 +717,11 @@ export class WorldEnter {
                 let className = '';
                 let level = 1;
 
-                for (const session of GlobalState.sessionsByToken.values()) {
-                    if (session.character?.name === friendName) {
-                        isOnline = true;
-                        className = String(session.character.class ?? '');
-                        level = Number(session.character.level ?? 1);
-                        break;
-                    }
+                const session = GlobalState.getActiveSessionByCharacterName(friendName);
+                if (session?.character) {
+                    isOnline = true;
+                    className = String(session.character.class ?? '');
+                    level = Number(session.character.level ?? 1);
                 }
 
                 bb.writeMethod13(friendName);

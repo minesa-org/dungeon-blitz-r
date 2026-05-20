@@ -10,7 +10,6 @@ import { BitReader } from '../network/protocol/bitReader';
 import { LevelConfig } from '../core/LevelConfig';
 import { GlobalState, PendingTransfer } from '../core/GlobalState';
 import { DebugLogger } from '../core/Debug';
-import { GameData } from '../core/GameData';
 import {
     cloneDungeonRunStats,
     finalizeDungeonRun,
@@ -51,6 +50,7 @@ import {
     getLevelScopeKey,
     normalizeLevelInstanceId
 } from '../core/LevelScope';
+import { getCharacterRuntimeLevel, getPartyRuntimeLevelForClient } from '../core/RuntimeLevel';
 
 const db = new JsonAdapter();
 
@@ -138,15 +138,19 @@ export class LevelHandler {
     private static readonly GOBLIN_RIVER_BOSS_INTRO_DEFAULT_MS = 5000;
     private static readonly DUNGEON_CUTSCENE_COMBAT_LOCK_MAX_MS = 30000;
 
-    private static resolveDungeonMapPacketLevel(levelName: string, configuredLevel: number, character: Character): number {
+    private static resolveDungeonMapPacketLevel(
+        levelName: string,
+        configuredLevel: number,
+        character: Character,
+        client?: Client
+    ): number {
         if (!LevelConfig.isDungeonLevel(levelName)) {
             return configuredLevel;
         }
 
-        const xpLevel = GameData.getPlayerLevelFromXp(Math.max(0, Number(character.xp ?? 0)));
-        const characterLevel = Math.max(1, Number(character.level ?? 0));
-        const resolvedLevel = xpLevel > 1 ? xpLevel : characterLevel;
-        return Math.max(1, Math.min(50, Math.round(resolvedLevel || configuredLevel || 1)));
+        return client
+            ? getPartyRuntimeLevelForClient(client, character, configuredLevel)
+            : getCharacterRuntimeLevel(character, configuredLevel);
     }
 
     private static getCraftTownTutorialAuthoredHelperIds(): number[] {
@@ -276,34 +280,26 @@ export class LevelHandler {
     private static findActiveTransferSession(userId: number | null, characterName: string | null | undefined): Client | null {
         const normalizedCharName = normalizeCharacterKey(characterName);
 
-        if (userId) {
-            const userSession = GlobalState.sessionsByUserId.get(userId);
-            if (userSession?.character) {
-                if (!normalizedCharName || normalizeCharacterKey(userSession.character.name) === normalizedCharName) {
-                    return userSession;
-                }
-            }
-        }
-
         if (normalizedCharName) {
             const charSession = GlobalState.sessionsByCharacterName.get(normalizedCharName);
-            if (charSession?.character) {
+            if (charSession?.character && (!userId || charSession.userId === userId)) {
                 return charSession;
             }
-        }
 
-        for (const session of GlobalState.sessionsByToken.values()) {
-            if (!session.character) {
-                continue;
-            }
-            if (userId && session.userId === userId) {
-                if (!normalizedCharName || normalizeCharacterKey(session.character.name) === normalizedCharName) {
+            for (const session of GlobalState.sessionsByToken.values()) {
+                if (!session.character || (userId && session.userId !== userId)) {
+                    continue;
+                }
+                if (normalizeCharacterKey(session.character.name) === normalizedCharName) {
                     return session;
                 }
             }
-            if (normalizedCharName && normalizeCharacterKey(session.character.name) === normalizedCharName) {
-                return session;
-            }
+
+            return null;
+        }
+
+        if (userId) {
+            return GlobalState.getActiveSessionsByUserId(userId)[0] ?? null;
         }
 
         return null;
@@ -2507,6 +2503,40 @@ export class LevelHandler {
         }
     }
 
+    private static buildEntityIncrementalUpdatePayload(
+        entityId: number,
+        deltaX: number,
+        deltaY: number,
+        deltaVX: number,
+        entState: number,
+        flags: {
+            bLeft: boolean;
+            bRunning: boolean;
+            bJumping: boolean;
+            bDropping: boolean;
+            bBackpedal: boolean;
+        },
+        isAirborne: boolean,
+        velocityY: number
+    ): Buffer {
+        const bb = new BitBuffer(false);
+        bb.writeMethod4(entityId);
+        bb.writeMethod45(deltaX);
+        bb.writeMethod45(deltaY);
+        bb.writeMethod45(deltaVX);
+        bb.writeMethod6(entState, 2);
+        bb.writeMethod15(flags.bLeft);
+        bb.writeMethod15(flags.bRunning);
+        bb.writeMethod15(flags.bJumping);
+        bb.writeMethod15(flags.bDropping);
+        bb.writeMethod15(flags.bBackpedal);
+        bb.writeMethod15(isAirborne);
+        if (isAirborne) {
+            bb.writeMethod24(velocityY);
+        }
+        return bb.toBuffer();
+    }
+
     private static cacheRoomId(client: Client, roomId: number): void {
         if (Number.isFinite(roomId) && roomId >= 0) {
             const previousRoomId = Number.isFinite(Number(client.currentRoomId))
@@ -3804,7 +3834,7 @@ export class LevelHandler {
             return;
         }
 
-        if (!LevelHandler.isDungeonEntryUnlocked(client, client.currentLevel || '', targetLevel)) {
+        if (!teleportOverride && !LevelHandler.isDungeonEntryUnlocked(client, client.currentLevel || '', targetLevel)) {
             console.log(`[Level] Transfer to ${targetLevel} blocked until the matching dungeon quest is accepted`);
             LevelHandler.sendLockedDoorThought(
                 client,
@@ -3909,7 +3939,7 @@ export class LevelHandler {
         const levelSpec = LevelConfig.get(targetLevel);
         const isHard = targetLevel.endsWith("Hard");
         const oldLevelSpec = LevelConfig.get(oldLevel);
-        const runtimeMapLevel = LevelHandler.resolveDungeonMapPacketLevel(targetLevel, levelSpec.mapId, hostChar);
+        const runtimeMapLevel = LevelHandler.resolveDungeonMapPacketLevel(targetLevel, levelSpec.mapId, activeCharacter, client);
         const runtimeBaseLevel = levelSpec.baseId;
         
         const pkt = WorldEnter.buildEnterWorldPacket(
@@ -3978,8 +4008,9 @@ export class LevelHandler {
     static async handleEntityIncrementalUpdate(client: Client, data: Buffer): Promise<void> {
         // data passed from Client is already the payload (header stripped)
         const br = new BitReader(data);
-        const entityId = br.readMethod4();
-        const isSelf = (entityId === client.clientEntID);
+        const rawEntityId = br.readMethod4();
+        const entityId = EntityHandler.resolveEntityAlias(client, rawEntityId);
+        const isSelf = (rawEntityId === client.clientEntID || entityId === client.clientEntID);
 
         // If it's us and we haven't spawned, ignore
         // In TS we don't track 'player_spawned' explicitly like python yet, but usually we can ignore.
@@ -4005,8 +4036,22 @@ export class LevelHandler {
         // Update Entity
         if (!client.entities) return;
         const levelEntity = LevelHandler.getCurrentLevelMap(client)?.get(entityId);
-        const ent = client.entities.get(entityId) ?? levelEntity;
+        const ent = client.entities.get(rawEntityId) ?? client.entities.get(entityId) ?? levelEntity;
         if (!ent) return;
+        const currentLevel = client.currentLevel || "NewbieRoad";
+        const isAliasedSharedClientSpawnUpdate =
+            rawEntityId !== entityId &&
+            EntityHandler.shouldMirrorClientSpawnEntityToParty(currentLevel, levelEntity ?? ent);
+        if (isAliasedSharedClientSpawnUpdate) {
+            EntityHandler.markSharedEntityRemoteUpdatesReady(client, entityId);
+            const ownerToken = Math.round(Number((levelEntity ?? ent)?.ownerToken ?? 0));
+            if (ownerToken > 0 && ownerToken !== client.token) {
+                return;
+            }
+        } else {
+            EntityHandler.markSharedEntityRemoteUpdatesReady(client, entityId);
+        }
+
         const isEnemyEntity =
             !isSelf &&
             !ent.isPlayer &&
@@ -4026,7 +4071,6 @@ export class LevelHandler {
         ent.velocityY = velocityY;
         ent.airborne = isAirborne;
 
-        const currentLevel = client.currentLevel || "NewbieRoad";
         if (levelEntity && levelEntity !== ent) {
             levelEntity.x = ent.x;
             levelEntity.y = ent.y;
@@ -4125,14 +4169,46 @@ export class LevelHandler {
         }
 
         const relayEntity = levelEntity ?? ent;
+        const relayData = rawEntityId === entityId
+            ? data
+            : LevelHandler.buildEntityIncrementalUpdatePayload(
+                entityId,
+                deltaX,
+                deltaY,
+                deltaVX,
+                entState,
+                flags,
+                isAirborne,
+                velocityY
+            );
         for (const other of LevelHandler.forLevelRecipients(client)) {
             if (!EntityHandler.canClientSeeEntity(other, relayEntity)) {
                 continue;
             }
-            if (!EntityHandler.ensureEntityKnown(other, client.currentLevel, entityId)) {
+            const isSharedClientSpawnEntity = EntityHandler.shouldMirrorClientSpawnEntityToParty(client.currentLevel, relayEntity);
+            if (isSharedClientSpawnEntity) {
+                // These enemies are physically owned by each Flash client.
+                // Relaying remote movement into a joiner's local enemy can make
+                // LinkUpdater touch gfx before the client has built it.
+                continue;
+            } else if (!EntityHandler.ensureEntityKnown(other, client.currentLevel, entityId)) {
                 continue;
             }
-            other.send(0x07, data);
+
+            const localEntityId = EntityHandler.resolveEntityLocalId(other, entityId);
+            const outboundData = localEntityId === entityId
+                ? relayData
+                : LevelHandler.buildEntityIncrementalUpdatePayload(
+                    localEntityId,
+                    deltaX,
+                    deltaY,
+                    deltaVX,
+                    entState,
+                    flags,
+                    isAirborne,
+                    velocityY
+                );
+            other.send(0x07, outboundData);
         }
     }
 

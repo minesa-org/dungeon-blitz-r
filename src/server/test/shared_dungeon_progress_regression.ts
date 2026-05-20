@@ -275,6 +275,66 @@ async function testGoblinRiverQuestProgressFollowsHostileOwnerAuthority(): Promi
     );
 }
 
+async function testSameAccountPartyMembersShareDungeonProgress(): Promise<void> {
+    const authority = createClient(805, 'Fleerpuh');
+    const joiner = createClient(806, 'FleerpuhAlt');
+    authority.userId = 42;
+    joiner.userId = 42;
+
+    GlobalState.sessionsByToken.set(authority.token, authority as never);
+    GlobalState.sessionsByToken.set(joiner.token, joiner as never);
+    setPartyLeader(authority, joiner);
+    GlobalState.levelEntities.set('GoblinRiverDungeon#goblin-shared', new Map<number, any>([
+        [
+            5051,
+            {
+                id: 5051,
+                name: 'GoblinClub',
+                isPlayer: false,
+                team: 2,
+                entState: 0,
+                hp: 100,
+                clientSpawned: true,
+                ownerToken: authority.token,
+                ownerUserId: 42,
+                ownerCharacterName: authority.character.name,
+                ownerPartyId: 77,
+                roomId: 1
+            }
+        ],
+        [
+            5052,
+            {
+                id: 5052,
+                name: 'GoblinDagger',
+                isPlayer: false,
+                team: 2,
+                entState: 6,
+                hp: 0,
+                dead: true,
+                clientSpawned: true,
+                ownerToken: authority.token,
+                ownerUserId: 42,
+                ownerCharacterName: authority.character.name,
+                ownerPartyId: 77,
+                roomId: 1
+            }
+        ]
+    ]));
+
+    await LevelHandler.handleQuestProgressUpdate(joiner as never, createQuestProgressPacket(100));
+
+    const sharedState = getSharedDungeonProgressState('GoblinRiverDungeon#goblin-shared');
+    assert.equal(sharedState?.authorityToken, authority.token);
+    assert.equal(joiner.character.questTrackerState, 56);
+    assert.equal(authority.character.questTrackerState, 56);
+    assert.deepEqual(
+        joiner.sentPackets.filter((packet) => packet.id === 0xB7).map((packet) => parseQuestProgress(packet.payload)),
+        [56],
+        'same-account party member should share the canonical dungeon progress state'
+    );
+}
+
 async function testGoblinRiverLevelCompleteWaitsForSharedProgressCompletion(): Promise<void> {
     const authority = createClient(811, 'Leader');
     const joiner = createClient(812, 'Member');
@@ -957,6 +1017,13 @@ async function main(): Promise<void> {
         GlobalState.partyByMember.clear();
         GlobalState.partyGroups.clear();
         await testGoblinRiverQuestProgressFollowsHostileOwnerAuthority();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.partyGroups.clear();
+        await testSameAccountPartyMembersShareDungeonProgress();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

@@ -119,11 +119,7 @@ export class GuildHandler {
     }
 
     private static isSessionOnline(session: Client | null | undefined): session is Client {
-        return Boolean(
-            session?.character &&
-            !session.socket.destroyed &&
-            session.socket.readyState === 'open'
-        );
+        return GlobalState.isSessionOpen(session);
     }
 
     private static getOnlineSession(name: string): Client | null {
@@ -132,7 +128,7 @@ export class GuildHandler {
             return null;
         }
 
-        const session = GlobalState.sessionsByCharacterName.get(key);
+        const session = GlobalState.getActiveSessionByCharacterName(key);
         return GuildHandler.isSessionOnline(session) ? session : null;
     }
 

@@ -1,6 +1,6 @@
 import { Character } from '../database/Database';
 import { Client } from './Client';
-import { PartyGroup, PendingTeleport } from './SocialState';
+import { normalizeCharacterKey, PartyGroup, PendingTeleport } from './SocialState';
 
 export interface PendingTransfer {
     character: Character;
@@ -89,4 +89,71 @@ export class GlobalState {
     static entityLastRewardNonces: Map<string, number> = new Map();
     // Level Name -> LevelInstance (if needed) or just keys of levelEntities
     static levelRegistry: { [key: string]: any } = {};
+
+    static getActiveSessionsByUserId(userId: number | null | undefined): Client[] {
+        const normalizedUserId = Number(userId ?? 0);
+        if (!Number.isFinite(normalizedUserId) || normalizedUserId <= 0) {
+            return [];
+        }
+
+        const seen = new Set<Client>();
+        const sessions: Client[] = [];
+        for (const session of GlobalState.sessionsByToken.values()) {
+            if (!session?.character || session.userId !== normalizedUserId || seen.has(session)) {
+                continue;
+            }
+
+            seen.add(session);
+            sessions.push(session);
+        }
+
+        return sessions;
+    }
+
+    static isSessionOpen(session: Client | null | undefined): session is Client {
+        if (!session?.character) {
+            return false;
+        }
+
+        const socket = (session as unknown as { socket?: { destroyed?: boolean; readyState?: string } }).socket;
+        return !socket || (!socket.destroyed && socket.readyState === 'open');
+    }
+
+    private static hasActiveTokenIndex(session: Client): boolean {
+        const token = Number((session as unknown as { token?: number }).token ?? 0);
+        return token <= 0 || GlobalState.sessionsByToken.get(token) === session;
+    }
+
+    static getActiveSessionByCharacterName(name: unknown): Client | null {
+        const characterKey = normalizeCharacterKey(name);
+        if (!characterKey) {
+            return null;
+        }
+
+        const indexed = GlobalState.sessionsByCharacterName.get(characterKey);
+        if (
+            indexed &&
+            GlobalState.isSessionOpen(indexed) &&
+            GlobalState.hasActiveTokenIndex(indexed) &&
+            normalizeCharacterKey(indexed.character?.name) === characterKey
+        ) {
+            return indexed;
+        }
+
+        if (indexed && (!GlobalState.isSessionOpen(indexed) || !GlobalState.hasActiveTokenIndex(indexed))) {
+            GlobalState.sessionsByCharacterName.delete(characterKey);
+        }
+
+        for (const session of GlobalState.sessionsByToken.values()) {
+            if (
+                GlobalState.isSessionOpen(session) &&
+                normalizeCharacterKey(session.character?.name) === characterKey
+            ) {
+                GlobalState.sessionsByCharacterName.set(characterKey, session);
+                return session;
+            }
+        }
+
+        return null;
+    }
 }

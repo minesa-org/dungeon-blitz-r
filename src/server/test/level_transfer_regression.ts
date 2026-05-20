@@ -433,6 +433,102 @@ function testBuildTransferSyncStatePrefersPartyAnchorInDungeon(): void {
     assert.deepEqual(syncState.syncStartedRoomIds, [0, 5, 15]);
 }
 
+function testFindActiveTransferSessionPrefersNamedCharacterOverSameUserIndex(): void {
+    const fleerpuh = {
+        token: 6201,
+        userId: 41,
+        character: createCharacter('Fleerpuh'),
+        characters: [],
+        entities: new Map<number, any>(),
+        currentLevel: 'CraftTown',
+        entryLevel: '',
+        currentRoomId: 0,
+        startedRoomEvents: new Set<string>(),
+        clientEntID: 201,
+        lastDoorId: 0,
+        lastDoorTargetLevel: '',
+        playerSpawned: true
+    };
+    const alt = {
+        token: 6202,
+        userId: 41,
+        character: createCharacter('FleerpuhAlt'),
+        characters: [],
+        entities: new Map<number, any>(),
+        currentLevel: 'GoblinRiverDungeon',
+        levelInstanceId: 'same-account-run',
+        entryLevel: 'NewbieRoad',
+        currentRoomId: 3,
+        startedRoomEvents: new Set<string>(['GoblinRiverDungeon:3']),
+        clientEntID: 202,
+        lastDoorId: 0,
+        lastDoorTargetLevel: '',
+        playerSpawned: true
+    };
+    const staleUserIndexSession = {
+        token: 6203,
+        userId: 41,
+        character: createCharacter('StaleUserIndexOnly')
+    };
+
+    GlobalState.sessionsByUserId.set(41, staleUserIndexSession as never);
+    GlobalState.sessionsByToken.set(fleerpuh.token, fleerpuh as never);
+    GlobalState.sessionsByToken.set(alt.token, alt as never);
+    GlobalState.sessionsByCharacterName.set('fleerpuh', fleerpuh as never);
+    GlobalState.sessionsByCharacterName.set('fleerpuhalt', alt as never);
+
+    const resolvedFleerpuh = (LevelHandler as any).findActiveTransferSession(41, 'Fleerpuh');
+    const resolvedAlt = (LevelHandler as any).findActiveTransferSession(41, 'FleerpuhAlt');
+    const userFallback = (LevelHandler as any).findActiveTransferSession(41, '');
+
+    assert.equal(resolvedFleerpuh, fleerpuh);
+    assert.equal(resolvedAlt, alt);
+    assert.equal(
+        userFallback,
+        fleerpuh,
+        'user-level fallback should derive from active token sessions when no character name is available'
+    );
+}
+
+function testBuildTransferSyncStateAllowsSameAccountDifferentCharacterPartyAnchor(): void {
+    const follower = createClient();
+    follower.userId = 41;
+    follower.character = createCharacter('FleerpuhAlt');
+    follower.currentLevel = 'CraftTown';
+    follower.playerSpawned = true;
+
+    const leader = {
+        token: 6301,
+        userId: 41,
+        character: createCharacter('Fleerpuh'),
+        characters: [],
+        entities: new Map<number, any>([[301, { x: 1800, y: 2600 }]]),
+        currentLevel: 'GoblinRiverDungeon',
+        levelInstanceId: 'same-account-party-run',
+        entryLevel: 'NewbieRoad',
+        syncAnchorStartedAt: 2222,
+        currentRoomId: 4,
+        startedRoomEvents: new Set<string>(['GoblinRiverDungeon:4']),
+        clientEntID: 301,
+        lastDoorId: 0,
+        lastDoorTargetLevel: '',
+        playerSpawned: true
+    };
+
+    GlobalState.sessionsByToken.set(leader.token, leader as never);
+    GlobalState.partyByMember.set('fleerpuhalt', 101);
+    GlobalState.partyByMember.set('fleerpuh', 101);
+
+    const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'GoblinRiverDungeon', null);
+
+    assert.ok(syncState);
+    assert.equal(syncState.levelInstanceId, 'same-account-party-run');
+    assert.equal(syncState.syncAnchorToken, leader.token);
+    assert.equal(syncState.syncAnchorCharacterName, 'Fleerpuh');
+    assert.equal(syncState.syncRoomId, 4);
+    assert.deepEqual(syncState.syncStartedRoomIds, [4]);
+}
+
 function testBuildTransferSyncStateSkipsStrangerDungeonInstance(): void {
     const follower = createClient();
     follower.character = createCharacter('Follower');
@@ -1198,6 +1294,52 @@ async function testLockedDungeonTransferRequestIsBlocked(): Promise<void> {
         entityId: 451,
         text: "^tI haven't unlocked this dungeon yet."
     });
+}
+
+async function testPartyTeleportCanJoinLockedDungeonTransfer(): Promise<void> {
+    const client = createClient();
+    client.token = 3002;
+    client.userId = 42;
+    client.currentLevel = 'CemeteryHill';
+    client.lastDoorId = 0;
+    client.lastDoorTargetLevel = 'CH_MiniMission9';
+    client.clientEntID = 452;
+    client.character = createCharacter('HillPartyJoiner');
+    client.character.CurrentLevel = { name: 'CemeteryHill', x: 12100, y: 910 };
+
+    GlobalState.pendingTeleports.set(client.token, {
+        targetLevel: 'CH_MiniMission9',
+        levelInstanceId: 'party-dungeon-join',
+        x: 8800,
+        y: 500,
+        hasCoord: true,
+        syncAnchorToken: 3003,
+        syncAnchorCharacterName: 'HillPartyLeader',
+        syncRoomId: 2,
+        syncStartedRoomIds: [0, 2],
+        syncQuestProgress: 25
+    });
+
+    await LevelHandler.handleLevelTransferRequest(
+        client as never,
+        createLevelTransferPacket(3002, 'CH_MiniMission9')
+    );
+
+    const enterWorldPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x21);
+    assert.ok(
+        enterWorldPacket,
+        'party teleport into an existing dungeon should bypass the starter unlock gate'
+    );
+    assert.equal(parseEnterWorldLevelPacket(enterWorldPacket.payload).internalName, 'CH_MiniMission9');
+
+    const pendingTransfer = Array.from(GlobalState.pendingWorld.values()).find((entry) =>
+        entry.character?.name === 'HillPartyJoiner' &&
+        entry.targetLevel === 'CH_MiniMission9'
+    );
+    assert.ok(pendingTransfer, 'party join transfer should store reconnect state for the dungeon world');
+    assert.equal(pendingTransfer?.levelInstanceId, 'party-dungeon-join');
+    assert.equal(pendingTransfer?.syncRoomId, 2);
+    assert.deepEqual(pendingTransfer?.syncStartedRoomIds, [0, 2]);
 }
 
 function testRecoverTransferSessionStateRepairsCraftTownEntryLoop(): void {
@@ -2162,6 +2304,44 @@ function testDungeonMapPacketLevelKeepsAuthoredBaseLevelForEnemyScaling(): void 
     assert.equal(resolvedBaseLevel, 3, 'dungeon base level must stay authored so enemies receive the map/base scaling delta');
 }
 
+function testDungeonMapPacketLevelUsesMaxLivePartyLevel(): void {
+    const lowClient = createClient();
+    const lowCharacter = createCharacter('Lowbie');
+    lowCharacter.level = 12;
+    lowClient.character = lowCharacter;
+
+    const highClient = createClient();
+    const highCharacter = createCharacter('Fifty');
+    highCharacter.level = 50;
+    highClient.token = 8501;
+    highClient.character = highCharacter;
+
+    GlobalState.sessionsByToken.set(highClient.token, highClient as never);
+    GlobalState.partyByMember.set('lowbie', 851);
+    GlobalState.partyByMember.set('fifty', 851);
+
+    assert.equal(
+        (CharacterHandler as any).resolveDungeonMapPacketLevel(
+            'GoblinRiverDungeon',
+            LevelConfig.get('GoblinRiverDungeon').mapId,
+            lowCharacter,
+            lowClient
+        ),
+        50,
+        'character-select dungeon entry should use the highest live party level'
+    );
+    assert.equal(
+        (LevelHandler as any).resolveDungeonMapPacketLevel(
+            'GoblinRiverDungeon',
+            LevelConfig.get('GoblinRiverDungeon').mapId,
+            lowCharacter,
+            lowClient
+        ),
+        50,
+        'door-transfer dungeon entry should use the highest live party level'
+    );
+}
+
 function testEnterWorldRepairsUnsafeSavedDungeonLocation(): void {
     const client = createClient();
     const character = createCharacter('RecoveredValhavenCrawler');
@@ -2291,6 +2471,7 @@ async function main(): Promise<void> {
     const transferTokenAliases = new Map(GlobalState.transferTokenAliases);
     const levelEntities = new Map(GlobalState.levelEntities);
     const partyByMember = new Map(GlobalState.partyByMember);
+    const pendingTeleports = new Map(GlobalState.pendingTeleports);
 
     GlobalState.sessionsByToken.clear();
     GlobalState.sessionsByUserId.clear();
@@ -2387,6 +2568,7 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
 
         testDungeonMapPacketLevelKeepsAuthoredBaseLevelForEnemyScaling();
+        testDungeonMapPacketLevelUsesMaxLivePartyLevel();
         testEnterWorldRepairsUnsafeSavedDungeonLocation();
         testDungeonSafeReturnUsesExplicitEntryCoordinates();
         testBuildTransferSyncStateKeepsTeleportCallerReturnPoint();
@@ -2417,6 +2599,24 @@ async function main(): Promise<void> {
         testBuildTransferSyncStatePrefersPartyAnchorInDungeon();
 
         GlobalState.sessionsByToken.clear();
+        GlobalState.sessionsByUserId.clear();
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.partyByMember.clear();
+
+        testFindActiveTransferSessionPrefersNamedCharacterOverSameUserIndex();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.sessionsByUserId.clear();
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.partyByMember.clear();
+
+        testBuildTransferSyncStateAllowsSameAccountDifferentCharacterPartyAnchor();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.sessionsByUserId.clear();
+        GlobalState.sessionsByCharacterName.clear();
         GlobalState.pendingWorld.clear();
         GlobalState.partyByMember.clear();
 
@@ -2477,12 +2677,14 @@ async function main(): Promise<void> {
         await testDreadValhavenGateTransferRecoversFromCurrentLevelEcho();
         testLockedDungeonDoorReportsLockedAndDoesNotOpen();
         await testLockedDungeonTransferRequestIsBlocked();
+        await testPartyTeleportCanJoinLockedDungeonTransfer();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();
         GlobalState.sessionsByCharacterName.clear();
         GlobalState.pendingWorld.clear();
         GlobalState.pendingExtended.clear();
+        GlobalState.pendingTeleports.clear();
         GlobalState.usedTransferTokens.clear();
         GlobalState.tokenChar.clear();
         GlobalState.transferTokenAliases.clear();
@@ -2579,6 +2781,7 @@ async function main(): Promise<void> {
         GlobalState.transferTokenAliases = transferTokenAliases;
         GlobalState.levelEntities = levelEntities;
         GlobalState.partyByMember = partyByMember;
+        GlobalState.pendingTeleports = pendingTeleports;
     }
 
     console.log('level_transfer_regression: ok');

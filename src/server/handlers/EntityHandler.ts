@@ -5,7 +5,6 @@ import { BitReader } from '../network/protocol/bitReader';
 import { DebugConfig } from '../core/Debug';
 import { GlobalState } from '../core/GlobalState';
 import { Entity, EntityProps, EntityState } from '../core/Entity';
-import { GameData } from '../core/GameData';
 import { LevelConfig } from '../core/LevelConfig';
 import { PetHandler } from './PetHandler';
 import { BuildingHandler } from './BuildingHandler';
@@ -13,6 +12,7 @@ import { MissionHandler } from './MissionHandler';
 import { noteDungeonRunBossCutscene, noteDungeonRunEntitySeen } from '../core/DungeonRunStats';
 import { areClientsInSameParty, getPartyIdForClient, isClientPartyLeader, sharesRoomIds } from '../core/PartySync';
 import { areClientsInSameLevelScope, getClientLevelScope, getLevelScopeKey } from '../core/LevelScope';
+import { getPartyRuntimeLevelForClient } from '../core/RuntimeLevel';
 
 export class EntityHandler {
     private static readonly CLIENT_SPAWN_LEVELS = new Set<string>([
@@ -93,23 +93,73 @@ export class EntityHandler {
         return Boolean(levelName) && EntityHandler.GOBLIN_RIVER_ROOM_SYNC_SKIP_LEVELS.has(String(levelName));
     }
 
-    private static resolveRuntimeDungeonEntityLevel(levelName: string | null | undefined, character: any, fallbackLevel: number = 1): number {
+    private static isEntityDead(entity: any): boolean {
+        return Boolean(entity?.dead) || Number(entity?.entState ?? EntityState.ACTIVE) === EntityState.DEAD;
+    }
+
+    private static shouldDeferLiveSharedHostileSeedToJoiner(joiner: Client, entity: any): boolean {
+        return Boolean(joiner.currentLevel) &&
+            EntityHandler.isPartySharedClientSpawnHostile(joiner.currentLevel, entity) &&
+            !EntityHandler.isEntityDead(entity);
+    }
+
+    private static resolveRuntimeDungeonEntityLevel(client: Client, levelName: string | null | undefined, fallbackLevel: number = 1): number {
         if (!LevelConfig.isDungeonLevel(levelName)) {
             return Math.max(1, Math.min(50, Math.round(Number(fallbackLevel) || 1)));
         }
 
-        const xpLevel = GameData.getPlayerLevelFromXp(Math.max(0, Number(character?.xp ?? 0)));
-        const characterLevel = Math.max(1, Number(character?.level ?? 0));
-        const resolvedLevel = xpLevel > 1 ? xpLevel : characterLevel;
-        return Math.max(1, Math.min(50, Math.round(resolvedLevel || fallbackLevel || 1)));
+        return getPartyRuntimeLevelForClient(client, client.character, fallbackLevel);
     }
 
-    private static applyRuntimeDungeonEntityLevel(levelName: string | null | undefined, character: any, entity: any): void {
+    private static applyRuntimeDungeonEntityLevel(client: Client, levelName: string | null | undefined, entity: any): void {
         if (!entity || entity.isPlayer || !LevelConfig.isDungeonLevel(levelName)) {
             return;
         }
 
-        entity.level = EntityHandler.resolveRuntimeDungeonEntityLevel(levelName, character, entity.level);
+        entity.level = EntityHandler.resolveRuntimeDungeonEntityLevel(client, levelName, entity.level);
+    }
+
+    static rescaleDungeonEntitiesForParty(client: Client): number {
+        const levelName = client.currentLevel;
+        if (!levelName || !LevelConfig.isDungeonLevel(levelName)) {
+            return 0;
+        }
+
+        const runtimeLevel = EntityHandler.resolveRuntimeDungeonEntityLevel(client, levelName, 1);
+        const levelScope = getClientLevelScope(client);
+        const levelMap = GlobalState.levelEntities.get(levelScope);
+        if (!levelMap) {
+            return 0;
+        }
+
+        let updatedCount = 0;
+        for (const [entityId, entity] of levelMap.entries()) {
+            if (!entity || entity.isPlayer) {
+                continue;
+            }
+
+            const currentLevel = Math.max(1, Math.round(Number(entity.level ?? 0) || 1));
+            if (currentLevel >= runtimeLevel) {
+                continue;
+            }
+
+            entity.level = runtimeLevel;
+            for (const session of GlobalState.sessionsByToken.values()) {
+                if (!session.playerSpawned || getClientLevelScope(session) !== levelScope) {
+                    continue;
+                }
+
+                const localEntity = session.entities.get(entityId);
+                if (!localEntity || localEntity.isPlayer) {
+                    continue;
+                }
+
+                localEntity.level = runtimeLevel;
+            }
+            updatedCount++;
+        }
+
+        return updatedCount;
     }
 
     private static isPrivateClientSpawnOutdoorEntity(levelName: string | null | undefined, entity: any): boolean {
@@ -253,8 +303,28 @@ export class EntityHandler {
             return false;
         }
 
-        EntityHandler.sendDestroyEntity(client, Number(entity.id ?? 0));
-        EntityHandler.ensureEntityKnown(client, String(levelName ?? ''), Number(canonical.id ?? 0));
+        const localId = Math.max(0, Math.round(Number(entity.id ?? 0) || 0));
+        const canonicalId = Math.max(0, Math.round(Number(canonical.id ?? 0) || 0));
+        if (localId <= 0 || canonicalId <= 0) {
+            return false;
+        }
+
+        if (localId !== canonicalId) {
+            EntityHandler.rememberEntityAlias(client, localId, canonicalId);
+            client.knownEntityIds.delete(localId);
+        }
+
+        EntityHandler.setSharedEntityRemoteUpdatesDeferred(
+            client,
+            canonicalId,
+            Math.round(Number(entity.v ?? 0)) !== 0
+        );
+        client.knownEntityIds.add(canonicalId);
+        client.entities.set(localId, {
+            ...entity,
+            canonicalEntityId: canonicalId,
+            sharedCanonicalId: canonicalId
+        });
         return true;
     }
 
@@ -356,6 +426,97 @@ export class EntityHandler {
         );
     }
 
+    static rememberEntityAlias(client: Client, localEntityId: number, canonicalEntityId: number): void {
+        const localId = Math.max(0, Math.round(Number(localEntityId) || 0));
+        const canonicalId = Math.max(0, Math.round(Number(canonicalEntityId) || 0));
+        if (localId <= 0 || canonicalId <= 0 || localId === canonicalId) {
+            return;
+        }
+
+        client.entityIdAliases.set(localId, canonicalId);
+    }
+
+    private static getDeferredRemoteUpdateIds(client: Client): Set<number> {
+        const dynamicClient = client as Client & { sharedEntityRemoteUpdateDeferredIds?: Set<number> };
+        if (!dynamicClient.sharedEntityRemoteUpdateDeferredIds) {
+            dynamicClient.sharedEntityRemoteUpdateDeferredIds = new Set<number>();
+        }
+
+        return dynamicClient.sharedEntityRemoteUpdateDeferredIds;
+    }
+
+    private static setSharedEntityRemoteUpdatesDeferred(
+        client: Client,
+        canonicalEntityId: number,
+        deferred: boolean
+    ): void {
+        const canonicalId = Math.max(0, Math.round(Number(canonicalEntityId) || 0));
+        if (canonicalId <= 0) {
+            return;
+        }
+
+        const deferredIds = EntityHandler.getDeferredRemoteUpdateIds(client);
+        if (deferred) {
+            deferredIds.add(canonicalId);
+        } else {
+            deferredIds.delete(canonicalId);
+        }
+    }
+
+    static markSharedEntityRemoteUpdatesReady(client: Client, canonicalEntityId: number): void {
+        EntityHandler.setSharedEntityRemoteUpdatesDeferred(client, canonicalEntityId, false);
+    }
+
+    static resolveEntityLocalId(client: Client, canonicalEntityId: number): number {
+        const canonicalId = Math.max(0, Math.round(Number(canonicalEntityId) || 0));
+        if (canonicalId <= 0) {
+            return canonicalId;
+        }
+
+        for (const [localId, mappedCanonicalId] of (client.entityIdAliases ?? new Map<number, number>()).entries()) {
+            if (Math.max(0, Math.round(Number(mappedCanonicalId) || 0)) === canonicalId) {
+                return Math.max(0, Math.round(Number(localId) || 0)) || canonicalId;
+            }
+        }
+
+        return canonicalId;
+    }
+
+    static canClientResolveCanonicalEntity(client: Client, canonicalEntityId: number): boolean {
+        const canonicalId = Math.max(0, Math.round(Number(canonicalEntityId) || 0));
+        if (canonicalId <= 0) {
+            return true;
+        }
+
+        if (EntityHandler.getDeferredRemoteUpdateIds(client).has(canonicalId)) {
+            return false;
+        }
+
+        if (client.knownEntityIds?.has(canonicalId) || client.entities?.has(canonicalId)) {
+            return true;
+        }
+
+        const localId = EntityHandler.resolveEntityLocalId(client, canonicalId);
+        return localId !== canonicalId && Boolean(client.entities?.has(localId));
+    }
+
+    static resolveEntityAlias(client: Client, entityId: number): number {
+        const localId = Math.max(0, Math.round(Number(entityId) || 0));
+        if (localId <= 0) {
+            return localId;
+        }
+
+        let resolvedId = localId;
+        const seen = new Set<number>();
+        const aliases = client.entityIdAliases ?? new Map<number, number>();
+        while (aliases.has(resolvedId) && !seen.has(resolvedId)) {
+            seen.add(resolvedId);
+            resolvedId = Math.max(0, Math.round(Number(aliases.get(resolvedId)) || 0));
+        }
+
+        return resolvedId > 0 ? resolvedId : localId;
+    }
+
     private static suppressDuplicateSharedClientSpawn(
         client: Client,
         levelName: string | null | undefined,
@@ -398,22 +559,31 @@ export class EntityHandler {
 
         const duplicateId = Number(entity?.id ?? 0);
         const canonicalId = Number(canonical?.id ?? 0);
-        client.entities.delete(duplicateId);
 
         if (canonicalId === duplicateId) {
             // Keep the shared canonical entity alive locally without forcing a destroy/respawn cycle.
+            EntityHandler.setSharedEntityRemoteUpdatesDeferred(
+                client,
+                canonicalId,
+                Math.round(Number(entity.v ?? 0)) !== 0
+            );
             client.knownEntityIds.add(canonicalId);
             return true;
         }
 
         client.knownEntityIds.delete(duplicateId);
-
-        EntityHandler.sendDestroyEntity(client, duplicateId);
-        
-        if (client.knownEntityIds.has(canonicalId)) {
-            return true;
-        }
-        EntityHandler.ensureEntityKnown(client, levelName, canonicalId);
+        EntityHandler.rememberEntityAlias(client, duplicateId, canonicalId);
+        EntityHandler.setSharedEntityRemoteUpdatesDeferred(
+            client,
+            canonicalId,
+            Math.round(Number(entity.v ?? 0)) !== 0
+        );
+        client.knownEntityIds.add(canonicalId);
+        client.entities.set(duplicateId, {
+            ...entity,
+            canonicalEntityId: canonicalId,
+            sharedCanonicalId: canonicalId
+        });
         
         return true;
     }
@@ -1174,7 +1344,13 @@ export class EntityHandler {
              props = Entity.fromNpc(entity);
         }
         
-        const data = Entity.serialize(props);
+        const serializedProps = {
+            ...props,
+            // Flash treats nonzero spawn velocity as "hidden until first
+            // movement update"; visible seed spawns avoid a join-time gfx race.
+            v: 0
+        };
+        const data = Entity.serialize(serializedProps);
         client.send(0xF, data);
         EntityHandler.rememberEntityKnown(client, client.currentLevel, props);
     }
@@ -1291,6 +1467,7 @@ export class EntityHandler {
                 clientSpawned: false,
                 ownerToken: client.token || 0,
                 ownerUserId: client.userId || 0,
+                ownerCharacterName: client.character?.name || '',
                 ownerPartyId: getPartyIdForClient(client),
                 roomId: client.currentRoomId
             }
@@ -1317,12 +1494,13 @@ export class EntityHandler {
                 clientSpawned: !isPlayer,
                 ownerToken: client.token || 0,
                 ownerUserId: client.userId || 0,
+                ownerCharacterName: client.character?.name || '',
                 ownerPartyId: getPartyIdForClient(client),
                 roomId: client.currentRoomId
                 // bRunning etc are flags
             };
 
-        EntityHandler.applyRuntimeDungeonEntityLevel(levelName, client.character, props);
+        EntityHandler.applyRuntimeDungeonEntityLevel(client, levelName, props);
 
         if (!isPlayer) {
             client.clientSpawnConfirmed = true;
@@ -1395,7 +1573,7 @@ export class EntityHandler {
                         ...Entity.fromNpc(npc),
                         clientSpawned: false
                     };
-                    EntityHandler.applyRuntimeDungeonEntityLevel(levelName, client.character, entityProps);
+                    EntityHandler.applyRuntimeDungeonEntityLevel(client, levelName, entityProps);
                     levelMap.set(npc.id, entityProps);
                 }
             }
@@ -1518,6 +1696,9 @@ export class EntityHandler {
             if (!EntityHandler.canClientSeeEntity(joiner, entityProps)) {
                 continue;
             }
+            if (EntityHandler.shouldDeferLiveSharedHostileSeedToJoiner(joiner, entityProps)) {
+                continue;
+            }
 
             const snapshot = EntityHandler.resolveCanonicalEntity(getClientLevelScope(joiner), entityId);
             if (!snapshot) {
@@ -1558,11 +1739,25 @@ export class EntityHandler {
             if (!entity.isPlayer && !EntityHandler.canClientSeeEntity(other, entity)) {
                 continue;
             }
+            if (
+                !entity.isPlayer &&
+                EntityHandler.shouldDeferLiveSharedHostileSeedToJoiner(other, entity) &&
+                !other.knownEntityIds.has(entity.id)
+            ) {
+                continue;
+            }
             if (!EntityHandler.ensureEntityKnown(other, myLevel, entity.id)) {
                 continue;
             }
 
-            other.send(0x8, data);
+            const localEntityId = EntityHandler.resolveEntityLocalId(other, entity.id);
+            const outboundData = !entity.isPlayer && localEntityId !== entity.id
+                ? EntityHandler.buildEntityFullUpdatePayload({
+                    ...entity,
+                    id: localEntityId
+                })
+                : data;
+            other.send(0x8, outboundData);
         }
     }
 }
