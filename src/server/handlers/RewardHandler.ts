@@ -651,12 +651,13 @@ export class RewardHandler {
         const allowItemDrop = !isChainsEnemy && (!isIntroEnemy || isLargeEnemy);
         const rewardClass = String(entType?.RewardClass ?? '');
         const sourceDefeated = RewardHandler.isRewardSourceDefeated(client, reward.sourceId, sourceEntity);
+        const hasExplicitItemDropFlag = reward.dropItem || reward.dropGear || reward.dropMaterial;
         const blockLiveSourceForDefeatedClient = isDungeonEnemyReward &&
             !sourceDefeated &&
-            RewardHandler.isClientDefeated(client);
+            RewardHandler.isClientDefeated(client) &&
+            !hasExplicitItemDropFlag;
         const fixedItemSourceAllowed = rewardClass !== 'FixedItem' ||
-            reward.dropItem ||
-            reward.dropGear ||
+            hasExplicitItemDropFlag ||
             sourceDefeated;
         const shouldApplyDropTables = isDungeonEnemyReward &&
             allowItemDrop &&
@@ -754,6 +755,7 @@ export class RewardHandler {
                 itemLootAllowedByClass,
                 sourceDefeated,
                 blockLiveSourceForDefeatedClient,
+                hasExplicitItemDropFlag,
                 rolls: {
                     material: {
                         attempted: shouldRollMaterial,

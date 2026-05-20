@@ -427,6 +427,38 @@ async function testLiveFixedItemEnemyDoesNotDropWhenPacketHasNoItemFlags(): Prom
     assert.equal(hasItemLoot(alpha), false, 'live FixedItem enemies should not create ghost item loot from packets with no item flags');
 }
 
+async function testDefeatedPlayerFixedItemPacketWithExplicitFlagsStillDrops(): Promise<void> {
+    const alpha = createFakeClient(11, 'Lambda');
+    alpha.authoritativeCurrentHp = 0;
+    GlobalState.sessionsByToken.set(alpha.token, alpha as never);
+
+    const sourceId = 9011;
+    addLevelEntity(alpha, {
+        id: sourceId,
+        name: 'GoblinBoss1',
+        isPlayer: false,
+        team: 2,
+        x: 120,
+        y: 220,
+        hp: 100,
+        maxHp: 100,
+        dead: false
+    });
+    setContributors(getClientLevelScope(alpha as never), sourceId, ['lambda']);
+
+    await withMockedRandom([0.0, 0.0, 0.0, 0.0, 0.0, 0.0], async () => {
+        await RewardHandler.handleGrantReward(alpha as never, buildGrantRewardPayload(sourceId, {
+            dropItem: true,
+            dropGear: true,
+            dropMaterial: true,
+            itemMultiplier: 10,
+            gearMultiplier: 10
+        }));
+    });
+
+    assert.equal(hasItemLoot(alpha), true, 'explicit item flags should still create loot even if the player is defeated before the source is marked defeated');
+}
+
 async function testGearRarityTracksValueTier(): Promise<void> {
     const alpha = createFakeClient(4, 'Delta');
     GlobalState.sessionsByToken.set(alpha.token, alpha as never);
@@ -627,6 +659,11 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
         await testLiveFixedItemEnemyDoesNotDropWhenPacketHasNoItemFlags();
 
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLastRewardNonces.clear();
+        await testDefeatedPlayerFixedItemPacketWithExplicitFlagsStillDrops();
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
         GlobalState.combatContributions.clear();
