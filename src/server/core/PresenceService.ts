@@ -83,6 +83,23 @@ export class PresenceService {
         CemeteryHill: 'cemeteryhill',
         CemeteryHillHard: 'cemeteryhill'
     };
+    private static readonly LEVEL_PREFIX_IMAGE_KEYS: Record<string, string> = {
+        AC: 'castlehocke',
+        BT: 'fellbridge',
+        CH: 'cemeteryhill',
+        EG: 'emeraldglades',
+        JC: 'valhaven',
+        OMM: 'stormshardmountain',
+        SD: 'shazaridesert',
+        SRN: 'blackrosemire'
+    };
+    private static readonly DUNGEON_REGION_IMAGE_KEYS: Record<string, string> = {
+        TutorialDungeon: 'newbieroad',
+        GoblinRiverDungeon: 'newbieroad',
+        GhostBossDungeon: 'newbieroad',
+        DreamDragonDungeon: 'newbieroad',
+        SwampRoadConnectionMission: 'blackrosemire'
+    };
     private static readonly DISCIPLINE_IMAGE_KEYS: Record<string, string> = {
         Executioner: 'viperblade',
         Shadowwalker: 'shadowbringer',
@@ -268,8 +285,7 @@ export class PresenceService {
         const details = client.playerSpawned ? levelName : 'Loading';
         const joinSecret = PresenceService.buildDiscordJoinSecret(party.partyId, party.partyLeader);
 
-        const areaKey = PresenceService.LEVEL_IMAGE_KEYS[levelKey] || 
-                        (activityKind === 'dungeon' ? 'indungeon' : 'dungeon_blitz');
+        const areaKey = PresenceService.resolveLevelImageKey(levelKey, activityKind);
         
         const disciplineKey = PresenceService.DISCIPLINE_IMAGE_KEYS[disciplineName] || 
                              PresenceService.DISCIPLINE_IMAGE_KEYS[className] || 
@@ -345,32 +361,33 @@ export class PresenceService {
 
         const hardMode = normalized.endsWith('Hard');
         const baseName = hardMode ? normalized.slice(0, -4) : normalized;
+        const applyModeLabel = (label: string): string => hardMode ? `Dread ${label}` : label;
         const directLabel = PresenceService.LEVEL_DISPLAY_NAMES[baseName];
         if (directLabel) {
-            return `${directLabel}${hardMode ? ' (Hard)' : ''}`;
+            return applyModeLabel(directLabel);
         }
 
         const missionLabel = PresenceService.getDungeonDisplayName(baseName);
         if (missionLabel) {
-            return `${missionLabel}${hardMode ? ' (Hard)' : ''}`;
+            return applyModeLabel(missionLabel);
         }
 
         const missionMatch = baseName.match(/^([A-Z]+)_Mission(\d+)$/);
         if (missionMatch) {
             const prefix = PresenceService.LEVEL_PREFIX_LABELS[missionMatch[1]] ?? missionMatch[1];
-            return `${prefix} Mission ${missionMatch[2]}${hardMode ? ' (Hard)' : ''}`;
+            return applyModeLabel(`${prefix} Mission ${missionMatch[2]}`);
         }
 
         const miniMissionMatch = baseName.match(/^([A-Z]+)_MiniMission(\d+)$/);
         if (miniMissionMatch) {
             const prefix = PresenceService.LEVEL_PREFIX_LABELS[miniMissionMatch[1]] ?? miniMissionMatch[1];
-            return `${prefix} Mini Mission ${miniMissionMatch[2]}${hardMode ? ' (Hard)' : ''}`;
+            return applyModeLabel(`${prefix} Mini Mission ${miniMissionMatch[2]}`);
         }
 
         const miniMatch = baseName.match(/^([A-Z]+)_Mini(\d+)$/);
         if (miniMatch) {
             const prefix = PresenceService.LEVEL_PREFIX_LABELS[miniMatch[1]] ?? miniMatch[1];
-            return `${prefix} Mini ${miniMatch[2]}${hardMode ? ' (Hard)' : ''}`;
+            return applyModeLabel(`${prefix} Mini ${miniMatch[2]}`);
         }
 
         const cleaned = baseName
@@ -379,7 +396,33 @@ export class PresenceService {
             .replace(/\s+/g, ' ')
             .trim();
 
-        return `${cleaned}${hardMode ? ' (Hard)' : ''}`;
+        return applyModeLabel(cleaned);
+    }
+
+    private static resolveLevelImageKey(levelKey: string, activityKind: 'zone' | 'dungeon'): string {
+        const normalized = LevelConfig.normalizeLevelName(levelKey);
+        if (!normalized) {
+            return activityKind === 'dungeon' ? 'indungeon' : 'dungeon_blitz';
+        }
+
+        const hardMode = normalized.endsWith('Hard');
+        const baseName = hardMode ? normalized.slice(0, -4) : normalized;
+        const directKey = PresenceService.LEVEL_IMAGE_KEYS[normalized] ||
+            PresenceService.LEVEL_IMAGE_KEYS[baseName] ||
+            PresenceService.DUNGEON_REGION_IMAGE_KEYS[baseName];
+        if (directKey) {
+            return directKey;
+        }
+
+        const prefixMatch = baseName.match(/^([A-Z]+)_(?:Mission|MiniMission|Mini)\d+$/);
+        if (prefixMatch) {
+            const prefixKey = PresenceService.LEVEL_PREFIX_IMAGE_KEYS[prefixMatch[1]];
+            if (prefixKey) {
+                return prefixKey;
+            }
+        }
+
+        return activityKind === 'dungeon' ? 'indungeon' : 'dungeon_blitz';
     }
 
     private static formatClassName(rawClassName: unknown): string {

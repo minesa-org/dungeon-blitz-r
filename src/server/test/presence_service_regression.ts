@@ -90,7 +90,8 @@ function testCemeteryHillHardPresenceUsesCemeteryImage(): void {
     );
 
     assert.ok(snapshot, 'presence snapshot should resolve for hard Cemetery Hill clients');
-    assert.equal(snapshot.levelName, 'Cemetery Hill (Hard)');
+    assert.equal(snapshot.levelName, 'Dread Cemetery Hill');
+    assert.equal(snapshot.details, 'Dread Cemetery Hill');
     assert.equal(snapshot.areaKey, 'cemeteryhill');
 }
 
@@ -111,9 +112,58 @@ function testJadeCityHardPresenceUsesValhavenName(): void {
     );
 
     assert.ok(snapshot, 'presence snapshot should resolve for hard Valhaven clients');
-    assert.equal(snapshot.levelName, 'Valhaven (Hard)');
-    assert.equal(snapshot.details, 'Valhaven (Hard)');
+    assert.equal(snapshot.levelName, 'Dread Valhaven');
+    assert.equal(snapshot.details, 'Dread Valhaven');
     assert.equal(snapshot.areaKey, 'valhaven');
+}
+
+function testDreadOverworldPresenceUsesDreadLabelsAndRegionImages(): void {
+    const cases: Array<[string, string, string]> = [
+        ['NewbieRoadHard', "Dread Wolf's End", 'newbieroad'],
+        ['SwampRoadNorthHard', 'Dread Black Rose Mire', 'blackrosemire'],
+        ['BridgeTownHard', 'Dread Felbridge', 'fellbridge'],
+        ['CastleHard', 'Dread Castle Hocke', 'castlehocke'],
+        ['EmeraldGladesHard', 'Dread Emerald Glades', 'emeraldglades'],
+        ['JadeCityHard', 'Dread Valhaven', 'valhaven'],
+        ['ShazariDesertHard', 'Dread Shazari Desert', 'shazaridesert'],
+        ['OldMineMountainHard', 'Dread Stormshard Mountain', 'stormshardmountain'],
+        ['CemeteryHillHard', 'Dread Cemetery Hill', 'cemeteryhill']
+    ];
+
+    for (const [levelKey, expectedName, expectedAreaKey] of cases) {
+        const snapshot = (PresenceService as any).toSnapshot(
+            createFakeClient(levelKey)
+        );
+
+        assert.ok(snapshot, `${levelKey} should produce a presence snapshot`);
+        assert.equal(snapshot.levelName, expectedName);
+        assert.equal(snapshot.details, expectedName);
+        assert.equal(snapshot.areaKey, expectedAreaKey);
+        assert.notEqual(snapshot.areaKey, 'indungeon');
+        assert.notEqual(snapshot.areaKey, 'dungeon_blitz');
+    }
+}
+
+function testDreadDungeonUsesDreadLabelAndRegionImage(): void {
+    const snapshot = (PresenceService as any).toSnapshot(
+        createFakeClient('AC_Mission6Hard')
+    );
+
+    assert.ok(snapshot, 'presence snapshot should resolve for Dread dungeon clients');
+    assert.equal(snapshot.levelName, 'Dread Capstone');
+    assert.equal(snapshot.details, 'Dread Capstone');
+    assert.equal(snapshot.areaKey, 'castlehocke');
+}
+
+function testDreadNewbieRoadDungeonUsesNewbieRoadImage(): void {
+    const snapshot = (PresenceService as any).toSnapshot(
+        createFakeClient('GoblinRiverDungeonHard')
+    );
+
+    assert.ok(snapshot, 'presence snapshot should resolve for Dread Wolf End dungeon clients');
+    assert.equal(snapshot.levelName, 'Dread Last of the Goblins');
+    assert.equal(snapshot.details, 'Dread Last of the Goblins');
+    assert.equal(snapshot.areaKey, 'newbieroad');
 }
 
 function testJadeCityMissionFallbackUsesValhavenPrefix(): void {
@@ -135,6 +185,9 @@ function main(): void {
     testCemeteryHillHardPresenceUsesCemeteryImage();
     testJadeCityPresenceUsesValhavenName();
     testJadeCityHardPresenceUsesValhavenName();
+    testDreadOverworldPresenceUsesDreadLabelsAndRegionImages();
+    testDreadDungeonUsesDreadLabelAndRegionImage();
+    testDreadNewbieRoadDungeonUsesNewbieRoadImage();
     testJadeCityMissionFallbackUsesValhavenPrefix();
     console.log('presence_service_regression: ok');
 }
