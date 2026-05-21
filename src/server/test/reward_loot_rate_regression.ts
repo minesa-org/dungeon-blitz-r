@@ -338,6 +338,7 @@ async function testMapEnemiesDoNotDropItemLoot(): Promise<void> {
     });
 
     assert.equal(hasItemLoot(alpha), false, 'map enemies should not queue gear, material, or dye lootdrops');
+    assert.equal(hasGoldLoot(alpha), false, 'map enemies should not mint fallback gold when the packet did not attempt gold');
 }
 
 async function testEnemyMaterialDropsWithoutExplicitDropFlag(): Promise<void> {

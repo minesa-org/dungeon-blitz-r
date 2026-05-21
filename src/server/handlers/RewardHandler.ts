@@ -790,24 +790,6 @@ export class RewardHandler {
             exp = GameData.calculateNpcExp(entName, entLevel);
         }
 
-        if (gold <= 0) {
-            if (entName) {
-                const fallbackGold = GameData.calculateNpcGold(entName, entLevel);
-                gold = goldFindRate > 0
-                    ? Math.max(0, Math.round(fallbackGold * (1 + goldFindRate)))
-                    : fallbackGold;
-            } else {
-                const realmLevel = Math.max(1, Number(client.character?.level ?? 1));
-                const index = Math.max(0, Math.min(realmLevel, GameData.MONSTER_GOLD_TABLE.length - 1));
-                const baseGold = GameData.MONSTER_GOLD_TABLE[index];
-                const rollBase = 0.4 * baseGold * 0.5;
-                const fallbackGold = Math.max(1, Math.floor(rollBase + (rollBase * 2 + 1) * Math.random()));
-                gold = goldFindRate > 0
-                    ? Math.max(0, Math.round(fallbackGold * (1 + goldFindRate)))
-                    : fallbackGold;
-            }
-        }
-
         if (hpGain <= 0 && Math.random() < 0.20) {
             const maxHp = Math.max(100, Number(client.authoritativeMaxHp ?? 100));
             hpGain = Math.max(1, Math.floor(maxHp * 0.15));
