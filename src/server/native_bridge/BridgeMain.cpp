@@ -171,6 +171,7 @@ int main() {
     bridge.setOnDiscordMessage([](const dungeon_blitz::bridge::ChatMessage& message) {
         emitJson(
             "{\"type\":\"chat\",\"username\":\"" + jsonEscape(message.username) +
+            "\",\"authorId\":\"" + jsonNumberString(message.playerId) +
             "\",\"message\":\"" + jsonEscape(message.message) + "\"}"
         );
     });

@@ -11,6 +11,41 @@ export class DiscordSocialServerApi {
         return this.enabled;
     }
 
+    public async fetchUserDisplayName(discordUserId: string): Promise<string | null> {
+        if (!this.enabled) {
+            return null;
+        }
+
+        const targetUserId = String(discordUserId ?? '').trim();
+        if (!targetUserId) {
+            return null;
+        }
+
+        try {
+            const response = await fetch(`https://discord.com/api/v10/users/${targetUserId}`, {
+                headers: {
+                    Authorization: `Bot ${this.token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => '');
+                console.error(
+                    `[DiscordSocialServerApi] Failed to fetch Discord user ${targetUserId}: ${response.status} ${response.statusText}${errorText ? `: ${errorText}` : ''}`
+                );
+                return null;
+            }
+
+            const parsed = await response.json().catch(() => null) as { global_name?: string | null; username?: string; id?: string } | null;
+            const globalName = String(parsed?.global_name ?? '').trim();
+            const username = String(parsed?.username ?? '').trim();
+            return globalName || username || String(parsed?.id ?? '').trim() || null;
+        } catch (error) {
+            console.error('[DiscordSocialServerApi] fetchUserDisplayName request failed:', error);
+            return null;
+        }
+    }
+
     public async sendChannelMessage(channelId: string, content: string): Promise<boolean> {
         if (!this.enabled) {
             console.warn('[DiscordSocialServerApi] DISCORD_BOT_TOKEN is missing; cannot send Discord channel message.');

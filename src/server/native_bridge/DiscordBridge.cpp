@@ -548,8 +548,10 @@ void DiscordBridge::handleIncomingDiscordMessage(const discordpp::MessageHandle&
         username = resolveUserName(*author);
     }
 
-    if (username.empty() && client_ != nullptr && message.AuthorId() != 0) {
-        const auto author = client_->GetUser(message.AuthorId());
+    const auto authorId = message.AuthorId();
+
+    if (username.empty() && client_ != nullptr && authorId != 0) {
+        const auto author = client_->GetUser(authorId);
         if (author) {
             username = resolveUserName(*author);
         }
@@ -561,8 +563,8 @@ void DiscordBridge::handleIncomingDiscordMessage(const discordpp::MessageHandle&
         username = metadataName->second;
     }
 
-    if (username.empty() && message.AuthorId() != 0) {
-        username = "DiscordUser#" + std::to_string(message.AuthorId());
+    if (username.empty() && authorId != 0) {
+        username = "DiscordUser#" + std::to_string(authorId);
     }
 
     if (username.empty()) {
@@ -570,7 +572,7 @@ void DiscordBridge::handleIncomingDiscordMessage(const discordpp::MessageHandle&
     }
 
     ChatMessage normalized {
-        .playerId = 0,
+        .playerId = authorId,
         .username = username,
         .message = message.Content(),
     };

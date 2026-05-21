@@ -52,6 +52,7 @@ interface NativeBridgeInboundStatus extends NativeBridgeInboundBase {
 interface NativeBridgeInboundChat extends NativeBridgeInboundBase {
     type: 'chat';
     username: string;
+    authorId?: string;
     message: string;
 }
 
@@ -509,11 +510,7 @@ class DiscordSocialBridge {
                 this.broadcastStatus(payload.text);
                 return;
             case 'chat':
-                {
-                    const username = DiscordSocialBridge.escapeGameStatusText(String(payload.username ?? '').trim() || 'Discord');
-                    const message = DiscordSocialBridge.escapeGameStatusText(payload.message);
-                    this.broadcastStatus(`${this.inboundPrefix} ${username}: ${message}`);
-                }
+                void this.handleDiscordChat(payload);
                 return;
             case 'lobby_ready':
                 void this.handleLobbyReady(payload);
@@ -585,6 +582,22 @@ class DiscordSocialBridge {
             lobbyId: payload.lobbyId,
             channelId: this.channelId
         });
+    }
+
+    private async handleDiscordChat(payload: NativeBridgeInboundChat): Promise<void> {
+        const authorId = String(payload.authorId ?? '').trim();
+        let username = String(payload.username ?? '').trim();
+
+        if ((!username || username === 'Discord' || /^DiscordUser#\d+$/.test(username)) && authorId) {
+            const resolvedUsername = await this.serverApi.fetchUserDisplayName(authorId);
+            if (resolvedUsername) {
+                username = resolvedUsername;
+            }
+        }
+
+        const safeUsername = DiscordSocialBridge.escapeGameStatusText(username || (authorId ? `DiscordUser#${authorId}` : 'Discord'));
+        const safeMessage = DiscordSocialBridge.escapeGameStatusText(payload.message);
+        this.broadcastStatus(`${this.inboundPrefix} ${safeUsername}: ${safeMessage}`);
     }
 
     private async handleChannelLinkConflict(payload: NativeBridgeInboundChannelLinkFailure): Promise<void> {
