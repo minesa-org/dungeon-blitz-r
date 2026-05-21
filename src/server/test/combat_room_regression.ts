@@ -4,6 +4,7 @@ import { GlobalState } from '../core/GlobalState';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { CombatHandler } from '../handlers/CombatHandler';
+import { LevelHandler } from '../handlers/LevelHandler';
 import { Entity, EntityState, EntityTeam } from '../core/Entity';
 import { LevelConfig } from '../core/LevelConfig';
 import { getClientLevelScope } from '../core/LevelScope';
@@ -135,6 +136,22 @@ function buildDestroyEntityPayload(entityId: number): Buffer {
     return bb.toBuffer();
 }
 
+function buildIncrementalStatePayload(entityId: number, entState: number): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(entityId);
+    bb.writeMethod45(0);
+    bb.writeMethod45(0);
+    bb.writeMethod45(0);
+    bb.writeMethod6(entState, 2);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    bb.writeMethod15(false);
+    return bb.toBuffer();
+}
+
 function buildPlayerEntity(session: FakeClient): any {
     return {
         ...Entity.fromCharacter(session.clientEntID, session.character as any, {
@@ -188,6 +205,14 @@ function parsePowerHitDamage(payload: Buffer): number {
     br.readMethod4();
     br.readMethod4();
     return br.readMethod24();
+}
+
+function parseHpDelta(payload: Buffer): { entityId: number; delta: number } {
+    const br = new BitReader(payload);
+    return {
+        entityId: br.readMethod4(),
+        delta: br.readMethod45()
+    };
 }
 
 function parsePowerHitIds(payload: Buffer): { targetId: number; sourceId: number; damage: number } {
@@ -605,27 +630,30 @@ async function testHostileHitsCanKillPlayersAndStayRoomScoped(): Promise<void> {
     );
     assert.equal(
         sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x3A),
-        false,
-        'hostile hits should not emit a separate HP delta because the power-hit packet already drives the client damage display'
+        true,
+        'hostile hits should emit a status-scoped HP delta so viewers do not keep stale player health'
     );
-    assert.equal(sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x0A), true);
+    assert.equal(
+        sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x0A),
+        false,
+        'hostile player hits should not also relay the power-hit packet to viewers because that can double-apply damage'
+    );
     assert.equal(
         sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x07),
         true,
         'hostile lethal hits should broadcast a player death state to same-room viewers'
     );
     const victimHitPacket = victim.sentPackets.find((packet) => packet.id === 0x0A);
-    const watcherHitPacket = sameRoomWatcher.sentPackets.find((packet) => packet.id === 0x0A);
+    const watcherHpPacket = sameRoomWatcher.sentPackets.find((packet) => packet.id === 0x3A);
     assert.equal(
         victimHitPacket,
         undefined,
         'local player already simulated the hostile hit and should not receive an overkill echo'
     );
-    assert.notEqual(watcherHitPacket, undefined, 'same-room viewers should receive the hostile hit packet');
-    assert.equal(
-        parsePowerHitDamage(watcherHitPacket!.payload),
-        100,
-        'same-room viewers should receive the lethal applied damage for synchronization'
+    assert.deepEqual(
+        parseHpDelta(watcherHpPacket!.payload),
+        { entityId: victim.clientEntID, delta: -100 },
+        'same-room viewers should receive the lethal applied HP delta for synchronization'
     );
     assert.equal(
         victim.sentPackets.some((packet) => packet.id === 0x07),
@@ -638,9 +666,25 @@ async function testHostileHitsCanKillPlayersAndStayRoomScoped(): Promise<void> {
         'local player should only receive the hostile power-hit packet so the damage is shown once'
     );
     assert.equal(
-        partyOtherRoom.sentPackets.some((packet) => packet.id === 0x0A || packet.id === 0x3A || packet.id === 0x07),
+        partyOtherRoom.sentPackets.some((packet) => packet.id === 0x0A),
         false,
-        'party members in a different room should not receive hostile NPC combat packets from outside their room'
+        'party members in a different room should not receive hostile NPC power-hit packets from outside their room'
+    );
+    assert.deepEqual(
+        parseHpDelta(partyOtherRoom.sentPackets.find((packet) => packet.id === 0x3A)!.payload),
+        { entityId: victim.clientEntID, delta: -100 },
+        'party members should still receive player HP status even if room tracking is stale'
+    );
+    assert.equal(
+        partyOtherRoom.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            const state = parseEntityState(packet.payload);
+            return state.entityId === victim.clientEntID && state.entState === EntityState.DEAD;
+        }),
+        true,
+        'party members should receive player death status even if room tracking is stale'
     );
     assert.equal(otherRoomStranger.sentPackets.some((packet) => packet.id === 0x3A), false);
 
@@ -699,13 +743,95 @@ async function testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatche
     );
     assert.equal(
         sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x0A),
-        true,
-        'same-room viewers still need the hostile hit for synchronization'
+        false,
+        'same-room viewers should not receive hostile player-hit relays because HP is corrected separately'
+    );
+    assert.deepEqual(
+        parseHpDelta(sameRoomWatcher.sentPackets.find((packet) => packet.id === 0x3A)!.payload),
+        { entityId: victim.clientEntID, delta: -1 },
+        'same-room viewers should receive a single HP delta for the hostile hit'
     );
     assert.equal(
         otherRoomWatcher.sentPackets.some((packet) => packet.id === 0x0A || packet.id === 0x3A),
         false,
         'other rooms should still stay isolated from hostile combat packets'
+    );
+}
+
+async function testClientReportedPlayerDeathBroadcastsPartyHpAndState(): Promise<void> {
+    const victim = createFakeClient(340, 'VictimClientDeath', 2);
+    const sameRoomWatcher = createFakeClient(341, 'WatcherClientDeath', 2);
+    const partyOtherRoom = createFakeClient(342, 'PartyClientDeath', 7);
+    const otherRoomWatcher = createFakeClient(343, 'OtherClientDeath', 7);
+
+    victim.currentLevel = 'TutorialDungeon';
+    sameRoomWatcher.currentLevel = 'TutorialDungeon';
+    partyOtherRoom.currentLevel = 'TutorialDungeon';
+    otherRoomWatcher.currentLevel = 'TutorialDungeon';
+
+    victim.authoritativeCurrentHp = 37;
+    attachPlayerEntity(victim);
+    attachPlayerEntity(sameRoomWatcher);
+    attachPlayerEntity(partyOtherRoom);
+    attachPlayerEntity(otherRoomWatcher);
+    victim.entities.get(victim.clientEntID).hp = 37;
+
+    GlobalState.partyByMember.set('victimclientdeath', 12);
+    GlobalState.partyByMember.set('partyclientdeath', 12);
+
+    GlobalState.sessionsByToken.set(victim.token, victim as never);
+    GlobalState.sessionsByToken.set(sameRoomWatcher.token, sameRoomWatcher as never);
+    GlobalState.sessionsByToken.set(partyOtherRoom.token, partyOtherRoom as never);
+    GlobalState.sessionsByToken.set(otherRoomWatcher.token, otherRoomWatcher as never);
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        victim as never,
+        buildIncrementalStatePayload(victim.clientEntID, EntityState.DEAD)
+    );
+
+    assert.equal(victim.authoritativeCurrentHp, 0);
+    assert.equal(victim.entities.get(victim.clientEntID)?.dead, true);
+    assert.equal(
+        victim.sentPackets.some((packet) => packet.id === 0x3A || packet.id === 0x07),
+        false,
+        'client-reported self death should not echo HP or state packets back to the local victim'
+    );
+    assert.deepEqual(
+        parseHpDelta(sameRoomWatcher.sentPackets.find((packet) => packet.id === 0x3A)!.payload),
+        { entityId: victim.clientEntID, delta: -37 },
+        'same-room viewers should receive HP zeroing when death arrives as a movement state'
+    );
+    assert.deepEqual(
+        parseHpDelta(partyOtherRoom.sentPackets.find((packet) => packet.id === 0x3A)!.payload),
+        { entityId: victim.clientEntID, delta: -37 },
+        'party viewers should receive HP zeroing even when their room id differs'
+    );
+    assert.equal(
+        sameRoomWatcher.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            const state = parseEntityState(packet.payload);
+            return state.entityId === victim.clientEntID && state.entState === EntityState.DEAD;
+        }),
+        true,
+        'same-room viewers should receive a sanitized death state'
+    );
+    assert.equal(
+        partyOtherRoom.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            const state = parseEntityState(packet.payload);
+            return state.entityId === victim.clientEntID && state.entState === EntityState.DEAD;
+        }),
+        true,
+        'party viewers should receive a sanitized death state even when their room id differs'
+    );
+    assert.equal(
+        otherRoomWatcher.sentPackets.some((packet) => packet.id === 0x3A || packet.id === 0x07),
+        false,
+        'non-party viewers in another room should not receive player status from this room'
     );
 }
 
@@ -1178,6 +1304,15 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatches();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testClientReportedPlayerDeathBroadcastsPartyHpAndState();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();

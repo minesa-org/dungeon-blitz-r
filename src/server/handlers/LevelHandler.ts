@@ -4161,7 +4161,8 @@ export class LevelHandler {
 
         if (isSelf && entState === EntityState.DEAD) {
             const { CombatHandler } = require('./CombatHandler') as typeof import('./CombatHandler');
-            CombatHandler.notePlayerDeathState(client);
+            CombatHandler.noteAndBroadcastPlayerDeathState(client);
+            return;
         }
 
         if (!client.playerSpawned || !client.currentLevel) {

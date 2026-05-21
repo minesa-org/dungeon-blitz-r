@@ -1010,6 +1010,35 @@ export class CombatHandler {
         CombatHandler.armBossRegenForPlayerDeath(client, nowMs);
     }
 
+    static noteAndBroadcastPlayerDeathState(client: Client, nowMs: number = Date.now()): void {
+        if (!client.character || client.clientEntID <= 0) {
+            return;
+        }
+
+        const levelScope = getClientLevelScope(client);
+        const entity = client.entities.get(client.clientEntID);
+        const levelEntity = CombatHandler.resolveLevelEntity(levelScope, client.clientEntID);
+        const currentHp = Math.max(
+            0,
+            Math.round(Number(
+                entity?.hp ??
+                levelEntity?.hp ??
+                client.authoritativeCurrentHp ??
+                0
+            ) || 0)
+        );
+
+        CombatHandler.notePlayerDeathState(client, nowMs);
+        if (currentHp > 0) {
+            CombatHandler.broadcastPlayerHpDelta(client, -currentHp, {
+                includeTarget: false,
+                statusScoped: true
+            });
+        }
+        CombatHandler.broadcastPlayerState(client, EntityState.DEAD, true);
+        EquipmentHandler.broadcastGearChange(client, true);
+    }
+
     private static clearEnemyDeathRegenArm(client: Client): void {
         client.enemyDeathRegenArmed = false;
     }
@@ -1083,6 +1112,30 @@ export class CombatHandler {
                 continue;
             }
             if (!shouldShareCombatView(anchor, other)) {
+                continue;
+            }
+
+            recipients.push(other);
+        }
+
+        return recipients;
+    }
+
+    private static getPlayerStatusRecipients(anchor: Client, includeAnchor: boolean = false): Client[] {
+        const recipients: Client[] = [];
+        const levelScope = getClientLevelScope(anchor);
+        if (!levelScope || !anchor.playerSpawned) {
+            return recipients;
+        }
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (!other.playerSpawned || getClientLevelScope(other) !== levelScope) {
+                continue;
+            }
+            if (!includeAnchor && other === anchor) {
+                continue;
+            }
+            if (!sharesRoomIds(anchor.currentRoomId, other.currentRoomId) && !areClientsInSameParty(anchor, other)) {
                 continue;
             }
 
@@ -1272,16 +1325,33 @@ export class CombatHandler {
         return isRoomScopedClientNpc;
     }
 
-    private static broadcastPlayerHpDelta(targetSession: Client, delta: number): void {
+    private static broadcastPlayerHpDelta(
+        targetSession: Client,
+        delta: number,
+        options: { includeTarget?: boolean; statusScoped?: boolean } = {}
+    ): void {
         if (!targetSession.playerSpawned || !targetSession.currentLevel || targetSession.clientEntID <= 0) {
             return;
         }
 
         const payload = CombatHandler.buildHpDeltaPayload(targetSession.clientEntID, delta);
-        CombatHandler.broadcastToCombatRoom(targetSession, 0x3A, payload, true, [targetSession.clientEntID]);
+        const includeTarget = options.includeTarget ?? true;
+        if (options.statusScoped) {
+            const levelScope = getClientLevelScope(targetSession);
+            for (const other of CombatHandler.getPlayerStatusRecipients(targetSession, includeTarget)) {
+                if (!CombatHandler.canViewerResolveAnchoredCombatEntity(other, targetSession, levelScope, targetSession.clientEntID)) {
+                    continue;
+                }
+
+                other.send(0x3A, CombatHandler.translateOutboundPacketForViewer(other, 0x3A, payload));
+            }
+            return;
+        }
+
+        CombatHandler.broadcastToCombatRoom(targetSession, 0x3A, payload, includeTarget, [targetSession.clientEntID]);
     }
 
-    private static broadcastPlayerState(targetSession: Client, entState: number, roomScoped: boolean = false): void {
+    private static broadcastPlayerState(targetSession: Client, entState: number, statusScoped: boolean = false): void {
         if (!targetSession.playerSpawned || !targetSession.currentLevel || targetSession.clientEntID <= 0) {
             return;
         }
@@ -1290,16 +1360,10 @@ export class CombatHandler {
             CombatHandler.resolveLevelEntity(getClientLevelScope(targetSession), targetSession.clientEntID);
         const facingLeft = Boolean(entity?.facingLeft);
         const payload = CombatHandler.buildEntityStatePayload(targetSession.clientEntID, entState, facingLeft);
-        if (roomScoped) {
+        if (statusScoped) {
             const levelScope = getClientLevelScope(targetSession);
-            for (const other of GlobalState.sessionsByToken.values()) {
-                if (
-                    other === targetSession ||
-                    !other.playerSpawned ||
-                    getClientLevelScope(other) !== levelScope ||
-                    !sharesRoomIds(other.currentRoomId, targetSession.currentRoomId) ||
-                    !CombatHandler.canViewerResolveAnchoredCombatEntity(other, targetSession, levelScope, targetSession.clientEntID)
-                ) {
+            for (const other of CombatHandler.getPlayerStatusRecipients(targetSession)) {
+                if (!CombatHandler.canViewerResolveAnchoredCombatEntity(other, targetSession, levelScope, targetSession.clientEntID)) {
                     continue;
                 }
 
@@ -1891,8 +1955,15 @@ export class CombatHandler {
             const resolution = CombatHandler.updatePlayerTargetAfterHit(targetSession, damage);
             relayDamage = resolution.appliedDamage;
 
-            if (resolution.appliedDamage > 0 && !isHostileNpcSource) {
-                CombatHandler.broadcastPlayerHpDelta(targetSession, -resolution.appliedDamage);
+            if (resolution.appliedDamage > 0) {
+                if (isHostileNpcSource) {
+                    CombatHandler.broadcastPlayerHpDelta(targetSession, -resolution.appliedDamage, {
+                        includeTarget: false,
+                        statusScoped: true
+                    });
+                } else {
+                    CombatHandler.broadcastPlayerHpDelta(targetSession, -resolution.appliedDamage);
+                }
             }
 
             if (resolution.killed) {
@@ -1911,8 +1982,9 @@ export class CombatHandler {
             ? data
             : CombatHandler.buildPowerHitPayload(info, relayDamage);
         if (isHostileNpcSource) {
-            const excludeLocalVictim = targetSession === client ? client : null;
-            CombatHandler.broadcastEntityViewPacket(levelScope, sourceEntity, 0x0A, relayPayload, [targetId, sourceId], excludeLocalVictim);
+            if (!targetSession) {
+                CombatHandler.broadcastEntityViewPacket(levelScope, sourceEntity, 0x0A, relayPayload, [targetId, sourceId]);
+            }
             return;
         }
 
