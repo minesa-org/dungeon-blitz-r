@@ -236,6 +236,7 @@ class DiscordSocialBridge {
     private nativeLobbyReady = false;
     private nativeChannelLinked = false;
     private nativeChannelLinkFailed = false;
+    private currentDiscordUserId = '';
     private started = false;
     private readonly pendingNativeOutbound: Array<Record<string, unknown>> = [];
 
@@ -308,6 +309,7 @@ class DiscordSocialBridge {
             this.nativeLobbyReady = false;
             this.nativeChannelLinked = false;
             this.nativeChannelLinkFailed = false;
+            this.currentDiscordUserId = '';
             this.child = null;
             console.warn(`[DiscordSocialBridge] Native bridge exited (code=${code ?? 'null'}, signal=${signal ?? 'null'}).`);
         });
@@ -546,6 +548,7 @@ class DiscordSocialBridge {
     private async handleLobbyReady(payload: NativeBridgeInboundLobbyReady): Promise<void> {
         this.nativeLobbyReady = true;
         this.nativeChannelLinkFailed = false;
+        this.currentDiscordUserId = String(payload.userId ?? '').trim();
         if (!this.enableChannelLinking) {
             this.flushPendingNativeOutbound();
             return;
@@ -559,11 +562,15 @@ class DiscordSocialBridge {
             return;
         }
 
-        if (this.hasCachedChannelLink()) {
-            this.nativeChannelLinked = true;
-            console.log(`[DiscordSocialBridge] Discord channel ${this.channelId} is already linked; skipping channel link request.`);
-            this.flushPendingNativeOutbound();
-            return;
+        const cachedLink = this.readCurrentChannelLinkCache();
+        if (cachedLink?.lobbyId) {
+            if (cachedLink.lobbyId === String(payload.lobbyId ?? '').trim()) {
+                console.warn(`[DiscordSocialBridge] Ignoring stale Discord channel link cache for lobby ${payload.lobbyId}; native SDK did not report it as linked.`);
+                this.clearChannelLinkCache();
+            } else {
+                await this.useExistingLinkedLobby(cachedLink.lobbyId, this.channelId, 'cached channel link');
+                return;
+            }
         }
 
         const granted = await this.serverApi.grantCanLinkLobby(payload.lobbyId, payload.userId);
@@ -591,33 +598,28 @@ class DiscordSocialBridge {
         if (existingApplicationId && existingApplicationId !== this.appId) {
             this.nativeChannelLinkFailed = true;
             this.pendingNativeOutbound.splice(0);
+            this.clearChannelLinkCache();
             this.broadcastStatus(
                 `Discord channel is already linked to lobby ${existingLobbyId} for another app; unlink it or choose another channel.`
             );
             return;
         }
 
-        this.nativeChannelLinked = true;
-        this.nativeChannelLinkFailed = false;
-        this.saveChannelLinkCache(existingLobbyId, payload.channelId ?? this.channelId);
-        console.warn(
-            `[DiscordSocialBridge] Channel ${payload.channelId ?? this.channelId} is already linked to lobby ${existingLobbyId}; accepting existing link.`
-        );
-        this.flushPendingNativeOutbound();
+        await this.useExistingLinkedLobby(existingLobbyId, payload.channelId ?? this.channelId, 'Discord channel link conflict');
     }
 
     private handleChannelLinkFailed(payload: NativeBridgeInboundChannelLinkFailure): void {
         if (payload.errorCode === 50237) {
-            this.nativeChannelLinked = true;
-            this.nativeChannelLinkFailed = false;
-            this.saveChannelLinkCache(payload.lobbyId ?? '', payload.channelId ?? this.channelId);
-            console.warn('[DiscordSocialBridge] Discord channel is already linked; accepting existing lobby chat link.');
-            this.flushPendingNativeOutbound();
+            this.nativeChannelLinkFailed = true;
+            this.pendingNativeOutbound.splice(0);
+            this.clearChannelLinkCache();
+            this.broadcastStatus('Discord channel is already linked to another lobby; set the same DISCORD_SOCIAL_LOBBY_SECRET or unlink the old lobby before retrying.');
             return;
         }
 
         this.nativeChannelLinkFailed = true;
         this.pendingNativeOutbound.splice(0);
+        this.clearChannelLinkCache();
         const code = Number.isFinite(payload.errorCode) && payload.errorCode ? ` code=${payload.errorCode}` : '';
         const summary = String(payload.error || payload.summary || payload.responseBody || 'unknown error').trim();
         const conflictHint = payload.errorCode === 50237
@@ -626,9 +628,52 @@ class DiscordSocialBridge {
         this.broadcastStatus(`Discord lobby channel linking failed${code}: ${summary}${conflictHint}`);
     }
 
-    private hasCachedChannelLink(): boolean {
+    private async useExistingLinkedLobby(lobbyId: string, channelId: string, reason: string): Promise<void> {
+        const targetLobbyId = String(lobbyId ?? '').trim();
+        const targetChannelId = String(channelId || this.channelId).trim();
+        if (!targetLobbyId) {
+            this.nativeChannelLinkFailed = true;
+            this.pendingNativeOutbound.splice(0);
+            this.clearChannelLinkCache();
+            this.broadcastStatus('Discord channel is already linked, but the linked lobby id is missing.');
+            return;
+        }
+
+        if (!this.currentDiscordUserId) {
+            this.nativeChannelLinkFailed = true;
+            this.pendingNativeOutbound.splice(0);
+            this.broadcastStatus('Discord channel is already linked, but the bridge could not identify the authorized Discord user.');
+            return;
+        }
+
+        const granted = await this.serverApi.grantCanLinkLobby(targetLobbyId, this.currentDiscordUserId);
+        if (!granted) {
+            this.nativeChannelLinkFailed = true;
+            this.pendingNativeOutbound.splice(0);
+            this.clearChannelLinkCache();
+            this.broadcastStatus('Discord channel is already linked, but the bridge could not grant access to the linked lobby.');
+            return;
+        }
+
+        this.nativeChannelLinked = false;
+        this.nativeChannelLinkFailed = false;
+        console.warn(
+            `[DiscordSocialBridge] Channel ${targetChannelId} is already linked to lobby ${targetLobbyId}; reusing existing lobby from ${reason}.`
+        );
+        this.sendControlMessage({
+            type: 'use_lobby',
+            lobbyId: targetLobbyId,
+            channelId: targetChannelId
+        });
+    }
+
+    private readCurrentChannelLinkCache(): DiscordChannelLinkCache | null {
         const cached = this.readChannelLinkCache();
-        return Boolean(cached && cached.appId === this.appId && cached.channelId === this.channelId);
+        if (!cached || cached.appId !== this.appId || cached.channelId !== this.channelId || !cached.lobbyId) {
+            return null;
+        }
+
+        return cached;
     }
 
     private readChannelLinkCache(): DiscordChannelLinkCache | null {
@@ -671,6 +716,18 @@ class DiscordSocialBridge {
             fs.writeFileSync(this.channelLinkCachePath, JSON.stringify(payload, null, 2));
         } catch (error) {
             console.warn('[DiscordSocialBridge] Failed to write Discord channel link cache:', error);
+        }
+    }
+
+    private clearChannelLinkCache(): void {
+        if (!this.channelLinkCachePath || !fs.existsSync(this.channelLinkCachePath)) {
+            return;
+        }
+
+        try {
+            fs.unlinkSync(this.channelLinkCachePath);
+        } catch (error) {
+            console.warn('[DiscordSocialBridge] Failed to clear Discord channel link cache:', error);
         }
     }
 
