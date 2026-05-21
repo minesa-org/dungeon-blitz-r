@@ -4,6 +4,7 @@
 #include "discord_social_sdk/include/discordpp.h"
 
 #include <chrono>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -17,6 +18,60 @@ namespace dungeon_blitz::bridge {
 namespace {
 
 constexpr int CHANNEL_ALREADY_LINKED_ERROR_CODE = 50237;
+
+std::string trim(const std::string& value) {
+    std::size_t start = 0;
+    while (start < value.size() && std::isspace(static_cast<unsigned char>(value[start])) != 0) {
+        ++start;
+    }
+
+    std::size_t end = value.size();
+    while (end > start && std::isspace(static_cast<unsigned char>(value[end - 1])) != 0) {
+        --end;
+    }
+
+    return value.substr(start, end - start);
+}
+
+std::string cleanDisplayName(const std::string& value) {
+    std::string cleaned;
+    for (std::size_t i = 0; i < value.size();) {
+        const auto ch = static_cast<unsigned char>(value[i]);
+        if (ch <= 0x1F || ch == 0x7F) {
+            ++i;
+            continue;
+        }
+
+        const bool zeroWidthUtf8 =
+            i + 2 < value.size() &&
+            ch == 0xE2 &&
+            static_cast<unsigned char>(value[i + 1]) == 0x80 &&
+            (
+                static_cast<unsigned char>(value[i + 2]) == 0x8B ||
+                static_cast<unsigned char>(value[i + 2]) == 0x8C ||
+                static_cast<unsigned char>(value[i + 2]) == 0x8D
+            );
+        if (zeroWidthUtf8) {
+            i += 3;
+            continue;
+        }
+
+        const bool byteOrderMarkUtf8 =
+            i + 2 < value.size() &&
+            ch == 0xEF &&
+            static_cast<unsigned char>(value[i + 1]) == 0xBB &&
+            static_cast<unsigned char>(value[i + 2]) == 0xBF;
+        if (byteOrderMarkUtf8) {
+            i += 3;
+            continue;
+        }
+
+        cleaned.push_back(value[i]);
+        ++i;
+    }
+
+    return trim(cleaned);
+}
 
 std::optional<std::string> extractJsonField(const std::string& json, const std::string& key) {
     const auto token = "\"" + key + "\"";
@@ -93,16 +148,21 @@ std::string resolveUserName(const discordpp::UserHandle& user) {
     const auto displayName = user.DisplayName();
     const auto handle = user.Username();
 
-    if (globalName && !globalName->empty()) {
-        return *globalName;
+    if (globalName) {
+        const auto cleaned = cleanDisplayName(*globalName);
+        if (!cleaned.empty()) {
+            return cleaned;
+        }
     }
 
-    if (!displayName.empty()) {
-        return displayName;
+    const auto cleanedDisplayName = cleanDisplayName(displayName);
+    if (!cleanedDisplayName.empty()) {
+        return cleanedDisplayName;
     }
 
-    if (!handle.empty()) {
-        return handle;
+    const auto cleanedHandle = cleanDisplayName(handle);
+    if (!cleanedHandle.empty()) {
+        return cleanedHandle;
     }
 
     return "";
@@ -559,8 +619,11 @@ void DiscordBridge::handleIncomingDiscordMessage(const discordpp::MessageHandle&
 
     const auto metadata = message.Metadata();
     const auto metadataName = metadata.find("character_name");
-    if (metadataName != metadata.end() && !metadataName->second.empty()) {
-        username = metadataName->second;
+    if (metadataName != metadata.end()) {
+        const auto cleanedMetadataName = cleanDisplayName(metadataName->second);
+        if (!cleanedMetadataName.empty()) {
+            username = cleanedMetadataName;
+        }
     }
 
     if (username.empty() && authorId != 0) {

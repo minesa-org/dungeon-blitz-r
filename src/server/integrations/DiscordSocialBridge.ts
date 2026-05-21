@@ -421,9 +421,18 @@ class DiscordSocialBridge {
     private static cleanDiscordText(value: string | null | undefined, maxLength: number): string {
         return String(value ?? '')
             .replace(/[\r\n]+/g, ' ')
+            .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, '')
             .replace(/\s+/g, ' ')
             .trim()
             .slice(0, maxLength);
+    }
+
+    private static isResolvableDiscordUserId(value: string): boolean {
+        return /^[1-9]\d{4,}$/.test(value);
+    }
+
+    private static needsDiscordNameResolution(value: string): boolean {
+        return !value || value === 'Discord' || /^DiscordUser#\d+$/.test(value);
     }
 
     private static escapeGameStatusText(value: string | null | undefined): string {
@@ -585,17 +594,22 @@ class DiscordSocialBridge {
     }
 
     private async handleDiscordChat(payload: NativeBridgeInboundChat): Promise<void> {
-        const authorId = String(payload.authorId ?? '').trim();
-        let username = String(payload.username ?? '').trim();
+        const authorId = DiscordSocialBridge.cleanDiscordText(payload.authorId, 40);
+        const canResolveAuthor = DiscordSocialBridge.isResolvableDiscordUserId(authorId);
+        let username = DiscordSocialBridge.cleanDiscordText(payload.username, 80);
 
-        if ((!username || username === 'Discord' || /^DiscordUser#\d+$/.test(username)) && authorId) {
+        if (canResolveAuthor) {
             const resolvedUsername = await this.serverApi.fetchUserDisplayName(authorId);
             if (resolvedUsername) {
-                username = resolvedUsername;
+                username = DiscordSocialBridge.cleanDiscordText(resolvedUsername, 80);
             }
         }
 
-        const safeUsername = DiscordSocialBridge.escapeGameStatusText(username || (authorId ? `DiscordUser#${authorId}` : 'Discord'));
+        if (DiscordSocialBridge.needsDiscordNameResolution(username)) {
+            username = canResolveAuthor ? `DiscordUser#${authorId}` : 'Discord';
+        }
+
+        const safeUsername = DiscordSocialBridge.escapeGameStatusText(username);
         const safeMessage = DiscordSocialBridge.escapeGameStatusText(payload.message);
         this.broadcastStatus(`${this.inboundPrefix} ${safeUsername}: ${safeMessage}`);
     }
