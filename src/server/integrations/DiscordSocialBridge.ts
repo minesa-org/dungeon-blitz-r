@@ -512,7 +512,7 @@ class DiscordSocialBridge {
                 {
                     const username = DiscordSocialBridge.escapeGameStatusText(String(payload.username ?? '').trim() || 'Discord');
                     const message = DiscordSocialBridge.escapeGameStatusText(payload.message);
-                    this.broadcastStatus(`${this.inboundPrefix} &lt;${username}&gt;: ${message}`);
+                    this.broadcastStatus(`${this.inboundPrefix} ${username}: ${message}`);
                 }
                 return;
             case 'lobby_ready':
