@@ -128,6 +128,15 @@ std::string channelLinkErrorJsonFields(const ChannelLinkError& error) {
     return out.str();
 }
 
+bool shouldSuppressDiscordSdkLog(const std::string& message) {
+    if (message.find("(analytics.cpp:") == std::string::npos) {
+        return false;
+    }
+
+    return message.find("Attempted to send analytics event without a token") != std::string::npos ||
+        message.find("Analytics HTTP response status didn't indicate success: 401") != std::string::npos;
+}
+
 } // namespace
 
 DiscordBridge::DiscordBridge() = default;
@@ -156,6 +165,9 @@ bool DiscordBridge::initialize(const DiscordBridgeConfig& config) {
     }
     client_->AddLogCallback(
         [](std::string message, discordpp::LoggingSeverity) {
+            if (shouldSuppressDiscordSdkLog(message)) {
+                return;
+            }
             std::cerr << "[DiscordSDK] " << message << std::endl;
         },
         discordpp::LoggingSeverity::Info
@@ -174,6 +186,11 @@ bool DiscordBridge::tryRestoreSession() {
 
     if (!loadCachedTokens()) {
         return false;
+    }
+
+    if (!accessToken_.empty()) {
+        connectWithToken(discordpp::AuthorizationTokenType::Bearer, accessToken_);
+        return true;
     }
 
     if (!refreshToken_.empty()) {
@@ -201,11 +218,6 @@ bool DiscordBridge::tryRestoreSession() {
                 connectWithToken(tokenType, accessToken_);
             }
         );
-        return true;
-    }
-
-    if (!accessToken_.empty()) {
-        connectWithToken(discordpp::AuthorizationTokenType::Bearer, accessToken_);
         return true;
     }
 
