@@ -168,8 +168,22 @@ function applyCodeEditsAndAdjustBranches(
   return patched;
 }
 
-function adjustedOffset(offset: number, editStart: number, delta: number): number {
-  return offset >= editStart ? offset + delta : offset;
+function adjustedOffsetForEdits(
+  offset: number,
+  edits: Array<{ start: number; end: number; data: Buffer }>,
+): number {
+  let mapped = offset;
+  for (const edit of [...edits].sort((left, right) => left.start - right.start)) {
+    const delta = edit.data.length - (edit.end - edit.start);
+    if (edit.end <= offset || (edit.start === edit.end && edit.start <= offset)) {
+      mapped += delta;
+    }
+  }
+  return mapped;
+}
+
+function replaceRange(data: Buffer, start: number, end: number, replacement: Buffer): Buffer {
+  return Buffer.concat([data.subarray(0, start), replacement, data.subarray(end)]);
 }
 
 function getGameMethod1947(swfPath: string) {
@@ -259,6 +273,37 @@ function findGetChildIndexBlock(instructions: Instruction[], names: string[]): {
   throw new PatchError("Could not find Game.method_1947 getChildIndex/addChildAt block.");
 }
 
+function findRemoveChildBlock(instructions: Instruction[], names: string[]): { start: number; end: number } {
+  for (let index = 0; index < instructions.length; index += 1) {
+    if (
+      instructions[index].opcode !== 0x4f ||
+      u30OperandName(instructions[index], names) !== "removeChild" ||
+      instructions[index].operands[1]?.[1] !== 1 ||
+      u30OperandName(instructions[index - 1], names) !== "var_374"
+    ) {
+      continue;
+    }
+
+    for (let scan = index - 2; scan >= 0 && instructions[index].offset - instructions[scan].offset <= 80; scan -= 1) {
+      if (
+        instructions[scan].opcode === 0xd0 &&
+        instructions[scan + 1]?.opcode === 0x66 &&
+        u30OperandName(instructions[scan + 1], names) === "main" &&
+        instructions[scan + 2]?.opcode === 0xd0 &&
+        instructions[scan + 3]?.opcode === 0x66 &&
+        u30OperandName(instructions[scan + 3], names) === "main"
+      ) {
+        return {
+          start: instructions[scan].offset,
+          end: instructions[index].offset + instructions[index].size,
+        };
+      }
+    }
+  }
+
+  throw new PatchError("Could not find Game.method_1947 removeChild block.");
+}
+
 function buildGetChildIndexGuard(
   mainName: number,
   snapshotName: number,
@@ -320,6 +365,50 @@ function hasGetChildIndexGuard(code: Buffer, blockStart: number, guardPrefix: Bu
   return blockStart >= guardPrefix.length && code.subarray(blockStart - guardPrefix.length, blockStart).equals(guardPrefix);
 }
 
+function buildRemoveChildGuard(
+  mainName: number,
+  snapshotName: number,
+  parentName: number,
+  originalCallLength: number,
+): Buffer {
+  const prefix = Buffer.concat([
+    opcode(0xd0),
+    opcode(0x66, [["u30", mainName]]),
+    opcode(0x66, [["u30", snapshotName]]),
+    opcode(0x2a), // duplicate var_374 for the null check
+  ]);
+  const ifHasSnapshotOffset = prefix.length;
+  const ifHasSnapshotSize = 4;
+  const nullCaseSize = 5; // pop + jump s24
+  const hasSnapshot = Buffer.concat([
+    opcode(0x66, [["u30", parentName]]),
+    opcode(0xd0),
+    opcode(0x66, [["u30", mainName]]),
+    opcode(0xab), // var_374.parent == main
+  ]);
+  const ifHasSnapshot = opcode(0x11, [["s24", nullCaseSize]]);
+  const ifParentMatches = opcode(0x12, [["s24", originalCallLength]]);
+  const totalGuardLength = prefix.length + ifHasSnapshotSize + nullCaseSize + hasSnapshot.length + ifParentMatches.length;
+  const nullJumpOffset = prefix.length + ifHasSnapshotSize + 1;
+  const nullJumpEnd = nullJumpOffset + 4;
+  const nullCase = Buffer.concat([
+    opcode(0x29),
+    opcode(0x10, [["s24", totalGuardLength + originalCallLength - nullJumpEnd]]),
+  ]);
+
+  return Buffer.concat([
+    prefix,
+    ifHasSnapshot,
+    nullCase,
+    hasSnapshot,
+    ifParentMatches,
+  ]);
+}
+
+function hasRemoveChildGuard(code: Buffer, blockStart: number, guardPrefix: Buffer): boolean {
+  return blockStart >= guardPrefix.length && code.subarray(blockStart - guardPrefix.length, blockStart).equals(guardPrefix);
+}
+
 function isPatched(code: Buffer, constructorStart: number, constructOffset: number): boolean {
   const prefix = Buffer.concat([
     pushShort(SAFE_SCREEN_BITMAP_WIDTH),
@@ -368,21 +457,34 @@ function patchSwf(swfPath: string, verify: boolean): void {
   const catchName = findRequiredMultiname(abc, "error");
   const hasCrashGuard = hasBitmapDataCrashGuard(methodBody, construct, errorName);
   const childIndexBlock = findGetChildIndexBlock(instructions, abc.multinameNames);
+  const removeChildBlock = findRemoveChildBlock(instructions, abc.multinameNames);
+  const mainName = findRequiredMultiname(abc, "main");
+  const snapshotName = findRequiredMultiname(abc, "var_147");
+  const transitionSnapshotName = findRequiredMultiname(abc, "var_374");
+  const parentName = findRequiredMultiname(abc, "parent");
   const childIndexGuard = buildGetChildIndexGuard(
-    findRequiredMultiname(abc, "main"),
-    findRequiredMultiname(abc, "var_147"),
-    findRequiredMultiname(abc, "var_374"),
-    findRequiredMultiname(abc, "parent"),
+    mainName,
+    snapshotName,
+    transitionSnapshotName,
+    parentName,
     findRequiredMultiname(abc, "addChild"),
     childIndexBlock.end - childIndexBlock.start,
   );
+  const removeChildGuard = buildRemoveChildGuard(
+    mainName,
+    transitionSnapshotName,
+    parentName,
+    removeChildBlock.end - removeChildBlock.start,
+  );
   const hasChildIndexGuard = hasGetChildIndexGuard(code, childIndexBlock.start, childIndexGuard);
+  const hasRemoveChildGuardPresent = hasRemoveChildGuard(code, removeChildBlock.start, removeChildGuard);
+  const hasSafeBitmapDimensions = isPatched(code, constructorArgsStart, constructorArgsEnd);
 
   if (constructorArgsEnd <= constructorArgsStart) {
     throw new PatchError("Unexpected Game.method_1947 BitmapData argument range.");
   }
 
-  if (isPatched(code, constructorArgsStart, constructorArgsEnd) && hasCrashGuard && hasChildIndexGuard) {
+  if (hasSafeBitmapDimensions && hasCrashGuard && hasChildIndexGuard && hasRemoveChildGuardPresent) {
     console.log(`${swfPath}: already patched (Game.method_1947 safe screen BitmapData guard present).`);
     return;
   }
@@ -403,26 +505,30 @@ function patchSwf(swfPath: string, verify: boolean): void {
     replacementPrefix,
     Buffer.alloc(constructorArgsEnd - constructorArgsStart - replacementPrefix.length, 0x02),
   ]);
-  const guardedCode = hasChildIndexGuard
-    ? code
-    : applyCodeEditsAndAdjustBranches(code, instructions, [
-        { start: childIndexBlock.start, end: childIndexBlock.start, data: childIndexGuard },
-      ]);
-  const childGuardDelta = guardedCode.length - code.length;
-  const adjustedConstructorArgsStart = adjustedOffset(constructorArgsStart, childIndexBlock.start, childGuardDelta);
-  const adjustedConstructorArgsEnd = adjustedOffset(constructorArgsEnd, childIndexBlock.start, childGuardDelta);
-  const adjustedFindOffset = adjustedOffset(find.offset, childIndexBlock.start, childGuardDelta);
-  const adjustedConstructEnd = adjustedOffset(construct.offset + construct.size, childIndexBlock.start, childGuardDelta);
+  const codeEdits = [
+    ...(hasChildIndexGuard ? [] : [{ start: childIndexBlock.start, end: childIndexBlock.start, data: childIndexGuard }]),
+    ...(hasRemoveChildGuardPresent ? [] : [{ start: removeChildBlock.start, end: removeChildBlock.start, data: removeChildGuard }]),
+  ];
+  const guardedCode = codeEdits.length
+    ? applyCodeEditsAndAdjustBranches(code, instructions, codeEdits)
+    : code;
+  const adjustedConstructorArgsStart = adjustedOffsetForEdits(constructorArgsStart, codeEdits);
+  const adjustedConstructorArgsEnd = adjustedOffsetForEdits(constructorArgsEnd, codeEdits);
+  const adjustedFindOffset = adjustedOffsetForEdits(find.offset, codeEdits);
+  const adjustedConstructEnd = adjustedOffsetForEdits(construct.offset + construct.size, codeEdits);
   const [localCount, localCountEnd] = readU30(ctx.body, methodBody.localCountPos, "Game.method_1947.local_count");
+  const dimensionPatchedCode = hasSafeBitmapDimensions
+    ? guardedCode
+    : replaceRange(guardedCode, adjustedConstructorArgsStart, adjustedConstructorArgsEnd, replacement);
   const handler = buildCatchHandler(localCount);
-  const handlerOffset = guardedCode.length;
-  const patchedCode = hasCrashGuard ? guardedCode : Buffer.concat([guardedCode, handler]);
+  const handlerOffset = dimensionPatchedCode.length;
+  const patchedCode = hasCrashGuard ? dimensionPatchedCode : Buffer.concat([dimensionPatchedCode, handler]);
   const exceptionTable = hasCrashGuard
     ? Buffer.concat([
         writeU30(1),
-        writeU30(adjustedOffset(methodBody.exceptions[0].from, childIndexBlock.start, childGuardDelta)),
-        writeU30(adjustedOffset(methodBody.exceptions[0].to, childIndexBlock.start, childGuardDelta)),
-        writeU30(adjustedOffset(methodBody.exceptions[0].target, childIndexBlock.start, childGuardDelta)),
+        writeU30(adjustedOffsetForEdits(methodBody.exceptions[0].from, codeEdits)),
+        writeU30(adjustedOffsetForEdits(methodBody.exceptions[0].to, codeEdits)),
+        writeU30(adjustedOffsetForEdits(methodBody.exceptions[0].target, codeEdits)),
         writeU30(methodBody.exceptions[0].type),
         writeU30(methodBody.exceptions[0].name),
       ])
@@ -436,13 +542,6 @@ function patchSwf(swfPath: string, verify: boolean): void {
       ]);
 
   const patches: BytePatch[] = [
-    {
-      key: "Game.method_1947.screen_bitmap_dimensions",
-      start: methodBody.codeStart + adjustedConstructorArgsStart,
-      end: methodBody.codeStart + adjustedConstructorArgsEnd,
-      data: replacement,
-      detail: "force screen BitmapData dimensions to 2048x1152",
-    },
     ...(hasCrashGuard
       ? []
       : [
@@ -461,7 +560,7 @@ function patchSwf(swfPath: string, verify: boolean): void {
             detail: "allow catch scope",
           },
         ]),
-    ...((hasChildIndexGuard && hasCrashGuard)
+    ...((hasSafeBitmapDimensions && hasChildIndexGuard && hasRemoveChildGuardPresent && hasCrashGuard)
       ? []
       : [
           {

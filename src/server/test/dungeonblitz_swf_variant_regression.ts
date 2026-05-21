@@ -818,6 +818,36 @@ function assertGameMethod1947SafeScreenBitmapData(swfPath: string): void {
         true,
         'Game.method_1947 must guard getChildIndex when the transition anchor is no longer a child'
     );
+
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0xd0 &&
+            instructions[index + 1]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 1], abc.multinameNames) === 'main' &&
+            instructions[index + 2]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 2], abc.multinameNames) === 'var_374' &&
+            instructions[index + 3]?.opcode === 0x2a &&
+            instructions[index + 4]?.opcode === 0x11 &&
+            instructions[index + 5]?.opcode === 0x29 &&
+            instructions[index + 6]?.opcode === 0x10 &&
+            instructions[index + 7]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 7], abc.multinameNames) === 'parent' &&
+            instructions[index + 8]?.opcode === 0xd0 &&
+            instructions[index + 9]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 9], abc.multinameNames) === 'main' &&
+            instructions[index + 10]?.opcode === 0xab &&
+            instructions[index + 11]?.opcode === 0x12 &&
+            instructions.some((candidate, candidateIndex) =>
+                candidateIndex > index + 11 &&
+                candidateIndex <= index + 40 &&
+                candidate.opcode === 0x4f &&
+                u30OperandName(candidate, abc.multinameNames) === 'removeChild' &&
+                candidate.operands[1]?.[1] === 1
+            )
+        ),
+        true,
+        'Game.method_1947 must guard removeChild when the transition snapshot is no longer attached'
+    );
 }
 
 function assertMainMethod561DoesNotClampMaxScale(swfPath: string): void {

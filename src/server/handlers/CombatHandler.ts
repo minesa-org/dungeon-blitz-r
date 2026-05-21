@@ -1142,6 +1142,14 @@ export class CombatHandler {
         CombatHandler.broadcastToCombatRoom(targetSession, 0x3A, payload, true, [targetSession.clientEntID]);
     }
 
+    private static sendPlayerHpDelta(targetSession: Client, delta: number): void {
+        if (!targetSession.playerSpawned || !targetSession.currentLevel || targetSession.clientEntID <= 0 || delta === 0) {
+            return;
+        }
+
+        targetSession.send(0x3A, CombatHandler.buildHpDeltaPayload(targetSession.clientEntID, delta));
+    }
+
     private static broadcastPlayerState(targetSession: Client, entState: number): void {
         if (!targetSession.playerSpawned || !targetSession.currentLevel || targetSession.clientEntID <= 0) {
             return;
@@ -1390,6 +1398,22 @@ export class CombatHandler {
         }
 
         return Number(sourceEntity.team ?? 0) === EntityTeam.ENEMY;
+    }
+
+    private static isLocallySimulatedHostileHit(sourceEntity: any, targetSession: Client | null, sender: Client): boolean {
+        if (!sourceEntity || !targetSession || sourceEntity.isPlayer || !Boolean(sourceEntity.clientSpawned)) {
+            return false;
+        }
+        if (Number(sourceEntity.team ?? 0) !== EntityTeam.ENEMY) {
+            return false;
+        }
+
+        const ownerToken = Math.max(0, Math.round(Number(sourceEntity.ownerToken ?? 0)));
+        if (ownerToken > 0 && ownerToken === targetSession.token) {
+            return true;
+        }
+
+        return sender === targetSession;
     }
 
     private static updatePlayerTargetAfterHit(targetSession: Client, damage: number, preventDeath: boolean = false): PlayerHitResolution {
@@ -1718,6 +1742,12 @@ export class CombatHandler {
             !sourceEntity.isPlayer &&
             Number(sourceEntity.team ?? 0) === EntityTeam.ENEMY
         );
+        if (
+            (sourceEntity && !sourceEntity.isPlayer && CombatHandler.isEntityDead(sourceEntity)) ||
+            (targetEntity && !targetEntity.isPlayer && CombatHandler.isEntityDead(targetEntity))
+        ) {
+            return;
+        }
         if (targetEntity && !targetEntity.isPlayer && Boolean(targetEntity.untargetable)) {
             return;
         }
@@ -1785,7 +1815,12 @@ export class CombatHandler {
 
         const relayPayload = relayDamage === damage ? data : CombatHandler.buildPowerHitPayload(info, relayDamage);
         if (isHostileNpcSource) {
-            const excludeLocalVictim = targetSession === client && relayDamage === damage ? client : null;
+            const excludeLocalVictim = CombatHandler.isLocallySimulatedHostileHit(sourceEntity, targetSession, client)
+                ? targetSession
+                : null;
+            if (excludeLocalVictim && relayDamage > 0 && relayDamage < damage) {
+                CombatHandler.sendPlayerHpDelta(excludeLocalVictim, damage - relayDamage);
+            }
             CombatHandler.broadcastEntityViewPacket(levelScope, sourceEntity, 0x0A, relayPayload, [targetId, sourceId], excludeLocalVictim);
             return;
         }

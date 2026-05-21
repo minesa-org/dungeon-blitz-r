@@ -507,14 +507,17 @@ async function testHostileHitsLeavePlayersAliveAndStayRoomScoped(): Promise<void
         false,
         'hostile hits should not broadcast a death state when the player is clamped at 1 HP'
     );
-    const victimHitPacket = victim.sentPackets.find((packet) => packet.id === 0x0A);
     const watcherHitPacket = sameRoomWatcher.sentPackets.find((packet) => packet.id === 0x0A);
-    assert.notEqual(victimHitPacket, undefined, 'local player should receive the hostile hit packet');
+    assert.equal(
+        victim.sentPackets.some((packet) => packet.id === 0x0A),
+        false,
+        'local player already simulated the hostile hit and should not receive a bounced hit VFX packet'
+    );
     assert.notEqual(watcherHitPacket, undefined, 'same-room viewers should receive the hostile hit packet');
     assert.equal(
-        parsePowerHitDamage(victimHitPacket!.payload),
-        99,
-        'local player should receive the clamped damage value instead of a lethal hit'
+        victim.sentPackets.some((packet) => packet.id === 0x3A),
+        true,
+        'local player should receive an HP correction when server-side death prevention clamps the hostile hit'
     );
     assert.equal(
         parsePowerHitDamage(watcherHitPacket!.payload),
@@ -525,11 +528,6 @@ async function testHostileHitsLeavePlayersAliveAndStayRoomScoped(): Promise<void
         victim.sentPackets.some((packet) => packet.id === 0x07),
         false,
         'local player should not receive its own 0x07 state echo because the Flash client treats it as a remote entity update'
-    );
-    assert.equal(
-        victim.sentPackets.some((packet) => packet.id === 0x3A),
-        false,
-        'local player should only receive the hostile power-hit packet so the damage is shown once'
     );
     assert.equal(
         partyOtherRoom.sentPackets.some((packet) => packet.id === 0x0A || packet.id === 0x3A || packet.id === 0x07),
@@ -603,6 +601,59 @@ async function testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatche
     );
 }
 
+async function testDeadHostilePowerHitsAreIgnored(): Promise<void> {
+    const victim = createFakeClient(325, 'VictimDeadHostile', 2);
+    const sameRoomWatcher = createFakeClient(326, 'WatcherDeadHostile', 2);
+
+    attachPlayerEntity(victim);
+    attachPlayerEntity(sameRoomWatcher);
+
+    const deadNpc = {
+        id: 8126,
+        name: 'EnemyGoblinDead',
+        isPlayer: false,
+        x: 24,
+        y: 20,
+        v: 0,
+        team: EntityTeam.ENEMY,
+        entState: EntityState.DEAD,
+        dead: true,
+        clientSpawned: true,
+        ownerToken: victim.token,
+        roomId: victim.currentRoomId,
+        hp: 0
+    };
+    GlobalState.levelEntities.get(getClientLevelScope(victim as never))?.set(deadNpc.id, deadNpc);
+
+    GlobalState.sessionsByToken.set(victim.token, victim as never);
+    GlobalState.sessionsByToken.set(sameRoomWatcher.token, sameRoomWatcher as never);
+
+    await CombatHandler.handlePowerHit(victim as never, buildPowerHitPayload(victim.clientEntID, deadNpc.id, 10, 55));
+
+    assert.equal(
+        victim.sentPackets.some((packet) => packet.id === 0x0A || packet.id === 0x3A || packet.id === 0x07),
+        false,
+        'dead hostile sources should not keep damaging or correcting the local victim'
+    );
+    assert.equal(
+        sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x0A),
+        false,
+        'dead hostile sources should not relay late power-hit VFX to same-room viewers'
+    );
+
+    const attacker = createFakeClient(327, 'AttackerDeadTarget', 2);
+    attachPlayerEntity(attacker);
+    GlobalState.sessionsByToken.set(attacker.token, attacker as never);
+
+    await CombatHandler.handlePowerHit(attacker as never, buildPowerHitPayload(deadNpc.id, attacker.clientEntID, 10, 55));
+
+    assert.equal(
+        sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x0A),
+        false,
+        'dead hostile targets should not relay late player power-hit VFX'
+    );
+}
+
 async function testHostileDeathStateDoesNotEchoBackToLocalVictim(): Promise<void> {
     const victim = createFakeClient(330, 'VictimDeadEcho', 2);
     const sameRoomWatcher = createFakeClient(331, 'WatcherDeadEcho', 2);
@@ -646,6 +697,11 @@ async function testHostileDeathStateDoesNotEchoBackToLocalVictim(): Promise<void
         }),
         false,
         'local victim should not receive its own hostile death-state echo because LinkUpdater treats it as a remote entity update'
+    );
+    assert.equal(
+        victim.sentPackets.some((packet) => packet.id === 0x0A || packet.id === 0x3A),
+        false,
+        'dead local victims should not receive bounced hostile hit packets or HP corrections'
     );
     assert.equal(
         sameRoomWatcher.sentPackets.some((packet) => {
@@ -890,6 +946,15 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatches();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testDeadHostilePowerHitsAreIgnored();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
