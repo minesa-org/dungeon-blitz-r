@@ -758,11 +758,11 @@ async function testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatche
     );
 }
 
-async function testClientReportedPlayerDeathBroadcastsPartyHpAndState(): Promise<void> {
-    const victim = createFakeClient(340, 'VictimClientDeath', 2);
-    const sameRoomWatcher = createFakeClient(341, 'WatcherClientDeath', 2);
-    const partyOtherRoom = createFakeClient(342, 'PartyClientDeath', 7);
-    const otherRoomWatcher = createFakeClient(343, 'OtherClientDeath', 7);
+async function testClientReportedDeadPoseDoesNotZeroPositiveHp(): Promise<void> {
+    const victim = createFakeClient(340, 'VictimClientPose', 2);
+    const sameRoomWatcher = createFakeClient(341, 'WatcherClientPose', 2);
+    const partyOtherRoom = createFakeClient(342, 'PartyClientPose', 7);
+    const otherRoomWatcher = createFakeClient(343, 'OtherClientPose', 7);
 
     victim.currentLevel = 'TutorialDungeon';
     sameRoomWatcher.currentLevel = 'TutorialDungeon';
@@ -776,8 +776,8 @@ async function testClientReportedPlayerDeathBroadcastsPartyHpAndState(): Promise
     attachPlayerEntity(otherRoomWatcher);
     victim.entities.get(victim.clientEntID).hp = 37;
 
-    GlobalState.partyByMember.set('victimclientdeath', 12);
-    GlobalState.partyByMember.set('partyclientdeath', 12);
+    GlobalState.partyByMember.set('victimclientpose', 12);
+    GlobalState.partyByMember.set('partyclientpose', 12);
 
     GlobalState.sessionsByToken.set(victim.token, victim as never);
     GlobalState.sessionsByToken.set(sameRoomWatcher.token, sameRoomWatcher as never);
@@ -789,17 +789,90 @@ async function testClientReportedPlayerDeathBroadcastsPartyHpAndState(): Promise
         buildIncrementalStatePayload(victim.clientEntID, EntityState.DEAD)
     );
 
-    assert.equal(victim.authoritativeCurrentHp, 0);
-    assert.equal(victim.entities.get(victim.clientEntID)?.dead, true);
+    assert.equal(victim.authoritativeCurrentHp, 37);
+    assert.equal(victim.entities.get(victim.clientEntID)?.dead, false);
+    assert.equal(victim.entities.get(victim.clientEntID)?.entState, EntityState.ACTIVE);
     assert.equal(
         victim.sentPackets.some((packet) => packet.id === 0x3A || packet.id === 0x07),
         false,
-        'client-reported self death should not echo HP or state packets back to the local victim'
+        'client-reported dead pose should not echo HP or state packets back to the local player'
     );
+    assert.equal(
+        sameRoomWatcher.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            const state = parseEntityState(packet.payload);
+            return state.entityId === victim.clientEntID && state.entState === EntityState.ACTIVE;
+        }),
+        true,
+        'same-room viewers should receive an active correction instead of a false death state'
+    );
+    assert.equal(
+        partyOtherRoom.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            const state = parseEntityState(packet.payload);
+            return state.entityId === victim.clientEntID && state.entState === EntityState.ACTIVE;
+        }),
+        true,
+        'party viewers should receive an active correction instead of a false death state'
+    );
+    assert.equal(
+        otherRoomWatcher.sentPackets.some((packet) => packet.id === 0x3A),
+        false,
+        'non-party viewers in another room should not receive HP status for a false death pose'
+    );
+    assert.equal(
+        otherRoomWatcher.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            const state = parseEntityState(packet.payload);
+            return state.entityId === victim.clientEntID && state.entState === EntityState.ACTIVE;
+        }),
+        true,
+        'non-party same-instance viewers should receive active movement correction instead of false death'
+    );
+}
+
+async function testRespawnRequestBroadcastsPartyHpAndDeathState(): Promise<void> {
+    const victim = createFakeClient(344, 'VictimRespawnDeath', 2);
+    const sameRoomWatcher = createFakeClient(345, 'WatcherRespawnDeath', 2);
+    const partyOtherRoom = createFakeClient(346, 'PartyRespawnDeath', 7);
+    const otherRoomWatcher = createFakeClient(347, 'OtherRespawnDeath', 7);
+
+    victim.currentLevel = 'TutorialDungeon';
+    sameRoomWatcher.currentLevel = 'TutorialDungeon';
+    partyOtherRoom.currentLevel = 'TutorialDungeon';
+    otherRoomWatcher.currentLevel = 'TutorialDungeon';
+
+    victim.authoritativeCurrentHp = 37;
+    attachPlayerEntity(victim);
+    attachPlayerEntity(sameRoomWatcher);
+    attachPlayerEntity(partyOtherRoom);
+    attachPlayerEntity(otherRoomWatcher);
+    victim.entities.get(victim.clientEntID).hp = 37;
+
+    GlobalState.partyByMember.set('victimrespawndeath', 13);
+    GlobalState.partyByMember.set('partyrespawndeath', 13);
+
+    GlobalState.sessionsByToken.set(victim.token, victim as never);
+    GlobalState.sessionsByToken.set(sameRoomWatcher.token, sameRoomWatcher as never);
+    GlobalState.sessionsByToken.set(partyOtherRoom.token, partyOtherRoom as never);
+    GlobalState.sessionsByToken.set(otherRoomWatcher.token, otherRoomWatcher as never);
+
+    const request = new BitBuffer(false);
+    request.writeMethod15(false);
+    await CombatHandler.handleRequestRespawn(victim as never, request.toBuffer());
+
+    assert.equal(victim.authoritativeCurrentHp, 0);
+    assert.equal(victim.entities.get(victim.clientEntID)?.dead, true);
     assert.deepEqual(
         parseHpDelta(sameRoomWatcher.sentPackets.find((packet) => packet.id === 0x3A)!.payload),
         { entityId: victim.clientEntID, delta: -37 },
-        'same-room viewers should receive HP zeroing when death arrives as a movement state'
+        'same-room viewers should receive HP zeroing when a player enters the respawn flow'
     );
     assert.deepEqual(
         parseHpDelta(partyOtherRoom.sentPackets.find((packet) => packet.id === 0x3A)!.payload),
@@ -815,7 +888,7 @@ async function testClientReportedPlayerDeathBroadcastsPartyHpAndState(): Promise
             return state.entityId === victim.clientEntID && state.entState === EntityState.DEAD;
         }),
         true,
-        'same-room viewers should receive a sanitized death state'
+        'same-room viewers should receive the death state from the respawn flow'
     );
     assert.equal(
         partyOtherRoom.sentPackets.some((packet) => {
@@ -826,12 +899,12 @@ async function testClientReportedPlayerDeathBroadcastsPartyHpAndState(): Promise
             return state.entityId === victim.clientEntID && state.entState === EntityState.DEAD;
         }),
         true,
-        'party viewers should receive a sanitized death state even when their room id differs'
+        'party viewers should receive the death state even when their room id differs'
     );
     assert.equal(
         otherRoomWatcher.sentPackets.some((packet) => packet.id === 0x3A || packet.id === 0x07),
         false,
-        'non-party viewers in another room should not receive player status from this room'
+        'non-party viewers in another room should not receive player death status from this room'
     );
 }
 
@@ -1312,7 +1385,16 @@ async function main(): Promise<void> {
         GlobalState.entityLifeNonces.clear();
         GlobalState.entityLastRewardNonces.clear();
 
-        await testClientReportedPlayerDeathBroadcastsPartyHpAndState();
+        await testClientReportedDeadPoseDoesNotZeroPositiveHp();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testRespawnRequestBroadcastsPartyHpAndDeathState();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();

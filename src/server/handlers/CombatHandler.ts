@@ -2095,7 +2095,7 @@ export class CombatHandler {
             noteDungeonRunDeath(client);
             client.processedRewardSources.clear();
             CombatHandler.clearLevelEnemyRewardTrackingForRespawn(client);
-            CombatHandler.notePlayerDeathState(client);
+            CombatHandler.noteAndBroadcastPlayerDeathState(client);
         }
 
         const healAmount = CombatHandler.getRespawnHealAmount(client);

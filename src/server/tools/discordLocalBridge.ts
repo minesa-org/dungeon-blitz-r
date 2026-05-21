@@ -681,10 +681,6 @@ class LocalDiscordBridge {
             activity.partyMax = payload.partyMax ?? PARTY_MAX_MEMBERS;
         }
 
-        if (payload.joinSecret) {
-            activity.joinSecret = payload.joinSecret;
-        }
-
         if (payload.disciplineKey) {
             activity.smallImageKey = payload.disciplineKey;
             activity.smallImageText = `${payload.characterName} - ${payload.characterClass}`;
@@ -710,6 +706,8 @@ class LocalDiscordBridge {
         
         if (buttons.length > 0) {
             activity.buttons = buttons;
+        } else if (payload.joinSecret) {
+            activity.joinSecret = payload.joinSecret;
         }
 
         const nextHash = JSON.stringify(activity);

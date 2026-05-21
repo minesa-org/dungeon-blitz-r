@@ -4039,6 +4039,15 @@ export class LevelHandler {
         const ent = client.entities.get(rawEntityId) ?? client.entities.get(entityId) ?? levelEntity;
         if (!ent) return;
         const currentLevel = client.currentLevel || "NewbieRoad";
+        const selfHpBeforeState = isSelf
+            ? Math.max(0, Math.round(Number(client.authoritativeCurrentHp ?? ent.hp ?? levelEntity?.hp ?? 0) || 0))
+            : 0;
+        const effectiveEntState =
+            isSelf &&
+            entState === EntityState.DEAD &&
+            selfHpBeforeState > 0
+                ? EntityState.ACTIVE
+                : entState;
         const isAliasedSharedClientSpawnUpdate =
             rawEntityId !== entityId &&
             EntityHandler.shouldMirrorClientSpawnEntityToParty(currentLevel, levelEntity ?? ent);
@@ -4061,8 +4070,8 @@ export class LevelHandler {
         ent.x += deltaX;
         ent.y += deltaY;
         ent.v = Number(ent.v ?? 0) + deltaVX;
-        ent.entState = entState;
-        ent.dead = entState === EntityState.DEAD ? true : Boolean(ent.dead);
+        ent.entState = effectiveEntState;
+        ent.dead = effectiveEntState === EntityState.DEAD ? true : (isSelf ? false : Boolean(ent.dead));
         ent.facingLeft = flags.bLeft;
         ent.bRunning = flags.bRunning;
         ent.bJumping = flags.bJumping;
@@ -4075,8 +4084,8 @@ export class LevelHandler {
             levelEntity.x = ent.x;
             levelEntity.y = ent.y;
             levelEntity.v = ent.v;
-            levelEntity.entState = entState;
-            levelEntity.dead = entState === EntityState.DEAD ? true : Boolean(levelEntity.dead);
+            levelEntity.entState = effectiveEntState;
+            levelEntity.dead = effectiveEntState === EntityState.DEAD ? true : (isSelf ? false : Boolean(levelEntity.dead));
             levelEntity.facingLeft = flags.bLeft;
             levelEntity.bRunning = flags.bRunning;
             levelEntity.bJumping = flags.bJumping;
@@ -4140,7 +4149,7 @@ export class LevelHandler {
 
         if (
             isEnemyEntity &&
-            entState === EntityState.DEAD &&
+            effectiveEntState === EntityState.DEAD &&
             MissionHandler.shouldWaitForEnemyKillStateMissionProgress(client, ent) &&
             !Boolean(ent.questDefeatProcessed)
         ) {
@@ -4159,7 +4168,7 @@ export class LevelHandler {
             await MissionHandler.handleForcedDungeonBossCompletion(completionClient, ent);
         }
 
-        if (isSelf && entState === EntityState.DEAD) {
+        if (isSelf && effectiveEntState === EntityState.DEAD) {
             const { CombatHandler } = require('./CombatHandler') as typeof import('./CombatHandler');
             CombatHandler.noteAndBroadcastPlayerDeathState(client);
             return;
@@ -4170,14 +4179,14 @@ export class LevelHandler {
         }
 
         const relayEntity = levelEntity ?? ent;
-        const relayData = rawEntityId === entityId
+        const relayData = rawEntityId === entityId && effectiveEntState === entState
             ? data
             : LevelHandler.buildEntityIncrementalUpdatePayload(
                 entityId,
                 deltaX,
                 deltaY,
                 deltaVX,
-                entState,
+                effectiveEntState,
                 flags,
                 isAirborne,
                 velocityY
@@ -4204,7 +4213,7 @@ export class LevelHandler {
                     deltaX,
                     deltaY,
                     deltaVX,
-                    entState,
+                    effectiveEntState,
                     flags,
                     isAirborne,
                     velocityY

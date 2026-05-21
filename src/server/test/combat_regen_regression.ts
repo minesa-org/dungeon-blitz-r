@@ -560,6 +560,8 @@ async function testClientDeadStateArmsBossRegenForNextOriginalTick(): Promise<vo
     const player = createFakeClient(10, 'Kappa', 21);
     moveClientToLevel(player, 'DreamDragonDungeon');
     attachPlayerEntity(player);
+    player.authoritativeCurrentHp = 0;
+    player.entities.get(player.clientEntID)!.hp = 0;
     const nowMs = 10_000;
 
     const bossId = 900010;
