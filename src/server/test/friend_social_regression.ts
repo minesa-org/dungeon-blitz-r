@@ -8,6 +8,8 @@ import { SocialHandler } from '../handlers/SocialHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { MissionLoader } from '../data/MissionLoader';
+import { getCraftTownHomeInstanceId } from '../utils/HomeVisitGuard';
+import { JsonAdapter } from '../database/JsonAdapter';
 
 type SentPacket = {
     id: number;
@@ -20,6 +22,8 @@ type FakeClient = {
     character: Character;
     characters: Character[];
     currentLevel: string;
+    levelInstanceId: string;
+    craftTownHostCharacter: Character | null;
     entryLevel: string;
     currentRoomId: number;
     clientEntID: number;
@@ -59,6 +63,8 @@ function createFakeClient(name: string, friends: Array<{ name: string; isRequest
         character,
         characters: [character],
         currentLevel: '',
+        levelInstanceId: '',
+        craftTownHostCharacter: null,
         entryLevel: '',
         currentRoomId: 0,
         clientEntID: 0,
@@ -87,6 +93,12 @@ function createFakeClient(name: string, friends: Array<{ name: string; isRequest
 function buildNamePacket(name: string): Buffer {
     const bb = new BitBuffer(false);
     bb.writeMethod26(name);
+    return bb.toBuffer();
+}
+
+function buildVisitHousePacket(name: string): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod13(name);
     return bb.toBuffer();
 }
 
@@ -361,6 +373,82 @@ function testTeleportToPlayerCapturesDungeonAnchorState(): void {
     assert.equal(caller.sentPackets.some((packet) => packet.id === 0x2E), true);
 }
 
+function testTeleportToPartyMemberHomeCarriesHomeOwner(): void {
+    const caller = createFakeClient('Elmayuk');
+    const target = createFakeClient('Fleerpuh');
+    caller.token = 1051;
+    caller.currentLevel = 'NewbieRoad';
+    caller.playerSpawned = true;
+    caller.clientEntID = 4051;
+    target.token = 1052;
+    target.currentLevel = 'CraftTown';
+    target.levelInstanceId = getCraftTownHomeInstanceId(target.character);
+    target.currentRoomId = 0;
+    target.playerSpawned = true;
+    target.clientEntID = 4052;
+    target.entities.set(target.clientEntID, { x: 444, y: 1555 });
+
+    GlobalState.sessionsByToken.set(caller.token, caller as never);
+    GlobalState.sessionsByToken.set(target.token, target as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(caller.character.name), caller as never);
+    GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(target.character.name), target as never);
+
+    const partyId = 177;
+    GlobalState.partyGroups.set(partyId, {
+        id: partyId,
+        leader: target.character.name,
+        members: [caller.character.name, target.character.name],
+        locked: false
+    });
+    GlobalState.partyByMember.set(normalizeCharacterKey(caller.character.name), partyId);
+    GlobalState.partyByMember.set(normalizeCharacterKey(target.character.name), partyId);
+
+    SocialHandler.handleTeleportToPlayer(caller as never, buildNamePacket(target.character.name));
+
+    const pendingTeleport = GlobalState.pendingTeleports.get(caller.token);
+    assert.ok(pendingTeleport);
+    assert.equal(pendingTeleport?.targetLevel, 'CraftTown');
+    assert.equal(pendingTeleport?.levelInstanceId, getCraftTownHomeInstanceId(target.character));
+    assert.equal(pendingTeleport?.craftTownHostCharacter?.name, target.character.name);
+    assert.equal(caller.craftTownHostCharacter?.name, target.character.name);
+    assert.equal(caller.lastDoorTargetLevel, 'CraftTown');
+    assert.equal(caller.sentPackets.some((packet) => packet.id === 0x2E), true);
+}
+
+async function testVisitHousePrefersLiveServerCharacter(): Promise<void> {
+    const caller = createFakeClient('Elmayuk');
+    const target = createFakeClient('Fleerpuh');
+    caller.token = 1061;
+    target.token = 1062;
+    target.character.magicForge = { stats_by_building: { '2': 5, '12': 4, '3': 3, '1': 1, '13': 2 } } as never;
+
+    const savedTarget = createCharacter('Fleerpuh');
+    savedTarget.magicForge = { stats_by_building: { '2': 1, '12': 1, '3': 1, '1': 1, '13': 1 } } as never;
+    const originalGetAccountIdByCharName = JsonAdapter.prototype.getAccountIdByCharName;
+    const originalLoadCharacters = JsonAdapter.prototype.loadCharacters;
+    JsonAdapter.prototype.getAccountIdByCharName = async function(): Promise<number | null> {
+        return 26;
+    };
+    JsonAdapter.prototype.loadCharacters = async function(): Promise<Character[]> {
+        return [savedTarget];
+    };
+
+    try {
+        GlobalState.sessionsByToken.set(target.token, target as never);
+        GlobalState.sessionsByCharacterName.set(normalizeCharacterKey(target.character.name), target as never);
+
+        await SocialHandler.handleRequestVisitPlayerHouse(caller as never, buildVisitHousePacket(target.character.name));
+
+        assert.equal(caller.craftTownHostCharacter, target.character);
+        assert.equal(GlobalState.houseVisits.get(caller.token), target.character);
+        assert.equal(caller.lastDoorTargetLevel, 'CraftTown');
+        assert.equal(caller.sentPackets.some((packet) => packet.id === 0x2E), true);
+    } finally {
+        JsonAdapter.prototype.getAccountIdByCharName = originalGetAccountIdByCharName;
+        JsonAdapter.prototype.loadCharacters = originalLoadCharacters;
+    }
+}
+
 function testTeleportToLockedPartyDungeonStartsPartyJoinTransfer(): void {
     const caller = createFakeClient('Caller');
     const target = createFakeClient('Target');
@@ -455,6 +543,7 @@ async function main(): Promise<void> {
     const partyGroups = new Map(GlobalState.partyGroups);
     const partyByMember = new Map(GlobalState.partyByMember);
     const pendingTeleports = new Map(GlobalState.pendingTeleports);
+    const houseVisits = new Map(GlobalState.houseVisits);
 
     GlobalState.sessionsByCharacterName.clear();
     GlobalState.sessionsByToken.clear();
@@ -465,6 +554,7 @@ async function main(): Promise<void> {
     GlobalState.partyGroups.clear();
     GlobalState.partyByMember.clear();
     GlobalState.pendingTeleports.clear();
+    GlobalState.houseVisits.clear();
 
     try {
         await testAcceptPreservesExistingFriendKey();
@@ -503,6 +593,21 @@ async function main(): Promise<void> {
         GlobalState.partyGroups.clear();
         GlobalState.partyByMember.clear();
         GlobalState.pendingTeleports.clear();
+        testTeleportToPartyMemberHomeCarriesHomeOwner();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyGroups.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.pendingTeleports.clear();
+        GlobalState.houseVisits.clear();
+        await testVisitHousePrefersLiveServerCharacter();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyGroups.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.pendingTeleports.clear();
         testTeleportToLockedPartyDungeonStartsPartyJoinTransfer();
 
         GlobalState.sessionsByCharacterName.clear();
@@ -521,6 +626,7 @@ async function main(): Promise<void> {
         GlobalState.partyGroups = partyGroups;
         GlobalState.partyByMember = partyByMember;
         GlobalState.pendingTeleports = pendingTeleports;
+        GlobalState.houseVisits = houseVisits;
     }
 
     console.log('friend_social_regression: ok');

@@ -7,6 +7,7 @@ import { CharacterHandler } from '../handlers/CharacterHandler';
 import { LoginHandler } from '../handlers/LoginHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
+import { getCraftTownHomeInstanceId } from '../utils/HomeVisitGuard';
 
 type SentPacket = {
     id: number;
@@ -17,6 +18,7 @@ type FakeWatcher = {
     token: number;
     userId: number | null;
     currentLevel: string;
+    levelInstanceId: string;
     playerSpawned: boolean;
     socket: { destroyed: boolean };
     sentPackets: SentPacket[];
@@ -42,6 +44,7 @@ function createWatcher(token: number, currentLevel: string): FakeWatcher {
         token,
         userId: null,
         currentLevel,
+        levelInstanceId: '',
         playerSpawned: true,
         socket: { destroyed: false },
         sentPackets,
@@ -78,9 +81,12 @@ async function testResetForLoginCycleClearsStaleSessionMappings(): Promise<void>
     owner.token = 111;
     owner.clientEntID = 42;
     owner.currentLevel = 'CraftTown';
+    owner.levelInstanceId = getCraftTownHomeInstanceId(hero);
     owner.playerSpawned = true;
 
     const watcher = createWatcher(333, 'CraftTown');
+    watcher.levelInstanceId = getCraftTownHomeInstanceId(hero);
+    const heroHomeScope = `CraftTown#${getCraftTownHomeInstanceId(hero)}`;
 
     GlobalState.sessionsByToken.set(111, owner);
     GlobalState.sessionsByToken.set(222, owner);
@@ -90,7 +96,7 @@ async function testResetForLoginCycleClearsStaleSessionMappings(): Promise<void>
     GlobalState.sessionsByCharacterName.set('hero', owner);
     GlobalState.sessionsByCharacterName.set('hero-stale', owner);
     GlobalState.levelEntities.set(
-        'CraftTown',
+        heroHomeScope,
         new Map<number, any>([
             [42, { id: 42, name: 'Hero', isPlayer: true }],
             [77, { id: 77, name: 'Watcher', isPlayer: true }]
@@ -106,8 +112,8 @@ async function testResetForLoginCycleClearsStaleSessionMappings(): Promise<void>
     assert.equal(GlobalState.sessionsByUserId.has(12), false);
     assert.equal(GlobalState.sessionsByCharacterName.has('hero'), false);
     assert.equal(GlobalState.sessionsByCharacterName.has('hero-stale'), false);
-    assert.equal(GlobalState.levelEntities.get('CraftTown')?.has(42), false);
-    assert.equal(GlobalState.levelEntities.get('CraftTown')?.has(77), true);
+    assert.equal(GlobalState.levelEntities.get(heroHomeScope)?.has(42), false);
+    assert.equal(GlobalState.levelEntities.get(heroHomeScope)?.has(77), true);
     assert.deepEqual(decodeDestroyedEntityIds(watcher.sentPackets), [42]);
 
     assert.equal(owner.authenticated, false);

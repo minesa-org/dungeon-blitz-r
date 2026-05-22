@@ -10,6 +10,7 @@ import { LevelHandler } from '../handlers/LevelHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { NpcLoader } from '../data/NpcLoader';
+import { getCraftTownHomeInstanceId } from '../utils/HomeVisitGuard';
 
 type SentPacket = {
     id: number;
@@ -347,6 +348,45 @@ function testConfiguredLevelsUseClientSpawn(): void {
     }
 
     assert.equal(EntityHandler.isClientSpawnLevel('TutorialDungeon'), false);
+}
+
+function testCraftTownPlayerSpawnsAreScopedByHomeOwner(): void {
+    const alice = createFakeClient('Alice');
+    const bob = createFakeClient('Bob');
+    const aliceVisitor = createFakeClient('AliceVisitor');
+
+    alice.currentLevel = 'CraftTown';
+    bob.currentLevel = 'CraftTown';
+    aliceVisitor.currentLevel = 'CraftTown';
+    alice.levelInstanceId = getCraftTownHomeInstanceId({ name: 'Alice' } as never);
+    bob.levelInstanceId = getCraftTownHomeInstanceId({ name: 'Bob' } as never);
+    aliceVisitor.levelInstanceId = getCraftTownHomeInstanceId(
+        { name: 'AliceVisitor' } as never,
+        { name: 'Alice' } as never
+    );
+    alice.clientEntID = 701;
+    bob.clientEntID = 702;
+    aliceVisitor.clientEntID = 703;
+    alice.entities.set(701, { id: 701, x: 100, y: 200, isPlayer: true });
+    bob.entities.set(702, { id: 702, x: 300, y: 400, isPlayer: true });
+    aliceVisitor.entities.set(703, { id: 703, x: 500, y: 600, isPlayer: true });
+
+    GlobalState.sessionsByToken.set(alice.token, alice as never);
+    GlobalState.sessionsByToken.set(bob.token, bob as never);
+    GlobalState.sessionsByToken.set(aliceVisitor.token, aliceVisitor as never);
+
+    EntityHandler.refreshPlayerSnapshot(alice as never);
+
+    assert.equal(
+        bob.sentPackets.some((packet) => packet.id === 0x0F),
+        false,
+        'players in different owners Homes should not receive each other player spawns'
+    );
+    assert.equal(
+        aliceVisitor.sentPackets.some((packet) => packet.id === 0x0F),
+        true,
+        'visitors to the same owner Home should receive that owner player spawn'
+    );
 }
 
 function testClientSpawnLevelsDoNotSendServerNpcCopies(): void {
@@ -2655,6 +2695,11 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testConfiguredLevelsUseClientSpawn();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testCraftTownPlayerSpawnsAreScopedByHomeOwner();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

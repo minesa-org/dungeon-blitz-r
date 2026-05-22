@@ -51,6 +51,7 @@ import {
     normalizeLevelInstanceId
 } from '../core/LevelScope';
 import { getCharacterRuntimeLevel, getPartyRuntimeLevelForClient } from '../core/RuntimeLevel';
+import { getCraftTownHomeInstanceId } from '../utils/HomeVisitGuard';
 
 const db = new JsonAdapter();
 
@@ -3131,9 +3132,12 @@ export class LevelHandler {
         playSessionStartedAt?: number
     ): void {
         const shouldSyncDungeonProgress = LevelConfig.isDungeonLevel(targetLevel);
+        const craftTownHomeInstanceId = targetLevel === 'CraftTown'
+            ? getCraftTownHomeInstanceId(character, craftTownHostCharacter)
+            : '';
         const levelInstanceId = shouldSyncDungeonProgress
             ? normalizeLevelInstanceId(syncState?.levelInstanceId) || createDungeonInstanceId(token)
-            : '';
+            : craftTownHomeInstanceId;
         const syncAnchorStartedAt = shouldSyncDungeonProgress
             ? LevelHandler.normalizeSyncAnchorStartedAt(syncState?.syncAnchorStartedAt) ?? Date.now()
             : undefined;
@@ -3186,8 +3190,61 @@ export class LevelHandler {
         return false;
     }
 
+    private static isDifferentCharacter(left: Character | null | undefined, right: Character | null | undefined): boolean {
+        const leftKey = normalizeCharacterKey(left?.name);
+        const rightKey = normalizeCharacterKey(right?.name);
+        return Boolean(leftKey && rightKey && leftKey !== rightKey);
+    }
+
+    private static resolveVisitedCraftTownHostCharacter(
+        client: Client,
+        transferToken: number,
+        activeCharacter: Character,
+        targetLevel: string
+    ): Character {
+        if (targetLevel !== 'CraftTown') {
+            return activeCharacter;
+        }
+
+        const queuedHost = GlobalState.houseVisits.get(transferToken);
+        if (queuedHost) {
+            GlobalState.houseVisits.delete(transferToken); // Consume
+            if (LevelHandler.isDifferentCharacter(activeCharacter, queuedHost)) {
+                client.craftTownHostCharacter = queuedHost;
+                console.log(`[Level] House Visit active! Host: ${queuedHost.name}`);
+                return queuedHost;
+            }
+
+            client.craftTownHostCharacter = null;
+            return activeCharacter;
+        }
+
+        if (LevelHandler.isDifferentCharacter(activeCharacter, client.craftTownHostCharacter)) {
+            console.log(`[Level] House Visit active from session host! Host: ${client.craftTownHostCharacter!.name}`);
+            return client.craftTownHostCharacter!;
+        }
+
+        client.craftTownHostCharacter = null;
+        return activeCharacter;
+    }
+
     private static allocateTransferToken(targetLevel: string): number {
         return TransferTokenAllocator.allocate(targetLevel);
+    }
+
+    private static resolveVisitedCraftTownOwnerToken(transferToken: number, hostCharacter: Character | null | undefined): number | undefined {
+        if (!hostCharacter) {
+            return undefined;
+        }
+
+        const hostSession = GlobalState.getActiveSessionByCharacterName(hostCharacter.name);
+        const hostToken = Math.round(Number(hostSession?.token ?? 0));
+        if (Number.isFinite(hostToken) && hostToken > 0 && hostToken !== transferToken) {
+            return hostToken;
+        }
+
+        const fallbackToken = transferToken >= 0xFFFF ? 1 : transferToken + 1;
+        return fallbackToken !== transferToken ? fallbackToken : 1;
     }
 
     private static rememberTransferTokenAlias(sourceToken: number, targetToken: number): void {
@@ -3249,6 +3306,9 @@ export class LevelHandler {
             client.character = usedEntry.character;
             client.userId = usedEntry.userId;
             client.currentLevel = usedEntry.targetLevel;
+            client.craftTownHostCharacter = usedEntry.targetLevel === 'CraftTown'
+                ? usedEntry.craftTownHostCharacter ?? null
+                : null;
             client.levelInstanceId = normalizeLevelInstanceId(usedEntry.levelInstanceId);
             client.entryLevel = LevelConfig.resolveDungeonEntryLevel(
                 usedEntry.targetLevel,
@@ -3324,6 +3384,9 @@ export class LevelHandler {
             client.character = pendingEntry.character;
             client.userId = pendingEntry.userId;
             client.currentLevel = pendingEntry.targetLevel;
+            client.craftTownHostCharacter = pendingEntry.targetLevel === 'CraftTown'
+                ? pendingEntry.craftTownHostCharacter ?? null
+                : null;
             client.levelInstanceId = normalizeLevelInstanceId(pendingEntry.levelInstanceId);
             client.entryLevel = LevelConfig.resolveDungeonEntryLevel(
                 pendingEntry.targetLevel,
@@ -3875,6 +3938,9 @@ export class LevelHandler {
             console.error(`[Level] Character state disappeared during transfer. Token=${packetToken}`);
             return;
         }
+        if (targetLevel === 'CraftTown' && teleportOverride?.craftTownHostCharacter) {
+            client.craftTownHostCharacter = teleportOverride.craftTownHostCharacter;
+        }
 
         const oldLevel = LevelHandler.resolveTransferSourceLevel(client, activeCharacter);
         const ent = client.entities.get(client.clientEntID);
@@ -3915,13 +3981,12 @@ export class LevelHandler {
         const newToken = LevelHandler.allocateTransferToken(targetLevel);
         
         // 6. Check House Visit Override
-        let hostChar = activeCharacter;
-        // Use token from packet (0x1D) to lookup house visit
-        if (GlobalState.houseVisits.has(transferToken)) {
-            hostChar = GlobalState.houseVisits.get(transferToken)!;
-            GlobalState.houseVisits.delete(transferToken); // Consume
-            console.log(`[Level] House Visit active! Host: ${hostChar.name}`);
-        }
+        const hostChar = LevelHandler.resolveVisitedCraftTownHostCharacter(
+            client,
+            transferToken,
+            activeCharacter,
+            targetLevel
+        );
 
         // 7. Store Pending Transfer State
         const effectivePreviousLevel = targetLevel === 'CraftTown'
@@ -3942,7 +4007,7 @@ export class LevelHandler {
             sendExtendedOnTransfer,
             syncState,
             doorContext,
-            hostChar !== activeCharacter ? hostChar : undefined,
+            LevelHandler.isDifferentCharacter(activeCharacter, hostChar) ? hostChar : undefined,
             Number.isFinite(client.playSessionStartedAt) && client.playSessionStartedAt > 0
                 ? Math.round(client.playSessionStartedAt)
                 : Date.now()
@@ -3956,6 +4021,10 @@ export class LevelHandler {
         const oldLevelSpec = LevelConfig.get(oldLevel);
         const runtimeMapLevel = LevelHandler.resolveDungeonMapPacketLevel(targetLevel, levelSpec.mapId, activeCharacter, client);
         const runtimeBaseLevel = levelSpec.baseId;
+        const isVisitedCraftTown = targetLevel === 'CraftTown' && LevelHandler.isDifferentCharacter(activeCharacter, hostChar);
+        const craftTownOwnerToken = isVisitedCraftTown
+            ? LevelHandler.resolveVisitedCraftTownOwnerToken(newToken, hostChar)
+            : undefined;
         
         const pkt = WorldEnter.buildEnterWorldPacket(
             newToken,
@@ -3974,7 +4043,8 @@ export class LevelHandler {
             isHard ? "Hard" : "",
             levelSpec.isDungeon,
             newHasCoord, newX, newY,
-            hostChar
+            hostChar,
+            craftTownOwnerToken
         );
 
         DebugLogger.logProgress('EnterWorld:transferPacket', client, activeCharacter, {

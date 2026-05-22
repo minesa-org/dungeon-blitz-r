@@ -467,6 +467,9 @@ export class Client {
         });
         GlobalState.usedTransferTokens.set(snapshot.token, {
             character: this.character,
+            craftTownHostCharacter: this.currentLevel === 'CraftTown'
+                ? this.craftTownHostCharacter ?? undefined
+                : undefined,
             userId: snapshot.userId,
             targetLevel: currentLevel,
             levelInstanceId: this.levelInstanceId,
