@@ -335,6 +335,72 @@ async function testTowerTuataraOneHpBossDestroyCompletes(): Promise<void> {
     assert.notEqual(GlobalState.levelEntities.get(levelScope)?.has(bossId), true);
 }
 
+async function testLastStandRequiresBothDragonDefeats(): Promise<void> {
+    ensureLevelConfigLoaded();
+
+    const client = createClient(7007);
+    client.currentLevel = 'AC_Mission5';
+    client.character.CurrentLevel = { name: 'AC_Mission5', x: 0, y: 0 };
+
+    GlobalState.sessionsByToken.set(client.token, client as never);
+
+    const levelScope = `${client.currentLevel}#${client.levelInstanceId}`;
+    const blackDragonId = 701;
+    const silverDragonId = 702;
+    const blackDragon = {
+        id: blackDragonId,
+        name: 'AncientDragonBlack',
+        isPlayer: false,
+        clientSpawned: true,
+        team: EntityTeam.ENEMY,
+        entRank: 'Boss',
+        hp: 1,
+        maxHp: 100,
+        entState: EntityState.ACTIVE,
+        dead: false,
+        ownerToken: client.token
+    };
+    const silverDragon = {
+        id: silverDragonId,
+        name: 'AncientDragonSilver',
+        isPlayer: false,
+        clientSpawned: true,
+        team: EntityTeam.ENEMY,
+        entRank: 'Boss',
+        hp: 1,
+        maxHp: 100,
+        entState: EntityState.ACTIVE,
+        dead: false,
+        ownerToken: client.token
+    };
+
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([[blackDragonId, blackDragon]]));
+
+    const originalEnemyDefeat = MissionHandler.handleEnemyDefeatMissionProgress;
+    const originalSchedule = MissionHandler.scheduleDungeonCompletion;
+    const scheduledScopes: string[] = [];
+
+    MissionHandler.handleEnemyDefeatMissionProgress = async () => undefined;
+    MissionHandler.scheduleDungeonCompletion = ((completionClient: any, _payload: Buffer, options: any = {}) => {
+        scheduledScopes.push(String(options?.forcedDungeonCompletionScope ?? `${completionClient.currentLevel}#${completionClient.levelInstanceId}`));
+    }) as typeof MissionHandler.scheduleDungeonCompletion;
+
+    try {
+        await CombatHandler.handleEntityDestroy(client as never, createEntityDestroyPacket(blackDragonId));
+        assert.deepEqual(scheduledScopes, [], 'Last Stand should not complete after only the first dragon dies');
+
+        const levelMap = GlobalState.levelEntities.get(levelScope) ?? new Map<number, any>();
+        levelMap.set(silverDragonId, silverDragon);
+        GlobalState.levelEntities.set(levelScope, levelMap);
+        await CombatHandler.handleEntityDestroy(client as never, createEntityDestroyPacket(silverDragonId));
+    } finally {
+        MissionHandler.handleEnemyDefeatMissionProgress = originalEnemyDefeat;
+        MissionHandler.scheduleDungeonCompletion = originalSchedule;
+    }
+
+    assert.deepEqual(scheduledScopes, [levelScope], 'Last Stand should complete after both dragons die');
+}
+
 async function main(): Promise<void> {
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
     const levelEntities = new Map(GlobalState.levelEntities);
@@ -347,6 +413,7 @@ async function main(): Promise<void> {
         await testLiveRequiredBossDeadStateIsIgnored();
         await testContributedClientSpawnedBossDestroyCompletes();
         await testTowerTuataraOneHpBossDestroyCompletes();
+        await testLastStandRequiresBothDragonDefeats();
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.levelEntities = levelEntities;

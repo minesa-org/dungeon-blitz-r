@@ -75,6 +75,7 @@ type CollectibleKillProgressRule = {
 type DungeonCompletionObjectiveProgress = {
     bossDefeated: boolean;
     bossRoomId: number;
+    defeatedBossNames?: Set<string>;
     requiredChestDestroyed: boolean;
 };
 
@@ -89,12 +90,18 @@ export class MissionHandler {
     private static readonly ATTACK_OF_OPPORTUNITY_HARD_SATELLITE_IDS = new Set([255, 256, 257]);
     static readonly DUNGEON_COMPLETION_SKIT_SETTLE_MS = 1500;
     private static readonly CLIENT_AUTHORITY_REQUIRED_BOSS_LEVELS = new Set([
+        'AC_Mission5',
+        'AC_Mission5Hard',
         'JC_Mission1',
         'JC_Mission1Hard',
         'SRN_Mission1',
         'SRN_Mission1Hard'
     ]);
     private static readonly CLIENT_AUTHORITY_REQUIRED_BOSS_NAMES = new Set([
+        'AncientDragonBlack',
+        'AncientDragonBlackHard',
+        'AncientDragonSilver',
+        'AncientDragonSilverHard',
         'ImperialChampion',
         'ImperialChampionHard',
         'LizardLord',
@@ -123,6 +130,8 @@ export class MissionHandler {
     private static readonly DUNGEONS_REQUIRING_BOSS_DEFEAT = new Set([
         'AC_Mission6',
         'AC_Mission6Hard',
+        'AC_Mission5',
+        'AC_Mission5Hard',
         'CH_Mission1',
         'CH_Mission1Hard',
         'JC_Mission1',
@@ -135,6 +144,8 @@ export class MissionHandler {
         'SRN_Mission4Hard'
     ]);
     private static readonly REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL: Record<string, ReadonlySet<string>> = {
+        AC_Mission5: new Set(['AncientDragonBlack', 'AncientDragonSilver']),
+        AC_Mission5Hard: new Set(['AncientDragonBlackHard', 'AncientDragonSilverHard']),
         AC_Mission6: new Set(['NephitLargeEye']),
         AC_Mission6Hard: new Set(['NephitLargeEyeHard']),
         JC_Mission1: new Set(['ImperialChampion', 'ImperialChampionHard']),
@@ -3037,6 +3048,7 @@ export class MissionHandler {
             progress = {
                 bossDefeated: false,
                 bossRoomId: 0,
+                defeatedBossNames: new Set<string>(),
                 requiredChestDestroyed: false
             };
             MissionHandler.dungeonCompletionObjectiveProgress.set(levelScope, progress);
@@ -3052,7 +3064,22 @@ export class MissionHandler {
         }
 
         const progress = MissionHandler.getDungeonCompletionObjectiveProgress(levelScope);
-        progress.bossDefeated = true;
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        const bossNames = normalizedLevel
+            ? MissionHandler.REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL[normalizedLevel]
+            : null;
+        const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
+        if (bossNames?.size) {
+            if (!progress.defeatedBossNames) {
+                progress.defeatedBossNames = new Set<string>();
+            }
+            if (bossNames.has(entityName)) {
+                progress.defeatedBossNames.add(entityName);
+            }
+            progress.bossDefeated = Array.from(bossNames).every((bossName) => progress.defeatedBossNames?.has(bossName));
+        } else {
+            progress.bossDefeated = true;
+        }
 
         const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
         const scopedEntity = entityId > 0 ? GlobalState.levelEntities.get(levelScope)?.get(entityId) : null;
@@ -3218,6 +3245,9 @@ export class MissionHandler {
                     )
                 ) {
                     MissionHandler.markRequiredDungeonBossDefeated(scopeKey, levelName, entity);
+                    if (MissionHandler.REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL[levelName]?.size) {
+                        return Boolean(MissionHandler.dungeonCompletionObjectiveProgress.get(scopeKey)?.bossDefeated);
+                    }
                     return true;
                 }
             }

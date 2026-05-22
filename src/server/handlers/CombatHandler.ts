@@ -154,12 +154,18 @@ export class CombatHandler {
     private static readonly PLAYER_REGEN_RATE = 0.1;
     private static readonly HOSTILE_REGEN_RATE = CombatHandler.ORIGINAL_BRAIN_REGEN_RATE;
     private static readonly POWER_HIT_CLIENT_AUTHORITY_BOSS_LEVELS = new Set([
+        'AC_Mission5',
+        'AC_Mission5Hard',
         'JC_Mission1',
         'JC_Mission1Hard',
         'SRN_Mission1',
         'SRN_Mission1Hard'
     ]);
     private static readonly POWER_HIT_CLIENT_AUTHORITY_BOSS_NAMES = new Set([
+        'AncientDragonBlack',
+        'AncientDragonBlackHard',
+        'AncientDragonSilver',
+        'AncientDragonSilverHard',
         'ImperialChampion',
         'ImperialChampionHard',
         'LizardLord',
