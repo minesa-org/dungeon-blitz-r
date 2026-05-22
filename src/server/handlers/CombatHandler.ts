@@ -1959,6 +1959,15 @@ export class CombatHandler {
         );
         const shouldRelayDestroy = EntityHandler.shouldRelayEntityToOtherClients(levelName, destroyedEntity);
 
+        const isUnverifiedDungeonBossDestroy =
+            destroyedEntity &&
+            !destroyedEntity.isPlayer &&
+            Number(destroyedEntity.team ?? 0) === EntityTeam.ENEMY &&
+            MissionHandler.shouldIgnoreUnverifiedDungeonBossDefeat(levelName, destroyedEntity);
+        if (isUnverifiedDungeonBossDestroy) {
+            return;
+        }
+
         if (levelName === 'CraftTownTutorial' && client.keepTutorialState) {
             const entityName = String(destroyedEntity?.name ?? '');
             if (entityName === 'GoblinShamanHood' || entityName === 'IntroGoblinShamanHood') {

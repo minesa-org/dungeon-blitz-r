@@ -97,6 +97,19 @@ function getLocalOperand(instruction: Instruction | undefined): number | null {
     return null;
 }
 
+function setLocalOperand(instruction: Instruction | undefined): number | null {
+    if (!instruction) {
+        return null;
+    }
+    if (instruction.opcode >= 0xd4 && instruction.opcode <= 0xd7) {
+        return instruction.opcode - 0xd4;
+    }
+    if (instruction.opcode === 0x63 && instruction.operands[0]?.[0] === 'u30') {
+        return instruction.operands[0][1];
+    }
+    return null;
+}
+
 function getStaticMethodCode(swfPath: string, className: string, methodName: string) {
     const ctx = parseSwf(swfPath);
     const abc = parseAbc(ctx);
@@ -489,6 +502,30 @@ function assertSuperAnimMethod982BitmapDataGuard(swfPath: string): void {
 
 function assertSuperAnimMethod866LiveFallbackCleanup(swfPath: string): void {
     const { abc, instructions } = getInstanceMethodCode(swfPath, 'SuperAnimData', 'method_866');
+
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0x46 &&
+            u30OperandName(instruction, abc.multinameNames) === 'method_982' &&
+            setLocalOperand(instructions[index + 2]) === 11 &&
+            getLocalOperand(instructions[index + 3]) === 11 &&
+            instructions[index + 4]?.opcode === 0x12 &&
+            getLocalOperand(instructions[index + 5]) === 11 &&
+            instructions[index + 6]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 6], abc.multinameNames) === 'bitmapData' &&
+            instructions[index + 7]?.opcode === 0x12 &&
+            getLocalOperand(instructions[index + 8]) === 11 &&
+            instructions[index + 9]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 9], abc.multinameNames) === 'bitmapData' &&
+            instructions[index + 10]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 10], abc.multinameNames) === 'width' &&
+            instructions[index + 11]?.opcode === 0x24 &&
+            instructions[index + 11].operands[0]?.[1] === 1 &&
+            instructions[index + 12]?.opcode === 0x17
+        ),
+        true,
+        'SuperAnimData.method_866 must reject method_982 1x1 fallback bitmaps before caching frames'
+    );
 
     assert.equal(
         instructions.some((instruction, index) =>

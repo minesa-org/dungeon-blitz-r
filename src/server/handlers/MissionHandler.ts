@@ -88,6 +88,14 @@ export class MissionHandler {
     private static readonly ATTACK_OF_OPPORTUNITY_SATELLITE_IDS = new Set([234, 235, 236]);
     private static readonly ATTACK_OF_OPPORTUNITY_HARD_SATELLITE_IDS = new Set([255, 256, 257]);
     static readonly DUNGEON_COMPLETION_SKIT_SETTLE_MS = 1500;
+    private static readonly CLIENT_AUTHORITY_REQUIRED_BOSS_LEVELS = new Set([
+        'JC_Mission1',
+        'JC_Mission1Hard'
+    ]);
+    private static readonly CLIENT_AUTHORITY_REQUIRED_BOSS_NAMES = new Set([
+        'ImperialChampion',
+        'ImperialChampionHard'
+    ]);
     static readonly DUNGEON_COMPLETION_MAX_DEFER_MS = 15000;
     static readonly CRAFT_TOWN_TUTORIAL_COMPLETION_DELAY_MS = 43 * 250;
     private static readonly PRIMED_CONTACT_DIALOGUE_COUNT = -1;
@@ -2957,6 +2965,43 @@ export class MissionHandler {
             MissionHandler.isRequiredDungeonBossEntity(levelName, entity);
     }
 
+    static shouldIgnoreUnverifiedDungeonBossDefeat(levelName: string | null | undefined, entity: any): boolean {
+        if (!MissionHandler.isRequiredDungeonCompletionBossEntity(levelName, entity)) {
+            return false;
+        }
+
+        const hp = Number(entity?.hp ?? NaN);
+        if (Number.isFinite(hp)) {
+            if (hp <= 0) {
+                return false;
+            }
+
+            // Some authored client-owned bosses stay at 1 HP on the server until
+            // the Flash client emits its defeat signal. Higher HP is never a
+            // verified boss death.
+            if (hp <= 1 && MissionHandler.isClientAuthorityRequiredBossDefeat(levelName, entity)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        return !(
+            Boolean(entity?.dead) ||
+            Number(entity?.entState ?? EntityState.ACTIVE) === EntityState.DEAD
+        );
+    }
+
+    private static isClientAuthorityRequiredBossDefeat(levelName: string | null | undefined, entity: any): boolean {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        if (!normalizedLevel || !MissionHandler.CLIENT_AUTHORITY_REQUIRED_BOSS_LEVELS.has(normalizedLevel)) {
+            return false;
+        }
+
+        const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
+        return Boolean(entity?.clientSpawned) && MissionHandler.CLIENT_AUTHORITY_REQUIRED_BOSS_NAMES.has(entityName);
+    }
+
     private static isRequiredDungeonChestEntity(levelName: string | null | undefined, entity: any): boolean {
         const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
         if (!normalizedLevel || !MissionHandler.requiresBossAndChestCompletionForDungeon(normalizedLevel)) {
@@ -3045,6 +3090,10 @@ export class MissionHandler {
         }
 
         if (MissionHandler.isRequiredDungeonCompletionBossEntity(levelName, entity)) {
+            if (MissionHandler.shouldIgnoreUnverifiedDungeonBossDefeat(levelName, entity)) {
+                return false;
+            }
+
             MissionHandler.markRequiredDungeonBossDefeated(levelScope, levelName, entity);
             return MissionHandler.hasMetRequiredDungeonCompletionObjectives(null, levelName, levelScope);
         }

@@ -4141,13 +4141,20 @@ export class LevelHandler {
             !isSelf &&
             !ent.isPlayer &&
             Number(ent.team ?? 0) === EntityTeam.ENEMY;
+        const shouldIgnoreUnverifiedDungeonBossDeadState =
+            isEnemyEntity &&
+            entState === EntityState.DEAD &&
+            MissionHandler.shouldIgnoreUnverifiedDungeonBossDefeat(currentLevel, levelEntity ?? ent);
+        const canonicalEntState = shouldIgnoreUnverifiedDungeonBossDeadState
+            ? EntityState.ACTIVE
+            : entState;
 
         const previousX = Number(ent.x ?? 0);
         ent.x += deltaX;
         ent.y += deltaY;
         ent.v = Number(ent.v ?? 0) + deltaVX;
-        ent.entState = entState;
-        ent.dead = entState === EntityState.DEAD ? true : Boolean(ent.dead);
+        ent.entState = canonicalEntState;
+        ent.dead = canonicalEntState === EntityState.DEAD ? true : Boolean(ent.dead);
         ent.facingLeft = flags.bLeft;
         ent.bRunning = flags.bRunning;
         ent.bJumping = flags.bJumping;
@@ -4160,8 +4167,8 @@ export class LevelHandler {
             levelEntity.x = ent.x;
             levelEntity.y = ent.y;
             levelEntity.v = ent.v;
-            levelEntity.entState = entState;
-            levelEntity.dead = entState === EntityState.DEAD ? true : Boolean(levelEntity.dead);
+            levelEntity.entState = canonicalEntState;
+            levelEntity.dead = canonicalEntState === EntityState.DEAD ? true : Boolean(levelEntity.dead);
             levelEntity.facingLeft = flags.bLeft;
             levelEntity.bRunning = flags.bRunning;
             levelEntity.bJumping = flags.bJumping;
@@ -4225,7 +4232,7 @@ export class LevelHandler {
 
         if (
             isEnemyEntity &&
-            entState === EntityState.DEAD &&
+            canonicalEntState === EntityState.DEAD &&
             MissionHandler.shouldWaitForEnemyKillStateMissionProgress(client, ent) &&
             !Boolean(ent.questDefeatProcessed)
         ) {
@@ -4261,7 +4268,7 @@ export class LevelHandler {
                 deltaX,
                 deltaY,
                 deltaVX,
-                entState,
+                canonicalEntState,
                 flags,
                 isAirborne,
                 velocityY
@@ -4288,7 +4295,7 @@ export class LevelHandler {
                     deltaX,
                     deltaY,
                     deltaVX,
-                    entState,
+                    canonicalEntState,
                     flags,
                     isAirborne,
                     velocityY
