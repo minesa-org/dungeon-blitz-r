@@ -31,7 +31,7 @@ const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbw&g
 const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv`;
 const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
-const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
+const CLASS82_SCENE_CACHE_SAFE_PIXELS = BITMAPDATA_TOTAL_PIXELS;
 const CLASS72_FLOAT_TEXT_SAFE_PIXELS = 262144;
 const CLASS82_MAX_SCENE_CACHE_SCALE = 16;
 const SUPERANIM_METHOD200_SAFE_PIXELS = 16384;
@@ -40,6 +40,7 @@ const SUPERANIM_METHOD982_SAFE_AXIS = 8191;
 const SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE = 3072;
 const SAFE_SCREEN_BITMAP_WIDTH = 2048;
 const SAFE_SCREEN_BITMAP_HEIGHT = 1152;
+const VALHAVEN_SKY_FILL = 0xffcc66;
 
 function getStringMatches(swfPath: string, target: string): number[] {
     const ctx = parseSwf(swfPath);
@@ -306,6 +307,23 @@ function assertClass82BitmapDataGuardWindow(swfPath: string): void {
         'class_82.method_193 must preserve normal cache render scale before BitmapData allocation'
     );
     assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0x46 &&
+            u30OperandName(instruction, abc.multinameNames) === 'sqrt' &&
+            instructions.slice(Math.max(0, index - 24), index).some((candidate) =>
+                candidate.opcode === 0x2d &&
+                candidate.operands[0]?.[0] === 'u30' &&
+                abc.intValues[candidate.operands[0][1]] === CLASS82_SCENE_CACHE_SAFE_PIXELS
+            ) &&
+            instructions.slice(index + 1, index + 10).some((candidate) =>
+                candidate.opcode === 0x46 && u30OperandName(candidate, abc.multinameNames) === 'min'
+            ) &&
+            instructions.slice(index + 1, index + 12).some((candidate) => setLocalOperand(candidate) === 6)
+        ),
+        true,
+        'class_82.method_193 must dynamically cap large scene-cache render scale before BitmapData allocation'
+    );
+    assert.equal(
         guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 128).length >= 2,
         true,
         'class_82.method_193 fallback must use a visible 128x128 BitmapData instead of 1x1'
@@ -479,6 +497,39 @@ function assertGameMethod1947SafeScreenBitmapData(swfPath: string): void {
         constructorIndex,
         -1,
         'Game.method_1947 screen BitmapData allocation must use safe fixed dimensions'
+    );
+}
+
+function assertGameMethod1946ValhavenSkyFill(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_1946');
+    assert.equal(
+        instructions.some((instruction) =>
+            instruction.opcode === 0x2c &&
+            instruction.operands[0]?.[0] === 'u30' &&
+            abc.stringValues[instruction.operands[0][1]] === 'JadeCity'
+        ),
+        true,
+        'Game.method_1946 must check the Valhaven/JadeCity level before applying the sky fill'
+    );
+    assert.equal(
+        instructions.some((instruction) =>
+            instruction.opcode === 0x2c &&
+            instruction.operands[0]?.[0] === 'u30' &&
+            abc.stringValues[instruction.operands[0][1]] === 'JadeCityHard'
+        ),
+        true,
+        'Game.method_1946 must check the Dread Valhaven/JadeCityHard level before applying the sky fill'
+    );
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0x25 &&
+            instruction.operands[0]?.[1] === VALHAVEN_SKY_FILL &&
+            instructions.slice(index + 1, index + 4).some((candidate) =>
+                candidate.opcode === 0x4f && u30OperandName(candidate, abc.multinameNames) === 'fillRect'
+            )
+        ),
+        true,
+        'Game.method_1946 must fill transparent Valhaven sky gaps before drawing level layers'
     );
 }
 
@@ -849,6 +900,14 @@ function testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData(): void {
     });
 }
 
+function testBaseAndLocalVariantKeepGameMethod1946ValhavenSkyFill(): void {
+    assertGameMethod1946ValhavenSkyFill(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertGameMethod1946ValhavenSkyFill(tempPath);
+    });
+}
+
 function testBaseAndLocalVariantKeepGameMethod1325SuperAnimTickGuard(): void {
     assertGameMethod1325SuperAnimTickGuard(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
@@ -922,6 +981,7 @@ function main(): void {
     testBaseAndLocalVariantKeepSuperAnimMethod806FullscreenBitmapData();
     testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard();
     testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData();
+    testBaseAndLocalVariantKeepGameMethod1946ValhavenSkyFill();
     testBaseAndLocalVariantKeepGameMethod1325SuperAnimTickGuard();
     testBaseAndLocalVariantKeepDamageFloatersClamped();
     testBaseAndLocalVariantKeepEntityRenderNullGuards();

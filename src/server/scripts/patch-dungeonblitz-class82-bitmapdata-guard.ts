@@ -26,8 +26,10 @@ const DEFAULT_SWF = path.resolve(
   "cbp",
   "DungeonBlitz.swf",
 );
-const CLASS82_TARGET_TOTAL_PIXELS = 4194304;
+const CLASS82_TARGET_TOTAL_PIXELS = 16777215;
+const CLASS82_MAX_BITMAP_AXIS = 8191;
 const CLASS82_LEGACY_TOTAL_PIXEL_GUARDS = [
+  4194304,
   16777215,
   262144,
 ];
@@ -269,6 +271,26 @@ function setLocal(localIndex: number): InsertedInstruction {
   return { opcode: 0x63, operands: [["u30", localIndex]] };
 }
 
+function getLex(nameIndex: number): InsertedInstruction {
+  return { opcode: 0x60, operands: [["u30", nameIndex]] };
+}
+
+function getProperty(nameIndex: number): InsertedInstruction {
+  return { opcode: 0x66, operands: [["u30", nameIndex]] };
+}
+
+function callProperty(nameIndex: number, argCount: number): InsertedInstruction {
+  return { opcode: 0x46, operands: [["u30", nameIndex], ["u30", argCount]] };
+}
+
+function findRequiredMultiname(abc: ReturnType<typeof parseAbc>, name: string): number {
+  const index = abc.multinameNames.findIndex((candidate) => candidate === name);
+  if (index < 0) {
+    throw new PatchError(`Multiname ${name} not found.`);
+  }
+  return index;
+}
+
 function dimensionGuard(widthLocal: number, heightLocal: number, totalPixelsIntIndex: number): InsertedInstruction[] {
   return [
     getLocal(widthLocal),
@@ -309,6 +331,66 @@ function dimensionGuard(widthLocal: number, heightLocal: number, totalPixelsIntI
     { opcode: 0x75 },
     setLocal(heightLocal),
     { label: "ok" },
+  ];
+}
+
+function scaleCapForBounds(
+  scaleLocal: number,
+  boundsLocal: number,
+  totalPixelsIntIndex: number,
+  abc: ReturnType<typeof parseAbc>,
+): InsertedInstruction[] {
+  const mathName = findRequiredMultiname(abc, "Math");
+  const minName = findRequiredMultiname(abc, "min");
+  const maxName = findRequiredMultiname(abc, "max");
+  const sqrtName = findRequiredMultiname(abc, "sqrt");
+  const widthName = findRequiredMultiname(abc, "width");
+  const heightName = findRequiredMultiname(abc, "height");
+
+  return [
+    getLex(mathName),
+    getLocal(scaleLocal),
+    { opcode: 0x25, operands: [["u30", CLASS82_MAX_BITMAP_AXIS]] },
+    getLex(mathName),
+    { opcode: 0x24, operands: [["s8", 1]] },
+    getLocal(boundsLocal),
+    getProperty(widthName),
+    callProperty(maxName, 2),
+    { opcode: 0xa3 },
+    callProperty(minName, 2),
+    { opcode: 0x75 },
+    setLocal(scaleLocal),
+
+    getLex(mathName),
+    getLocal(scaleLocal),
+    { opcode: 0x25, operands: [["u30", CLASS82_MAX_BITMAP_AXIS]] },
+    getLex(mathName),
+    { opcode: 0x24, operands: [["s8", 1]] },
+    getLocal(boundsLocal),
+    getProperty(heightName),
+    callProperty(maxName, 2),
+    { opcode: 0xa3 },
+    callProperty(minName, 2),
+    { opcode: 0x75 },
+    setLocal(scaleLocal),
+
+    getLex(mathName),
+    getLocal(scaleLocal),
+    getLex(mathName),
+    { opcode: 0x2d, operands: [["u30", totalPixelsIntIndex]] },
+    getLex(mathName),
+    { opcode: 0x24, operands: [["s8", 1]] },
+    getLocal(boundsLocal),
+    getProperty(widthName),
+    getLocal(boundsLocal),
+    getProperty(heightName),
+    { opcode: 0xa2 },
+    callProperty(maxName, 2),
+    { opcode: 0xa3 },
+    callProperty(sqrtName, 1),
+    callProperty(minName, 2),
+    { opcode: 0x75 },
+    setLocal(scaleLocal),
   ];
 }
 
@@ -463,6 +545,26 @@ function hasScaleGuardPatch(code: Buffer, insertOffset: number, guard: Buffer): 
   return code.subarray(insertOffset, insertOffset + guard.length).equals(guard);
 }
 
+function hasScaleCapPatch(code: Buffer, insertOffset: number, cap: Buffer): boolean {
+  return code.subarray(insertOffset, insertOffset + cap.length).equals(cap);
+}
+
+function hasClass82ScaleCap(instructions: Instruction[], abc: ReturnType<typeof parseAbc>): boolean {
+  return instructions.some((instruction, index) =>
+    instruction.opcode === 0x46 &&
+    u30OperandName(instruction, abc.multinameNames) === "sqrt" &&
+    instructions.slice(Math.max(0, index - 20), index).some((candidate) =>
+      candidate.opcode === 0x2d &&
+      candidate.operands[0]?.[0] === "u30" &&
+      abc.intValues[candidate.operands[0][1]] === CLASS82_TARGET_TOTAL_PIXELS
+    ) &&
+    instructions.slice(index + 1, index + 8).some((candidate) =>
+      candidate.opcode === 0x46 && u30OperandName(candidate, abc.multinameNames) === "min"
+    ) &&
+    instructions.slice(index + 1, index + 10).some((candidate) => setLocalOperand(candidate) === 6)
+  );
+}
+
 function hasClass82ScaleGuard(instructions: Instruction[]): boolean {
   return instructions.some((instruction, index) =>
     getLocalOperand(instruction) === 6 &&
@@ -538,6 +640,7 @@ function patchSwf(swfPath: string, verify: boolean): void {
   const constructor = findBitmapDataConstructor(instructions, abc, 8, 9);
   const targetTotalPixelsIntIndex = findRequiredInt(abc, CLASS82_TARGET_TOTAL_PIXELS);
   const guard = assembleInserted(dimensionGuard(8, 9, targetTotalPixelsIntIndex));
+  const cacheScaleCap = assembleInserted(scaleCapForBounds(6, 5, targetTotalPixelsIntIndex, abc));
   const cacheScaleGuard = assembleInserted(scaleGuard(6));
   const legacyGuards = CLASS82_LEGACY_TOTAL_PIXEL_GUARDS
     .map((totalPixels) => findOptionalInt(abc, totalPixels))
@@ -545,9 +648,10 @@ function patchSwf(swfPath: string, verify: boolean): void {
     .map((index) => assembleInserted(dimensionGuard(8, 9, index)));
   const hasGuard = hasExactGuardBefore(code, constructor.offset, guard);
   const hasScalePatchByPattern = hasClass82ScaleDivisor(instructions, abc);
+  const hasScaleCapByPattern = hasClass82ScaleCap(instructions, abc);
   const hasScaleGuardByPattern = hasClass82ScaleGuard(instructions);
 
-  if (hasGuard && hasScalePatchByPattern && hasScaleGuardByPattern) {
+  if (hasGuard && hasScalePatchByPattern && hasScaleCapByPattern && hasScaleGuardByPattern) {
     console.log(`${swfPath}: already patched (class_82.method_193 BitmapData guard present).`);
     return;
   }
@@ -555,24 +659,31 @@ function patchSwf(swfPath: string, verify: boolean): void {
   const scaleOffsets = findScaleAssignmentOffsets(instructions, abc);
   const hasScalePatch = hasScaleDivisorPatch(code, scaleOffsets.divisorPatchStart, scaleOffsets.divisorPatchEnd) ||
     hasScalePatchByPattern;
+  const hasScaleCap = hasScaleCapPatch(code, scaleOffsets.guardInsertOffset, cacheScaleCap) ||
+    hasScaleCapByPattern;
   const hasScaleGuard = hasScaleGuardPatch(code, scaleOffsets.guardInsertOffset, cacheScaleGuard) ||
+    hasScaleGuardPatch(code, scaleOffsets.guardInsertOffset + cacheScaleCap.length, cacheScaleGuard) ||
     hasScaleGuardByPattern;
 
-  if (hasGuard && hasScalePatch && hasScaleGuard) {
+  if (hasGuard && hasScalePatch && hasScaleCap && hasScaleGuard) {
     console.log(`${swfPath}: already patched (class_82.method_193 BitmapData guard present).`);
     return;
   }
 
   if (verify) {
-    throw new PatchError(`${swfPath}: verify failed; class_82.method_193 BitmapData guard, scale divisor, or scale guard is missing.`);
+    throw new PatchError(`${swfPath}: verify failed; class_82.method_193 BitmapData guard, scale cap, scale divisor, or scale guard is missing.`);
   }
 
   const edits: Array<{ start: number; end: number; data: Buffer }> = [];
   if (!hasScalePatch) {
     edits.push({ start: scaleOffsets.divisorPatchStart, end: scaleOffsets.divisorPatchEnd, data: SCALE_DIVISOR_PATCH });
   }
-  if (!hasScaleGuard) {
-    edits.push({ start: scaleOffsets.guardInsertOffset, end: scaleOffsets.guardInsertOffset, data: cacheScaleGuard });
+  const scaleInsert = Buffer.concat([
+    hasScaleCap ? Buffer.alloc(0) : cacheScaleCap,
+    hasScaleGuard ? Buffer.alloc(0) : cacheScaleGuard,
+  ]);
+  if (scaleInsert.length > 0) {
+    edits.push({ start: scaleOffsets.guardInsertOffset, end: scaleOffsets.guardInsertOffset, data: scaleInsert });
   }
   if (!hasGuard) {
     const legacyGuard = legacyGuards.find((candidate) => hasExactGuardBefore(code, constructor.offset, candidate));
