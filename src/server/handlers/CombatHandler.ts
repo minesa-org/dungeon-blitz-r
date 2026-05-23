@@ -84,6 +84,12 @@ type NpcHitResolution = {
 };
 
 export class CombatHandler {
+    private static readonly MAX_RELAY_POWER_HIT_DAMAGE = 4_000_000;
+
+    private static clampRelayPowerHitDamage(damage: number): number {
+        return Math.max(0, Math.min(CombatHandler.MAX_RELAY_POWER_HIT_DAMAGE, Math.round(Number(damage) || 0)));
+    }
+
     private static async tryConsumeRespawnPotion(client: Client): Promise<boolean> {
         if (!client.character) {
             return false;
@@ -792,7 +798,7 @@ export class CombatHandler {
         const bb = new BitBuffer(false);
         bb.writeMethod4(info.targetId);
         bb.writeMethod4(info.sourceId);
-        bb.writeMethod24(Math.max(0, Math.round(damage)));
+        bb.writeMethod24(CombatHandler.clampRelayPowerHitDamage(damage));
         bb.writeMethod4(info.powerId);
         bb.writeMethod15(info.animOverrideId !== null);
         if (info.animOverrideId !== null) {
@@ -1763,6 +1769,7 @@ export class CombatHandler {
             return;
         }
 
+        targetEntity.playerDamageContributed = true;
         CombatHandler.recordContribution(levelScope, targetId, sourceSession, damage);
     }
 
@@ -1917,9 +1924,10 @@ export class CombatHandler {
             }
         }
 
-        const relayPayload = relayDamage === damage && info === parsedInfo
+        const displayRelayDamage = CombatHandler.clampRelayPowerHitDamage(relayDamage);
+        const relayPayload = displayRelayDamage === damage && info === parsedInfo
             ? data
-            : CombatHandler.buildPowerHitPayload(info, relayDamage);
+            : CombatHandler.buildPowerHitPayload(info, displayRelayDamage);
         if (isHostileNpcSource) {
             const excludeLocalVictim = targetSession === client ? client : null;
             CombatHandler.broadcastEntityViewPacket(levelScope, sourceEntity, 0x0A, relayPayload, [targetId, sourceId], excludeLocalVictim);
