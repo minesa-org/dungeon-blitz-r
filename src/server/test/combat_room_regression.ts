@@ -537,7 +537,7 @@ async function testVeryLargePowerHitRelaysSafeDisplayDamage(): Promise<void> {
     GlobalState.sessionsByToken.set(sender.token, sender as never);
     GlobalState.sessionsByToken.set(partyOtherRoom.token, partyOtherRoom as never);
 
-    await CombatHandler.handlePowerHit(sender as never, buildPowerHitPayload(hostile.id, sender.clientEntID, 250000, 77));
+    await CombatHandler.handlePowerHit(sender as never, buildPowerHitPayload(hostile.id, sender.clientEntID, 5000000, 77));
 
     assert.equal(hostile.hp, 0, 'server-side combat should still apply the full lethal damage');
     assert.equal(hostile.dead, true, 'the high-damage hit should still kill the target');
@@ -546,8 +546,8 @@ async function testVeryLargePowerHitRelaysSafeDisplayDamage(): Promise<void> {
     assert.ok(relayedHit, 'party mate should receive the relayed hit');
     assert.equal(
         parsePowerHitDamage(relayedHit!.payload),
-        99999,
-        'relayed Flash damage display should be capped below the unsafe large-value range'
+        4000000,
+        'relayed Flash damage display should be capped at the client-safe display limit'
     );
 }
 

@@ -27,9 +27,9 @@ function resolveBaseSwfPath(): string {
 
 const BASE_SWF_PATH = resolveBaseSwfPath();
 const MULTIPLAYER_HOST = Config.MULTIPLAYER_HOST;
-const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbu&gv=cbt';
-const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbu&gv=cbt`;
-const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbu&gv=cbt';
+const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
+const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv`;
+const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
 const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
 const CLASS82_MAX_SCENE_CACHE_SCALE = 16;
@@ -472,6 +472,80 @@ function assertGameMethod1325SuperAnimTickGuard(swfPath: string): void {
     );
 }
 
+function assertGameMethod527DamageFloatersClamped(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_527');
+    assert.equal(
+        instructions.some((instruction) =>
+            instruction.opcode === 0x4a &&
+            u30OperandName(instruction, abc.multinameNames) === 'class_72' &&
+            instruction.operands[1]?.[1] === 10
+        ),
+        true,
+        'Game.method_527 must create damage floaters'
+    );
+    assert.equal(
+        instructions.some((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 4000000),
+        true,
+        'Game.method_527 must cap displayed damage at 4,000,000'
+    );
+    assert.equal(
+        instructions.filter((instruction) => instruction.opcode === 0x46 && u30OperandName(instruction, abc.multinameNames) === 'min').length >= 3,
+        true,
+        'Game.method_527 must clamp damage text and screen bounds with Math.min'
+    );
+    assert.equal(
+        instructions.filter((instruction) => instruction.opcode === 0x46 && u30OperandName(instruction, abc.multinameNames) === 'max').length >= 2,
+        true,
+        'Game.method_527 must clamp damage text coordinates with Math.max'
+    );
+}
+
+function assertInstanceMethodNullGuard(swfPath: string, className: string, methodName: string): void {
+    const ctx = parseSwf(swfPath);
+    const abc = parseAbc(ctx);
+    const classIndex = classIndexByName(abc, className);
+    assert.notEqual(classIndex, null, `${className} class not found`);
+
+    const methodIdx = methodIdxForTrait(abc.instances[classIndex!].traits, abc, methodName);
+    assert.notEqual(methodIdx, null, `${className}.${methodName} not found`);
+
+    const methodBody = abc.methodBodies.get(methodIdx!);
+    assert.ok(methodBody, `${className}.${methodName} body not found`);
+
+    const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
+    assert.equal(
+        methodBody.exceptions.some((exception) => {
+            const handler = code.subarray(exception.target);
+            return exception.from === 0 && handler[0] === 0x29 && handler.includes(0x47);
+        }),
+        true,
+        `${className}.${methodName} must catch stale/null references and return`
+    );
+}
+
+function assertInstanceBooleanMethodFalseNullGuard(swfPath: string, className: string, methodName: string): void {
+    const ctx = parseSwf(swfPath);
+    const abc = parseAbc(ctx);
+    const classIndex = classIndexByName(abc, className);
+    assert.notEqual(classIndex, null, `${className} class not found`);
+
+    const methodIdx = methodIdxForTrait(abc.instances[classIndex!].traits, abc, methodName);
+    assert.notEqual(methodIdx, null, `${className}.${methodName} not found`);
+
+    const methodBody = abc.methodBodies.get(methodIdx!);
+    assert.ok(methodBody, `${className}.${methodName} body not found`);
+
+    const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
+    assert.equal(
+        methodBody.exceptions.some((exception) => {
+            const handler = code.subarray(exception.target);
+            return exception.from === 0 && handler[0] === 0x29 && handler.includes(0x4f) && code[code.length - 2] === 0x27 && code[code.length - 1] === 0x48;
+        }),
+        true,
+        `${className}.${methodName} must catch stale/null references and return false`
+    );
+}
+
 function assertMainMethod561DoesNotClampMaxScale(swfPath: string): void {
     const { instructions } = getInstanceMethodCode(swfPath, 'Main', 'method_561');
     const maxScaleAssignment = instructions.find((instruction, index) =>
@@ -723,6 +797,44 @@ function testBaseAndLocalVariantKeepGameMethod1325SuperAnimTickGuard(): void {
     });
 }
 
+function testBaseAndLocalVariantKeepDamageFloatersClamped(): void {
+    assertGameMethod527DamageFloatersClamped(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertGameMethod527DamageFloatersClamped(tempPath);
+    });
+}
+
+function testBaseAndLocalVariantKeepEntityRenderNullGuards(): void {
+    assertInstanceMethodNullGuard(BASE_SWF_PATH, 'Entity', 'method_1826');
+    assertInstanceMethodNullGuard(BASE_SWF_PATH, 'Entity', 'method_853');
+    assertInstanceMethodNullGuard(BASE_SWF_PATH, 'Entity', 'method_900');
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertInstanceMethodNullGuard(tempPath, 'Entity', 'method_1826');
+        assertInstanceMethodNullGuard(tempPath, 'Entity', 'method_853');
+        assertInstanceMethodNullGuard(tempPath, 'Entity', 'method_900');
+    });
+}
+
+function testBaseAndLocalVariantKeepActivePowerNullGuard(): void {
+    assertInstanceBooleanMethodFalseNullGuard(BASE_SWF_PATH, 'ActivePower', 'method_243');
+    assertInstanceMethodNullGuard(BASE_SWF_PATH, 'ActivePower', 'method_1507');
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertInstanceBooleanMethodFalseNullGuard(tempPath, 'ActivePower', 'method_243');
+        assertInstanceMethodNullGuard(tempPath, 'ActivePower', 'method_1507');
+    });
+}
+
+function testBaseAndLocalVariantKeepChatBubbleNullGuard(): void {
+    assertInstanceMethodNullGuard(BASE_SWF_PATH, 'ChatBubble', 'method_901');
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertInstanceMethodNullGuard(tempPath, 'ChatBubble', 'method_901');
+    });
+}
+
 function testBaseAndLocalVariantKeepMainMethod561UnclampedScale(): void {
     assertMainMethod561DoesNotClampMaxScale(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
@@ -750,6 +862,10 @@ function main(): void {
     testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard();
     testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData();
     testBaseAndLocalVariantKeepGameMethod1325SuperAnimTickGuard();
+    testBaseAndLocalVariantKeepDamageFloatersClamped();
+    testBaseAndLocalVariantKeepEntityRenderNullGuards();
+    testBaseAndLocalVariantKeepActivePowerNullGuard();
+    testBaseAndLocalVariantKeepChatBubbleNullGuard();
     testBaseAndLocalVariantKeepMainMethod561UnclampedScale();
     testBaseAndLocalVariantKeepDungeonQuestHelperGuard();
     console.log('dungeonblitz_swf_variant_regression: ok');

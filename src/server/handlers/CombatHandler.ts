@@ -84,7 +84,7 @@ type NpcHitResolution = {
 };
 
 export class CombatHandler {
-    private static readonly MAX_RELAY_POWER_HIT_DAMAGE = 99999;
+    private static readonly MAX_RELAY_POWER_HIT_DAMAGE = 4_000_000;
 
     private static clampRelayPowerHitDamage(damage: number): number {
         return Math.max(0, Math.min(CombatHandler.MAX_RELAY_POWER_HIT_DAMAGE, Math.round(Number(damage) || 0)));
