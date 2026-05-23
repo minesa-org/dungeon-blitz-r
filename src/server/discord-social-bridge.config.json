@@ -1,0 +1,16 @@
+{
+  "enabled": false,
+  "nativeBridgeEnabled": true,
+  "chatRelayMode": "native",
+  "appId": "1447954255452311695",
+  "channelId": "1296158709529055253",
+  "lobbySecret": "",
+  "deviceFlow": false,
+  "gameWindowPid": 0,
+  "enableChannelLinking": true,
+  "executablePath": "",
+  "workingDirectory": "",
+  "tokenCachePath": "",
+  "inboundPrefix": "[Discord]",
+  "logPayloads": false
+}

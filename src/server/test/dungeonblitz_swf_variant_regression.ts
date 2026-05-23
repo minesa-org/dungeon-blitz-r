@@ -27,15 +27,19 @@ function resolveBaseSwfPath(): string {
 
 const BASE_SWF_PATH = resolveBaseSwfPath();
 const MULTIPLAYER_HOST = Config.MULTIPLAYER_HOST;
-const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp';
-const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp`;
-const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp';
+const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
+const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv`;
+const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
 const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
-const SUPERANIM_METHOD200_SAFE_PIXELS = 65536;
-const SUPERANIM_METHOD982_SAFE_PIXELS = 4194304;
+const CLASS72_FLOAT_TEXT_SAFE_PIXELS = 262144;
+const CLASS82_MAX_SCENE_CACHE_SCALE = 16;
+const SUPERANIM_METHOD200_SAFE_PIXELS = 16384;
+const SUPERANIM_METHOD982_SAFE_PIXELS = 65536;
 const SUPERANIM_METHOD982_SAFE_AXIS = 8191;
 const SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE = 3072;
+const SAFE_SCREEN_BITMAP_WIDTH = 2048;
+const SAFE_SCREEN_BITMAP_HEIGHT = 1152;
 
 function getStringMatches(swfPath: string, target: string): number[] {
     const ctx = parseSwf(swfPath);
@@ -92,6 +96,19 @@ function getLocalOperand(instruction: Instruction | undefined): number | null {
         return instruction.opcode - 0xd0;
     }
     if (instruction.opcode === 0x62 && instruction.operands[0]?.[0] === 'u30') {
+        return instruction.operands[0][1];
+    }
+    return null;
+}
+
+function setLocalOperand(instruction: Instruction | undefined): number | null {
+    if (!instruction) {
+        return null;
+    }
+    if (instruction.opcode >= 0xd4 && instruction.opcode <= 0xd7) {
+        return instruction.opcode - 0xd4;
+    }
+    if (instruction.opcode === 0x63 && instruction.operands[0]?.[0] === 'u30') {
         return instruction.operands[0][1];
     }
     return null;
@@ -273,16 +290,87 @@ function assertClass82BitmapDataGuardWindow(swfPath: string): void {
         'class_82.method_193 must enforce the scene-cache BitmapData safe pixel limit'
     );
     assert.equal(
+        instructions.some((instruction, index) => {
+            if (instruction.opcode !== 0x66 || u30OperandName(instruction, abc.multinameNames) !== 'var_2825') {
+                return false;
+            }
+            const window = instructions.slice(index + 1, index + 8);
+            const divisorIndex = window.findIndex((candidate) =>
+                candidate.opcode === 0x24 && candidate.operands[0]?.[1] === 4
+            );
+            return divisorIndex >= 0 &&
+                window[divisorIndex + 1]?.opcode === 0xa3 &&
+                window.some((candidate) => setLocalOperand(candidate) === 6);
+        }),
+        true,
+        'class_82.method_193 must quarter cache render scale before BitmapData allocation'
+    );
+    assert.equal(
+        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 128).length >= 2,
+        true,
+        'class_82.method_193 fallback must use a visible 128x128 BitmapData instead of 1x1'
+    );
+    assert.equal(
         instructions.some((instruction, index) =>
-            instruction.opcode === 0x66 &&
-            u30OperandName(instruction, abc.multinameNames) === 'var_2825' &&
-            instructions[index + 1]?.opcode === 0x24 &&
-            instructions[index + 1]?.operands[0]?.[1] === 2 &&
-            instructions[index + 2]?.opcode === 0xa3 &&
-            instructions[index + 3]?.opcode === 0x75
+            getLocalOperand(instruction) === 6 &&
+            getLocalOperand(instructions[index + 1]) === 6 &&
+            instructions[index + 2]?.opcode === 0xab &&
+            instructions[index + 3]?.opcode === 0x12 &&
+            getLocalOperand(instructions[index + 4]) === 6 &&
+            instructions[index + 5]?.opcode === 0x24 &&
+            instructions[index + 5]?.operands[0]?.[1] === 0 &&
+            instructions[index + 6]?.opcode === 0xaf &&
+            instructions[index + 7]?.opcode === 0x12 &&
+            getLocalOperand(instructions[index + 8]) === 6 &&
+            instructions[index + 9]?.opcode === 0x24 &&
+            instructions[index + 9]?.operands[0]?.[1] === CLASS82_MAX_SCENE_CACHE_SCALE &&
+            instructions[index + 10]?.opcode === 0xaf &&
+            instructions[index + 11]?.opcode === 0x11
         ),
         true,
-        'class_82.method_193 must halve cache render scale before BitmapData allocation'
+        'class_82.method_193 must clamp invalid transition cache scale before width/height calculation'
+    );
+}
+
+function assertClass72FloatTextBitmapDataGuardWindow(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'class_72', 'method_1943');
+    const widthLocal = 14;
+    const heightLocal = 15;
+    const constructorIndex = findBitmapDataConstructorIndex(
+        instructions,
+        abc.multinameNames,
+        widthLocal,
+        heightLocal
+    );
+    assert.notEqual(constructorIndex, -1, 'class_72.method_1943 BitmapData constructor must use guarded dimensions');
+
+    const guardWindow = instructions.slice(Math.max(0, constructorIndex - 85), constructorIndex);
+    assert.equal(
+        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 8191).length >= 2,
+        true,
+        'class_72.method_1943 must enforce Flash\'s 8191 BitmapData axis limit'
+    );
+    assert.equal(
+        guardWindow.some((instruction, index) => (
+            getLocalOperand(instruction) === widthLocal &&
+            getLocalOperand(guardWindow[index + 1]) === heightLocal &&
+            guardWindow[index + 2]?.opcode === 0xa2 &&
+            guardWindow[index + 3]?.opcode === 0x25 &&
+            guardWindow[index + 3]?.operands[0]?.[1] === CLASS72_FLOAT_TEXT_SAFE_PIXELS &&
+            guardWindow[index + 4]?.opcode === 0xaf
+        )),
+        true,
+        'class_72.method_1943 must enforce the floating text BitmapData safe pixel limit'
+    );
+    assert.equal(
+        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 128).length >= 2,
+        true,
+        'class_72.method_1943 fallback must use a visible 128x128 BitmapData instead of 1x1'
+    );
+    assert.equal(
+        guardWindow.some((instruction) => instruction.opcode === 0x68 && u30OperandName(instruction, abc.multinameNames) === 'var_1344'),
+        true,
+        'class_72.method_1943 fallback must avoid caching clipped oversized float text'
     );
 }
 
@@ -382,15 +470,149 @@ function assertGameMethod1947SafeScreenBitmapData(swfPath: string): void {
         instruction.opcode === 0x5d &&
         u30OperandName(instruction, abc.multinameNames) === 'BitmapData' &&
         instructions[index + 1]?.opcode === 0x25 &&
-        instructions[index + 1]?.operands[0]?.[1] === 1440 &&
+        instructions[index + 1]?.operands[0]?.[1] === SAFE_SCREEN_BITMAP_WIDTH &&
         instructions[index + 2]?.opcode === 0x25 &&
-        instructions[index + 2]?.operands[0]?.[1] === 835
+        instructions[index + 2]?.operands[0]?.[1] === SAFE_SCREEN_BITMAP_HEIGHT
     );
 
     assert.notEqual(
         constructorIndex,
         -1,
         'Game.method_1947 screen BitmapData allocation must use safe fixed dimensions'
+    );
+}
+
+function assertGameMethod1325SuperAnimTickGuard(swfPath: string): void {
+    const ctx = parseSwf(swfPath);
+    const abc = parseAbc(ctx);
+    const classIndex = classIndexByName(abc, 'Game');
+    assert.notEqual(classIndex, null, 'Game class not found');
+
+    const methodIdx = methodIdxForTrait(abc.instances[classIndex!].traits, abc, 'method_1325');
+    assert.notEqual(methodIdx, null, 'Game.method_1325 not found');
+
+    const methodBody = abc.methodBodies.get(methodIdx!);
+    assert.ok(methodBody, 'Game.method_1325 body not found');
+
+    const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
+    const instructions = disassemble(code, 'Game.method_1325');
+    const method105Index = instructions.findIndex(
+        (instruction) => instruction.opcode === 0x46 && u30OperandName(instruction, abc.multinameNames) === 'method_105'
+    );
+    assert.notEqual(method105Index, -1, 'Game.method_1325 SuperAnimInstance.method_105 call not found');
+
+    const rangeStart = instructions[method105Index - 1];
+    const rangeEnd = instructions[method105Index + 6];
+    assert.ok(rangeStart, 'Game.method_1325 method_105 try range start not found');
+    assert.ok(rangeEnd, 'Game.method_1325 method_105 try range end not found');
+    const from = rangeStart.offset;
+    const to = rangeEnd.offset + rangeEnd.size;
+    assert.equal(
+        methodBody.exceptions.some((exception) => exception.from === from && exception.to === to),
+        true,
+        'Game.method_1325 must catch SuperAnimInstance.method_105 crashes'
+    );
+    assert.equal(
+        instructions.some((instruction) => instruction.opcode === 0x5a),
+        true,
+        'Game.method_1325 catch handler must bind the caught error'
+    );
+    assert.equal(
+        instructions.some((instruction) => instruction.opcode === 0x4f && u30OperandName(instruction, abc.multinameNames) === 'DestroySuperAnimInstance'),
+        true,
+        'Game.method_1325 catch handler must destroy the failed SuperAnimInstance'
+    );
+}
+
+function assertGameMethod527DamageFloatersClamped(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'Game', 'method_527');
+    assert.equal(
+        instructions.some((instruction) =>
+            instruction.opcode === 0x4a &&
+            u30OperandName(instruction, abc.multinameNames) === 'class_72' &&
+            instruction.operands[1]?.[1] === 10
+        ),
+        true,
+        'Game.method_527 must create damage floaters'
+    );
+    assert.equal(
+        instructions.some((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 4000000),
+        true,
+        'Game.method_527 must cap displayed damage at 4,000,000'
+    );
+    assert.equal(
+        instructions.filter((instruction) => instruction.opcode === 0x46 && u30OperandName(instruction, abc.multinameNames) === 'min').length >= 3,
+        true,
+        'Game.method_527 must clamp damage text and screen bounds with Math.min'
+    );
+    assert.equal(
+        instructions.filter((instruction) => instruction.opcode === 0x46 && u30OperandName(instruction, abc.multinameNames) === 'max').length >= 2,
+        true,
+        'Game.method_527 must clamp damage text coordinates with Math.max'
+    );
+}
+
+function assertInstanceMethodNullGuard(swfPath: string, className: string, methodName: string): void {
+    const ctx = parseSwf(swfPath);
+    const abc = parseAbc(ctx);
+    const classIndex = classIndexByName(abc, className);
+    assert.notEqual(classIndex, null, `${className} class not found`);
+
+    const methodIdx = methodIdxForTrait(abc.instances[classIndex!].traits, abc, methodName);
+    assert.notEqual(methodIdx, null, `${className}.${methodName} not found`);
+
+    const methodBody = abc.methodBodies.get(methodIdx!);
+    assert.ok(methodBody, `${className}.${methodName} body not found`);
+
+    const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
+    assert.equal(
+        methodBody.exceptions.some((exception) => {
+            const handler = code.subarray(exception.target);
+            return exception.from === 0 && handler[0] === 0x29 && handler.includes(0x47);
+        }),
+        true,
+        `${className}.${methodName} must catch stale/null references and return`
+    );
+}
+
+function assertInstanceBooleanMethodFalseNullGuard(swfPath: string, className: string, methodName: string): void {
+    const ctx = parseSwf(swfPath);
+    const abc = parseAbc(ctx);
+    const classIndex = classIndexByName(abc, className);
+    assert.notEqual(classIndex, null, `${className} class not found`);
+
+    const methodIdx = methodIdxForTrait(abc.instances[classIndex!].traits, abc, methodName);
+    assert.notEqual(methodIdx, null, `${className}.${methodName} not found`);
+
+    const methodBody = abc.methodBodies.get(methodIdx!);
+    assert.ok(methodBody, `${className}.${methodName} body not found`);
+
+    const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
+    assert.equal(
+        methodBody.exceptions.some((exception) => {
+            const handler = code.subarray(exception.target);
+            return exception.from === 0 && handler[0] === 0x29 && handler.includes(0x4f) && code[code.length - 2] === 0x27 && code[code.length - 1] === 0x48;
+        }),
+        true,
+        `${className}.${methodName} must catch stale/null references and return false`
+    );
+}
+
+function assertMainMethod561DoesNotClampMaxScale(swfPath: string): void {
+    const { instructions } = getInstanceMethodCode(swfPath, 'Main', 'method_561');
+    const maxScaleAssignment = instructions.find((instruction, index) =>
+        instruction.opcode === 0x2f &&
+        instructions[index + 1]?.opcode === 0x75 &&
+        instructions[index + 2]?.opcode === 0xd7 &&
+        instructions[index + 3]?.opcode === 0xd3 &&
+        instructions[index + 4]?.opcode === 0x2f &&
+        instructions[index + 5]?.opcode === 0x0c
+    );
+
+    assert.equal(
+        maxScaleAssignment,
+        undefined,
+        'Main.method_561 must not clamp centered fullscreen scale back to 1.25'
     );
 }
 
@@ -492,6 +714,30 @@ function assertSuperAnimMethod866LiveFallbackCleanup(swfPath: string): void {
 
     assert.equal(
         instructions.some((instruction, index) =>
+            instruction.opcode === 0x46 &&
+            u30OperandName(instruction, abc.multinameNames) === 'method_982' &&
+            setLocalOperand(instructions[index + 2]) === 11 &&
+            getLocalOperand(instructions[index + 3]) === 11 &&
+            instructions[index + 4]?.opcode === 0x12 &&
+            getLocalOperand(instructions[index + 5]) === 11 &&
+            instructions[index + 6]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 6], abc.multinameNames) === 'bitmapData' &&
+            instructions[index + 7]?.opcode === 0x12 &&
+            getLocalOperand(instructions[index + 8]) === 11 &&
+            instructions[index + 9]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 9], abc.multinameNames) === 'bitmapData' &&
+            instructions[index + 10]?.opcode === 0x66 &&
+            u30OperandName(instructions[index + 10], abc.multinameNames) === 'width' &&
+            instructions[index + 11]?.opcode === 0x24 &&
+            instructions[index + 11].operands[0]?.[1] === 1 &&
+            instructions[index + 12]?.opcode === 0x17
+        ),
+        true,
+        'SuperAnimData.method_866 must reject method_982 1x1 fallback bitmaps before caching frames'
+    );
+
+    assert.equal(
+        instructions.some((instruction, index) =>
             getLocalOperand(instruction) === 11 &&
             instructions[index + 1]?.opcode === 0x11 &&
             getLocalOperand(instructions[index + 2]) === 4 &&
@@ -569,6 +815,14 @@ function testBaseAndLocalVariantKeepClass23BitmapDataGuard(): void {
     });
 }
 
+function testBaseAndLocalVariantKeepClass72FloatTextBitmapDataGuard(): void {
+    assertClass72FloatTextBitmapDataGuardWindow(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertClass72FloatTextBitmapDataGuardWindow(tempPath);
+    });
+}
+
 function testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard(): void {
     assertSuperAnimMethod982BitmapDataGuard(BASE_SWF_PATH);
     assertSuperAnimMethod866LiveFallbackCleanup(BASE_SWF_PATH);
@@ -595,6 +849,60 @@ function testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData(): void {
     });
 }
 
+function testBaseAndLocalVariantKeepGameMethod1325SuperAnimTickGuard(): void {
+    assertGameMethod1325SuperAnimTickGuard(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertGameMethod1325SuperAnimTickGuard(tempPath);
+    });
+}
+
+function testBaseAndLocalVariantKeepDamageFloatersClamped(): void {
+    assertGameMethod527DamageFloatersClamped(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertGameMethod527DamageFloatersClamped(tempPath);
+    });
+}
+
+function testBaseAndLocalVariantKeepEntityRenderNullGuards(): void {
+    assertInstanceMethodNullGuard(BASE_SWF_PATH, 'Entity', 'method_1826');
+    assertInstanceMethodNullGuard(BASE_SWF_PATH, 'Entity', 'method_853');
+    assertInstanceMethodNullGuard(BASE_SWF_PATH, 'Entity', 'method_900');
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertInstanceMethodNullGuard(tempPath, 'Entity', 'method_1826');
+        assertInstanceMethodNullGuard(tempPath, 'Entity', 'method_853');
+        assertInstanceMethodNullGuard(tempPath, 'Entity', 'method_900');
+    });
+}
+
+function testBaseAndLocalVariantKeepActivePowerNullGuard(): void {
+    assertInstanceBooleanMethodFalseNullGuard(BASE_SWF_PATH, 'ActivePower', 'method_243');
+    assertInstanceMethodNullGuard(BASE_SWF_PATH, 'ActivePower', 'method_1507');
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertInstanceBooleanMethodFalseNullGuard(tempPath, 'ActivePower', 'method_243');
+        assertInstanceMethodNullGuard(tempPath, 'ActivePower', 'method_1507');
+    });
+}
+
+function testBaseAndLocalVariantKeepChatBubbleNullGuard(): void {
+    assertInstanceMethodNullGuard(BASE_SWF_PATH, 'ChatBubble', 'method_901');
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertInstanceMethodNullGuard(tempPath, 'ChatBubble', 'method_901');
+    });
+}
+
+function testBaseAndLocalVariantKeepMainMethod561UnclampedScale(): void {
+    assertMainMethod561DoesNotClampMaxScale(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertMainMethod561DoesNotClampMaxScale(tempPath);
+    });
+}
+
 function testBaseAndLocalVariantKeepDungeonQuestHelperGuard(): void {
     assertDungeonQuestHelperPrefersDungeonProgress(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
@@ -610,9 +918,16 @@ function main(): void {
     testBaseAndLocalVariantKeepSuperAnimMethod200BitmapDataGuard();
     testBaseAndLocalVariantKeepClass82BitmapDataGuard();
     testBaseAndLocalVariantKeepClass23BitmapDataGuard();
+    testBaseAndLocalVariantKeepClass72FloatTextBitmapDataGuard();
     testBaseAndLocalVariantKeepSuperAnimMethod806FullscreenBitmapData();
     testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard();
     testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData();
+    testBaseAndLocalVariantKeepGameMethod1325SuperAnimTickGuard();
+    testBaseAndLocalVariantKeepDamageFloatersClamped();
+    testBaseAndLocalVariantKeepEntityRenderNullGuards();
+    testBaseAndLocalVariantKeepActivePowerNullGuard();
+    testBaseAndLocalVariantKeepChatBubbleNullGuard();
+    testBaseAndLocalVariantKeepMainMethod561UnclampedScale();
     testBaseAndLocalVariantKeepDungeonQuestHelperGuard();
     console.log('dungeonblitz_swf_variant_regression: ok');
 }

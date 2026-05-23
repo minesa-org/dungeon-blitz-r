@@ -1,0 +1,45 @@
+name: Localization issue
+description: Report a missing, incorrect, or awkward translation.
+title: ""
+labels: ["localization"]
+type: Bug
+body:
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      placeholder: "Example: Turkish, Portuguese (Brazil)"
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: Where does the text appear?
+      placeholder: "Example: NPC dialogue in Room 4, quest title, button label"
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current text
+      description: Paste the current translation or source text.
+      placeholder: Paste the text as shown in game.
+    validations:
+      required: true
+  - type: textarea
+    id: suggested
+    attributes:
+      label: Suggested text
+      description: Suggest a natural translation if you have one.
+      placeholder: Paste the preferred wording.
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Add screenshot, speaker, quest, room, tone, or surrounding lines.
+      placeholder: Add context that helps translate this naturally.
+    validations:
+      required: false

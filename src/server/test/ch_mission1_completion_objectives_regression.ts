@@ -7,7 +7,7 @@ import { GameData } from '../core/GameData';
 import { GlobalState } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
 import { BitBuffer } from '../network/protocol/bitBuffer';
-import { EntityTeam } from '../core/Entity';
+import { EntityState, EntityTeam } from '../core/Entity';
 
 type FakeClient = {
     token: number;
@@ -122,9 +122,9 @@ async function testWitherDungeonCompletesOnBossDeath(): Promise<void> {
         isPlayer: false,
         team: EntityTeam.ENEMY,
         entRank: 'Boss',
-        entState: 0,
-        hp: 10,
-        dead: false,
+        entState: EntityState.DEAD,
+        hp: 0,
+        dead: true,
         clientSpawned: true,
         ownerToken: client.token
     };
@@ -169,9 +169,9 @@ async function testWitherDungeonIgnoresAllChestsAfterBossDeath(): Promise<void> 
         isPlayer: false,
         team: EntityTeam.ENEMY,
         entRank: 'Boss',
-        entState: 0,
-        hp: 10,
-        dead: false,
+        entState: EntityState.DEAD,
+        hp: 0,
+        dead: true,
         clientSpawned: true,
         ownerToken: client.token,
         roomId: 6

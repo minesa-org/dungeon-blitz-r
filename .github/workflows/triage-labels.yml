@@ -1,0 +1,159 @@
+name: Triage labels
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+  discussion:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  discussions: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  apply-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const areaLabels = new Map([
+              ['dungeon', 'dungeon'],
+              ['quest', 'quest'],
+              ['side quest', 'side-quest'],
+              ['side-quest', 'side-quest'],
+              ['character', 'character'],
+              ['multiplayer', 'multiplayer'],
+              ['home', 'home'],
+              ['client crash', 'client-crash'],
+              ['client-crash', 'client-crash'],
+              ['crash', 'client-crash'],
+              ['loot', 'loot'],
+              ['localization', 'localization'],
+              ['translation', 'localization'],
+              ['documentation', 'documentation'],
+              ['visual', 'visual'],
+              ['balance', 'balance'],
+              ['missing content', 'content-missing'],
+              ['content-missing', 'content-missing'],
+            ]);
+
+            const existing = await github.paginate(github.rest.issues.listLabelsForRepo, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+            const existingNames = new Set(existing.map((label) => label.name));
+
+            function issueFormValue(body, heading) {
+              const pattern = new RegExp(`(?:^|\\n)### ${heading}\\s*\\n+([^#\\n][\\s\\S]*?)(?=\\n### |$)`, 'i');
+              return body.match(pattern)?.[1]?.trim() ?? '';
+            }
+
+            function collectAreaLabels(text, options = {}) {
+              const includeTypeLikeLabels = options.includeTypeLikeLabels ?? false;
+              const lower = text.toLowerCase();
+              const labels = new Set();
+              for (const [needle, label] of areaLabels.entries()) {
+                if (!includeTypeLikeLabels && label === 'documentation') continue;
+                if (lower.includes(needle)) {
+                  labels.add(label);
+                }
+              }
+              return labels;
+            }
+
+            async function addLabels(number, labels) {
+              const names = [...labels].filter((label) => existingNames.has(label));
+              if (names.length === 0) return;
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: number,
+                labels: names,
+              });
+            }
+
+            async function removeLabels(number, labels) {
+              for (const name of labels) {
+                if (!existingNames.has(name)) continue;
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number: number,
+                    name,
+                  });
+                } catch (error) {
+                  if (error.status !== 404) throw error;
+                }
+              }
+            }
+
+            async function addLabelsToNode(nodeId, labels) {
+              const labelIds = [...labels]
+                .filter((label) => existingNames.has(label))
+                .map((label) => existing.find((item) => item.name === label).node_id);
+              if (labelIds.length === 0) return;
+              await github.graphql(`
+                mutation($labelableId: ID!, $labelIds: [ID!]!) {
+                  addLabelsToLabelable(input: {labelableId: $labelableId, labelIds: $labelIds}) {
+                    clientMutationId
+                  }
+                }
+              `, { labelableId: nodeId, labelIds });
+            }
+
+            if (context.eventName === 'issues') {
+              const issue = context.payload.issue;
+              const labels = new Set();
+              const body = issue.body ?? '';
+
+              for (const heading of ['Area', 'Gameplay area', 'Balance area', 'Content area']) {
+                const value = issueFormValue(body, heading);
+                for (const label of collectAreaLabels(value)) labels.add(label);
+              }
+
+              const searchText = `${issue.title}\n${body}`;
+              for (const label of collectAreaLabels(searchText)) labels.add(label);
+
+              if (body.toLowerCase().includes('needs source') || body.toLowerCase().includes('source behavior')) {
+                labels.add('needs-investigation');
+              }
+
+              await removeLabels(issue.number, ['bug', 'bugfix', 'enhancement', 'documentation', 'task', 'chore', 'feature', 'research', 'refactor']);
+              await addLabels(issue.number, labels);
+              return;
+            }
+
+            if (context.eventName === 'pull_request_target') {
+              const pr = context.payload.pull_request;
+              const labels = collectAreaLabels(`${pr.title}\n${pr.body ?? ''}`, { includeTypeLikeLabels: true });
+              const title = pr.title.toLowerCase();
+
+              if (/^(fix|bugfix|hotfix)[(:!\s]/.test(title)) labels.add('bugfix');
+              if (/^(feat|feature)[(:!\s]/.test(title)) labels.add('enhancement');
+              if (/^(docs|doc)[(:!\s]/.test(title)) labels.add('documentation');
+
+              await addLabels(pr.number, labels);
+              return;
+            }
+
+            if (context.eventName === 'discussion') {
+              const discussion = context.payload.discussion;
+              const labels = collectAreaLabels(`${discussion.title}\n${discussion.body ?? ''}\n${discussion.category?.name ?? ''}`, { includeTypeLikeLabels: true });
+
+              if ((discussion.category?.name ?? '').toLowerCase() === 'ideas') {
+                labels.add('enhancement');
+              }
+
+              await addLabelsToNode(discussion.node_id, labels);
+            }

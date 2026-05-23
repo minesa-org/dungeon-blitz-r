@@ -152,6 +152,7 @@ export class Client {
     public lastDoorId: number = -1;
     public lastDoorTargetLevel: string = "";
     public playerSpawned: boolean = false;
+    public playSessionStartedAt: number = Date.now();
     public worldEnteredAt: number = Date.now();
     public partyMapX: number = 0;
     public partyMapY: number = 0;
@@ -336,6 +337,7 @@ export class Client {
         this.lastDoorId = -1;
         this.lastDoorTargetLevel = "";
         this.playerSpawned = false;
+        this.playSessionStartedAt = Date.now();
         this.partyMapX = 0;
         this.partyMapY = 0;
         this.syncAnchorStartedAt = 0;
@@ -465,6 +467,9 @@ export class Client {
         });
         GlobalState.usedTransferTokens.set(snapshot.token, {
             character: this.character,
+            craftTownHostCharacter: this.currentLevel === 'CraftTown'
+                ? this.craftTownHostCharacter ?? undefined
+                : undefined,
             userId: snapshot.userId,
             targetLevel: currentLevel,
             levelInstanceId: this.levelInstanceId,
@@ -486,7 +491,10 @@ export class Client {
                 : undefined,
             sourceDoorId: this.lastDoorId >= 0 ? Math.round(Number(this.lastDoorId)) : undefined,
             sourceDoorLevel: LevelConfig.normalizeLevelName(this.currentLevel) || undefined,
-            sourceDoorTargetLevel: LevelConfig.normalizeLevelName(this.lastDoorTargetLevel) || undefined
+            sourceDoorTargetLevel: LevelConfig.normalizeLevelName(this.lastDoorTargetLevel) || undefined,
+            playSessionStartedAt: Number.isFinite(this.playSessionStartedAt) && this.playSessionStartedAt > 0
+                ? Math.round(this.playSessionStartedAt)
+                : undefined
         });
     }
 

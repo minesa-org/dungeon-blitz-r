@@ -51,6 +51,7 @@ import {
     normalizeLevelInstanceId
 } from '../core/LevelScope';
 import { getCharacterRuntimeLevel, getPartyRuntimeLevelForClient } from '../core/RuntimeLevel';
+import { getCraftTownHomeInstanceId } from '../utils/HomeVisitGuard';
 
 const db = new JsonAdapter();
 
@@ -58,6 +59,7 @@ type LevelSyncState = {
     x: number;
     y: number;
     hasCoord: boolean;
+    playSessionStartedAt?: number;
     levelInstanceId?: string;
     syncAnchorStartedAt?: number;
     syncAnchorToken?: number;
@@ -238,6 +240,9 @@ export class LevelHandler {
         target.currentRoomId = source.currentRoomId;
         target.lastDoorId = source.lastDoorId;
         target.lastDoorTargetLevel = source.lastDoorTargetLevel;
+        target.playSessionStartedAt = Number.isFinite(source.playSessionStartedAt) && source.playSessionStartedAt > 0
+            ? Math.round(source.playSessionStartedAt)
+            : Date.now();
         target.clientEntID = source.clientEntID;
         target.token = source.token;
         target.playerSpawned = source.playerSpawned;
@@ -803,6 +808,9 @@ export class LevelHandler {
             x,
             y,
             hasCoord,
+            playSessionStartedAt: Number.isFinite(client.playSessionStartedAt) && client.playSessionStartedAt > 0
+                ? Math.round(client.playSessionStartedAt)
+                : Date.now(),
             levelInstanceId: levelInstanceId || undefined,
             syncAnchorStartedAt,
             syncAnchorToken,
@@ -2716,13 +2724,18 @@ export class LevelHandler {
         const insideTriggerBand =
             currentY >= LevelHandler.BACK_ALLEY_DEALS_BOSS_TRIGGER_MIN_Y &&
             currentY <= LevelHandler.BACK_ALLEY_DEALS_BOSS_TRIGGER_MAX_Y;
+        const alreadyPastTrigger = currentX >= LevelHandler.BACK_ALLEY_DEALS_BOSS_TRIGGER_X;
 
-        if (!crossedTrigger || !insideTriggerBand) {
+        if (!(crossedTrigger || alreadyPastTrigger) || !insideTriggerBand) {
             return;
         }
 
         for (const other of LevelHandler.forLevelRecipients(client, true)) {
             if (!other.triggeredLevelStates.has(triggerKey)) {
+                other.currentRoomId = roomId;
+                if (!LevelHandler.hasRoomEventStarted(other, roomId)) {
+                    LevelHandler.sendRoomEventStart(other, roomId, true);
+                }
                 other.triggeredLevelStates.add(triggerKey);
                 LevelHandler.sendRoomTriggerState(other, roomId, 'am_Trigger_Boss');
             }
@@ -3126,12 +3139,16 @@ export class LevelHandler {
         sendExtended: boolean,
         syncState: LevelSyncState | null = null,
         doorContext: DoorTravelContext | null = null,
-        craftTownHostCharacter?: Character
+        craftTownHostCharacter?: Character,
+        playSessionStartedAt?: number
     ): void {
         const shouldSyncDungeonProgress = LevelConfig.isDungeonLevel(targetLevel);
+        const craftTownHomeInstanceId = targetLevel === 'CraftTown'
+            ? getCraftTownHomeInstanceId(character, craftTownHostCharacter)
+            : '';
         const levelInstanceId = shouldSyncDungeonProgress
             ? normalizeLevelInstanceId(syncState?.levelInstanceId) || createDungeonInstanceId(token)
-            : '';
+            : craftTownHomeInstanceId;
         const syncAnchorStartedAt = shouldSyncDungeonProgress
             ? LevelHandler.normalizeSyncAnchorStartedAt(syncState?.syncAnchorStartedAt) ?? Date.now()
             : undefined;
@@ -3165,7 +3182,11 @@ export class LevelHandler {
                 syncQuestProgress: syncState?.syncQuestProgress,
                 sourceDoorId: doorContext?.sourceDoorId,
                 sourceDoorLevel: doorContext?.sourceLevel,
-                sourceDoorTargetLevel: doorContext?.targetLevel
+                sourceDoorTargetLevel: doorContext?.targetLevel,
+                playSessionStartedAt: Number.isFinite(Number(playSessionStartedAt ?? syncState?.playSessionStartedAt)) &&
+                    Number(playSessionStartedAt ?? syncState?.playSessionStartedAt) > 0
+                    ? Math.round(Number(playSessionStartedAt ?? syncState?.playSessionStartedAt))
+                    : undefined
             });
             GlobalState.tokenChar.set(token, {
                 character,
@@ -3180,8 +3201,61 @@ export class LevelHandler {
         return false;
     }
 
+    private static isDifferentCharacter(left: Character | null | undefined, right: Character | null | undefined): boolean {
+        const leftKey = normalizeCharacterKey(left?.name);
+        const rightKey = normalizeCharacterKey(right?.name);
+        return Boolean(leftKey && rightKey && leftKey !== rightKey);
+    }
+
+    private static resolveVisitedCraftTownHostCharacter(
+        client: Client,
+        transferToken: number,
+        activeCharacter: Character,
+        targetLevel: string
+    ): Character {
+        if (targetLevel !== 'CraftTown') {
+            return activeCharacter;
+        }
+
+        const queuedHost = GlobalState.houseVisits.get(transferToken);
+        if (queuedHost) {
+            GlobalState.houseVisits.delete(transferToken); // Consume
+            if (LevelHandler.isDifferentCharacter(activeCharacter, queuedHost)) {
+                client.craftTownHostCharacter = queuedHost;
+                console.log(`[Level] House Visit active! Host: ${queuedHost.name}`);
+                return queuedHost;
+            }
+
+            client.craftTownHostCharacter = null;
+            return activeCharacter;
+        }
+
+        if (LevelHandler.isDifferentCharacter(activeCharacter, client.craftTownHostCharacter)) {
+            console.log(`[Level] House Visit active from session host! Host: ${client.craftTownHostCharacter!.name}`);
+            return client.craftTownHostCharacter!;
+        }
+
+        client.craftTownHostCharacter = null;
+        return activeCharacter;
+    }
+
     private static allocateTransferToken(targetLevel: string): number {
         return TransferTokenAllocator.allocate(targetLevel);
+    }
+
+    private static resolveVisitedCraftTownOwnerToken(transferToken: number, hostCharacter: Character | null | undefined): number | undefined {
+        if (!hostCharacter) {
+            return undefined;
+        }
+
+        const hostSession = GlobalState.getActiveSessionByCharacterName(hostCharacter.name);
+        const hostToken = Math.round(Number(hostSession?.token ?? 0));
+        if (Number.isFinite(hostToken) && hostToken > 0 && hostToken !== transferToken) {
+            return hostToken;
+        }
+
+        const fallbackToken = transferToken >= 0xFFFF ? 1 : transferToken + 1;
+        return fallbackToken !== transferToken ? fallbackToken : 1;
     }
 
     private static rememberTransferTokenAlias(sourceToken: number, targetToken: number): void {
@@ -3243,6 +3317,9 @@ export class LevelHandler {
             client.character = usedEntry.character;
             client.userId = usedEntry.userId;
             client.currentLevel = usedEntry.targetLevel;
+            client.craftTownHostCharacter = usedEntry.targetLevel === 'CraftTown'
+                ? usedEntry.craftTownHostCharacter ?? null
+                : null;
             client.levelInstanceId = normalizeLevelInstanceId(usedEntry.levelInstanceId);
             client.entryLevel = LevelConfig.resolveDungeonEntryLevel(
                 usedEntry.targetLevel,
@@ -3318,6 +3395,9 @@ export class LevelHandler {
             client.character = pendingEntry.character;
             client.userId = pendingEntry.userId;
             client.currentLevel = pendingEntry.targetLevel;
+            client.craftTownHostCharacter = pendingEntry.targetLevel === 'CraftTown'
+                ? pendingEntry.craftTownHostCharacter ?? null
+                : null;
             client.levelInstanceId = normalizeLevelInstanceId(pendingEntry.levelInstanceId);
             client.entryLevel = LevelConfig.resolveDungeonEntryLevel(
                 pendingEntry.targetLevel,
@@ -3869,6 +3949,9 @@ export class LevelHandler {
             console.error(`[Level] Character state disappeared during transfer. Token=${packetToken}`);
             return;
         }
+        if (targetLevel === 'CraftTown' && teleportOverride?.craftTownHostCharacter) {
+            client.craftTownHostCharacter = teleportOverride.craftTownHostCharacter;
+        }
 
         const oldLevel = LevelHandler.resolveTransferSourceLevel(client, activeCharacter);
         const ent = client.entities.get(client.clientEntID);
@@ -3909,13 +3992,12 @@ export class LevelHandler {
         const newToken = LevelHandler.allocateTransferToken(targetLevel);
         
         // 6. Check House Visit Override
-        let hostChar = activeCharacter;
-        // Use token from packet (0x1D) to lookup house visit
-        if (GlobalState.houseVisits.has(transferToken)) {
-            hostChar = GlobalState.houseVisits.get(transferToken)!;
-            GlobalState.houseVisits.delete(transferToken); // Consume
-            console.log(`[Level] House Visit active! Host: ${hostChar.name}`);
-        }
+        const hostChar = LevelHandler.resolveVisitedCraftTownHostCharacter(
+            client,
+            transferToken,
+            activeCharacter,
+            targetLevel
+        );
 
         // 7. Store Pending Transfer State
         const effectivePreviousLevel = targetLevel === 'CraftTown'
@@ -3936,7 +4018,10 @@ export class LevelHandler {
             sendExtendedOnTransfer,
             syncState,
             doorContext,
-            hostChar !== activeCharacter ? hostChar : undefined
+            LevelHandler.isDifferentCharacter(activeCharacter, hostChar) ? hostChar : undefined,
+            Number.isFinite(client.playSessionStartedAt) && client.playSessionStartedAt > 0
+                ? Math.round(client.playSessionStartedAt)
+                : Date.now()
         );
         LevelHandler.rememberTransferTokenAlias(packetToken, newToken);
         LevelHandler.rememberTransferTokenAlias(transferToken, newToken);
@@ -3947,6 +4032,10 @@ export class LevelHandler {
         const oldLevelSpec = LevelConfig.get(oldLevel);
         const runtimeMapLevel = LevelHandler.resolveDungeonMapPacketLevel(targetLevel, levelSpec.mapId, activeCharacter, client);
         const runtimeBaseLevel = levelSpec.baseId;
+        const isVisitedCraftTown = targetLevel === 'CraftTown' && LevelHandler.isDifferentCharacter(activeCharacter, hostChar);
+        const craftTownOwnerToken = isVisitedCraftTown
+            ? LevelHandler.resolveVisitedCraftTownOwnerToken(newToken, hostChar)
+            : undefined;
         
         const pkt = WorldEnter.buildEnterWorldPacket(
             newToken,
@@ -3965,7 +4054,8 @@ export class LevelHandler {
             isHard ? "Hard" : "",
             levelSpec.isDungeon,
             newHasCoord, newX, newY,
-            hostChar
+            hostChar,
+            craftTownOwnerToken
         );
 
         DebugLogger.logProgress('EnterWorld:transferPacket', client, activeCharacter, {
@@ -4048,12 +4138,6 @@ export class LevelHandler {
         const selfHpBeforeState = isSelf
             ? Math.max(0, Math.round(Number(client.authoritativeCurrentHp ?? ent.hp ?? levelEntity?.hp ?? 0) || 0))
             : 0;
-        const effectiveEntState =
-            isSelf &&
-            entState === EntityState.DEAD &&
-            selfHpBeforeState > 0
-                ? EntityState.ACTIVE
-                : entState;
         const isAliasedSharedClientSpawnUpdate =
             rawEntityId !== entityId &&
             EntityHandler.shouldMirrorClientSpawnEntityToParty(currentLevel, levelEntity ?? ent);
@@ -4071,6 +4155,29 @@ export class LevelHandler {
             !isSelf &&
             !ent.isPlayer &&
             Number(ent.team ?? 0) === EntityTeam.ENEMY;
+        if (isEnemyEntity && entState === EntityState.DEAD) {
+            const { CombatHandler } = require('./CombatHandler') as typeof import('./CombatHandler');
+            const contributionSnapshot = CombatHandler.getContributionSnapshot(getClientLevelScope(client), entityId);
+            if (contributionSnapshot.contributors.length) {
+                ent.clientDefeatVerified = true;
+                if (levelEntity && levelEntity !== ent) {
+                    levelEntity.clientDefeatVerified = true;
+                }
+            }
+        }
+        const shouldIgnoreUnverifiedDungeonBossDeadState =
+            isEnemyEntity &&
+            entState === EntityState.DEAD &&
+            MissionHandler.shouldIgnoreUnverifiedDungeonBossDefeat(currentLevel, levelEntity ?? ent);
+        const canonicalEntState = shouldIgnoreUnverifiedDungeonBossDeadState
+            ? EntityState.ACTIVE
+            : entState;
+        const effectiveEntState =
+            isSelf &&
+            canonicalEntState === EntityState.DEAD &&
+            selfHpBeforeState > 0
+                ? EntityState.ACTIVE
+                : canonicalEntState;
 
         const previousX = Number(ent.x ?? 0);
         ent.x += deltaX;

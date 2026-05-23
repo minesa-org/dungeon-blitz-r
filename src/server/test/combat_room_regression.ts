@@ -324,7 +324,7 @@ async function testDirectTargetPowerCastGetsSafeTargetPos(): Promise<void> {
     }
     GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(sender.clientEntID, senderEntity);
 
-    const hostile = {
+    const hostile: any = {
         id: 6101,
         name: 'IntroGoblin',
         isPlayer: false,
@@ -526,6 +526,53 @@ async function testPartyEchoedPowerHitDoesNotDoubleApplyDamage(): Promise<void> 
         sender.sentPackets.some((packet) => packet.id === 0x0A && parsePowerHitDamage(packet.payload) === 10),
         true,
         'the original player should see the party mate own-source hit'
+    );
+}
+
+async function testVeryLargePowerHitRelaysSafeDisplayDamage(): Promise<void> {
+    const sender = createFakeClient(206, 'AlphaHighDamage', 1);
+    const partyOtherRoom = createFakeClient(207, 'BetaHighDamage', 5);
+
+    sender.currentLevel = 'TutorialDungeon';
+    partyOtherRoom.currentLevel = 'TutorialDungeon';
+
+    attachPlayerEntity(sender);
+    attachPlayerEntity(partyOtherRoom);
+
+    GlobalState.partyByMember.set('alphahighdamage', 6);
+    GlobalState.partyByMember.set('betahighdamage', 6);
+
+    const hostile: any = {
+        id: 5071,
+        name: 'HugeDamageTarget',
+        isPlayer: false,
+        x: 10,
+        y: 15,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        roomId: sender.currentRoomId,
+        hp: 250000,
+        maxHp: 250000
+    };
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
+    sender.knownEntityIds.add(hostile.id);
+    partyOtherRoom.knownEntityIds.add(hostile.id);
+
+    GlobalState.sessionsByToken.set(sender.token, sender as never);
+    GlobalState.sessionsByToken.set(partyOtherRoom.token, partyOtherRoom as never);
+
+    await CombatHandler.handlePowerHit(sender as never, buildPowerHitPayload(hostile.id, sender.clientEntID, 5000000, 77));
+
+    assert.equal(hostile.hp, 0, 'server-side combat should still apply the full lethal damage');
+    assert.equal(hostile.dead, true, 'the high-damage hit should still kill the target');
+
+    const relayedHit = partyOtherRoom.sentPackets.find((packet) => packet.id === 0x0A);
+    assert.ok(relayedHit, 'party mate should receive the relayed hit');
+    assert.equal(
+        parsePowerHitDamage(relayedHit!.payload),
+        4000000,
+        'relayed Flash damage display should be capped at the client-safe display limit'
     );
 }
 
@@ -1355,6 +1402,15 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testPartyEchoedPowerHitDoesNotDoubleApplyDamage();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testVeryLargePowerHitRelaysSafeDisplayDamage();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();

@@ -6,6 +6,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { WorldEnter } from '../utils/WorldEnter';
+import { isVisitingAnotherPlayersCraftTown } from '../utils/HomeVisitGuard';
 import buildingTypes from '../data/BuildingTypes.json';
 
 const db = new JsonAdapter();
@@ -27,6 +28,23 @@ const buildingDefsByKey = new Map<string, BuildingDef>(
 
 export class BuildingHandler {
     private static readonly CRAFT_TOWN_REFRESH_RETRY_DELAYS_MS = [1200, 2800];
+
+    private static rejectVisitedHomeMutation(client: Client, action: string): boolean {
+        if (!isVisitingAnotherPlayersCraftTown(client)) {
+            return false;
+        }
+
+        DebugLogger.logProgress('HomeVisit:buildingMutationBlocked', client, client.character, {
+            action,
+            host: client.craftTownHostCharacter?.name
+        });
+
+        if (client.playerSpawned && client.currentLevel === 'CraftTown') {
+            BuildingHandler.sendBuildingUpdate(client);
+        }
+
+        return true;
+    }
 
     private static async saveCharacter(client: Client): Promise<void> {
         if (!client.userId || !client.character) {
@@ -124,6 +142,7 @@ export class BuildingHandler {
     // Python: br.read_method_20(5), br.read_method_20(5), br.read_method_15()
     static async handleBuildingUpgrade(client: Client, data: Buffer): Promise<void> {
         if (!client.userId || !client.character) return;
+        if (BuildingHandler.rejectVisitedHomeMutation(client, 'upgrade')) return;
 
         const br = new BitReader(data);
         const buildingId = br.readMethod20(5);
@@ -237,6 +256,7 @@ export class BuildingHandler {
     // Python: idol_cost (Method9)
     static async handleBuildingSpeedUpRequest(client: Client, data: Buffer): Promise<void> {
         if (!client.userId || !client.character) return;
+        if (BuildingHandler.rejectVisitedHomeMutation(client, 'speedup')) return;
 
         const br = new BitReader(data);
         const idolCost = br.readMethod9();
@@ -302,6 +322,7 @@ export class BuildingHandler {
 
     static async handleBuildingClaim(client: Client, data: Buffer): Promise<void> {
         if (!client.userId || !client.character) return;
+        if (BuildingHandler.rejectVisitedHomeMutation(client, 'claim')) return;
 
         const upgrade = client.character.buildingUpgrade;
         const buildingId = Number(upgrade?.buildingID ?? 0);
@@ -327,6 +348,7 @@ export class BuildingHandler {
 
     static async handleBuildingCancel(client: Client, _data: Buffer): Promise<void> {
         if (!client.userId || !client.character) return;
+        if (BuildingHandler.rejectVisitedHomeMutation(client, 'cancel')) return;
 
         const upgrade = client.character.buildingUpgrade;
         const buildingId = Number(upgrade?.buildingID ?? 0);

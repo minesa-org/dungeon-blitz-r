@@ -1,0 +1,29 @@
+name: Documentation
+description: Report missing, unclear, or outdated project documentation.
+title: ""
+type: Documentation
+body:
+  - type: textarea
+    id: location
+    attributes:
+      label: Location
+      description: Which README, guide, script comment, or setup flow needs documentation work?
+      placeholder: "Example: README Running the Game section"
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: Problem
+      description: What is missing, unclear, wrong, or outdated?
+      placeholder: Describe the documentation problem.
+    validations:
+      required: true
+  - type: textarea
+    id: suggested
+    attributes:
+      label: Suggested change
+      description: Optional. Add wording, links, commands, screenshots, or examples.
+      placeholder: Describe the documentation change.
+    validations:
+      required: false

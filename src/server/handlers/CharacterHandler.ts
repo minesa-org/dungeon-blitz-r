@@ -3,7 +3,7 @@ import { CharacterTemplates } from '../core/CharacterTemplates';
 import { GameData } from '../core/GameData';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
-import { GlobalState } from '../core/GlobalState';
+import { GlobalState, PendingTransfer } from '../core/GlobalState';
 import { LevelConfig } from '../core/LevelConfig';
 import { LevelHandler } from './LevelHandler';
 import { MissionHandler } from './MissionHandler';
@@ -28,6 +28,7 @@ import { getPartyIdForClient, areClientsInSameParty } from '../core/PartySync';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
 import { normalizeGender } from '../utils/normalizeGender';
 import { ensureSigilStoreAlertState } from '../utils/AlertState';
+import { getCraftTownHomeInstanceId, isVisitingAnotherPlayersCraftTown } from '../utils/HomeVisitGuard';
 import {
     createDungeonInstanceId,
     getClientLevelScope,
@@ -114,6 +115,24 @@ export class CharacterHandler {
 
     private static allocateTransferToken(targetLevel: string): number {
         return TransferTokenAllocator.allocate(targetLevel);
+    }
+
+    private static isVisitedCraftTownPendingTransfer(entry: PendingTransfer): boolean {
+        if (entry.targetLevel !== 'CraftTown' || !entry.craftTownHostCharacter) {
+            return false;
+        }
+
+        const visitorKey = normalizeCharacterKey(entry.character.name);
+        const hostKey = normalizeCharacterKey(entry.craftTownHostCharacter.name);
+        return Boolean(visitorKey && hostKey && visitorKey !== hostKey);
+    }
+
+    private static shouldSendExtendedPlayerData(
+        firstLogin: boolean,
+        pendingExtended: boolean,
+        entry: PendingTransfer
+    ): boolean {
+        return firstLogin || pendingExtended || CharacterHandler.isVisitedCraftTownPendingTransfer(entry);
     }
 
     private static repairUnsafeSavedDungeonLocation(character: Character): boolean {
@@ -690,10 +709,13 @@ export class CharacterHandler {
         if (!client.character) {
             return;
         }
+        const armoryCharacter = isVisitingAnotherPlayersCraftTown(client) && client.craftTownHostCharacter
+            ? client.craftTownHostCharacter
+            : client.character;
 
         const br = new BitReader(data);
         br.readMethod9();
-        client.sendBitBuffer(0xF5, CharacterHandler.buildLevelGearsPacket(client.character));
+        client.sendBitBuffer(0xF5, CharacterHandler.buildLevelGearsPacket(armoryCharacter));
     }
 
     static async handleHomeLookChange(client: Client, data: Buffer): Promise<void> {
@@ -888,7 +910,9 @@ export class CharacterHandler {
         if (client.userId) {
              // For dungeon levels, try to find a party member already in the same dungeon
              // and reuse their levelInstanceId so both players share the same level scope.
-             let levelInstanceId = '';
+             let levelInstanceId = currentLevelName === 'CraftTown'
+                ? getCraftTownHomeInstanceId(char)
+                : '';
              let syncAnchorStartedAt: number | undefined = isDungeonLevel ? Date.now() : undefined;
              let syncAnchorToken: number | undefined = isDungeonLevel ? token : undefined;
              let syncAnchorCharacterName: string | undefined = isDungeonLevel ? char.name : undefined;
@@ -934,6 +958,7 @@ export class CharacterHandler {
                 levelInstanceId: levelInstanceId || undefined,
                 previousLevel: previousLevelName,
                 userId: client.userId,
+                accountEmail: client.account?.email,
                 newX: spawn.x,
                 newY: spawn.y,
                 newHasCoord: spawn.hasCoord,
@@ -943,7 +968,8 @@ export class CharacterHandler {
                 syncRoomId,
                 syncStartedRoomIds,
                 syncEntryLevel,
-                syncQuestProgress
+                syncQuestProgress,
+                playSessionStartedAt: Date.now()
             });
             GlobalState.pendingExtended.set(token, true);
         }
@@ -1006,7 +1032,8 @@ export class CharacterHandler {
             return;
         }
 
-        const sendExtended = firstLogin || Boolean(GlobalState.pendingExtended.get(token));
+        const pendingExtended = Boolean(GlobalState.pendingExtended.get(token));
+        const sendExtended = CharacterHandler.shouldSendExtendedPlayerData(firstLogin, pendingExtended, entry);
 
         client.character = entry.character;
         client.craftTownHostCharacter = entry.targetLevel === 'CraftTown'
@@ -1014,12 +1041,17 @@ export class CharacterHandler {
             : null;
         PetHandler.normalizeMountState(client.character);
         client.userId = entry.userId;
+        client.account = entry.accountEmail
+            ? { email: entry.accountEmail, user_id: entry.userId }
+            : null;
         client.token = token;
         client.clientEntID = 0;
         client.currentLevel = entry.targetLevel;
-        client.levelInstanceId = LevelConfig.isDungeonLevel(entry.targetLevel)
-            ? normalizeLevelInstanceId(entry.levelInstanceId) || createDungeonInstanceId(token)
-            : '';
+        client.levelInstanceId = entry.targetLevel === 'CraftTown'
+            ? normalizeLevelInstanceId(entry.levelInstanceId) || getCraftTownHomeInstanceId(entry.character, entry.craftTownHostCharacter)
+            : LevelConfig.isDungeonLevel(entry.targetLevel)
+                ? normalizeLevelInstanceId(entry.levelInstanceId) || createDungeonInstanceId(token)
+                : '';
         console.log(`[GameLogin] ${entry.character.name} entering ${entry.targetLevel} with levelInstanceId='${client.levelInstanceId}' (from entry: '${entry.levelInstanceId}')`);
         client.entryLevel = LevelConfig.resolveDungeonEntryLevel(
             entry.targetLevel,
@@ -1061,6 +1093,9 @@ export class CharacterHandler {
         client.lastDoorId = -1;
         client.lastDoorTargetLevel = '';
         client.playerSpawned = false;
+        client.playSessionStartedAt = Number.isFinite(Number(entry.playSessionStartedAt)) && Number(entry.playSessionStartedAt) > 0
+            ? Math.round(Number(entry.playSessionStartedAt))
+            : Date.now();
         client.worldEnteredAt = Date.now();
         client.mountTransferGraceUntil = Date.now() + 5000;
         client.entities.clear();
@@ -1127,6 +1162,7 @@ export class CharacterHandler {
         }
         GlobalState.usedTransferTokens.set(token, {
             character: liveCharacter,
+            craftTownHostCharacter: client.craftTownHostCharacter ?? undefined,
             userId: entry.userId,
             targetLevel: entry.targetLevel,
             levelInstanceId: client.levelInstanceId || undefined,
@@ -1140,7 +1176,8 @@ export class CharacterHandler {
             syncEntryLevel: entry.syncEntryLevel,
             syncRoomId: entry.syncRoomId,
             syncStartedRoomIds: entry.syncStartedRoomIds,
-            syncQuestProgress: client.syncQuestProgress
+            syncQuestProgress: client.syncQuestProgress,
+            playSessionStartedAt: client.playSessionStartedAt
         });
         const characterKey = normalizeCharacterKey(client.character.name);
         if (characterKey) {
@@ -1161,6 +1198,9 @@ export class CharacterHandler {
         await MissionHandler.prepareFullClearDungeonEntry(client);
 
         // Send Player Data (0x10)
+        const buildingStateCharacter = isVisitingAnotherPlayersCraftTown(client)
+            ? client.craftTownHostCharacter
+            : null;
         const pdPkt = WorldEnter.buildPlayerDataPacket(
             client.character,
             token,
@@ -1170,7 +1210,8 @@ export class CharacterHandler {
             spawn.x,
             spawn.y,
             spawn.hasCoord,
-            sendExtended
+            sendExtended,
+            buildingStateCharacter
         );
         const pdBuffer = pdPkt.toBuffer();
 

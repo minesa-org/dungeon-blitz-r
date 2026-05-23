@@ -11,6 +11,7 @@ import { LevelHandler } from './LevelHandler';
 import { MissionHandler } from './MissionHandler';
 import { PetHandler } from './PetHandler';
 import { DialogueTranslationLoader } from '../data/DialogueTranslationLoader';
+import { discordSocialBridge } from '../integrations/DiscordSocialBridge';
 import {
     ensureCharacterSocialState,
     FriendEntry,
@@ -895,6 +896,7 @@ export class SocialHandler {
         }
 
         const shouldSyncDungeonProgress = LevelConfig.isDungeonLevel(targetLevel);
+        const shouldCarryHomeScope = targetLevel === 'CraftTown';
         const syncRoomId = shouldSyncDungeonProgress &&
             Number.isFinite(Number(target.currentRoomId)) &&
             target.currentRoomId >= 0
@@ -909,7 +911,10 @@ export class SocialHandler {
 
         return {
             targetLevel,
-            levelInstanceId: shouldSyncDungeonProgress ? target.levelInstanceId : undefined,
+            levelInstanceId: shouldSyncDungeonProgress || shouldCarryHomeScope ? target.levelInstanceId : undefined,
+            craftTownHostCharacter: shouldCarryHomeScope
+                ? target.craftTownHostCharacter ?? target.character ?? undefined
+                : undefined,
             x,
             y,
             hasCoord,
@@ -1052,6 +1057,17 @@ export class SocialHandler {
                 );
                 return;
             }
+        }
+
+        if (client.character && message) {
+            discordSocialBridge.relay({
+                scope: 'public',
+                senderName: client.character.name,
+                message,
+                accountEmail: client.account?.email,
+                userId: client.userId,
+                levelName: client.currentLevel || undefined
+            });
         }
 
         SocialHandler.relayToLevel(client, 0x2c, data, false, true);
@@ -1651,6 +1667,16 @@ export class SocialHandler {
             return;
         }
 
+        discordSocialBridge.relay({
+            scope: 'party',
+            senderName: client.character.name,
+            message,
+            accountEmail: client.account?.email,
+            userId: client.userId,
+            levelName: client.currentLevel || undefined,
+            partyId: party.partyId
+        });
+
         const payload = SocialHandler.buildGroupChatPayload(client.character.name, message);
         for (const member of party.group.members) {
             const session = SocialHandler.getOnlineSession(member);
@@ -1731,6 +1757,9 @@ export class SocialHandler {
             return;
         }
 
+        client.craftTownHostCharacter = targetTeleport.targetLevel === 'CraftTown'
+            ? targetTeleport.craftTownHostCharacter ?? null
+            : null;
         GlobalState.pendingTeleports.set(client.token, targetTeleport);
         client.lastDoorId = 0;
         client.lastDoorTargetLevel = targetTeleport.targetLevel;
@@ -1754,7 +1783,12 @@ export class SocialHandler {
         }
 
         const characters = await db.loadCharacters(targetId);
-        const targetChar = characters.find((entry) =>
+        const liveTarget = SocialHandler.getOnlineSession(targetName);
+        const liveTargetChar = liveTarget?.character &&
+            SocialHandler.normalizeName(liveTarget.character.name) === SocialHandler.normalizeName(targetName)
+            ? liveTarget.character
+            : null;
+        const targetChar = liveTargetChar ?? characters.find((entry) =>
             SocialHandler.normalizeName(entry?.name) === SocialHandler.normalizeName(targetName)
         );
 
@@ -1766,6 +1800,7 @@ export class SocialHandler {
         if (client.token) {
             GlobalState.houseVisits.set(client.token, targetChar);
         }
+        client.craftTownHostCharacter = targetChar;
 
         const bb = new BitBuffer(false);
         bb.writeMethod4(999);

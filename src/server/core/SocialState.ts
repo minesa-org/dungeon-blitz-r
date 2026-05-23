@@ -15,6 +15,7 @@ export interface PartyGroup {
 export interface PendingTeleport {
     targetLevel: string;
     levelInstanceId?: string;
+    craftTownHostCharacter?: Character;
     x: number;
     y: number;
     hasCoord: boolean;

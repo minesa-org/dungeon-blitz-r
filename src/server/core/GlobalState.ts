@@ -9,6 +9,7 @@ export interface PendingTransfer {
     levelInstanceId?: string;
     previousLevel: string;
     userId: number;
+    accountEmail?: string;
     newX?: number;
     newY?: number;
     newHasCoord?: boolean;
@@ -25,6 +26,7 @@ export interface PendingTransfer {
     sourceDoorId?: number;
     sourceDoorLevel?: string;
     sourceDoorTargetLevel?: string;
+    playSessionStartedAt?: number;
 }
 
 export type SharedDungeonProgressState = {

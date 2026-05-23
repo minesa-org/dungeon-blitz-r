@@ -26,14 +26,15 @@ const DEFAULT_SWF = path.resolve(
   "cbp",
   "DungeonBlitz.swf",
 );
-const METHOD982_SAFE_TOTAL_PIXELS = 4194304;
+const METHOD982_SAFE_TOTAL_PIXELS = 65536;
 const METHOD982_PREVIOUS_SAFE_TOTAL_PIXELS = 65536;
 const METHOD982_OLDER_SAFE_TOTAL_PIXELS = 4096;
 const METHOD982_OLDEST_SAFE_TOTAL_PIXELS = 16384;
 const METHOD982_FORCED_BITMAP_SIZE = 1;
 const METHOD982_PREVIOUS_FORCED_BITMAP_SIZES = [64, 128, 256, 512, 2048];
-const METHOD200_SAFE_TOTAL_PIXELS = 65536;
-const METHOD200_PREVIOUS_SAFE_TOTAL_PIXELS = 16777215;
+const METHOD200_SAFE_TOTAL_PIXELS = 16384;
+const METHOD200_PREVIOUS_SAFE_TOTAL_PIXELS = 65536;
+const METHOD200_OLDER_SAFE_TOTAL_PIXELS = 16777215;
 
 type Operand = [Instruction["operands"][number][0], number];
 type InsertedInstruction =
@@ -256,6 +257,16 @@ function setLocal(localIndex: number): InsertedInstruction {
     return { opcode: 0xd4 + localIndex };
   }
   return { opcode: 0x63, operands: [["u30", localIndex]] };
+}
+
+function setLocalOperand(inst: Instruction): number | null {
+  if (inst.opcode >= 0xd4 && inst.opcode <= 0xd7) {
+    return inst.opcode - 0xd4;
+  }
+  if (inst.opcode === 0x63 && inst.operands[0]?.[0] === "u30") {
+    return inst.operands[0][1];
+  }
+  return null;
 }
 
 function pushInteger(value: number): InsertedInstruction {
@@ -677,6 +688,29 @@ function findMethod866NullFallbackInsertOffset(
   return null;
 }
 
+function findMethod866Method982ResultInsertOffset(
+  instructions: Instruction[],
+  abc: ReturnType<typeof parseAbc>,
+): number | null {
+  for (let index = 0; index < instructions.length - 4; index += 1) {
+    if (
+      instructions[index].opcode === 0x5d &&
+      u30OperandName(instructions[index], abc.multinameNames) === "method_982" &&
+      getLocalOperand(instructions[index + 1]) === 9 &&
+      instructions[index + 2]?.opcode === 0x46 &&
+      u30OperandName(instructions[index + 2], abc.multinameNames) === "method_982" &&
+      instructions[index + 2].operands[1]?.[1] === 1 &&
+      instructions[index + 3]?.opcode === 0x80 &&
+      u30OperandName(instructions[index + 3], abc.multinameNames) === "Bitmap" &&
+      setLocalOperand(instructions[index + 4]) === 11
+    ) {
+      return instructions[index + 4].offset + instructions[index + 4].size;
+    }
+  }
+
+  return null;
+}
+
 function method866LiveFallbackCleanup(bitmapDataName: number): Buffer {
   return assembleInserted([
     getLocal(4),
@@ -685,28 +719,79 @@ function method866LiveFallbackCleanup(bitmapDataName: number): Buffer {
   ]);
 }
 
+function method866ForcedBitmapReject(
+  bitmapDataName: number,
+  widthName: number,
+  heightName: number,
+  disposeName: number,
+): Buffer {
+  return assembleInserted([
+    getLocal(11),
+    { opcode: 0x12, branchTo: "ok" },
+    getLocal(11),
+    { opcode: 0x66, operands: [["u30", bitmapDataName]] },
+    { opcode: 0x12, branchTo: "ok" },
+    getLocal(11),
+    { opcode: 0x66, operands: [["u30", bitmapDataName]] },
+    { opcode: 0x66, operands: [["u30", widthName]] },
+    { opcode: 0x24, operands: [["s8", 1]] },
+    { opcode: 0x17, branchTo: "ok" },
+    getLocal(11),
+    { opcode: 0x66, operands: [["u30", bitmapDataName]] },
+    { opcode: 0x66, operands: [["u30", heightName]] },
+    { opcode: 0x24, operands: [["s8", 1]] },
+    { opcode: 0x17, branchTo: "ok" },
+    getLocal(11),
+    { opcode: 0x66, operands: [["u30", bitmapDataName]] },
+    { opcode: 0x4f, operands: [["u30", disposeName], ["u30", 0]] },
+    getLocal(11),
+    { opcode: 0x20 },
+    { opcode: 0x61, operands: [["u30", bitmapDataName]] },
+    { opcode: 0x20 },
+    setLocal(11),
+    { label: "ok" },
+  ]);
+}
+
 function patchMethod866(swfPath: string, verify: boolean): boolean {
   const { ctx, abc, methodBody, code, instructions } = getInstanceMethod(swfPath, "method_866");
   const bitmapDataName = findRequiredMultiname(abc, "bitmapData");
+  const widthName = findRequiredMultiname(abc, "width");
+  const heightName = findRequiredMultiname(abc, "height");
+  const disposeName = findRequiredMultiname(abc, "dispose");
   const cleanup = method866LiveFallbackCleanup(bitmapDataName);
+  const forcedBitmapReject = method866ForcedBitmapReject(bitmapDataName, widthName, heightName, disposeName);
+  const resultInsertOffset = findMethod866Method982ResultInsertOffset(instructions, abc);
+  if (resultInsertOffset === null) {
+    throw new PatchError(`${swfPath}: could not find SuperAnimData.method_866 method_982 result assignment.`);
+  }
+
   const insertOffset = findMethod866NullFallbackInsertOffset(instructions, abc);
   if (insertOffset === null) {
     throw new PatchError(`${swfPath}: could not find SuperAnimData.method_866 live sprite fallback.`);
   }
 
-  const alreadyPatched =
+  const resultAlreadyPatched =
+    code.subarray(resultInsertOffset, resultInsertOffset + forcedBitmapReject.length).equals(forcedBitmapReject);
+  const fallbackAlreadyPatched =
     code.subarray(insertOffset, insertOffset + cleanup.length).equals(cleanup);
-  if (alreadyPatched) {
+  if (resultAlreadyPatched && fallbackAlreadyPatched) {
     return false;
   }
 
   if (verify) {
-    throw new PatchError(`${swfPath}: verify failed; SuperAnimData.method_866 live fallback cleanup is missing.`);
+    throw new PatchError(`${swfPath}: verify failed; SuperAnimData.method_866 unsafe bitmap fallback handling is missing.`);
   }
 
-  const patchedCode = applyCodeEditsAndAdjustBranches(code, instructions, [
-    { start: insertOffset, end: insertOffset, data: cleanup },
-  ]);
+  const edits: Array<{ start: number; end: number; data: Buffer }> = [];
+  if (!resultAlreadyPatched) {
+    edits.push({ start: resultInsertOffset, end: resultInsertOffset, data: forcedBitmapReject });
+  }
+  if (!fallbackAlreadyPatched) {
+    edits.push({ start: insertOffset, end: insertOffset, data: cleanup });
+  }
+
+  const patchedCode = applyCodeEditsAndAdjustBranches(code, instructions, edits);
   writePatchedMethod(swfPath, "method_866", ctx, methodBody, patchedCode);
   return true;
 }
@@ -719,10 +804,13 @@ function patchMethod200(swfPath: string, verify: boolean): boolean {
   const heightName = findRequiredMultiname(abc, "height");
   const totalPixelsIntIndex = findRequiredInt(abc, METHOD200_SAFE_TOTAL_PIXELS);
   const previousTotalPixelsIntIndex = findRequiredInt(abc, METHOD200_PREVIOUS_SAFE_TOTAL_PIXELS);
+  const olderTotalPixelsIntIndex = findRequiredInt(abc, METHOD200_OLDER_SAFE_TOTAL_PIXELS);
   const directGuard = assembleInserted(productDimensionGuard(10, 11, totalPixelsIntIndex, 128));
   const croppedGuard = assembleInserted(productCroppedDimensionGuard(widthName, heightName, totalPixelsIntIndex, 128));
   const directPreviousGuard = assembleInserted(productDimensionGuard(10, 11, previousTotalPixelsIntIndex));
   const croppedPreviousGuard = assembleInserted(productCroppedDimensionGuard(widthName, heightName, previousTotalPixelsIntIndex));
+  const directOlderGuard = assembleInserted(productDimensionGuard(10, 11, olderTotalPixelsIntIndex));
+  const croppedOlderGuard = assembleInserted(productCroppedDimensionGuard(widthName, heightName, olderTotalPixelsIntIndex));
   const noProductDirectGuard = assembleInserted(dimensionGuard(10, 11));
   const noProductCroppedGuard = assembleInserted(croppedDimensionGuard(widthName, heightName));
   const noProductCroppedFallbackGuard = assembleInserted(croppedDimensionGuardWithFallback(widthName, heightName, 128));
@@ -734,6 +822,8 @@ function patchMethod200(swfPath: string, verify: boolean): boolean {
   const croppedPatched = hasExactGuardBefore(code, croppedCtor.offset, croppedGuard);
   const directPreviousPatched = hasExactGuardBefore(code, directCtor.offset, directPreviousGuard);
   const croppedPreviousPatched = hasExactGuardBefore(code, croppedCtor.offset, croppedPreviousGuard);
+  const directOlderPatched = hasExactGuardBefore(code, directCtor.offset, directOlderGuard);
+  const croppedOlderPatched = hasExactGuardBefore(code, croppedCtor.offset, croppedOlderGuard);
   const directNoProductPatched = hasExactGuardBefore(code, directCtor.offset, noProductDirectGuard);
   const croppedNoProductPatched = hasExactGuardBefore(code, croppedCtor.offset, noProductCroppedGuard);
   const croppedNoProductFallbackPatched = hasExactGuardBefore(code, croppedCtor.offset, noProductCroppedFallbackGuard);
@@ -761,6 +851,12 @@ function patchMethod200(swfPath: string, verify: boolean): boolean {
         end: directCtor.offset,
         data: directGuard,
       });
+    } else if (directOlderPatched) {
+      edits.push({
+        start: directCtor.offset - directOlderGuard.length,
+        end: directCtor.offset,
+        data: directGuard,
+      });
     } else if (directNoProductPatched) {
       edits.push({
         start: directCtor.offset - noProductDirectGuard.length,
@@ -781,6 +877,12 @@ function patchMethod200(swfPath: string, verify: boolean): boolean {
     if (croppedPreviousPatched) {
       edits.push({
         start: croppedCtor.offset - croppedPreviousGuard.length,
+        end: croppedCtor.offset,
+        data: croppedGuard,
+      });
+    } else if (croppedOlderPatched) {
+      edits.push({
+        start: croppedCtor.offset - croppedOlderGuard.length,
         end: croppedCtor.offset,
         data: croppedGuard,
       });
