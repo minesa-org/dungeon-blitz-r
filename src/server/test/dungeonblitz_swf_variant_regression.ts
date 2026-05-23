@@ -296,14 +296,14 @@ function assertClass82BitmapDataGuardWindow(swfPath: string): void {
             }
             const window = instructions.slice(index + 1, index + 8);
             const divisorIndex = window.findIndex((candidate) =>
-                candidate.opcode === 0x24 && candidate.operands[0]?.[1] === 4
+                candidate.opcode === 0x24 && candidate.operands[0]?.[1] === 1
             );
             return divisorIndex >= 0 &&
                 window[divisorIndex + 1]?.opcode === 0xa3 &&
                 window.some((candidate) => setLocalOperand(candidate) === 6);
         }),
         true,
-        'class_82.method_193 must quarter cache render scale before BitmapData allocation'
+        'class_82.method_193 must preserve normal cache render scale before BitmapData allocation'
     );
     assert.equal(
         guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 128).length >= 2,
