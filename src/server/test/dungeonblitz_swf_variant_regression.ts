@@ -32,6 +32,7 @@ const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.s
 const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
 const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
+const CLASS72_FLOAT_TEXT_SAFE_PIXELS = 262144;
 const SUPERANIM_METHOD200_SAFE_PIXELS = 65536;
 const SUPERANIM_METHOD982_SAFE_PIXELS = 65536;
 const SUPERANIM_METHOD982_SAFE_AXIS = 8191;
@@ -290,12 +291,17 @@ function assertClass82BitmapDataGuardWindow(swfPath: string): void {
             instruction.opcode === 0x66 &&
             u30OperandName(instruction, abc.multinameNames) === 'var_2825' &&
             instructions[index + 1]?.opcode === 0x24 &&
-            instructions[index + 1]?.operands[0]?.[1] === 2 &&
+            instructions[index + 1]?.operands[0]?.[1] === 4 &&
             instructions[index + 2]?.opcode === 0xa3 &&
-            instructions[index + 3]?.opcode === 0x75
+            setLocalOperand(instructions[index + 3]) === 6
         ),
         true,
-        'class_82.method_193 must halve cache render scale before BitmapData allocation'
+        'class_82.method_193 must quarter cache render scale before BitmapData allocation'
+    );
+    assert.equal(
+        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 128).length >= 2,
+        true,
+        'class_82.method_193 fallback must use a visible 128x128 BitmapData instead of 1x1'
     );
 }
 
@@ -386,6 +392,50 @@ function assertClass23BitmapDataGuardWindow(swfPath: string): void {
         ),
         true,
         'class_23.method_942 fallback must reset cache height to 512'
+    );
+}
+
+function assertClass72FloatTextBitmapDataGuardWindow(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'class_72', 'method_1943');
+    const widthLocal = 14;
+    const heightLocal = 15;
+    const constructorIndex = findBitmapDataConstructorIndex(
+        instructions,
+        abc.multinameNames,
+        widthLocal,
+        heightLocal
+    );
+    assert.notEqual(constructorIndex, -1, 'class_72.method_1943 BitmapData constructor must use guarded dimensions');
+
+    const guardWindow = instructions.slice(Math.max(0, constructorIndex - 85), constructorIndex);
+    assert.equal(
+        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 8191).length >= 2,
+        true,
+        'class_72.method_1943 must enforce Flash\'s 8191 BitmapData axis limit'
+    );
+    assert.equal(
+        guardWindow.some((instruction, index) => {
+            return (
+                getLocalOperand(instruction) === widthLocal &&
+                getLocalOperand(guardWindow[index + 1]) === heightLocal &&
+                guardWindow[index + 2]?.opcode === 0xa2 &&
+                guardWindow[index + 3]?.opcode === 0x25 &&
+                guardWindow[index + 3]?.operands[0]?.[1] === CLASS72_FLOAT_TEXT_SAFE_PIXELS &&
+                guardWindow[index + 4]?.opcode === 0xaf
+            );
+        }),
+        true,
+        'class_72.method_1943 must enforce the floating text BitmapData safe pixel limit'
+    );
+    assert.equal(
+        guardWindow.filter((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 128).length >= 2,
+        true,
+        'class_72.method_1943 fallback must use a visible 128x128 BitmapData instead of 1x1'
+    );
+    assert.equal(
+        guardWindow.some((instruction) => instruction.opcode === 0x68 && u30OperandName(instruction, abc.multinameNames) === 'var_1344'),
+        true,
+        'class_72.method_1943 fallback must avoid caching clipped oversized float text'
     );
 }
 
@@ -606,6 +656,14 @@ function testBaseAndLocalVariantKeepClass23BitmapDataGuard(): void {
     });
 }
 
+function testBaseAndLocalVariantKeepClass72FloatTextBitmapDataGuard(): void {
+    assertClass72FloatTextBitmapDataGuardWindow(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertClass72FloatTextBitmapDataGuardWindow(tempPath);
+    });
+}
+
 function testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard(): void {
     assertSuperAnimMethod982BitmapDataGuard(BASE_SWF_PATH);
     assertSuperAnimMethod866LiveFallbackCleanup(BASE_SWF_PATH);
@@ -647,6 +705,7 @@ function main(): void {
     testBaseAndLocalVariantKeepSuperAnimMethod200BitmapDataGuard();
     testBaseAndLocalVariantKeepClass82BitmapDataGuard();
     testBaseAndLocalVariantKeepClass23BitmapDataGuard();
+    testBaseAndLocalVariantKeepClass72FloatTextBitmapDataGuard();
     testBaseAndLocalVariantKeepSuperAnimMethod806FullscreenBitmapData();
     testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard();
     testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData();

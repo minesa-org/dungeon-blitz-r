@@ -31,7 +31,10 @@ const CLASS82_LEGACY_TOTAL_PIXEL_GUARDS = [
   16777215,
   262144,
 ];
-const SCALE_DIVISOR_PATCH = Buffer.from([0x24, 0x02, 0xa3]);
+const CACHE_SCALE_DIVISOR = 4;
+const LEGACY_CACHE_SCALE_DIVISORS = [2];
+const FALLBACK_BITMAP_SIZE = 128;
+const SCALE_DIVISOR_PATCH = Buffer.from([0x24, CACHE_SCALE_DIVISOR, 0xa3]);
 
 type Operand = [Instruction["operands"][number][0], number];
 type InsertedInstruction =
@@ -285,10 +288,10 @@ function dimensionGuard(widthLocal: number, heightLocal: number, totalPixelsIntI
     { opcode: 0xaf },
     { opcode: 0x12, branchTo: "ok" },
     { label: "invalid" },
-    { opcode: 0x24, operands: [["s8", 1]] },
+    { opcode: 0x25, operands: [["u30", FALLBACK_BITMAP_SIZE]] },
     { opcode: 0x75 },
     setLocal(widthLocal),
-    { opcode: 0x24, operands: [["s8", 1]] },
+    { opcode: 0x25, operands: [["u30", FALLBACK_BITMAP_SIZE]] },
     { opcode: 0x75 },
     setLocal(heightLocal),
     { label: "ok" },
@@ -342,20 +345,23 @@ function findBitmapDataConstructor(
   throw new PatchError(`Could not find BitmapData constructor for locals ${widthLocal}/${heightLocal}`);
 }
 
-function findScaleAssignmentInsertOffset(instructions: Instruction[], abc: ReturnType<typeof parseAbc>): number {
+function findScaleDivisorPatchRange(instructions: Instruction[], abc: ReturnType<typeof parseAbc>): { start: number; end: number } {
   for (let index = 0; index < instructions.length - 7; index += 1) {
     const self = instructions[index];
     const var1 = instructions[index + 1];
     const main = instructions[index + 2];
     const scale = instructions[index + 3];
-    const convertIndex =
+    const divisorIndex =
       instructions[index + 4].opcode === 0x24 &&
-      instructions[index + 4].operands[0]?.[1] === 2 &&
+      (instructions[index + 4].operands[0]?.[1] === CACHE_SCALE_DIVISOR ||
+        LEGACY_CACHE_SCALE_DIVISORS.includes(instructions[index + 4].operands[0]?.[1] ?? -1)) &&
       instructions[index + 5].opcode === 0xa3
-        ? index + 6
-        : index + 4;
-    const convert = instructions[convertIndex];
-    const setScale = instructions[convertIndex + 1];
+        ? index + 4
+        : -1;
+    const convertIndex = divisorIndex >= 0 ? -1 : index + 4;
+    const setScaleIndex = divisorIndex >= 0 ? index + 6 : index + 5;
+    const convert = convertIndex >= 0 ? instructions[convertIndex] : undefined;
+    const setScale = instructions[setScaleIndex];
     if (
       self.opcode === 0xd0 &&
       var1.opcode === 0x66 &&
@@ -364,11 +370,20 @@ function findScaleAssignmentInsertOffset(instructions: Instruction[], abc: Retur
       u30OperandName(main, abc.multinameNames) === "main" &&
       scale.opcode === 0x66 &&
       u30OperandName(scale, abc.multinameNames) === "var_2825" &&
-      convert.opcode === 0x75 &&
+      (divisorIndex >= 0 || convert?.opcode === 0x75) &&
       setScale.opcode === 0x63 &&
       setScale.operands[0]?.[1] === 6
     ) {
-      return convert.offset;
+      if (divisorIndex >= 0) {
+        return {
+          start: instructions[divisorIndex].offset,
+          end: instructions[divisorIndex + 2].offset + instructions[divisorIndex + 2].size,
+        };
+      }
+      if (!convert) {
+        throw new PatchError("Could not find class_82.method_193 scale conversion.");
+      }
+      return { start: convert.offset, end: convert.offset };
     }
   }
 
@@ -382,6 +397,36 @@ function hasExactGuardBefore(code: Buffer, constructorOffset: number, guard: Buf
 function hasScaleDivisorPatch(code: Buffer, insertOffset: number): boolean {
   return insertOffset >= SCALE_DIVISOR_PATCH.length &&
     code.subarray(insertOffset - SCALE_DIVISOR_PATCH.length, insertOffset).equals(SCALE_DIVISOR_PATCH);
+}
+
+function hasClass82BitmapDataGuard(instructions: Instruction[], abc: ReturnType<typeof parseAbc>): boolean {
+  return instructions.some((instruction, index) => {
+    if (getLocalOperand(instruction) !== 8 || getLocalOperand(instructions[index + 1]) !== 9) {
+      return false;
+    }
+    return (
+      instructions[index + 2]?.opcode === 0xa2 &&
+      instructions[index + 3]?.opcode === 0x2d &&
+      instructions[index + 3].operands[0]?.[0] === "u30" &&
+      abc.intValues[instructions[index + 3].operands[0][1]] === CLASS82_TARGET_TOTAL_PIXELS &&
+      instructions[index + 4]?.opcode === 0xaf &&
+      instructions.slice(index, index + 28).filter(
+        (candidate) => candidate.opcode === 0x25 && candidate.operands[0]?.[1] === FALLBACK_BITMAP_SIZE,
+      ).length >= 2
+    );
+  });
+}
+
+function hasClass82ScalePatch(instructions: Instruction[], abc: ReturnType<typeof parseAbc>): boolean {
+  return instructions.some((instruction, index) =>
+    instruction.opcode === 0x66 &&
+    u30OperandName(instruction, abc.multinameNames) === "var_2825" &&
+    instructions[index + 1]?.opcode === 0x24 &&
+    instructions[index + 1]?.operands[0]?.[1] === CACHE_SCALE_DIVISOR &&
+    instructions[index + 2]?.opcode === 0xa3 &&
+    instructions[index + 3]?.opcode === 0x63 &&
+    instructions[index + 3]?.operands[0]?.[1] === 6
+  );
 }
 
 function getInstanceMethod(swfPath: string, className: string, methodName: string) {
@@ -438,15 +483,18 @@ function writePatchedMethod(
 function patchSwf(swfPath: string, verify: boolean): void {
   const { ctx, abc, methodBody, code, instructions } = getInstanceMethod(swfPath, "class_82", "method_193");
   const constructor = findBitmapDataConstructor(instructions, abc, 8, 9);
-  const scaleInsertOffset = findScaleAssignmentInsertOffset(instructions, abc);
+  const scalePatchRange = findScaleDivisorPatchRange(instructions, abc);
   const targetTotalPixelsIntIndex = findRequiredInt(abc, CLASS82_TARGET_TOTAL_PIXELS);
   const guard = assembleInserted(dimensionGuard(8, 9, targetTotalPixelsIntIndex));
   const legacyGuards = CLASS82_LEGACY_TOTAL_PIXEL_GUARDS
     .map((totalPixels) => findOptionalInt(abc, totalPixels))
     .filter((index): index is number => index !== null)
     .map((index) => assembleInserted(dimensionGuard(8, 9, index)));
-  const hasGuard = hasExactGuardBefore(code, constructor.offset, guard);
-  const hasScalePatch = hasScaleDivisorPatch(code, scaleInsertOffset);
+  const hasGuard = hasExactGuardBefore(code, constructor.offset, guard) || hasClass82BitmapDataGuard(instructions, abc);
+  const hasScalePatch =
+    scalePatchRange.end > scalePatchRange.start &&
+    code.subarray(scalePatchRange.start, scalePatchRange.end).equals(SCALE_DIVISOR_PATCH) ||
+    hasClass82ScalePatch(instructions, abc);
 
   if (hasGuard && hasScalePatch) {
     console.log(`${swfPath}: already patched (class_82.method_193 BitmapData guard present).`);
@@ -459,7 +507,7 @@ function patchSwf(swfPath: string, verify: boolean): void {
 
   const edits: Array<{ start: number; end: number; data: Buffer }> = [];
   if (!hasScalePatch) {
-    edits.push({ start: scaleInsertOffset, end: scaleInsertOffset, data: SCALE_DIVISOR_PATCH });
+    edits.push({ ...scalePatchRange, data: SCALE_DIVISOR_PATCH });
   }
   if (!hasGuard) {
     const legacyGuard = legacyGuards.find((candidate) => hasExactGuardBefore(code, constructor.offset, candidate));
