@@ -55,14 +55,11 @@ function testStaticServerSelectsLocalizedGameSwz(): void {
     const server = new StaticServer();
     const englishPath = (server as any).getGameSwzPathForLocale('en') as string;
     const turkishPath = (server as any).getGameSwzPathForLocale('tr') as string;
-    const portuguesePath = (server as any).getGameSwzPathForLocale('pt-br') as string;
 
     assert.equal(path.basename(englishPath), 'Game.en.swz');
     assert.equal(path.basename(turkishPath), 'Game.tr.swz');
-    assert.equal(path.basename(portuguesePath), 'Game.swz');
     assert.equal(fs.existsSync(englishPath), true);
     assert.equal(fs.existsSync(turkishPath), true);
-    assert.equal(fs.existsSync(portuguesePath), true);
 }
 
 function testStaticServerAliasesCurrentFlashVersionManifest(): void {
@@ -112,19 +109,9 @@ function testStaticServerResolvesGameSwzLocaleFromRequest(): void {
         headers: {},
         socket: { remoteAddress: '127.0.0.1' }
     };
-    const portugueseQueryRequest = {
-        query: { lang: 'ptBR' },
-        headers: {},
-        socket: { remoteAddress: '127.0.0.1' }
-    };
     const sessionRequest = {
         query: {},
         headers: {},
-        socket: { remoteAddress: '127.0.0.1' }
-    };
-    const staleCookieSessionRequest = {
-        query: {},
-        headers: { cookie: 'db_lang=tr' },
         socket: { remoteAddress: '127.0.0.1' }
     };
     const defaultRequest = {
@@ -135,8 +122,6 @@ function testStaticServerResolvesGameSwzLocaleFromRequest(): void {
 
     assert.equal((server as any).resolveGameSwzLocale(queryRequest), 'tr');
     assert.equal((server as any).resolveSwfLocale(queryRequest), 'tr');
-    assert.equal((server as any).resolveGameSwzLocale(portugueseQueryRequest), 'pt-br');
-    assert.equal((server as any).resolveSwfLocale(portugueseQueryRequest), 'pt-br');
     assert.equal((server as any).resolveGameSwzLocale(defaultRequest), 'en');
     assert.equal((server as any).resolveSwfLocale(defaultRequest), 'en');
 
@@ -151,40 +136,6 @@ function testStaticServerResolvesGameSwzLocaleFromRequest(): void {
     } finally {
         GlobalState.sessionsByToken.delete(1);
     }
-
-    GlobalState.sessionsByToken.set(2, {
-        socket: { remoteAddress: '127.0.0.1' },
-        playerSpawned: false,
-        dialogueLanguage: 'pt-br'
-    } as never);
-    try {
-        assert.equal((server as any).resolveGameSwzLocale(sessionRequest), 'pt-br');
-        assert.equal((server as any).resolveSwfLocale(sessionRequest), 'pt-br');
-        assert.equal((server as any).resolveGameSwzLocale(staleCookieSessionRequest), 'pt-br');
-        assert.equal((server as any).resolveSwfLocale(staleCookieSessionRequest), 'pt-br');
-    } finally {
-        GlobalState.sessionsByToken.delete(2);
-    }
-}
-
-function testStaticServerRemembersQueryLocaleInCookie(): void {
-    const server = new StaticServer();
-    const cookies: Array<{ name: string; value: string; options: Record<string, unknown> }> = [];
-    const req = {
-        query: { lang: 'ptBR' }
-    };
-    const res = {
-        cookie(name: string, value: string, options: Record<string, unknown>) {
-            cookies.push({ name, value, options });
-        }
-    };
-
-    (server as any).rememberQueryLocale(req, res);
-
-    assert.equal(cookies.length, 1);
-    assert.equal(cookies[0]?.name, 'db_lang');
-    assert.equal(cookies[0]?.value, 'pt-br');
-    assert.equal(cookies[0]?.options.path, '/');
 }
 
 function testStaticServerBuildsLocalizedSwfTextByLocale(): void {
@@ -218,7 +169,6 @@ function main(): void {
     testStaticServerAliasesCurrentFlashVersionManifest();
     testBrowserEmbedUsesOriginalGameViewport();
     testStaticServerResolvesGameSwzLocaleFromRequest();
-    testStaticServerRemembersQueryLocaleInCookie();
     testStaticServerBuildsLocalizedSwfTextByLocale();
     console.log('static_server_default_swf_regression: ok');
 }

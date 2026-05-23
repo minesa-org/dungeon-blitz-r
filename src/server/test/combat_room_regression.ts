@@ -572,7 +572,8 @@ async function testVeryLargePowerHitRelaysSafeDisplayDamage(): Promise<void> {
         entState: EntityState.ACTIVE,
         roomId: sender.currentRoomId,
         hp: 250000,
-        maxHp: 250000
+        maxHp: 250000,
+        dead: false
     };
     GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
     sender.knownEntityIds.add(hostile.id);

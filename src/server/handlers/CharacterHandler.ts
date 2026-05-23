@@ -26,7 +26,7 @@ import { syncClientDungeonRunState } from '../core/DungeonRunStats';
 import { ensureCharacterSocialState, normalizeCharacterKey } from '../core/SocialState';
 import { getPartyIdForClient, areClientsInSameParty } from '../core/PartySync';
 import { TransferTokenAllocator } from '../core/TransferTokenAllocator';
-import { normalizeGender } from '../utils/normalizeGender';
+import { normalizeGender, resolveCharacterGender } from '../utils/normalizeGender';
 import { ensureSigilStoreAlertState } from '../utils/AlertState';
 import { getCraftTownHomeInstanceId, isVisitingAnotherPlayersCraftTown } from '../utils/HomeVisitGuard';
 import {
@@ -759,7 +759,7 @@ export class CharacterHandler {
         character.hairSet = hairSet;
         character.mouthSet = mouthSet;
         character.faceSet = faceSet;
-        character.gender = normalizeGender(gender);
+        character.gender = resolveCharacterGender(gender, headSet, hairSet, mouthSet, faceSet);
         character.hairColor = Number(hairColor ?? 0);
         character.skinColor = Number(skinColor ?? 0);
 
@@ -827,7 +827,7 @@ export class CharacterHandler {
 
         // Apply Customization
         newChar.name = name;
-        newChar.gender = normalizeGender(gender);
+        newChar.gender = resolveCharacterGender(gender, head, hair, mouth, face);
         newChar.headSet = head;
         newChar.hairSet = hair;
         newChar.mouthSet = mouth;

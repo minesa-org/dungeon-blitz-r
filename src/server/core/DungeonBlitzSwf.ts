@@ -382,6 +382,62 @@ function buildAppendedStringPatches(abc: ReturnType<typeof parseAbc>, appendedSt
     ];
 }
 
+function buildCharacterCreationGenderPatch(ctx: ReturnType<typeof parseSwf>, abc: ReturnType<typeof parseAbc>) {
+    const classIdx = classIndexByName(abc, 'ScreenCharacterCreation');
+    if (classIdx === null) {
+        throw new Error('ScreenCharacterCreation class not found in DungeonBlitz.swf');
+    }
+
+    const methodIdx = methodIdxForTrait(abc.instances[classIdx].traits, abc, 'method_604');
+    if (methodIdx === null) {
+        throw new Error('ScreenCharacterCreation.method_604 not found in DungeonBlitz.swf');
+    }
+
+    const body = abc.methodBodies.get(methodIdx);
+    if (!body) {
+        throw new Error('ScreenCharacterCreation.method_604 body not found in DungeonBlitz.swf');
+    }
+
+    const code = ctx.body.subarray(body.codeStart, body.codeStart + body.codeLen);
+
+    // The original bytecode at offset 20 in method_604 calls class_102.method_198(var_250, var_216)
+    // to get the gender string for the character creation packet.  method_198 is a paperdoll-model
+    // helper that always returns "" — it was never intended to produce "Male"/"Female".  The actual
+    // gender selected by the player is already stored in this.var_216 by the UI toggle handlers
+    // (method_1777 sets "Male", method_1334 sets "Female").  This patch bypasses the broken
+    // method_198 call and reads var_216 directly so the server receives the correct gender.
+    const originalSequence = Buffer.from([
+        0x60, 0xE8, 0x07,              // getlex class_102
+        0xD0,                           // getlocal0
+        0x66, 0xB8, 0x07,              // getproperty var_250
+        0xD0,                           // getlocal0
+        0x66, 0xF7, 0x06,              // getproperty var_216
+        0x46, 0xDB, 0x15, 0x02         // callproperty method_198 2
+    ]);
+
+    const patchOffset = 20;
+    const actual = code.subarray(patchOffset, patchOffset + originalSequence.length);
+    if (!Buffer.from(actual).equals(originalSequence)) {
+        throw new Error('ScreenCharacterCreation.method_604 gender sequence mismatch — SWF may have changed');
+    }
+
+    // Same-size replacement: getlocal0 + getproperty var_216 + 11 nops (no branch adjustments needed)
+    const patchedSequence = Buffer.from([
+        0xD0,                           // getlocal0
+        0x66, 0xF7, 0x06,              // getproperty var_216
+        0x02, 0x02, 0x02, 0x02, 0x02,  // nop padding
+        0x02, 0x02, 0x02, 0x02, 0x02, 0x02
+    ]);
+
+    return [{
+        key: 'character-creation-gender',
+        start: body.codeStart + patchOffset,
+        end: body.codeStart + patchOffset + originalSequence.length,
+        data: patchedSequence,
+        detail: 'send var_216 ("Male"/"Female") directly instead of class_102.method_198 which returns empty string'
+    }];
+}
+
 export function buildDungeonBlitzSwfVariantBuffer(
     swfPath: string,
     mode: DungeonBlitzSwfMode,
@@ -426,6 +482,7 @@ export function buildDungeonBlitzSwfVariantBuffer(
     patches.push(...buildMountedSpeedPatch(ctx));
     patches.push(...buildLocalizationReloadStatusPatch(ctx, abc, internString));
     patches.push(...buildAppendedStringPatches(abc, appendedStrings));
+    patches.push(...buildCharacterCreationGenderPatch(ctx, abc));
 
     const { body, delta } = applyPatchesToBody(ctx.body, patches);
     const outBody = Buffer.from(body);
