@@ -151,6 +151,24 @@ function normalizeBlock(block, eol) {
   return block.trim().replace(/\n/g, eol);
 }
 
+function replaceRequired(source, before, after, label) {
+  if (source.includes(after)) {
+    return source;
+  }
+  if (Array.isArray(before)) {
+    for (const candidate of before) {
+      if (source.includes(candidate)) {
+        return source.replace(candidate, after);
+      }
+    }
+    throw new Error(`Could not find ${label}`);
+  }
+  if (!source.includes(before)) {
+    throw new Error(`Could not find ${label}`);
+  }
+  return source.replace(before, after);
+}
+
 function patchRoomSource(source) {
   const eol = source.includes('\r\n') ? '\r\n' : '\n';
   let patched = source;
@@ -211,6 +229,97 @@ function patchRoomSource(source) {
     `, eol)
   );
 
+  patched = replaceMethod(
+    patched,
+    'FinishBossFightStory',
+    normalizeBlock(`
+      public function FinishBossFightStory(param1:a_GameHook) : void
+      {
+         this.am_PowerMarker1.Remove();
+         this.am_PowerMarker2.Remove();
+         this.am_Mage.Remove();
+         param1.bDoubleBossFight = false;
+         if(param1 && param1.linkToRoom)
+         {
+            param1.linkToRoom.method_876();
+         }
+         param1.PlayCutScene(param1.cutSceneDefeatBoss);
+         param1.SetPhase(this.UpdateBossDefeatGate);
+      }
+    `, eol)
+  );
+
+  patched = replaceRequired(
+    patched,
+    [
+      normalizeBlock(`
+         if(this.bMageLeaving && this.am_Mage.HasArrived())
+         {
+            this.am_EffectMarker3.QuickFirePower("OasisTeleportEffectLarge");
+            this.am_Mage.Remove();
+            this.bMageLeaving = false;
+         }
+      `, eol),
+      normalizeBlock(`
+         if(this.bMageLeaving && this.am_Mage.HasArrived())
+         {
+            this.am_EffectMarker3.QuickFirePower("OasisTeleportEffectLarge");
+            this.bMageLeaving = false;
+         }
+      `, eol)
+    ],
+    normalizeBlock(`
+         if(this.bMageLeaving && this.am_Mage.HasArrived())
+         {
+            this.am_Mage.Remove();
+            this.bMageLeaving = false;
+         }
+    `, eol),
+    'Back Alley mage arrival removal block'
+  );
+
+  patched = replaceRequired(
+    patched,
+    normalizeBlock(`
+         if(this.BossCueReallyDefeated(this.am_Boss))
+         {
+            this.am_PowerMarker1.Remove();
+            param1.SetPhase(this.UpdatePhaseMeleeEnraged);
+            return;
+         }
+    `, eol),
+    normalizeBlock(`
+         if(this.BossCueReallyDefeated(this.am_Boss))
+         {
+            this.am_PowerMarker1.Remove();
+            this.am_Mage.Remove();
+            param1.SetPhase(this.UpdatePhaseMeleeEnraged);
+            return;
+         }
+    `, eol),
+    'Back Alley melee enraged mage removal block'
+  );
+
+  patched = replaceRequired(
+    patched,
+    normalizeBlock(`
+         if(this.BossCueReallyDefeated(this.am_Boss2))
+         {
+            param1.SetPhase(this.UpdatePhaseCasterEnraged);
+            return;
+         }
+    `, eol),
+    normalizeBlock(`
+         if(this.BossCueReallyDefeated(this.am_Boss2))
+         {
+            this.am_Mage.Remove();
+            param1.SetPhase(this.UpdatePhaseCasterEnraged);
+            return;
+         }
+    `, eol),
+    'Back Alley caster enraged mage removal block'
+  );
+
   verifyRoomSource(patched, 'patched source');
   return patched;
 }
@@ -229,7 +338,9 @@ function verifyRoomSource(source, label) {
     'this.am_Boss.bHoldEngage = true;',
     'this.am_Boss2.bHoldEngage = true;',
     'param1.bossFightBeginsWhenThisGuyIsDead = null;',
-    'param1.bossFightPhase = null;'
+    'param1.bossFightPhase = null;',
+    'this.am_Mage.Remove();',
+    `if(this.bMageLeaving && this.am_Mage.HasArrived())${source.includes('\r\n') ? '\r\n' : '\n'}         {${source.includes('\r\n') ? '\r\n' : '\n'}            this.am_Mage.Remove();`
   ];
 
   for (const marker of required) {

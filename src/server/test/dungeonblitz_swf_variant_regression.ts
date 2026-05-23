@@ -27,9 +27,9 @@ function resolveBaseSwfPath(): string {
 
 const BASE_SWF_PATH = resolveBaseSwfPath();
 const MULTIPLAYER_HOST = Config.MULTIPLAYER_HOST;
-const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp';
-const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp`;
-const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbq&gv=cbp';
+const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbu&gv=cbt';
+const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbu&gv=cbt`;
+const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbu&gv=cbt';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
 const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
 const CLASS82_MAX_SCENE_CACHE_SCALE = 16;
@@ -430,6 +430,48 @@ function assertGameMethod1947SafeScreenBitmapData(swfPath: string): void {
     );
 }
 
+function assertGameMethod1325SuperAnimTickGuard(swfPath: string): void {
+    const ctx = parseSwf(swfPath);
+    const abc = parseAbc(ctx);
+    const classIndex = classIndexByName(abc, 'Game');
+    assert.notEqual(classIndex, null, 'Game class not found');
+
+    const methodIdx = methodIdxForTrait(abc.instances[classIndex!].traits, abc, 'method_1325');
+    assert.notEqual(methodIdx, null, 'Game.method_1325 not found');
+
+    const methodBody = abc.methodBodies.get(methodIdx!);
+    assert.ok(methodBody, 'Game.method_1325 body not found');
+
+    const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
+    const instructions = disassemble(code, 'Game.method_1325');
+    const method105Index = instructions.findIndex(
+        (instruction) => instruction.opcode === 0x46 && u30OperandName(instruction, abc.multinameNames) === 'method_105'
+    );
+    assert.notEqual(method105Index, -1, 'Game.method_1325 SuperAnimInstance.method_105 call not found');
+
+    const rangeStart = instructions[method105Index - 1];
+    const rangeEnd = instructions[method105Index + 6];
+    assert.ok(rangeStart, 'Game.method_1325 method_105 try range start not found');
+    assert.ok(rangeEnd, 'Game.method_1325 method_105 try range end not found');
+    const from = rangeStart.offset;
+    const to = rangeEnd.offset + rangeEnd.size;
+    assert.equal(
+        methodBody.exceptions.some((exception) => exception.from === from && exception.to === to),
+        true,
+        'Game.method_1325 must catch SuperAnimInstance.method_105 crashes'
+    );
+    assert.equal(
+        instructions.some((instruction) => instruction.opcode === 0x5a),
+        true,
+        'Game.method_1325 catch handler must bind the caught error'
+    );
+    assert.equal(
+        instructions.some((instruction) => instruction.opcode === 0x4f && u30OperandName(instruction, abc.multinameNames) === 'DestroySuperAnimInstance'),
+        true,
+        'Game.method_1325 catch handler must destroy the failed SuperAnimInstance'
+    );
+}
+
 function assertMainMethod561DoesNotClampMaxScale(swfPath: string): void {
     const { instructions } = getInstanceMethodCode(swfPath, 'Main', 'method_561');
     const maxScaleAssignment = instructions.find((instruction, index) =>
@@ -673,6 +715,14 @@ function testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData(): void {
     });
 }
 
+function testBaseAndLocalVariantKeepGameMethod1325SuperAnimTickGuard(): void {
+    assertGameMethod1325SuperAnimTickGuard(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertGameMethod1325SuperAnimTickGuard(tempPath);
+    });
+}
+
 function testBaseAndLocalVariantKeepMainMethod561UnclampedScale(): void {
     assertMainMethod561DoesNotClampMaxScale(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
@@ -699,6 +749,7 @@ function main(): void {
     testBaseAndLocalVariantKeepSuperAnimMethod806FullscreenBitmapData();
     testBaseAndLocalVariantKeepSuperAnimMethod982BitmapDataGuard();
     testBaseAndLocalVariantKeepGameMethod1947SafeScreenBitmapData();
+    testBaseAndLocalVariantKeepGameMethod1325SuperAnimTickGuard();
     testBaseAndLocalVariantKeepMainMethod561UnclampedScale();
     testBaseAndLocalVariantKeepDungeonQuestHelperGuard();
     console.log('dungeonblitz_swf_variant_regression: ok');

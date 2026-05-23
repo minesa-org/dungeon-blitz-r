@@ -74,6 +74,7 @@ type CollectibleKillProgressRule = {
 
 type DungeonCompletionObjectiveProgress = {
     bossDefeated: boolean;
+    defeatedBossNames: Set<string>;
     bossRoomId: number;
     requiredChestDestroyed: boolean;
 };
@@ -123,6 +124,8 @@ export class MissionHandler {
         'CH_Mission1Hard',
         'JC_Mission1',
         'JC_Mission1Hard',
+        'JC_Mission2',
+        'JC_Mission2Hard',
         'SD_Mission3',
         'SD_Mission3Hard',
         'SRN_Mission4',
@@ -131,8 +134,10 @@ export class MissionHandler {
     private static readonly REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL: Record<string, ReadonlySet<string>> = {
         AC_Mission6: new Set(['NephitLargeEye']),
         AC_Mission6Hard: new Set(['NephitLargeEyeHard']),
-        JC_Mission1: new Set(['ImperialChampion', 'ImperialChampionHard']),
-        JC_Mission1Hard: new Set(['ImperialChampion', 'ImperialChampionHard']),
+        JC_Mission1: new Set(['ImperialChampion']),
+        JC_Mission1Hard: new Set(['ImperialChampionHard']),
+        JC_Mission2: new Set(['GreaterBoneGolem', 'GreaterBoneGolem2']),
+        JC_Mission2Hard: new Set(['GreaterBoneGolemHard', 'GreaterBoneGolem2Hard']),
         SD_Mission3: new Set(['OutlanderWyrm']),
         SD_Mission3Hard: new Set(['OutlanderWyrmHard']),
         SRN_Mission4: new Set(['WyrmGreat']),
@@ -150,6 +155,8 @@ export class MissionHandler {
         'AC_Mission6Hard',
         'JC_Mission1',
         'JC_Mission1Hard',
+        'JC_Mission2',
+        'JC_Mission2Hard',
         'GoblinRiverDungeon',
         'GoblinRiverDungeonHard',
         'GhostBossDungeon',
@@ -2945,7 +2952,7 @@ export class MissionHandler {
 
         const bossNames = MissionHandler.REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL[normalizedLevel];
         if (bossNames) {
-            return bossNames.has(String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim());
+            return bossNames.has(MissionHandler.getEntityName(entity));
         }
 
         return MissionHandler.isDungeonCompletionBossEntity(entity);
@@ -2953,7 +2960,7 @@ export class MissionHandler {
 
     private static isRequiredDungeonCompletionBossEntity(levelName: string | null | undefined, entity: any): boolean {
         const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
-        const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
+        const entityName = MissionHandler.getEntityName(entity);
         const bossNames = normalizedLevel
             ? MissionHandler.REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL[normalizedLevel]
             : null;
@@ -3024,6 +3031,7 @@ export class MissionHandler {
         if (!progress) {
             progress = {
                 bossDefeated: false,
+                defeatedBossNames: new Set<string>(),
                 bossRoomId: 0,
                 requiredChestDestroyed: false
             };
@@ -3032,18 +3040,53 @@ export class MissionHandler {
         return progress;
     }
 
+    private static getEntityName(entity: any): string {
+        return String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
+    }
+
+    private static hasDefeatedAllRequiredDungeonBossNames(
+        levelName: string | null | undefined,
+        progress: DungeonCompletionObjectiveProgress | undefined
+    ): boolean {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        const bossNames = normalizedLevel
+            ? MissionHandler.REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL[normalizedLevel]
+            : null;
+        if (!bossNames?.size) {
+            return Boolean(progress?.bossDefeated);
+        }
+
+        if (!progress) {
+            return false;
+        }
+
+        for (const bossName of bossNames) {
+            if (!progress.defeatedBossNames.has(bossName)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static markRequiredDungeonBossDefeated(levelScope: string, levelName: string | null | undefined, entity: any): void {
-        if (
-            !MissionHandler.isRequiredDungeonBossEntity(levelName, entity)
-        ) {
+        const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
+        const scopedEntity = entityId > 0 ? GlobalState.levelEntities.get(levelScope)?.get(entityId) : null;
+        const entityName = MissionHandler.getEntityName(entity) || MissionHandler.getEntityName(scopedEntity);
+        const isRequiredBoss = MissionHandler.isRequiredDungeonBossEntity(levelName, entity) ||
+            MissionHandler.isRequiredDungeonBossEntity(levelName, scopedEntity);
+        if (!isRequiredBoss ||
+            !MissionHandler.hasRequiredDungeonBossDefeatEvidence(levelName, entity, scopedEntity)) {
             return;
         }
 
         const progress = MissionHandler.getDungeonCompletionObjectiveProgress(levelScope);
-        progress.bossDefeated = true;
+        if (entityName) {
+            progress.defeatedBossNames.add(entityName);
+        }
+        progress.bossDefeated = MissionHandler.hasDefeatedAllRequiredDungeonBossNames(levelName, progress) ||
+            !MissionHandler.REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL[LevelConfig.normalizeLevelName(levelName) || '']?.size;
 
-        const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
-        const scopedEntity = entityId > 0 ? GlobalState.levelEntities.get(levelScope)?.get(entityId) : null;
         if (scopedEntity && typeof scopedEntity === 'object') {
             scopedEntity.dead = true;
             scopedEntity.hp = 0;
@@ -3054,6 +3097,23 @@ export class MissionHandler {
         if (roomId > 0) {
             progress.bossRoomId = roomId;
         }
+    }
+
+    private static hasRequiredDungeonBossDefeatEvidence(
+        levelName: string | null | undefined,
+        entity: any,
+        scopedEntity?: any
+    ): boolean {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        if (normalizedLevel !== 'JC_Mission2' && normalizedLevel !== 'JC_Mission2Hard') {
+            return true;
+        }
+
+        if (!Boolean(entity?.clientSpawned) && !Boolean(scopedEntity?.clientSpawned)) {
+            return true;
+        }
+
+        return Boolean(entity?.playerDamageContributed || scopedEntity?.playerDamageContributed);
     }
 
     private static markRequiredDungeonChestDestroyed(levelScope: string): void {
@@ -3187,7 +3247,7 @@ export class MissionHandler {
 
         const levelName = getScopeLevelName(scopeKey);
         const progress = MissionHandler.dungeonCompletionObjectiveProgress.get(scopeKey);
-        if (progress?.bossDefeated) {
+        if (MissionHandler.hasDefeatedAllRequiredDungeonBossNames(levelName, progress)) {
             return true;
         }
 
@@ -3206,8 +3266,14 @@ export class MissionHandler {
                     )
                 ) {
                     MissionHandler.markRequiredDungeonBossDefeated(scopeKey, levelName, entity);
-                    return true;
                 }
+            }
+
+            if (MissionHandler.hasDefeatedAllRequiredDungeonBossNames(
+                levelName,
+                MissionHandler.dungeonCompletionObjectiveProgress.get(scopeKey)
+            )) {
+                return true;
             }
         }
 
