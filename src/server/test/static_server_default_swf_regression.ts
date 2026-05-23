@@ -31,6 +31,15 @@ function testStaticServerSelectsLocalizedGameSwz(): void {
     assert.equal(fs.existsSync(turkishPath), true);
 }
 
+function testStaticServerAliasesCurrentFlashVersionManifest(): void {
+    const server = new StaticServer();
+    const manifestPath = (server as any).getFlashVersionAssetPath('/masterFileList.xml') as string;
+
+    assert.equal(path.basename(path.dirname(manifestPath)), 'cbq');
+    assert.equal(path.basename(manifestPath), 'masterFileList.xml');
+    assert.equal(fs.existsSync(manifestPath), true);
+}
+
 function testStaticServerResolvesGameSwzLocaleFromRequest(): void {
     const server = new StaticServer();
     const queryRequest = {
@@ -83,6 +92,7 @@ function testStaticServerBuildsLocalizedSwfTextByLocale(): void {
 function main(): void {
     testStaticServerServesSingleSwfByDefault();
     testStaticServerSelectsLocalizedGameSwz();
+    testStaticServerAliasesCurrentFlashVersionManifest();
     testStaticServerResolvesGameSwzLocaleFromRequest();
     testStaticServerBuildsLocalizedSwfTextByLocale();
     console.log('static_server_default_swf_regression: ok');
