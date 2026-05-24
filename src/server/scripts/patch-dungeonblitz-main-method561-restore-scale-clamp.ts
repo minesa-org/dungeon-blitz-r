@@ -9,6 +9,7 @@ import {
   parseAbc,
   parseSwf,
   PatchError,
+  writeU30,
   writeSwf,
 } from "./swfPatchUtils";
 
@@ -30,6 +31,7 @@ const CONVERT_D_OPCODE = 0x75;
 const SETLOCAL3_OPCODE = 0xd7;
 const GETLOCAL3_OPCODE = 0xd3;
 const IFNLT_OPCODE = 0x0c;
+const MAX_SCALE = 1.25;
 
 function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
   let swfPath = DEFAULT_SWF;
@@ -48,10 +50,10 @@ function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
     if (arg === "--help" || arg === "-h") {
       console.log([
         "Usage:",
-        "  npm exec tsx src/server/scripts/patch-dungeonblitz-main-method561-unclamp-scale.ts [--verify] [--swf <path>]",
+        "  npm exec tsx src/server/scripts/patch-dungeonblitz-main-method561-restore-scale-clamp.ts [--verify] [--swf <path>]",
         "",
-        "Disables Main.method_561's legacy 1.25 max-scale clamp while keeping",
-        "the original contain-style stage fit logic intact.",
+        "Restores Main.method_561's legacy 1.25 max-scale clamp so fullscreen",
+        "fit does not inflate Flash bitmap/render work on large viewports.",
       ].join("\n"));
       process.exit(0);
     }
@@ -82,14 +84,14 @@ function getMainMethod561(swfPath: string) {
 
   const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
   const instructions = disassemble(code, `Main.method_561:${methodIdx}`);
-  return { ctx, methodBody, code, instructions };
+  return { ctx, abc, methodBody, code, instructions };
 }
 
 function isNopped(code: Buffer, start: number, end: number): boolean {
   return code.subarray(start, end).every((byte) => byte === NOP_OPCODE);
 }
 
-function findMaxScaleClampAssignmentRange(swfPath: string): { start: number; end: number } {
+function findMaxScaleClampAssignmentRange(swfPath: string): { start: number; end: number; restored: boolean } {
   const { code, instructions } = getMainMethod561(swfPath);
 
   for (let index = 0; index < instructions.length - 6; index += 1) {
@@ -111,6 +113,7 @@ function findMaxScaleClampAssignmentRange(swfPath: string): { start: number; end
       return {
         start: pushMaxScale.offset,
         end: assign.offset + assign.size,
+        restored: true,
       };
     }
   }
@@ -128,40 +131,61 @@ function findMaxScaleClampAssignmentRange(swfPath: string): { start: number; end
       pushMinScale?.opcode === PUSHD_DOUBLE_OPCODE &&
       minClampBranch?.opcode === IFNLT_OPCODE
     ) {
-      return { start: offset, end: offset + 4 };
+      return { start: offset, end: offset + 4, restored: false };
     }
   }
 
   throw new PatchError("Could not find Main.method_561 1.25 max-scale clamp assignment.");
 }
 
-function patchSwf(swfPath: string, verify: boolean): void {
-  const { ctx, methodBody, code } = getMainMethod561(swfPath);
-  const clampRange = findMaxScaleClampAssignmentRange(swfPath);
-  const alreadyPatched = isNopped(code, clampRange.start, clampRange.end);
+function buildMaxScaleClampAssignment(abc: ReturnType<typeof parseAbc>, expectedSize: number): Buffer {
+  const doubleIndex = abc.doubleValues.findIndex((value) => value === MAX_SCALE);
+  if (doubleIndex <= 0) {
+    throw new PatchError(`Could not find ${MAX_SCALE} in the ABC double constant pool.`);
+  }
 
-  if (alreadyPatched) {
-    console.log(`${swfPath}: already patched (Main.method_561 max-scale clamp disabled).`);
+  const assignment = Buffer.concat([
+    Buffer.from([PUSHD_DOUBLE_OPCODE]),
+    writeU30(doubleIndex),
+    Buffer.from([CONVERT_D_OPCODE, SETLOCAL3_OPCODE]),
+  ]);
+  if (assignment.length !== expectedSize) {
+    throw new PatchError(
+      `Unexpected Main.method_561 clamp assignment size ${assignment.length}; expected ${expectedSize}.`
+    );
+  }
+  return assignment;
+}
+
+function patchSwf(swfPath: string, verify: boolean): void {
+  const { ctx, abc, methodBody, code } = getMainMethod561(swfPath);
+  const clampRange = findMaxScaleClampAssignmentRange(swfPath);
+  const alreadyRestored = clampRange.restored && !isNopped(code, clampRange.start, clampRange.end);
+
+  if (alreadyRestored) {
+    console.log(`${swfPath}: already patched (Main.method_561 max-scale clamp restored).`);
     return;
   }
   if (verify) {
-    throw new PatchError(`${swfPath}: verify failed; Main.method_561 still clamps scale to 1.25.`);
+    throw new PatchError(`${swfPath}: verify failed; Main.method_561 max-scale clamp is disabled.`);
   }
+
+  const assignment = buildMaxScaleClampAssignment(abc, clampRange.end - clampRange.start);
 
   const patches: BytePatch[] = [
     {
-      key: "Main.method_561.disable_max_scale_clamp",
+      key: "Main.method_561.restore_max_scale_clamp",
       start: methodBody.codeStart + clampRange.start,
       end: methodBody.codeStart + clampRange.end,
-      data: Buffer.alloc(clampRange.end - clampRange.start, NOP_OPCODE),
-      detail: "allow centered fit scale above the legacy 1.25 cap",
+      data: assignment,
+      detail: "restore legacy 1.25 max-scale cap",
     },
   ];
 
   ensureBackup(swfPath);
   const { body, delta } = applyPatchesToBody(ctx.body, patches);
   writeSwf(ctx, body, delta);
-  console.log(`${swfPath}: patched Main.method_561 max-scale clamp.`);
+  console.log(`${swfPath}: patched Main.method_561 max-scale clamp restored.`);
 }
 
 const { swfPath, verify } = parseArgs(process.argv);

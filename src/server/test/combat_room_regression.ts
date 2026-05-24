@@ -517,7 +517,7 @@ async function testVeryLargePowerHitRelaysSafeDisplayDamage(): Promise<void> {
     GlobalState.partyByMember.set('alphahighdamage', 6);
     GlobalState.partyByMember.set('betahighdamage', 6);
 
-    const hostile = {
+    const hostile: any = {
         id: 5071,
         name: 'HugeDamageTarget',
         isPlayer: false,
