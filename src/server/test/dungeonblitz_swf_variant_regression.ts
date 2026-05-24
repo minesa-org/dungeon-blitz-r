@@ -350,6 +350,27 @@ function assertClass82BitmapDataGuardWindow(swfPath: string): void {
     );
 }
 
+function assertClass123XgroundKeepsLegacyOversizedSkip(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'class_123', 'method_482');
+    const legacyConst503ReadCount = instructions.filter((instruction, index) =>
+        instruction.opcode === 0x60 &&
+        u30OperandName(instruction, abc.multinameNames) === 'class_82' &&
+        instructions[index + 1]?.opcode === 0x66 &&
+        u30OperandName(instructions[index + 1], abc.multinameNames) === 'const_503'
+    ).length;
+
+    assert.equal(
+        legacyConst503ReadCount >= 3,
+        true,
+        'class_123.method_482 must keep oversized xground out of the single-bitmap cache path'
+    );
+    assert.equal(
+        instructions.some((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 32767),
+        false,
+        'class_123.method_482 must not force very large dungeon xground objects into one bitmap cache'
+    );
+}
+
 function assertClass72FloatTextBitmapDataGuardWindow(swfPath: string): void {
     const { abc, instructions } = getInstanceMethodCode(swfPath, 'class_72', 'method_1943');
     const widthLocal = 14;
@@ -519,6 +540,30 @@ function assertGameMethod1946ValhavenSkyFill(swfPath: string): void {
         ),
         true,
         'Game.method_1946 must check the Dread Valhaven/JadeCityHard level before applying the sky fill'
+    );
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0x46 &&
+            u30OperandName(instruction, abc.multinameNames) === 'charAt' &&
+            instructions[index - 1]?.opcode === 0x24 &&
+            instructions[index - 1]?.operands[0]?.[1] === 0 &&
+            instructions[index + 1]?.opcode === 0x2c &&
+            abc.stringValues[instructions[index + 1].operands[0][1]] === 'J'
+        ),
+        true,
+        'Game.method_1946 must recognize Valhaven dungeon internal names before applying the sky fill'
+    );
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0x46 &&
+            u30OperandName(instruction, abc.multinameNames) === 'charAt' &&
+            instructions[index - 1]?.opcode === 0x24 &&
+            instructions[index - 1]?.operands[0]?.[1] === 1 &&
+            instructions[index + 1]?.opcode === 0x2c &&
+            abc.stringValues[instructions[index + 1].operands[0][1]] === 'C'
+        ),
+        true,
+        'Game.method_1946 must cover JC_* Valhaven dungeon levels before drawing level layers'
     );
     assert.equal(
         instructions.some((instruction, index) =>
@@ -858,6 +903,14 @@ function testBaseAndLocalVariantKeepClass82BitmapDataGuard(): void {
     });
 }
 
+function testBaseAndLocalVariantKeepClass123OversizedXgroundSkip(): void {
+    assertClass123XgroundKeepsLegacyOversizedSkip(BASE_SWF_PATH);
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertClass123XgroundKeepsLegacyOversizedSkip(tempPath);
+    });
+}
+
 function testBaseAndLocalVariantKeepClass23BitmapDataGuard(): void {
     assertClass23BitmapDataGuardWindow(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
@@ -976,6 +1029,7 @@ function main(): void {
     testVariantRemovesDungeonMountSpeedGate();
     testBaseAndLocalVariantKeepSuperAnimMethod200BitmapDataGuard();
     testBaseAndLocalVariantKeepClass82BitmapDataGuard();
+    testBaseAndLocalVariantKeepClass123OversizedXgroundSkip();
     testBaseAndLocalVariantKeepClass23BitmapDataGuard();
     testBaseAndLocalVariantKeepClass72FloatTextBitmapDataGuard();
     testBaseAndLocalVariantKeepSuperAnimMethod806FullscreenBitmapData();

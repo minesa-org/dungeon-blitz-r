@@ -240,6 +240,10 @@ function callPropVoid(nameIndex: number, argCount: number): InsertedInstruction 
   return { opcode: 0x4f, operands: [["u30", nameIndex], ["u30", argCount]] };
 }
 
+function callProperty(nameIndex: number, argCount: number): InsertedInstruction {
+  return { opcode: 0x46, operands: [["u30", nameIndex], ["u30", argCount]] };
+}
+
 function pushString(index: number): InsertedInstruction {
   return { opcode: 0x2c, operands: [["string", index]] };
 }
@@ -295,6 +299,53 @@ function valhavenSkyFillInstructions(abc: ReturnType<typeof parseAbc>): Inserted
     { opcode: 0x12, branchTo: "end" },
 
     { label: "fill" },
+    getLocal(4),
+    getLocal(4),
+    getProperty(rectName),
+    pushInteger(VALHAVEN_SKY_FILL),
+    callPropVoid(fillRectName, 2),
+
+    { label: "end" },
+  ];
+}
+
+function valhavenDungeonSkyFillInstructions(abc: ReturnType<typeof parseAbc>): InsertedInstruction[] {
+  const levelName = findRequiredMultiname(abc, "level");
+  const internalNameName = findRequiredMultiname(abc, "internalName");
+  const charAtName = findRequiredMultiname(abc, "charAt");
+  const rectName = findRequiredMultiname(abc, "rect");
+  const fillRectName = findRequiredMultiname(abc, "fillRect");
+  const jString = findRequiredString(abc, "J");
+  const cString = findRequiredString(abc, "C");
+
+  return [
+    getLocal(0),
+    getProperty(levelName),
+    { opcode: 0x12, branchTo: "end" },
+
+    getLocal(0),
+    getProperty(levelName),
+    getProperty(internalNameName),
+    { opcode: 0x12, branchTo: "end" },
+
+    getLocal(0),
+    getProperty(levelName),
+    getProperty(internalNameName),
+    { opcode: 0x24, operands: [["s8", 0]] },
+    callProperty(charAtName, 1),
+    pushString(jString),
+    { opcode: 0xab },
+    { opcode: 0x12, branchTo: "end" },
+
+    getLocal(0),
+    getProperty(levelName),
+    getProperty(internalNameName),
+    { opcode: 0x24, operands: [["s8", 1]] },
+    callProperty(charAtName, 1),
+    pushString(cString),
+    { opcode: 0xab },
+    { opcode: 0x12, branchTo: "end" },
+
     getLocal(4),
     getLocal(4),
     getProperty(rectName),
@@ -371,6 +422,28 @@ function hasValhavenSkyFill(instructions: Instruction[], abc: ReturnType<typeof 
   return hasJadeCity && hasJadeCityHard && hasSkyColor && hasFillRect;
 }
 
+function hasValhavenDungeonSkyFill(instructions: Instruction[], abc: ReturnType<typeof parseAbc>): boolean {
+  const hasJPrefix = instructions.some((inst, index) =>
+    inst.opcode === 0x46 &&
+    u30OperandName(inst, abc.multinameNames) === "charAt" &&
+    instructions[index - 1]?.opcode === 0x24 &&
+    instructions[index - 1]?.operands[0]?.[1] === 0 &&
+    instructions[index + 1]?.opcode === 0x2c &&
+    abc.stringValues[instructions[index + 1].operands[0][1]] === "J"
+  );
+  const hasCPrefix = instructions.some((inst, index) =>
+    inst.opcode === 0x46 &&
+    u30OperandName(inst, abc.multinameNames) === "charAt" &&
+    instructions[index - 1]?.opcode === 0x24 &&
+    instructions[index - 1]?.operands[0]?.[1] === 1 &&
+    instructions[index + 1]?.opcode === 0x2c &&
+    abc.stringValues[instructions[index + 1].operands[0][1]] === "C"
+  );
+  const hasSkyColor = instructions.some((inst) => inst.opcode === 0x25 && inst.operands[0]?.[1] === VALHAVEN_SKY_FILL);
+  const hasFillRect = instructions.some((inst) => inst.opcode === 0x4f && u30OperandName(inst, abc.multinameNames) === "fillRect");
+  return hasJPrefix && hasCPrefix && hasSkyColor && hasFillRect;
+}
+
 function writePatchedMethod(
   swfPath: string,
   ctx: ReturnType<typeof parseSwf>,
@@ -401,17 +474,23 @@ function writePatchedMethod(
 
 function patchSwf(swfPath: string, verify: boolean): void {
   const { ctx, abc, methodBody, code, instructions } = getGameMethod1946(swfPath);
-  if (hasValhavenSkyFill(instructions, abc)) {
+  const hasTownFill = hasValhavenSkyFill(instructions, abc);
+  const hasDungeonFill = hasValhavenDungeonSkyFill(instructions, abc);
+
+  if (hasTownFill && hasDungeonFill) {
     console.log(`${swfPath}: already patched (Game.method_1946 Valhaven sky fill present).`);
     return;
   }
 
   if (verify) {
-    throw new PatchError(`${swfPath}: verify failed; Game.method_1946 Valhaven sky fill is missing.`);
+    throw new PatchError(`${swfPath}: verify failed; Game.method_1946 Valhaven town or dungeon sky fill is missing.`);
   }
 
   const assignment = findBitmapDataLocalAssignment(instructions, abc.multinameNames);
-  const fill = assembleInserted(valhavenSkyFillInstructions(abc));
+  const fill = assembleInserted([
+    ...(hasDungeonFill ? [] : valhavenDungeonSkyFillInstructions(abc)),
+    ...(hasTownFill ? [] : valhavenSkyFillInstructions(abc)),
+  ]);
   const patchedCode = applyCodeEditsAndAdjustBranches(code, instructions, [
     { start: assignment.offset + assignment.size, end: assignment.offset + assignment.size, data: fill },
   ]);
