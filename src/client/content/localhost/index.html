@@ -51,8 +51,6 @@
     }
 
     #fallback {
-      position: absolute;
-      inset: 0;
       display: none;
       color: #ccc;
       font-family: sans-serif;
@@ -66,9 +64,7 @@
 
 <body>
 
-  <div id="game-shell">
-    <div id="game-container"></div>
-  </div>
+  <div id="game-container"></div>
 
   <div id="flash-hint">
     <div>
@@ -103,7 +99,7 @@
     document.cookie = "db_lang=; path=/; max-age=0; SameSite=Lax";
 
     const languageParam = urlLanguage ? `&lang=${urlLanguage}` : "";
-    const swfUrl = `p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv&layout=fit-center-buffer${languageParam}`;
+    const swfUrl = `p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv${languageParam}`;
     const localBridgeBaseUrl = "http://127.0.0.1:47631";
     const selfPresenceUrl = "/api/presence/self";
     const discordJoinUrl = "/api/presence/discord-join";

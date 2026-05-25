@@ -35,7 +35,7 @@ const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
 const CLASS72_FLOAT_TEXT_SAFE_PIXELS = 262144;
 const CLASS82_MAX_SCENE_CACHE_SCALE = 16;
 const SUPERANIM_METHOD200_SAFE_PIXELS = 16384;
-const SUPERANIM_METHOD982_SAFE_PIXELS = 65536;
+const SUPERANIM_METHOD982_SAFE_PIXELS = 4194304;
 const SUPERANIM_METHOD982_SAFE_AXIS = 8191;
 const SUPERANIM_METHOD806_FULLSCREEN_ENTITY_BITMAP_SIZE = 3072;
 const SAFE_SCREEN_BITMAP_WIDTH = 2048;
@@ -598,7 +598,7 @@ function assertInstanceBooleanMethodFalseNullGuard(swfPath: string, className: s
     );
 }
 
-function assertMainMethod561DoesNotClampMaxScale(swfPath: string): void {
+function assertMainMethod561KeepsMaxScaleClamp(swfPath: string): void {
     const { instructions } = getInstanceMethodCode(swfPath, 'Main', 'method_561');
     const maxScaleAssignment = instructions.find((instruction, index) =>
         instruction.opcode === 0x2f &&
@@ -609,11 +609,7 @@ function assertMainMethod561DoesNotClampMaxScale(swfPath: string): void {
         instructions[index + 5]?.opcode === 0x0c
     );
 
-    assert.equal(
-        maxScaleAssignment,
-        undefined,
-        'Main.method_561 must not clamp centered fullscreen scale back to 1.25'
-    );
+    assert.notEqual(maxScaleAssignment, undefined, 'Main.method_561 must keep the 1.25 fullscreen scale cap');
 }
 
 function assertDungeonQuestHelperPrefersDungeonProgress(swfPath: string): void {
@@ -895,11 +891,11 @@ function testBaseAndLocalVariantKeepChatBubbleNullGuard(): void {
     });
 }
 
-function testBaseAndLocalVariantKeepMainMethod561UnclampedScale(): void {
-    assertMainMethod561DoesNotClampMaxScale(BASE_SWF_PATH);
+function testBaseAndLocalVariantKeepMainMethod561ScaleClamp(): void {
+    assertMainMethod561KeepsMaxScaleClamp(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
     withTempSwf(buffer, (tempPath) => {
-        assertMainMethod561DoesNotClampMaxScale(tempPath);
+        assertMainMethod561KeepsMaxScaleClamp(tempPath);
     });
 }
 
@@ -927,7 +923,7 @@ function main(): void {
     testBaseAndLocalVariantKeepEntityRenderNullGuards();
     testBaseAndLocalVariantKeepActivePowerNullGuard();
     testBaseAndLocalVariantKeepChatBubbleNullGuard();
-    testBaseAndLocalVariantKeepMainMethod561UnclampedScale();
+    testBaseAndLocalVariantKeepMainMethod561ScaleClamp();
     testBaseAndLocalVariantKeepDungeonQuestHelperGuard();
     console.log('dungeonblitz_swf_variant_regression: ok');
 }
