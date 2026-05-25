@@ -40,37 +40,43 @@ function testStaticServerAliasesCurrentFlashVersionManifest(): void {
     assert.equal(fs.existsSync(manifestPath), true);
 }
 
-function testBrowserShellFillsViewportWithoutCropping(): void {
+function testBrowserEmbedFillsViewportWithoutCropping(): void {
     const server = new StaticServer();
     const contentDir = (server as any).contentDir as string;
     const indexHtml = fs.readFileSync(path.join(contentDir, 'index.html'), 'utf8');
-    const shellRule = indexHtml.match(/#game-shell\s*\{([\s\S]*?)\n    \}/);
+    const embedRule = indexHtml.match(/#game-container,\s*\r?\n\s*#DungeonBlitz,\s*\r?\n\s*object#DungeonBlitz,\s*\r?\n\s*embed#DungeonBlitz\s*\{([\s\S]*?)\n    \}/);
 
-    assert.ok(shellRule, '#game-shell CSS rule not found');
+    assert.ok(embedRule, 'DungeonBlitz embed CSS rule not found');
+    assert.equal(indexHtml.includes('id="game-shell"'), false, 'Flash host must not use the removed game-shell wrapper');
     assert.equal(
-        /transform\s*:\s*scale/.test(shellRule[1]),
+        /transform\s*:\s*scale/.test(embedRule[1]),
         false,
-        '#game-shell must not overscale the SWF beyond the viewport'
+        'DungeonBlitz embed must not browser-scale the SWF beyond the viewport'
     );
     assert.equal(
-        /--game-fill/.test(shellRule[1]),
+        /--game-fill/.test(embedRule[1]),
         false,
-        '#game-shell must use contain-fit sizing instead of a crop/fill multiplier'
+        'DungeonBlitz embed must not use a crop/fill multiplier'
     );
     assert.equal(
-        /width:\s*100dvw/.test(shellRule[1]),
+        /position:\s*fixed/.test(embedRule[1]) && /inset:\s*0/.test(embedRule[1]),
         true,
-        '#game-shell must fill the dynamic viewport width'
+        'DungeonBlitz embed must be pinned to the viewport'
     );
     assert.equal(
-        /height:\s*100dvh/.test(shellRule[1]),
+        /width:\s*100dvw\s*!important/.test(embedRule[1]),
         true,
-        '#game-shell must fill the dynamic viewport height'
+        'DungeonBlitz embed must fill the dynamic viewport width'
     );
     assert.equal(
-        /aspect-ratio/.test(shellRule[1]),
+        /height:\s*100dvh\s*!important/.test(embedRule[1]),
+        true,
+        'DungeonBlitz embed must fill the dynamic viewport height'
+    );
+    assert.equal(
+        /aspect-ratio/.test(embedRule[1]),
         false,
-        '#game-shell must not force a 3:2 letterboxed viewport'
+        'DungeonBlitz embed must not force a 3:2 letterboxed viewport'
     );
 }
 
@@ -127,7 +133,7 @@ function main(): void {
     testStaticServerServesSingleSwfByDefault();
     testStaticServerSelectsLocalizedGameSwz();
     testStaticServerAliasesCurrentFlashVersionManifest();
-    testBrowserShellFillsViewportWithoutCropping();
+    testBrowserEmbedFillsViewportWithoutCropping();
     testStaticServerResolvesGameSwzLocaleFromRequest();
     testStaticServerBuildsLocalizedSwfTextByLocale();
     console.log('static_server_default_swf_regression: ok');

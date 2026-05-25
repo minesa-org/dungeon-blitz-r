@@ -598,7 +598,7 @@ function assertInstanceBooleanMethodFalseNullGuard(swfPath: string, className: s
     );
 }
 
-function assertMainMethod561KeepsMaxScaleClamp(swfPath: string): void {
+function assertMainMethod561DoesNotClampMaxScale(swfPath: string): void {
     const { instructions } = getInstanceMethodCode(swfPath, 'Main', 'method_561');
     const maxScaleAssignment = instructions.find((instruction, index) =>
         instruction.opcode === 0x2f &&
@@ -609,7 +609,11 @@ function assertMainMethod561KeepsMaxScaleClamp(swfPath: string): void {
         instructions[index + 5]?.opcode === 0x0c
     );
 
-    assert.notEqual(maxScaleAssignment, undefined, 'Main.method_561 must keep the 1.25 fullscreen scale cap');
+    assert.equal(
+        maxScaleAssignment,
+        undefined,
+        'Main.method_561 must not clamp fullscreen fit scale back to 1.25'
+    );
 }
 
 function assertDungeonQuestHelperPrefersDungeonProgress(swfPath: string): void {
@@ -891,11 +895,11 @@ function testBaseAndLocalVariantKeepChatBubbleNullGuard(): void {
     });
 }
 
-function testBaseAndLocalVariantKeepMainMethod561ScaleClamp(): void {
-    assertMainMethod561KeepsMaxScaleClamp(BASE_SWF_PATH);
+function testBaseAndLocalVariantKeepMainMethod561UnclampedScale(): void {
+    assertMainMethod561DoesNotClampMaxScale(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
     withTempSwf(buffer, (tempPath) => {
-        assertMainMethod561KeepsMaxScaleClamp(tempPath);
+        assertMainMethod561DoesNotClampMaxScale(tempPath);
     });
 }
 
@@ -923,7 +927,7 @@ function main(): void {
     testBaseAndLocalVariantKeepEntityRenderNullGuards();
     testBaseAndLocalVariantKeepActivePowerNullGuard();
     testBaseAndLocalVariantKeepChatBubbleNullGuard();
-    testBaseAndLocalVariantKeepMainMethod561ScaleClamp();
+    testBaseAndLocalVariantKeepMainMethod561UnclampedScale();
     testBaseAndLocalVariantKeepDungeonQuestHelperGuard();
     console.log('dungeonblitz_swf_variant_regression: ok');
 }

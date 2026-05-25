@@ -15,27 +15,21 @@
       overflow: hidden;
     }
 
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #game-shell {
-      flex: 1 1 auto;
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      width: 100dvw;
-      height: 100dvh;
-    }
-
     #game-container,
-    #game-shell object,
-    #game-shell embed {
+    #DungeonBlitz,
+    object#DungeonBlitz,
+    embed#DungeonBlitz {
       display: block;
-      width: 100%;
-      height: 100%;
+      position: fixed;
+      inset: 0;
+      width: 100vw !important;
+      height: 100vh !important;
+      width: 100dvw !important;
+      height: 100dvh !important;
+      margin: 0;
+      border: 0;
+      max-width: none;
+      max-height: none;
     }
 
     #flash-hint {

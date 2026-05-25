@@ -21,6 +21,10 @@ function main(): void {
     assert.equal(indexHtml.includes('id="game-shell"'), false, 'Flash host should not wrap the game in a scaled shell');
     assert.equal(indexHtml.includes('transform: scale('), false, 'Flash host should not browser-scale the SWF');
     assert.equal(indexHtml.includes('layout=fit-center-buffer'), false, 'Flash host should not request the fit-center-buffer layout');
+    assert.equal(indexHtml.includes('#DungeonBlitz'), true, 'Flash host should pin the embedded SWF object by id');
+    assert.equal(indexHtml.includes('position: fixed'), true, 'Flash host should pin the embedded SWF to the viewport');
+    assert.equal(indexHtml.includes('width: 100dvw !important'), true, 'Flash host should fill the dynamic viewport width');
+    assert.equal(indexHtml.includes('height: 100dvh !important'), true, 'Flash host should fill the dynamic viewport height');
     assert.equal(
         indexHtml.includes('p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv'),
         true,
