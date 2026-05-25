@@ -11,8 +11,39 @@
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #000;
+      background: #484955;
+      overflow: auto;
+    }
+
+    body {
+      min-width: 1152px;
+      min-height: 768px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body.fullscreen {
+      min-width: 0;
+      min-height: 0;
       overflow: hidden;
+    }
+
+    #game-shell {
+      position: relative;
+      width: 1152px;
+      height: 768px;
+      overflow: hidden;
+    }
+
+    body.fullscreen #game-shell {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: var(--game-fullscreen-width, 1152px);
+      height: var(--game-fullscreen-height, 768px);
+      transform: translate(-50%, -50%);
+      transform-origin: center center;
     }
 
     #game-container,
@@ -20,12 +51,8 @@
     object#DungeonBlitz,
     embed#DungeonBlitz {
       display: block;
-      position: fixed;
-      inset: 0;
-      width: 100vw !important;
-      height: 100vh !important;
-      width: 100dvw !important;
-      height: 100dvh !important;
+      width: 100% !important;
+      height: 100% !important;
       margin: 0;
       border: 0;
       max-width: none;
@@ -58,7 +85,9 @@
 
 <body>
 
-  <div id="game-container"></div>
+  <div id="game-shell">
+    <div id="game-container"></div>
+  </div>
 
   <div id="flash-hint">
     <div>
@@ -111,6 +140,56 @@
       const hint = document.getElementById("flash-hint");
       if (hint) hint.style.display = "none";
     }
+
+    const originalGameWidth = 1152;
+    const originalGameHeight = 768;
+
+    function applyDungeonBlitzFullscreenSize(scale) {
+      const width = Math.max(originalGameWidth, Math.floor(originalGameWidth * scale / 6) * 6);
+      const height = Math.round(width * originalGameHeight / originalGameWidth);
+      const adjustedScale = width / originalGameWidth;
+      document.documentElement.style.setProperty("--game-fullscreen-scale", String(adjustedScale));
+      document.documentElement.style.setProperty("--game-fullscreen-width", `${width}px`);
+      document.documentElement.style.setProperty("--game-fullscreen-height", `${height}px`);
+    }
+
+    function resetDungeonBlitzFullscreenSize() {
+      document.documentElement.style.setProperty("--game-fullscreen-scale", "1");
+      document.documentElement.style.setProperty("--game-fullscreen-width", `${originalGameWidth}px`);
+      document.documentElement.style.setProperty("--game-fullscreen-height", `${originalGameHeight}px`);
+    }
+
+    function updateDungeonBlitzFullscreenScale() {
+      const widthScale = window.innerWidth / originalGameWidth;
+      const heightScale = window.innerHeight / originalGameHeight;
+      const nextScale = Math.max(1, Math.min(widthScale, heightScale));
+      applyDungeonBlitzFullscreenSize(nextScale);
+    }
+
+    function setDungeonBlitzFullscreen(enabled) {
+      const shouldEnable = Boolean(enabled);
+      document.body.classList.toggle("fullscreen", shouldEnable);
+
+      if (shouldEnable) {
+        updateDungeonBlitzFullscreenScale();
+        const requestFullscreen = document.documentElement.requestFullscreen;
+        if (requestFullscreen && !document.fullscreenElement) {
+          const request = requestFullscreen.call(document.documentElement);
+          if (request && typeof request.catch === "function") {
+            void request.catch(function () {});
+          }
+        }
+      } else if (document.exitFullscreen && document.fullscreenElement) {
+        const exit = document.exitFullscreen();
+        if (exit && typeof exit.catch === "function") {
+          void exit.catch(function () {});
+        }
+      } else {
+        resetDungeonBlitzFullscreenSize();
+      }
+    }
+
+    window.setDungeonBlitzFullscreen = setDungeonBlitzFullscreen;
 
     async function postToLocalBridge(path, body) {
       try {
@@ -192,7 +271,7 @@
       "10.0.0",
       null,
       { fv: "cbq", gv: "cbp" },
-      { allowScriptAccess: "always", allowFullScreen: "true" },
+      { allowScriptAccess: "always", allowFullScreen: "true", scale: "noscale", salign: "tl", quality: "best", wmode: "direct" },
       { id: "DungeonBlitz", name: "DungeonBlitz" },
       function (e) {
         if (!e.success) {
@@ -208,6 +287,21 @@
       setTimeout(syncDiscordPresence, 2500);
       setInterval(syncDiscordPresence, presencePollMs);
     }
+
+    document.addEventListener("fullscreenchange", function () {
+      if (!document.fullscreenElement) {
+        document.body.classList.remove("fullscreen");
+        resetDungeonBlitzFullscreenSize();
+      } else if (document.body.classList.contains("fullscreen")) {
+        updateDungeonBlitzFullscreenScale();
+      }
+    });
+
+    window.addEventListener("resize", function () {
+      if (document.body.classList.contains("fullscreen")) {
+        updateDungeonBlitzFullscreenScale();
+      }
+    });
 
     window.addEventListener("beforeunload", function () {
       if (!localDiscordBridgeEnabled || !lastPresenceHash) return;
