@@ -639,13 +639,13 @@ function assertMainMethod561ClipsViewport(swfPath: string): void {
         -1,
         'Main.method_561 must clip the scaled game display list to the 1152x768 viewport'
     );
-    const scrollRectWindow = instructions.slice(Math.max(0, scrollRectAssignmentIndex - 20), scrollRectAssignmentIndex);
+    const scrollRectWindow = instructions.slice(Math.max(0, scrollRectAssignmentIndex - 50), scrollRectAssignmentIndex);
     assert.equal(
         scrollRectWindow.some((instruction) => instruction.opcode === 0x24 && instruction.operands[0]?.[1] === -31) &&
         scrollRectWindow.some((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 155) &&
-        scrollRectWindow.some((instruction) => instruction.opcode === 0x24 && instruction.operands[0]?.[1] === 62),
+        scrollRectWindow.some((instruction) => instruction.opcode === 0x24 && instruction.operands[0]?.[1] === 93),
         true,
-        'Main.method_561 scrollRect clip must preserve a little more room on the right and bottom edges'
+        'Main.method_561 scrollRect clip must preserve right room and extra bottom room'
     );
     assert.equal(
         instructions.some((instruction, index) =>
@@ -663,7 +663,7 @@ function assertMainMethod561ClipsViewport(swfPath: string): void {
             instruction.opcode === 0x66 &&
             u30OperandName(instruction, abc.multinameNames) === 'SCREEN_HEIGHT' &&
             instructions[index + 1]?.opcode === 0x24 &&
-            instructions[index + 1]?.operands[0]?.[1] === 62 &&
+            instructions[index + 1]?.operands[0]?.[1] === 93 &&
             isAddThenDivide(index)
         ),
         true,
