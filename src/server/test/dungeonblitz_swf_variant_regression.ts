@@ -644,33 +644,34 @@ function assertMainMethod561ClipsViewport(swfPath: string): void {
         .filter((instruction) => instruction.opcode === 0x24)
         .map((instruction) => instruction.operands[0]?.[1]);
     assert.equal(
-        scrollRectByteLiterals.filter((value) => value === -31).length >= 2 &&
-        scrollRectByteLiterals.includes(62) &&
-        scrollRectByteLiterals.includes(101),
+        scrollRectByteLiterals.includes(-21) &&
+        scrollRectByteLiterals.includes(-31) &&
+        scrollRectByteLiterals.includes(52) &&
+        scrollRectByteLiterals.includes(121),
         true,
-        'Main.method_561 scrollRect clip must preserve 31px top and 70px bottom viewport padding'
+        'Main.method_561 scrollRect clip must preserve 21px left, 31px top, 31px right, and 90px bottom viewport padding'
     );
     assert.equal(
         instructions.some((instruction, index) =>
             instruction.opcode === 0x66 &&
             u30OperandName(instruction, abc.multinameNames) === 'SCREEN_WIDTH' &&
             instructions[index + 1]?.opcode === 0x24 &&
-            instructions[index + 1]?.operands[0]?.[1] === 62 &&
+            instructions[index + 1]?.operands[0]?.[1] === 52 &&
             isAddThenDivide(index)
         ),
         true,
-        'Main.method_561 fit scale must include symmetric horizontal clip padding'
+        'Main.method_561 fit scale must include 21px left and 31px right clip padding'
     );
     assert.equal(
         instructions.some((instruction, index) =>
             instruction.opcode === 0x66 &&
             u30OperandName(instruction, abc.multinameNames) === 'SCREEN_HEIGHT' &&
             instructions[index + 1]?.opcode === 0x24 &&
-            instructions[index + 1]?.operands[0]?.[1] === 101 &&
+            instructions[index + 1]?.operands[0]?.[1] === 121 &&
             isAddThenDivide(index)
         ),
         true,
-        'Main.method_561 fit scale must include 31px top and 70px bottom clip padding'
+        'Main.method_561 fit scale must include 31px top and 90px bottom clip padding'
     );
     assert.equal(
         ctx.body.subarray(methodBody.maxStackPos, methodBody.localCountPos).equals(writeU30(7)),
