@@ -20,6 +20,42 @@ function testStaticServerServesSingleSwfByDefault(): void {
     assert.equal(fs.existsSync(selectedSwfPath), true);
 }
 
+function testStaticServerCanonicalizesDirectSwfVersionParams(): void {
+    const server = new StaticServer();
+    const staleRequest = {
+        query: { fv: 'cbw', gv: 'cbv', lang: 'tr' },
+        headers: {},
+        socket: { remoteAddress: '127.0.0.1' }
+    };
+    const canonicalRequest = {
+        query: { fv: 'cbw', gv: 'cbw' },
+        headers: {},
+        socket: { remoteAddress: '127.0.0.1' }
+    };
+
+    assert.equal((server as any).isCanonicalSelectedSwfRequest(staleRequest), false);
+    assert.equal((server as any).isCanonicalSelectedSwfRequest(canonicalRequest), true);
+    assert.equal(
+        (server as any).getCanonicalSelectedSwfUrl(staleRequest),
+        '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw&lang=tr'
+    );
+}
+
+function testStaticServerRootUsesSelectedSwfUrl(): void {
+    const server = new StaticServer();
+    const request = {
+        query: { lang: 'tr' },
+        headers: {},
+        socket: { remoteAddress: '127.0.0.1' }
+    };
+
+    assert.equal(
+        (server as any).getCanonicalSelectedSwfUrl(request),
+        '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw&lang=tr',
+        'Static root should resolve to the same canonical SWF URL used by direct Flash playback'
+    );
+}
+
 function testStaticServerSelectsLocalizedGameSwz(): void {
     const server = new StaticServer();
     const englishPath = (server as any).getGameSwzPathForLocale('en') as string;
@@ -209,6 +245,8 @@ function testStaticServerBuildsLocalizedSwfTextByLocale(): void {
 
 function main(): void {
     testStaticServerServesSingleSwfByDefault();
+    testStaticServerCanonicalizesDirectSwfVersionParams();
+    testStaticServerRootUsesSelectedSwfUrl();
     testStaticServerSelectsLocalizedGameSwz();
     testStaticServerAliasesCurrentFlashVersionManifest();
     testBrowserEmbedKeepsGameAspectRatioWithoutOverflow();

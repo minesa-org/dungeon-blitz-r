@@ -162,6 +162,7 @@ const MULTIPLAYER_HOST = normalizeHostValue(
 const DEFAULT_STATIC_PORT = MULTIPLAYER_MODE ? 80 : 8000;
 const DEFAULT_GAME_PORT = 8080;
 const DEFAULT_POLICY_PORT = 843;
+const REWARD_ROLL_DEBUG = parseBooleanEnv('REWARD_ROLL_DEBUG', process.env.NODE_ENV === 'test');
 
 export const Config = {
     MULTIPLAYER_MODE,
@@ -173,6 +174,7 @@ export const Config = {
     PORTS: [parseNumberEnv('GAME_PORT', DEFAULT_GAME_PORT)],
     POLICY_PORT: parseNumberEnv('POLICY_PORT', DEFAULT_POLICY_PORT),
     ENABLE_POLICY_SERVER: parseBooleanEnv('ENABLE_POLICY_SERVER', MULTIPLAYER_MODE),
+    REWARD_ROLL_DEBUG,
     SECRET: "815bfb010cd7b1b4e6aa90abc7679028", // Matches Python Global
     DATA_DIR: resolveServerDataDir()
 };

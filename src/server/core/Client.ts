@@ -116,6 +116,9 @@ export function clearClientSpawnFallbackTimer(client: Pick<Client, 'clientSpawnF
 
 export class Client {
     private static readonly PENDING_TRANSFER_GRACE_MS = 15000;
+    private static readonly DEFAULT_DEFERRED_CHARACTER_SAVE_MS = 150;
+    private static readonly COMBAT_REWARD_DEFERRED_CHARACTER_SAVE_MS = 2500;
+    private static readonly PENDING_LOOT_DEFERRED_CHARACTER_SAVE_MS = 750;
     private static readonly QUIET_SOCKET_ERROR_CODES = new Set([
         'ECONNABORTED',
         'ECONNRESET',
@@ -126,6 +129,7 @@ export class Client {
     public router: PacketRouter;
     private buffer: Buffer;
     private packetQueue: Promise<void>;
+    private outboundUncorkScheduled: boolean;
     private rawBytesIn: number;
     private rawBytesOut: number;
 
@@ -214,6 +218,7 @@ export class Client {
         this.router = router;
         this.buffer = Buffer.alloc(0);
         this.packetQueue = Promise.resolve();
+        this.outboundUncorkScheduled = false;
         this.rawBytesIn = 0;
         this.rawBytesOut = 0;
 
@@ -246,9 +251,7 @@ export class Client {
             DebugLogger.logPacket('IN', this, packetId, payload);
 
             this.packetQueue = this.packetQueue
-                .then(async () => {
-                    await this.router.handle(this, packetId, payload);
-                })
+                .then(() => this.router.handle(this, packetId, payload))
                 .catch((err: unknown) => {
                     console.error(`[Client] Error handling packet 0x${packetId.toString(16)}:`, err);
                 });
@@ -273,6 +276,21 @@ export class Client {
         return true;
     }
 
+    private scheduleOutboundUncork(): void {
+        if (this.outboundUncorkScheduled) {
+            return;
+        }
+
+        this.outboundUncorkScheduled = true;
+        this.socket.cork();
+        process.nextTick(() => {
+            this.outboundUncorkScheduled = false;
+            if (!this.socket.destroyed) {
+                this.socket.uncork();
+            }
+        });
+    }
+
     public send(packetId: number, buffer: Buffer): void {
         const header = Buffer.alloc(4);
         header.writeUInt16BE(packetId, 0);
@@ -280,6 +298,7 @@ export class Client {
         DebugLogger.logPacket('OUT', this, packetId, buffer);
         const payload = Buffer.concat([header, buffer]);
         this.rawBytesOut += payload.length;
+        this.scheduleOutboundUncork();
         this.socket.write(payload);
     }
 
@@ -287,7 +306,27 @@ export class Client {
         this.send(packetId, bb.toBuffer());
     }
 
-    public scheduleCharacterSave(reason: string, delayMs: number = 150): void {
+    private resolveDeferredCharacterSaveDelay(reason: string, delayMs: number | undefined): number {
+        if (delayMs !== undefined) {
+            return Math.max(0, Math.round(Number(delayMs ?? 0)));
+        }
+
+        const normalizedReason = String(reason ?? '').trim().toLowerCase();
+        if (
+            normalizedReason === 'reward grant' ||
+            normalizedReason === 'enemy kill mission progress'
+        ) {
+            return Client.COMBAT_REWARD_DEFERRED_CHARACTER_SAVE_MS;
+        }
+
+        if (normalizedReason === 'loot pickup' && this.pendingLoot.size > 0) {
+            return Client.PENDING_LOOT_DEFERRED_CHARACTER_SAVE_MS;
+        }
+
+        return Client.DEFAULT_DEFERRED_CHARACTER_SAVE_MS;
+    }
+
+    public scheduleCharacterSave(reason: string, delayMs?: number): void {
         if (!this.userId || !this.character) {
             return;
         }
@@ -297,7 +336,7 @@ export class Client {
             clearTimeout(this.deferredCharacterSaveTimer);
         }
 
-        const safeDelay = Math.max(0, Math.round(Number(delayMs ?? 0)));
+        const safeDelay = this.resolveDeferredCharacterSaveDelay(reason, delayMs);
         this.deferredCharacterSaveTimer = setTimeout(() => {
             this.deferredCharacterSaveTimer = null;
             const userId = this.userId;

@@ -89,6 +89,35 @@ export class StaticServer {
         return `/p/cbp/DungeonBlitz.swf?fv=${this.flashVersion}&gv=${this.gameVersion}`;
     }
 
+    private getCanonicalSelectedSwfUrl(req?: Request): string {
+        const params = new URLSearchParams();
+        params.set('fv', this.flashVersion);
+        params.set('gv', this.gameVersion);
+
+        if (req) {
+            for (const [key, rawValue] of Object.entries(req.query)) {
+                if (key === 'fv' || key === 'gv') {
+                    continue;
+                }
+
+                const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+                for (const value of values) {
+                    if (value === undefined || value === null || typeof value === 'object') {
+                        continue;
+                    }
+                    params.append(key, String(value));
+                }
+            }
+        }
+
+        return `/p/cbp/DungeonBlitz.swf?${params.toString()}`;
+    }
+
+    private isCanonicalSelectedSwfRequest(req: Request): boolean {
+        return String(req.query.fv ?? '') === this.flashVersion &&
+            String(req.query.gv ?? '') === this.gameVersion;
+    }
+
     private normalizeLocale(value: unknown): 'en' | 'tr' | null {
         const normalized = String(value ?? '').trim().toLowerCase();
         return normalized === 'en' || normalized === 'tr' ? normalized : null;
@@ -264,11 +293,16 @@ export class StaticServer {
             next();
         });
 
-        this.app.get('/', (_req, res) => {
-            res.sendFile(path.join(this.contentDir, 'index.html'));
+        this.app.get('/', (req, res) => {
+            res.redirect(302, this.getCanonicalSelectedSwfUrl(req));
         });
 
         this.app.get('/p/cbp/DungeonBlitz.swf', (req, res) => {
+            if (!this.isCanonicalSelectedSwfRequest(req)) {
+                res.redirect(302, this.getCanonicalSelectedSwfUrl(req));
+                return;
+            }
+
             const locale = this.resolveSwfLocale(req);
             res.type('application/x-shockwave-flash');
             res.setHeader('X-DungeonBlitz-Language', locale);

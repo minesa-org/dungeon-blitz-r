@@ -3114,6 +3114,10 @@ export class MissionHandler {
             return false;
         }
 
+        if (!MissionHandler.requiresCompletionBossDefeatForDungeon(levelName)) {
+            return false;
+        }
+
         if (Boolean(entity?.clientDefeatVerified)) {
             return false;
         }

@@ -90,7 +90,7 @@ export class CombatHandler {
         return Math.max(0, Math.min(CombatHandler.MAX_RELAY_POWER_HIT_DAMAGE, Math.round(Number(damage) || 0)));
     }
 
-    private static async tryConsumeRespawnPotion(client: Client): Promise<boolean> {
+    private static tryConsumeRespawnPotion(client: Client): boolean {
         if (!client.character) {
             return false;
         }
@@ -1676,13 +1676,32 @@ export class CombatHandler {
         }
     }
 
-    private static async handleEnemyDefeatState(
+    private static fireAndForgetMissionWork(client: Client, label: string, work: () => Promise<void>): void {
+        const executeWork = (): void => {
+            void work().catch((error) => {
+                console.error(`[CombatHandler] Error processing ${label}:`, error);
+            });
+        };
+
+        const hasLiveSocket = Boolean(
+            (client as Client & { socket?: { write?: unknown } }).socket?.write
+        );
+
+        if (hasLiveSocket) {
+            setImmediate(executeWork);
+            return;
+        }
+
+        executeWork();
+    }
+
+    private static handleEnemyDefeatState(
         client: Client,
         levelScope: string,
         entityId: number,
         entity: any,
         options: { fromDestroy?: boolean; fromKillState?: boolean } = {}
-    ): Promise<void> {
+    ): void {
         if (!entity || entity.isPlayer || Number(entity.team ?? 0) !== EntityTeam.ENEMY) {
             return;
         }
@@ -1699,7 +1718,11 @@ export class CombatHandler {
         }
 
         CombatHandler.markEnemyDefeatProcessed(levelScope, entityId, entity);
-        await MissionHandler.handleEnemyDefeatMissionProgress(client, entity);
+        CombatHandler.fireAndForgetMissionWork(
+            client,
+            'enemy defeat mission progress',
+            () => MissionHandler.handleEnemyDefeatMissionProgress(client, entity)
+        );
 
         const destroyedOwnerToken = Math.round(Number((entity as any)?.ownerToken ?? 0));
         const authorityToken = destroyedOwnerToken > 0
@@ -1709,7 +1732,11 @@ export class CombatHandler {
         const completionClient = authorityClient && areClientsInSameLevelScope(client, authorityClient)
             ? authorityClient
             : client;
-        await MissionHandler.handleForcedDungeonBossCompletion(completionClient, entity);
+        CombatHandler.fireAndForgetMissionWork(
+            client,
+            'forced dungeon boss completion',
+            () => MissionHandler.handleForcedDungeonBossCompletion(completionClient, entity)
+        );
     }
 
     private static parseReferencedEntityIds(packetId: number, data: Buffer): number[] {
@@ -1920,7 +1947,7 @@ export class CombatHandler {
         } else {
             const resolution = CombatHandler.updateNpcTargetAfterHit(levelScope, targetId, damage);
             if (resolution.killed && resolution.entity) {
-                await CombatHandler.handleEnemyDefeatState(sourceSession ?? client, levelScope, targetId, resolution.entity);
+                CombatHandler.handleEnemyDefeatState(sourceSession ?? client, levelScope, targetId, resolution.entity);
             }
         }
 
@@ -1980,14 +2007,12 @@ export class CombatHandler {
             destroyedEntity.clientDefeatVerified = true;
         }
 
-        const isUnverifiedDungeonBossDestroy =
+        const shouldProcessDefeatState = Boolean(
             destroyedEntity &&
             !destroyedEntity.isPlayer &&
             Number(destroyedEntity.team ?? 0) === EntityTeam.ENEMY &&
-            MissionHandler.shouldIgnoreUnverifiedDungeonBossDefeat(levelName, destroyedEntity);
-        if (isUnverifiedDungeonBossDestroy) {
-            return;
-        }
+            !MissionHandler.shouldIgnoreUnverifiedDungeonBossDefeat(levelName, destroyedEntity)
+        );
 
         if (levelName === 'CraftTownTutorial' && client.keepTutorialState) {
             const entityName = String(destroyedEntity?.name ?? '');
@@ -2022,17 +2047,26 @@ export class CombatHandler {
             }
         }
 
-        if (destroyedEntity && !destroyedEntity.isPlayer && Number(destroyedEntity.team ?? 0) === EntityTeam.ENEMY) {
-            await CombatHandler.handleEnemyDefeatState(client, levelScope, entityId, destroyedEntity, { fromDestroy: true });
+        if (
+            shouldProcessDefeatState &&
+            destroyedEntity &&
+            !destroyedEntity.isPlayer &&
+            Number(destroyedEntity.team ?? 0) === EntityTeam.ENEMY
+        ) {
+            CombatHandler.handleEnemyDefeatState(client, levelScope, entityId, destroyedEntity, { fromDestroy: true });
         }
 
-        if (destroyedEntity && !destroyedEntity.isPlayer) {
+        if (shouldProcessDefeatState && destroyedEntity && !destroyedEntity.isPlayer) {
             const authorityToken = resolveSharedDungeonProgressAuthorityToken(levelScope);
             const authorityClient = authorityToken > 0 ? GlobalState.sessionsByToken.get(authorityToken) : null;
             const completionClient = authorityClient && areClientsInSameLevelScope(client, authorityClient)
                 ? authorityClient
                 : client;
-            await MissionHandler.handleForcedDungeonObjectiveCompletion(completionClient, destroyedEntity);
+            CombatHandler.fireAndForgetMissionWork(
+                client,
+                'forced dungeon objective completion',
+                () => MissionHandler.handleForcedDungeonObjectiveCompletion(completionClient, destroyedEntity)
+            );
         }
 
         if (shouldRelayDestroy) {
@@ -2042,11 +2076,11 @@ export class CombatHandler {
         }
     }
 
-    static async handleRequestRespawn(client: Client, data: Buffer): Promise<void> {
+    static handleRequestRespawn(client: Client, data: Buffer): void {
         const br = new BitReader(data);
         let usePotion = br.readMethod15();
         if (usePotion) {
-            usePotion = await CombatHandler.tryConsumeRespawnPotion(client);
+            usePotion = CombatHandler.tryConsumeRespawnPotion(client);
         }
 
         if (!usePotion) {
@@ -2065,13 +2099,13 @@ export class CombatHandler {
         client.sendBitBuffer(0x80, bb);
     }
 
-    static async handleRespawnBroadcast(client: Client, data: Buffer): Promise<void> {
+    static handleRespawnBroadcast(client: Client, data: Buffer): void {
         const br = new BitReader(data);
         const entId = br.readMethod9();
         const healAmount = Math.max(0, Math.round(br.readMethod24()));
         const usedPotion = br.readMethod15();
         if (usedPotion) {
-            await CombatHandler.tryConsumeRespawnPotion(client);
+            CombatHandler.tryConsumeRespawnPotion(client);
         }
 
         const ent = client.entities.get(entId);
@@ -2175,7 +2209,7 @@ export class CombatHandler {
 
         const resolution = CombatHandler.updateNpcTargetAfterHit(levelScope, targetId, damage);
         if (resolution.killed && resolution.entity) {
-            await CombatHandler.handleEnemyDefeatState(sourceSession ?? client, levelScope, targetId, resolution.entity);
+            CombatHandler.handleEnemyDefeatState(sourceSession ?? client, levelScope, targetId, resolution.entity);
         }
 
         const relayPayload = info.targetId === rawTargetId && info.sourceId === rawSourceId

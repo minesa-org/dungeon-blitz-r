@@ -58,7 +58,7 @@ export class NpcHandler {
         }
     }
 
-    static async handleTalkToNpc(client: Client, data: Buffer): Promise<void> {
+    static handleTalkToNpc(client: Client, data: Buffer): void {
         if (!client.character) {
             return;
         }
@@ -807,7 +807,7 @@ export class NpcHandler {
         }, delayMs);
     }
 
-    private static async finalizeFirstMissionTurnIn(client: Client, npcKey: string): Promise<void> {
+    private static finalizeFirstMissionTurnIn(client: Client, npcKey: string): void {
         try {
             if (!client.character) {
                 return;

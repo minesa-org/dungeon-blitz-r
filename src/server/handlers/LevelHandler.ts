@@ -94,7 +94,31 @@ type LevelTriggerSpec = {
     triggerMaxY: number;
 };
 
+type DeferredMissionWork = () => Promise<void>;
+
+type MissionWorkExecutorClient = Client & { socket?: unknown };
+
 export class LevelHandler {
+
+    private static deferMissionWork(client: Client, label: string, work: DeferredMissionWork): void {
+        const executeWork = (): void => {
+            void work().catch((error) => {
+                console.error(`[LevelHandler] Error processing ${label}:`, error);
+            });
+        };
+
+        const hasLiveSocket = Boolean(
+            (client as MissionWorkExecutorClient).socket && (client as Client & { socket: { write?: unknown } }).socket.write
+        );
+
+        if (hasLiveSocket) {
+            setImmediate(executeWork);
+            return;
+        }
+
+        executeWork();
+    }
+
     private static readonly DOORSTATE_CLOSED = 0;
     private static readonly DOORSTATE_STATIC = 1;
     private static readonly DOORSTATE_DUNGEON = 2;
@@ -4117,7 +4141,7 @@ export class LevelHandler {
     }
 
     // 0x07: Incremental Update (Movement)
-    static async handleEntityIncrementalUpdate(client: Client, data: Buffer): Promise<void> {
+    static handleEntityIncrementalUpdate(client: Client, data: Buffer): void {
         // data passed from Client is already the payload (header stripped)
         const br = new BitReader(data);
         const rawEntityId = br.readMethod4();
@@ -4279,7 +4303,11 @@ export class LevelHandler {
             if (shouldProcessMissionProgress || shouldProcessDungeonCompletion) {
                 LevelHandler.markEnemyDefeatProcessed(client, entityId, ent);
                 if (shouldProcessMissionProgress) {
-                    await MissionHandler.handleEnemyDefeatMissionProgress(client, ent);
+                    LevelHandler.deferMissionWork(
+                        client,
+                        'enemy defeat mission progress',
+                        () => MissionHandler.handleEnemyDefeatMissionProgress(client, ent)
+                    );
                 }
 
                 const levelScope = getClientLevelScope(client);
@@ -4291,7 +4319,14 @@ export class LevelHandler {
                 const completionClient = authorityClient && areClientsInSameLevelScope(client, authorityClient)
                     ? authorityClient
                     : client;
-                await MissionHandler.handleForcedDungeonBossCompletion(completionClient, ent);
+
+                if (shouldProcessDungeonCompletion) {
+                    LevelHandler.deferMissionWork(
+                        client,
+                        'forced dungeon boss completion',
+                        () => MissionHandler.handleForcedDungeonBossCompletion(completionClient, ent)
+                    );
+                }
             }
         }
 

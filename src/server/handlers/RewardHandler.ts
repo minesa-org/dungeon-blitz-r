@@ -14,6 +14,7 @@ import { getEquippedGearGoldFind } from '../utils/GearGoldBonuses';
 import { getActivePotionBonuses } from '../utils/ConsumableState';
 import { normalizeCharacterMaterials } from '../utils/MaterialInventory';
 import { PetHandler } from './PetHandler';
+import { Config } from '../core/config';
 
 interface RewardRequest {
     receiverId: number;
@@ -680,7 +681,7 @@ export class RewardHandler {
 
         const xpDebug = RewardHandler.resolveXpRewardDebug(client, exp, reward.exp);
         const shouldLogRewardRoll = shouldRollMaterial || shouldRollGear || dyeDebug.eligible || packetGold > 0 || goldFindRate > 0 || xpDebug.attempted;
-        if (shouldLogRewardRoll) {
+        if (Config.REWARD_ROLL_DEBUG && shouldLogRewardRoll) {
             console.log('[RewardRollDebug]', {
                 character: client.character?.name ?? '',
                 level: client.currentLevel,
@@ -877,13 +878,13 @@ export class RewardHandler {
         };
     }
 
-    private static async applyRewardToRecipient(
+    private static applyRewardToRecipient(
         client: Client,
         reward: RewardRequest,
         rewardNonce: number,
         sourceEntity: any,
         dropPosition: { x: number; y: number }
-    ): Promise<void> {
+    ): void {
         if (!client.character || !client.currentLevel) {
             return;
         }
@@ -948,7 +949,7 @@ export class RewardHandler {
         }
     }
 
-    static async handleGrantReward(client: Client, data: Buffer): Promise<void> {
+    static handleGrantReward(client: Client, data: Buffer): void {
         const br = new BitReader(data);
         const reward: RewardRequest = {
             receiverId: br.readMethod9(),
@@ -981,11 +982,11 @@ export class RewardHandler {
                 continue;
             }
 
-            await RewardHandler.applyRewardToRecipient(recipient, reward, rewardNonce, sourceEntity, dropPosition);
+            RewardHandler.applyRewardToRecipient(recipient, reward, rewardNonce, sourceEntity, dropPosition);
         }
     }
 
-    static async handlePickupLootdrop(client: Client, data: Buffer): Promise<void> {
+    static handlePickupLootdrop(client: Client, data: Buffer): void {
         const br = new BitReader(data);
         const lootId = br.readMethod9();
         const reward = client.pendingLoot.get(lootId);

@@ -55,6 +55,8 @@ export class GameServer {
 
     private handleConnection(socket: net.Socket): void {
         // Create Client wrapper
+        socket.setNoDelay(true);
+        socket.setKeepAlive(true);
         const client = new Client(socket, this.router);
         const addr = `${socket.remoteAddress}:${socket.remotePort}`;
         console.log(`[GameServer] Client connected: ${addr}`);
