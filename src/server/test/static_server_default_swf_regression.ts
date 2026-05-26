@@ -16,7 +16,7 @@ function testStaticServerServesSingleSwfByDefault(): void {
     const selectedSwfUrl = (server as any).getSelectedSwfUrl() as string;
 
     assert.equal(path.basename(selectedSwfPath), 'DungeonBlitz.swf');
-    assert.equal(selectedSwfUrl, '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv');
+    assert.equal(selectedSwfUrl, '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw');
     assert.equal(fs.existsSync(selectedSwfPath), true);
 }
 
@@ -40,43 +40,121 @@ function testStaticServerAliasesCurrentFlashVersionManifest(): void {
     assert.equal(fs.existsSync(manifestPath), true);
 }
 
-function testBrowserEmbedFillsViewportWithoutCropping(): void {
+function testBrowserEmbedKeepsGameAspectRatioWithoutOverflow(): void {
     const server = new StaticServer();
     const contentDir = (server as any).contentDir as string;
     const indexHtml = fs.readFileSync(path.join(contentDir, 'index.html'), 'utf8');
-    const embedRule = indexHtml.match(/#game-container,\s*\r?\n\s*#DungeonBlitz,\s*\r?\n\s*object#DungeonBlitz,\s*\r?\n\s*embed#DungeonBlitz\s*\{([\s\S]*?)\n    \}/);
+    const rootRule = indexHtml.match(/html,\s*body\s*\{([\s\S]*?)\n    \}/);
+    const shellRule = indexHtml.match(/#game-shell\s*\{([\s\S]*?)\n    \}/);
+    const stageBorderRule = indexHtml.match(/#game-stage\s*\{([\s\S]*?)\n    \}/);
+    const stageRule = indexHtml.match(/#game-stage,\s*\r?\n\s*#game-container,\s*\r?\n\s*#DungeonBlitz,\s*\r?\n\s*object#DungeonBlitz,\s*\r?\n\s*embed#DungeonBlitz,\s*\r?\n\s*canvas#DungeonBlitz\s*\{([\s\S]*?)\n    \}/);
+    const innerSurfaceRule = indexHtml.match(/#game-stage > \*,\s*\r?\n\s*#game-stage object,\s*\r?\n\s*#game-stage embed,\s*\r?\n\s*#game-stage canvas,\s*\r?\n\s*#game-stage > \* > object,\s*\r?\n\s*#game-stage > \* > embed,\s*\r?\n\s*#game-stage > \* > canvas,\s*\r?\n\s*#DungeonBlitz,\s*\r?\n\s*object#DungeonBlitz,\s*\r?\n\s*embed#DungeonBlitz,\s*\r?\n\s*canvas#DungeonBlitz\s*\{([\s\S]*?)\n    \}/);
 
-    assert.ok(embedRule, 'DungeonBlitz embed CSS rule not found');
-    assert.equal(indexHtml.includes('id="game-shell"'), false, 'Flash host must not use the removed game-shell wrapper');
+    assert.ok(rootRule, 'DungeonBlitz root page CSS rule not found');
+    assert.ok(shellRule, 'DungeonBlitz shell CSS rule not found');
+    assert.ok(stageBorderRule, 'DungeonBlitz stage border CSS rule not found');
+    assert.ok(stageRule, 'DungeonBlitz stage CSS rule not found');
+    assert.ok(innerSurfaceRule, 'DungeonBlitz inner surface CSS rule not found');
+    assert.equal(indexHtml.includes('id="game-shell"'), true, 'Flash host must keep a stable shell around the game');
+    assert.equal(indexHtml.includes('id="game-stage"'), true, 'Flash host must keep a stable stage around the game surface');
     assert.equal(
-        /transform\s*:\s*scale/.test(embedRule[1]),
+        /box-sizing:\s*border-box/.test(indexHtml),
+        true,
+        'DungeonBlitz host must include borders in viewport sizing to avoid overflow'
+    );
+    assert.equal(
+        /background:\s*#484955/.test(rootRule[1]) && /background:\s*#484955/.test(shellRule[1]),
+        true,
+        'DungeonBlitz host must use the configured site background behind the centered game'
+    );
+    assert.equal(
+        /padding:\s*0\s+0\s+70px/.test(rootRule[1]),
+        true,
+        'DungeonBlitz root page must reserve bottom browser chrome space at body level'
+    );
+    assert.equal(
+        /transform\s*:\s*scale/.test(stageRule[1]) || /transform\s*:\s*scale/.test(innerSurfaceRule[1]),
         false,
         'DungeonBlitz embed must not browser-scale the SWF beyond the viewport'
     );
     assert.equal(
-        /--game-fill/.test(embedRule[1]),
+        /--game-fill/.test(stageRule[1]) || /--game-fill/.test(innerSurfaceRule[1]),
         false,
         'DungeonBlitz embed must not use a crop/fill multiplier'
     );
     assert.equal(
-        /position:\s*fixed/.test(embedRule[1]) && /inset:\s*0/.test(embedRule[1]),
+        /position:\s*fixed/.test(shellRule[1]) &&
+        /top:\s*40px/.test(shellRule[1]) &&
+        /right:\s*0/.test(shellRule[1]) &&
+        /bottom:\s*70px/.test(shellRule[1]) &&
+        /left:\s*0/.test(shellRule[1]),
         true,
-        'DungeonBlitz embed must be pinned to the viewport'
+        'DungeonBlitz shell must be pinned inside the browser chrome offsets'
     );
     assert.equal(
-        /width:\s*100dvw\s*!important/.test(embedRule[1]),
+        /display:\s*flex/.test(shellRule[1]) &&
+        /align-items:\s*center/.test(shellRule[1]) &&
+        /justify-content:\s*center/.test(shellRule[1]) &&
+        /text-align:\s*center/.test(shellRule[1]),
         true,
-        'DungeonBlitz embed must fill the dynamic viewport width'
+        'DungeonBlitz shell must center the native-ratio game surface'
     );
     assert.equal(
-        /height:\s*100dvh\s*!important/.test(embedRule[1]),
+        /width:\s*min\(100dvw,\s*150dvh\)\s*!important/.test(stageRule[1]),
         true,
-        'DungeonBlitz embed must fill the dynamic viewport height'
+        'DungeonBlitz embed must fit the dynamic viewport width without exceeding the 3:2 game ratio'
     );
     assert.equal(
-        /aspect-ratio/.test(embedRule[1]),
-        false,
-        'DungeonBlitz embed must not force a 3:2 letterboxed viewport'
+        /height:\s*min\(100dvh,\s*66\.6667dvw\)\s*!important/.test(stageRule[1]),
+        true,
+        'DungeonBlitz embed must fit the dynamic viewport height without exceeding the 3:2 game ratio'
+    );
+    assert.equal(
+        /aspect-ratio:\s*3\s*\/\s*2/.test(stageRule[1]) &&
+        /flex:\s*0\s+0\s+auto/.test(stageRule[1]) &&
+        /overflow:\s*hidden/.test(stageRule[1]),
+        true,
+        'DungeonBlitz stage must preserve the 3:2 viewport and clip overflow'
+    );
+    assert.equal(
+        /border-right:\s*1px\s+solid\s+#484955/.test(stageBorderRule[1]),
+        true,
+        'DungeonBlitz stage must mirror the left visual border on the right inside the constrained viewport'
+    );
+    assert.equal(
+        /width:\s*100%\s*!important/.test(innerSurfaceRule[1]) &&
+        /height:\s*100%\s*!important/.test(innerSurfaceRule[1]) &&
+        /max-width:\s*100%\s*!important/.test(innerSurfaceRule[1]) &&
+        /max-height:\s*100%\s*!important/.test(innerSurfaceRule[1]),
+        true,
+        'DungeonBlitz inner canvas surfaces must fill only the constrained game viewport'
+    );
+    assert.equal(
+        /function syncGameStageSize\(\)/.test(indexHtml) &&
+        /getBoundingClientRect\(\)/.test(indexHtml) &&
+        /new MutationObserver\(requestGameStageSizeSync\)/.test(indexHtml) &&
+        /attributes:\s*true/.test(indexHtml) &&
+        /new ResizeObserver\(requestGameStageSizeSync\)/.test(indexHtml) &&
+        /function refreshGameSurfaceResizeTargets\(\)/.test(indexHtml) &&
+        /"#game-stage canvas"/.test(indexHtml) &&
+        /"#game-stage object"/.test(indexHtml) &&
+        /"#game-stage embed"/.test(indexHtml) &&
+        /fullscreenchange/.test(indexHtml) &&
+        /setInterval\(requestGameStageSizeSync,\s*1000\)/.test(indexHtml) &&
+        /stage\.replaceChildren\(detachedSurface\)/.test(indexHtml),
+        true,
+        'DungeonBlitz host must actively reclaim and resync FlashBrowser surfaces after room, fullscreen, and shell-size changes'
+    );
+    assert.equal(
+        /swfobject\.embedSWF\([\s\S]*"1152",\s*\r?\n\s*"768"/.test(indexHtml),
+        true,
+        'DungeonBlitz SWF must be created at the native game canvas size'
+    );
+    assert.equal(
+        /swfobject\.embedSWF\([\s\S]*align:\s*"center"/.test(indexHtml) &&
+        /setAttribute\("align",\s*"center"\)/.test(indexHtml),
+        true,
+        'DungeonBlitz SWF and replaced surfaces must request centered alignment'
     );
 }
 
@@ -133,7 +211,7 @@ function main(): void {
     testStaticServerServesSingleSwfByDefault();
     testStaticServerSelectsLocalizedGameSwz();
     testStaticServerAliasesCurrentFlashVersionManifest();
-    testBrowserEmbedFillsViewportWithoutCropping();
+    testBrowserEmbedKeepsGameAspectRatioWithoutOverflow();
     testStaticServerResolvesGameSwzLocaleFromRequest();
     testStaticServerBuildsLocalizedSwfTextByLocale();
     console.log('static_server_default_swf_regression: ok');

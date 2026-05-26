@@ -10,7 +10,8 @@ import {
     methodIdxForTrait,
     parseAbc,
     parseSwf,
-    u30OperandName
+    u30OperandName,
+    writeU30
 } from '../scripts/swfPatchUtils';
 import type { Instruction } from '../scripts/swfPatchUtils';
 
@@ -27,9 +28,9 @@ function resolveBaseSwfPath(): string {
 
 const BASE_SWF_PATH = resolveBaseSwfPath();
 const MULTIPLAYER_HOST = Config.MULTIPLAYER_HOST;
-const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
-const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv`;
-const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
+const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw';
+const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw`;
+const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
 const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
 const CLASS72_FLOAT_TEXT_SAFE_PIXELS = 262144;
@@ -129,6 +130,8 @@ function getStaticMethodCode(swfPath: string, className: string, methodName: str
     const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
     return {
         abc,
+        ctx,
+        methodBody,
         instructions: disassemble(code, `${className}.${methodName}`)
     };
 }
@@ -148,6 +151,8 @@ function getInstanceMethodCode(swfPath: string, className: string, methodName: s
     const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
     return {
         abc,
+        ctx,
+        methodBody,
         instructions: disassemble(code, `${className}.${methodName}`)
     };
 }
@@ -598,7 +603,7 @@ function assertInstanceBooleanMethodFalseNullGuard(swfPath: string, className: s
     );
 }
 
-function assertMainMethod561DoesNotClampMaxScale(swfPath: string): void {
+function assertMainMethod561ClampsMaxScale(swfPath: string): void {
     const { instructions } = getInstanceMethodCode(swfPath, 'Main', 'method_561');
     const maxScaleAssignment = instructions.find((instruction, index) =>
         instruction.opcode === 0x2f &&
@@ -609,10 +614,68 @@ function assertMainMethod561DoesNotClampMaxScale(swfPath: string): void {
         instructions[index + 5]?.opcode === 0x0c
     );
 
-    assert.equal(
+    assert.notEqual(
         maxScaleAssignment,
         undefined,
-        'Main.method_561 must not clamp fullscreen fit scale back to 1.25'
+        'Main.method_561 must clamp fullscreen fit scale to prevent large-viewport overflow'
+    );
+}
+
+function assertMainMethod561ClipsViewport(swfPath: string): void {
+    const { abc, ctx, methodBody, instructions } = getInstanceMethodCode(swfPath, 'Main', 'method_561');
+    const isAddThenDivide = (index: number) =>
+        (instructions[index + 5]?.opcode === 0xa0 && instructions[index + 6]?.opcode === 0xa3) ||
+        (instructions[index + 5]?.opcode === 0x02 && instructions[index + 6]?.opcode === 0xa0 && instructions[index + 7]?.opcode === 0xa3);
+    const scrollRectAssignmentIndex = instructions.findIndex((instruction, index) =>
+        instruction.opcode === 0x4a &&
+        u30OperandName(instruction, abc.multinameNames) === 'Rectangle' &&
+        instruction.operands[1]?.[1] === 4 &&
+        instructions[index + 1]?.opcode === 0x61 &&
+        u30OperandName(instructions[index + 1], abc.multinameNames) === 'scrollRect'
+    );
+
+    assert.notEqual(
+        scrollRectAssignmentIndex,
+        -1,
+        'Main.method_561 must clip the scaled game display list to the 1152x768 viewport'
+    );
+    const scrollRectWindow = instructions.slice(Math.max(0, scrollRectAssignmentIndex - 50), scrollRectAssignmentIndex);
+    const scrollRectByteLiterals = scrollRectWindow
+        .filter((instruction) => instruction.opcode === 0x24)
+        .map((instruction) => instruction.operands[0]?.[1]);
+    assert.equal(
+        scrollRectByteLiterals.filter((value) => value === -31).length >= 2 &&
+        scrollRectByteLiterals.includes(62) &&
+        scrollRectByteLiterals.includes(101),
+        true,
+        'Main.method_561 scrollRect clip must preserve 31px top and 70px bottom viewport padding'
+    );
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0x66 &&
+            u30OperandName(instruction, abc.multinameNames) === 'SCREEN_WIDTH' &&
+            instructions[index + 1]?.opcode === 0x24 &&
+            instructions[index + 1]?.operands[0]?.[1] === 62 &&
+            isAddThenDivide(index)
+        ),
+        true,
+        'Main.method_561 fit scale must include symmetric horizontal clip padding'
+    );
+    assert.equal(
+        instructions.some((instruction, index) =>
+            instruction.opcode === 0x66 &&
+            u30OperandName(instruction, abc.multinameNames) === 'SCREEN_HEIGHT' &&
+            instructions[index + 1]?.opcode === 0x24 &&
+            instructions[index + 1]?.operands[0]?.[1] === 101 &&
+            isAddThenDivide(index)
+        ),
+        true,
+        'Main.method_561 fit scale must include 31px top and 70px bottom clip padding'
+    );
+    assert.equal(
+        ctx.body.subarray(methodBody.maxStackPos, methodBody.localCountPos).equals(writeU30(7)),
+        true,
+        'Main.method_561 scrollRect clip must raise max_stack to 7 so Flash verifier can run the method'
     );
 }
 
@@ -895,11 +958,13 @@ function testBaseAndLocalVariantKeepChatBubbleNullGuard(): void {
     });
 }
 
-function testBaseAndLocalVariantKeepMainMethod561UnclampedScale(): void {
-    assertMainMethod561DoesNotClampMaxScale(BASE_SWF_PATH);
+function testBaseAndLocalVariantKeepMainMethod561ScaleClamp(): void {
+    assertMainMethod561ClampsMaxScale(BASE_SWF_PATH);
+    assertMainMethod561ClipsViewport(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
     withTempSwf(buffer, (tempPath) => {
-        assertMainMethod561DoesNotClampMaxScale(tempPath);
+        assertMainMethod561ClampsMaxScale(tempPath);
+        assertMainMethod561ClipsViewport(tempPath);
     });
 }
 
@@ -927,7 +992,7 @@ function main(): void {
     testBaseAndLocalVariantKeepEntityRenderNullGuards();
     testBaseAndLocalVariantKeepActivePowerNullGuard();
     testBaseAndLocalVariantKeepChatBubbleNullGuard();
-    testBaseAndLocalVariantKeepMainMethod561UnclampedScale();
+    testBaseAndLocalVariantKeepMainMethod561ScaleClamp();
     testBaseAndLocalVariantKeepDungeonQuestHelperGuard();
     console.log('dungeonblitz_swf_variant_regression: ok');
 }
