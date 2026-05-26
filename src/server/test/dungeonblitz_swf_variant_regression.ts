@@ -640,34 +640,36 @@ function assertMainMethod561ClipsViewport(swfPath: string): void {
         'Main.method_561 must clip the scaled game display list to the 1152x768 viewport'
     );
     const scrollRectWindow = instructions.slice(Math.max(0, scrollRectAssignmentIndex - 50), scrollRectAssignmentIndex);
+    const scrollRectByteLiterals = scrollRectWindow
+        .filter((instruction) => instruction.opcode === 0x24)
+        .map((instruction) => instruction.operands[0]?.[1]);
     assert.equal(
-        scrollRectWindow.some((instruction) => instruction.opcode === 0x24 && instruction.operands[0]?.[1] === -31) &&
-        scrollRectWindow.some((instruction) => instruction.opcode === 0x25 && instruction.operands[0]?.[1] === 155) &&
-        scrollRectWindow.some((instruction) => instruction.opcode === 0x24 && instruction.operands[0]?.[1] === 93),
+        scrollRectByteLiterals.filter((value) => value === -31).length >= 2 &&
+        scrollRectByteLiterals.filter((value) => value === 62).length >= 2,
         true,
-        'Main.method_561 scrollRect clip must preserve right room and extra bottom room'
+        'Main.method_561 scrollRect clip must preserve symmetric 31px viewport padding'
     );
     assert.equal(
         instructions.some((instruction, index) =>
             instruction.opcode === 0x66 &&
             u30OperandName(instruction, abc.multinameNames) === 'SCREEN_WIDTH' &&
-            instructions[index + 1]?.opcode === 0x25 &&
-            instructions[index + 1]?.operands[0]?.[1] === 155 &&
+            instructions[index + 1]?.opcode === 0x24 &&
+            instructions[index + 1]?.operands[0]?.[1] === 62 &&
             isAddThenDivide(index)
         ),
         true,
-        'Main.method_561 fit scale must include the widened horizontal clip padding'
+        'Main.method_561 fit scale must include symmetric horizontal clip padding'
     );
     assert.equal(
         instructions.some((instruction, index) =>
             instruction.opcode === 0x66 &&
             u30OperandName(instruction, abc.multinameNames) === 'SCREEN_HEIGHT' &&
             instructions[index + 1]?.opcode === 0x24 &&
-            instructions[index + 1]?.operands[0]?.[1] === 93 &&
+            instructions[index + 1]?.operands[0]?.[1] === 62 &&
             isAddThenDivide(index)
         ),
         true,
-        'Main.method_561 fit scale must include the widened vertical clip padding'
+        'Main.method_561 fit scale must include symmetric vertical clip padding'
     );
     assert.equal(
         ctx.body.subarray(methodBody.maxStackPos, methodBody.localCountPos).equals(writeU30(7)),

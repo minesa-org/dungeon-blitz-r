@@ -44,15 +44,29 @@ function testBrowserEmbedKeepsGameAspectRatioWithoutOverflow(): void {
     const server = new StaticServer();
     const contentDir = (server as any).contentDir as string;
     const indexHtml = fs.readFileSync(path.join(contentDir, 'index.html'), 'utf8');
+    const rootRule = indexHtml.match(/html,\s*body\s*\{([\s\S]*?)\n    \}/);
     const shellRule = indexHtml.match(/#game-shell\s*\{([\s\S]*?)\n    \}/);
+    const stageBorderRule = indexHtml.match(/#game-stage\s*\{([\s\S]*?)\n    \}/);
     const stageRule = indexHtml.match(/#game-stage,\s*\r?\n\s*#game-container,\s*\r?\n\s*#DungeonBlitz,\s*\r?\n\s*object#DungeonBlitz,\s*\r?\n\s*embed#DungeonBlitz,\s*\r?\n\s*canvas#DungeonBlitz\s*\{([\s\S]*?)\n    \}/);
     const innerSurfaceRule = indexHtml.match(/#game-stage > \*,\s*\r?\n\s*#game-stage object,\s*\r?\n\s*#game-stage embed,\s*\r?\n\s*#game-stage canvas,\s*\r?\n\s*#game-stage > \* > object,\s*\r?\n\s*#game-stage > \* > embed,\s*\r?\n\s*#game-stage > \* > canvas,\s*\r?\n\s*#DungeonBlitz,\s*\r?\n\s*object#DungeonBlitz,\s*\r?\n\s*embed#DungeonBlitz,\s*\r?\n\s*canvas#DungeonBlitz\s*\{([\s\S]*?)\n    \}/);
 
+    assert.ok(rootRule, 'DungeonBlitz root page CSS rule not found');
     assert.ok(shellRule, 'DungeonBlitz shell CSS rule not found');
+    assert.ok(stageBorderRule, 'DungeonBlitz stage border CSS rule not found');
     assert.ok(stageRule, 'DungeonBlitz stage CSS rule not found');
     assert.ok(innerSurfaceRule, 'DungeonBlitz inner surface CSS rule not found');
     assert.equal(indexHtml.includes('id="game-shell"'), true, 'Flash host must keep a stable shell around the game');
     assert.equal(indexHtml.includes('id="game-stage"'), true, 'Flash host must keep a stable stage around the game surface');
+    assert.equal(
+        /box-sizing:\s*border-box/.test(indexHtml),
+        true,
+        'DungeonBlitz host must include borders in viewport sizing to avoid overflow'
+    );
+    assert.equal(
+        /background:\s*#484955/.test(rootRule[1]) && /background:\s*#484955/.test(shellRule[1]),
+        true,
+        'DungeonBlitz host must use the configured site background behind the centered game'
+    );
     assert.equal(
         /transform\s*:\s*scale/.test(stageRule[1]) || /transform\s*:\s*scale/.test(innerSurfaceRule[1]),
         false,
@@ -64,14 +78,19 @@ function testBrowserEmbedKeepsGameAspectRatioWithoutOverflow(): void {
         'DungeonBlitz embed must not use a crop/fill multiplier'
     );
     assert.equal(
-        /position:\s*fixed/.test(shellRule[1]) && /inset:\s*0/.test(shellRule[1]),
+        /position:\s*fixed/.test(shellRule[1]) &&
+        /top:\s*40px/.test(shellRule[1]) &&
+        /right:\s*0/.test(shellRule[1]) &&
+        /bottom:\s*0/.test(shellRule[1]) &&
+        /left:\s*0/.test(shellRule[1]),
         true,
-        'DungeonBlitz shell must be pinned to the viewport'
+        'DungeonBlitz shell must be pinned below the browser chrome offset'
     );
     assert.equal(
         /display:\s*flex/.test(shellRule[1]) &&
         /align-items:\s*center/.test(shellRule[1]) &&
-        /justify-content:\s*center/.test(shellRule[1]),
+        /justify-content:\s*center/.test(shellRule[1]) &&
+        /text-align:\s*center/.test(shellRule[1]),
         true,
         'DungeonBlitz shell must center the native-ratio game surface'
     );
@@ -93,6 +112,11 @@ function testBrowserEmbedKeepsGameAspectRatioWithoutOverflow(): void {
         'DungeonBlitz stage must preserve the 3:2 viewport and clip overflow'
     );
     assert.equal(
+        /border-right:\s*1px\s+solid\s+#484955/.test(stageBorderRule[1]),
+        true,
+        'DungeonBlitz stage must mirror the left visual border on the right inside the constrained viewport'
+    );
+    assert.equal(
         /width:\s*100%\s*!important/.test(innerSurfaceRule[1]) &&
         /height:\s*100%\s*!important/.test(innerSurfaceRule[1]) &&
         /max-width:\s*100%\s*!important/.test(innerSurfaceRule[1]) &&
@@ -102,15 +126,30 @@ function testBrowserEmbedKeepsGameAspectRatioWithoutOverflow(): void {
     );
     assert.equal(
         /function syncGameStageSize\(\)/.test(indexHtml) &&
-        /new MutationObserver\(syncGameStageSize\)/.test(indexHtml) &&
+        /getBoundingClientRect\(\)/.test(indexHtml) &&
+        /new MutationObserver\(requestGameStageSizeSync\)/.test(indexHtml) &&
+        /attributes:\s*true/.test(indexHtml) &&
+        /new ResizeObserver\(requestGameStageSizeSync\)/.test(indexHtml) &&
+        /function refreshGameSurfaceResizeTargets\(\)/.test(indexHtml) &&
+        /"#game-stage canvas"/.test(indexHtml) &&
+        /"#game-stage object"/.test(indexHtml) &&
+        /"#game-stage embed"/.test(indexHtml) &&
+        /fullscreenchange/.test(indexHtml) &&
+        /setInterval\(requestGameStageSizeSync,\s*1000\)/.test(indexHtml) &&
         /stage\.replaceChildren\(detachedSurface\)/.test(indexHtml),
         true,
-        'DungeonBlitz host must actively reclaim detached FlashBrowser surfaces into the clipping stage'
+        'DungeonBlitz host must actively reclaim and resync FlashBrowser surfaces after room, fullscreen, and shell-size changes'
     );
     assert.equal(
         /swfobject\.embedSWF\([\s\S]*"1152",\s*\r?\n\s*"768"/.test(indexHtml),
         true,
         'DungeonBlitz SWF must be created at the native game canvas size'
+    );
+    assert.equal(
+        /swfobject\.embedSWF\([\s\S]*align:\s*"center"/.test(indexHtml) &&
+        /setAttribute\("align",\s*"center"\)/.test(indexHtml),
+        true,
+        'DungeonBlitz SWF and replaced surfaces must request centered alignment'
     );
 }
 
