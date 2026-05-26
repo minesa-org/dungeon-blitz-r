@@ -77,6 +77,8 @@ export interface EntityProps {
     };
     
     healthDelta?: number;
+    hp?: number;
+    maxHp?: number;
     buffs?: any[];
     roomId?: number;
     ownerCharacterName?: string;
@@ -101,7 +103,7 @@ export class Entity {
             x: Number(props.x ?? props.pos_x ?? char.CurrentLevel?.x ?? 0),
             y: Number(props.y ?? props.pos_y ?? char.CurrentLevel?.y ?? 0),
             v: Number(props.v ?? props.velocity_x ?? 0),
-            team: Number(props.team ?? EntityTeam.PLAYER),
+            team: EntityTeam.PLAYER,
             entState: Number(props.entState ?? props.ent_state ?? EntityState.ACTIVE),
             facingLeft: Boolean(props.facingLeft ?? props.b_left),
             running: Boolean(props.running ?? props.b_running),
@@ -133,6 +135,9 @@ export class Entity {
         ent.equippedMount = char.equippedMount || 0;
         ent.activeConsumableId = Number((char as any).activeConsumableID ?? (char as any).activeConsumableId ?? 0);
         ent.activePet = char.activePet || {};
+        ent.hp = Number(props.hp ?? props.currHP ?? props.currentHp ?? 0);
+        ent.maxHp = Number(props.maxHp ?? props.maxHP ?? 0);
+        ent.healthDelta = Number(props.healthDelta ?? props.health_delta ?? 0);
         
         return ent;
     }
@@ -256,7 +261,7 @@ export class Entity {
         bb.writeMethod45(Math.floor(entity.x));
         bb.writeMethod45(Math.floor(entity.y));
         bb.writeMethod45(Math.floor(entity.v || 0));
-        bb.writeMethod6(entity.team || 0, Entity.TEAM_BITS);
+        bb.writeMethod6(entity.isPlayer ? EntityTeam.PLAYER : (entity.team || 0), Entity.TEAM_BITS);
         
         if (entity.isPlayer) {
             bb.writeMethod6(1, 1);

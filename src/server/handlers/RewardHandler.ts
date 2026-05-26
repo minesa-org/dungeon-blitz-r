@@ -1037,6 +1037,7 @@ export class RewardHandler {
                 Math.max(1, Number(client.authoritativeMaxHp ?? 100))
             );
             RewardHandler.sendEntityHeal(client, client.clientEntID, reward.health);
+            CombatHandler.broadcastPlayerHeal(client, reward.health);
         }
 
         if (reward.dye && reward.dye > 0) {

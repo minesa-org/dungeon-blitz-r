@@ -30,6 +30,11 @@ type CombatRelayOptions = {
     referencedEntityIds?: number[];
 };
 
+type PlayerStatusRelayOptions = {
+    includeTarget?: boolean;
+    statusScoped?: boolean;
+};
+
 type ContributionSnapshot = {
     nonce: number;
     contributors: string[];
@@ -85,6 +90,7 @@ type NpcHitResolution = {
 
 export class CombatHandler {
     private static readonly MAX_RELAY_POWER_HIT_DAMAGE = 4_000_000;
+    private static readonly recentlySeededPlayerStatusEntities = new WeakMap<Client, Set<number>>();
 
     private static clampRelayPowerHitDamage(damage: number): number {
         return Math.max(0, Math.min(CombatHandler.MAX_RELAY_POWER_HIT_DAMAGE, Math.round(Number(damage) || 0)));
@@ -694,7 +700,7 @@ export class CombatHandler {
 
         const payload = CombatHandler.buildCharRegenPayload(client.clientEntID, healAmount);
         client.send(0x3B, payload);
-        CombatHandler.broadcastToSameLevel(levelScope, 0x3B, payload, [client.clientEntID], client);
+        CombatHandler.broadcastPlayerHeal(client, healAmount);
     }
 
     private static processHostileOutOfCombatRegen(levelScope: string, entity: any, nowMs: number): void {
@@ -1173,7 +1179,12 @@ export class CombatHandler {
 
         const canonicalEntity = CombatHandler.resolveLevelEntity(levelScope, entityId);
         if (CombatHandler.shouldMirrorClientSpawnEntityToParty(anchor.currentLevel, canonicalEntity)) {
-            return EntityHandler.canClientResolveCanonicalEntity(viewer, entityId);
+            return Boolean(EntityHandler.resolvePartySharedClientSpawnLocalEntity(
+                viewer,
+                anchor.currentLevel,
+                entityId,
+                canonicalEntity
+            ));
         }
 
         if (EntityHandler.ensureEntityKnown(viewer, anchor.currentLevel, entityId)) {
@@ -1187,24 +1198,52 @@ export class CombatHandler {
         return false;
     }
 
-    private static relayPartyLocalEntityDefeat(anchor: Client, levelScope: string, entityId: number): void {
+    static relaySharedClientSpawnEntityDefeat(anchor: Client, levelScope: string, entityId: number, entitySnapshot: any = null): void {
+        CombatHandler.relayPartyLocalEntityDefeat(anchor, levelScope, entityId, entitySnapshot);
+    }
+
+    private static relayPartyLocalEntityDefeat(anchor: Client, levelScope: string, entityId: number, entitySnapshot: any = null): void {
         if (!levelScope || entityId <= 0 || !anchor.playerSpawned) {
             return;
         }
 
+        const canonicalEntity =
+            entitySnapshot ??
+            CombatHandler.resolveLevelEntity(levelScope, entityId) ??
+            anchor.entities.get(entityId);
+        if (!CombatHandler.shouldMirrorClientSpawnEntityToParty(anchor.currentLevel, canonicalEntity)) {
+            return;
+        }
+
         for (const other of GlobalState.sessionsByToken.values()) {
-            const localEntityId = EntityHandler.resolveEntityLocalId(other, entityId);
-            const localEntity = other.entities.get(localEntityId) ?? other.entities.get(entityId);
             if (
                 other === anchor ||
                 !other.playerSpawned ||
                 getClientLevelScope(other) !== levelScope ||
-                !areClientsInSameParty(anchor, other) ||
-                !CombatHandler.shouldMirrorClientSpawnEntityToParty(anchor.currentLevel, localEntity)
+                !areClientsInSameParty(anchor, other)
             ) {
                 continue;
             }
 
+            const localResolution = EntityHandler.resolvePartySharedClientSpawnLocalEntity(
+                other,
+                anchor.currentLevel,
+                entityId,
+                canonicalEntity
+            );
+            if (!localResolution) {
+                continue;
+            }
+
+            const localEntityId = localResolution.entityId;
+            if (localEntityId === other.clientEntID) {
+                continue;
+            }
+
+            const localEntity = {
+                ...localResolution.entity,
+                id: localEntityId
+            };
             localEntity.dead = true;
             localEntity.hp = 0;
             localEntity.entState = EntityState.DEAD;
@@ -1214,12 +1253,8 @@ export class CombatHandler {
                 localEntity.health_delta = -maxHp;
             }
             other.entities.set(localEntityId, localEntity);
-            const canReceiveDefeatState = CombatHandler.canViewerReceiveIncrementalUpdate(other, levelScope, entityId, localEntity);
             other.knownEntityIds.delete(entityId);
-            if (!canReceiveDefeatState) {
-                continue;
-            }
-            other.send(0x07, CombatHandler.buildEntityStatePayload(localEntityId, EntityState.DEAD, Boolean(localEntity.facingLeft)));
+            other.send(0x0D, CombatHandler.buildDestroyEntityPayload(localEntityId));
         }
     }
 
@@ -1343,7 +1378,12 @@ export class CombatHandler {
         }
 
         if (CombatHandler.shouldMirrorClientSpawnEntityToParty(viewer.currentLevel, entity)) {
-            return EntityHandler.canClientResolveCanonicalEntity(viewer, entityId);
+            return Boolean(EntityHandler.resolvePartySharedClientSpawnLocalEntity(
+                viewer,
+                getScopeLevelName(levelScope),
+                entityId,
+                entity
+            ));
         }
 
         const isRoomScopedClientNpc = Boolean(
@@ -1377,10 +1417,36 @@ export class CombatHandler {
         );
     }
 
+    private static markRecentlySeededPlayerStatusEntity(viewer: Client, entityId: number): void {
+        if (entityId <= 0) {
+            return;
+        }
+
+        let seededIds = CombatHandler.recentlySeededPlayerStatusEntities.get(viewer);
+        if (!seededIds) {
+            seededIds = new Set<number>();
+            CombatHandler.recentlySeededPlayerStatusEntities.set(viewer, seededIds);
+        }
+        seededIds.add(entityId);
+    }
+
+    private static consumeRecentlySeededPlayerStatusEntity(viewer: Client, entityId: number): boolean {
+        const seededIds = CombatHandler.recentlySeededPlayerStatusEntities.get(viewer);
+        if (!seededIds?.has(entityId)) {
+            return false;
+        }
+
+        seededIds.delete(entityId);
+        if (seededIds.size === 0) {
+            CombatHandler.recentlySeededPlayerStatusEntities.delete(viewer);
+        }
+        return true;
+    }
+
     private static broadcastPlayerHpDelta(
         targetSession: Client,
         delta: number,
-        options: { includeTarget?: boolean; statusScoped?: boolean } = {}
+        options: PlayerStatusRelayOptions = {}
     ): void {
         if (!targetSession.playerSpawned || !targetSession.currentLevel || targetSession.clientEntID <= 0) {
             return;
@@ -1391,7 +1457,20 @@ export class CombatHandler {
         if (options.statusScoped) {
             const levelScope = getClientLevelScope(targetSession);
             for (const other of CombatHandler.getPlayerStatusRecipients(targetSession, includeTarget)) {
-                if (!CombatHandler.canViewerResolveAnchoredCombatEntity(other, targetSession, levelScope, targetSession.clientEntID)) {
+                const canReceiveIncremental = CombatHandler.canViewerReceiveIncrementalUpdate(
+                    other,
+                    levelScope,
+                    targetSession.clientEntID
+                );
+                if (!EntityHandler.ensureEntityKnown(other, targetSession.currentLevel, targetSession.clientEntID)) {
+                    continue;
+                }
+                if (!canReceiveIncremental) {
+                    CombatHandler.markRecentlySeededPlayerStatusEntity(other, targetSession.clientEntID);
+                }
+
+                const localEntityId = EntityHandler.resolveEntityLocalId(other, targetSession.clientEntID);
+                if (localEntityId === other.clientEntID) {
                     continue;
                 }
 
@@ -1401,6 +1480,28 @@ export class CombatHandler {
         }
 
         CombatHandler.broadcastToCombatRoom(targetSession, 0x3A, payload, includeTarget, [targetSession.clientEntID]);
+    }
+
+    static broadcastPlayerHeal(targetSession: Client, amount: number, includeTarget: boolean = false): void {
+        const healAmount = Math.max(0, Math.round(Number(amount) || 0));
+        if (
+            healAmount <= 0 ||
+            !targetSession.playerSpawned ||
+            !targetSession.currentLevel ||
+            targetSession.clientEntID <= 0
+        ) {
+            return;
+        }
+
+        const levelScope = getClientLevelScope(targetSession);
+        const payload = CombatHandler.buildCharRegenPayload(targetSession.clientEntID, healAmount);
+        for (const other of CombatHandler.getPlayerStatusRecipients(targetSession, includeTarget)) {
+            if (!CombatHandler.canViewerResolveAnchoredCombatEntity(other, targetSession, levelScope, targetSession.clientEntID)) {
+                continue;
+            }
+
+            other.send(0x3B, CombatHandler.translateOutboundPacketForViewer(other, 0x3B, payload));
+        }
     }
 
     private static broadcastPlayerState(targetSession: Client, entState: number, statusScoped: boolean = false): void {
@@ -1415,8 +1516,21 @@ export class CombatHandler {
         if (statusScoped) {
             const levelScope = getClientLevelScope(targetSession);
             for (const other of CombatHandler.getPlayerStatusRecipients(targetSession)) {
-                if (!CombatHandler.canViewerReceiveIncrementalUpdate(other, levelScope, targetSession.clientEntID)) {
-                    EntityHandler.ensureEntityKnown(other, targetSession.currentLevel, targetSession.clientEntID);
+                const canReceiveIncremental = CombatHandler.canViewerReceiveIncrementalUpdate(
+                    other,
+                    levelScope,
+                    targetSession.clientEntID
+                );
+                const wasSeededThisStatusFlow = CombatHandler.consumeRecentlySeededPlayerStatusEntity(
+                    other,
+                    targetSession.clientEntID
+                );
+                if (!EntityHandler.ensureEntityKnown(other, targetSession.currentLevel, targetSession.clientEntID)) {
+                    continue;
+                }
+
+                const localEntityId = EntityHandler.resolveEntityLocalId(other, targetSession.clientEntID);
+                if (!canReceiveIncremental || wasSeededThisStatusFlow || localEntityId === other.clientEntID) {
                     continue;
                 }
 
@@ -2085,6 +2199,7 @@ export class CombatHandler {
             CombatHandler.shouldMirrorClientSpawnEntityToParty(levelName, destroyedEntity)
         );
         const shouldRelayDestroy = EntityHandler.shouldRelayEntityToOtherClients(levelName, destroyedEntity);
+        let shouldForgetKnownEntity = false;
         if (destroyedEntity && contributionSnapshot?.contributors?.length) {
             destroyedEntity.clientDefeatVerified = true;
         }
@@ -2125,7 +2240,7 @@ export class CombatHandler {
                 noteDungeonRunKill(levelScope, contributionSnapshot.contributors, entityId, destroyedEntity);
             }
             CombatHandler.noteEntityDestroyed(levelScope, entityId);
-            EntityHandler.forgetKnownEntity(levelName, entityId, client.levelInstanceId);
+            shouldForgetKnownEntity = true;
             if (usesSharedDungeonProgress(getScopeLevelName(levelScope)) && destroyedEntity) {
                 LevelHandler.refreshSharedDungeonQuestProgress(levelScope);
             }
@@ -2147,7 +2262,11 @@ export class CombatHandler {
         if (shouldRelayDestroy) {
             CombatHandler.broadcastToSameLevel(levelScope, 0x0D, destroyPayload, [], client);
         } else if (shouldMirrorClientSpawnEntity) {
-            CombatHandler.relayPartyLocalEntityDefeat(client, levelScope, entityId);
+            CombatHandler.relayPartyLocalEntityDefeat(client, levelScope, entityId, destroyedEntity);
+        }
+
+        if (shouldForgetKnownEntity) {
+            EntityHandler.forgetKnownEntity(levelName, entityId, client.levelInstanceId);
         }
     }
 

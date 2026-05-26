@@ -114,6 +114,11 @@ function setLocalOperand(instruction: Instruction | undefined): number | null {
     return null;
 }
 
+function branchTargetOffset(instruction: Instruction): number {
+    assert.equal(instruction.operands[0]?.[0], 's24', 'expected s24 branch operand');
+    return instruction.offset + instruction.size + instruction.operands[0][1];
+}
+
 function getStaticMethodCode(swfPath: string, className: string, methodName: string) {
     const ctx = parseSwf(swfPath);
     const abc = parseAbc(ctx);
@@ -639,6 +644,113 @@ function assertDungeonQuestHelperPrefersDungeonProgress(swfPath: string): void {
     );
 }
 
+function assertLinkUpdaterServerHpAdjustDamagesOnNegativeDelta(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'LinkUpdater', 'method_3000');
+    const guardBranchIndex = instructions.findIndex((instruction, index) =>
+        getLocalOperand(instruction) === 1 &&
+        instructions[index + 1]?.opcode === 0x96 &&
+        instructions[index + 2]?.opcode === 0x2a &&
+        instructions[index + 3]?.opcode === 0x11
+    );
+    assert.notEqual(guardBranchIndex, -1, 'LinkUpdater.method_3000 must keep a verifier-safe null guard');
+    const guardBranch = instructions[guardBranchIndex + 3];
+    const guardTarget = instructions.find((instruction) => instruction.offset === branchTargetOffset(guardBranch));
+    assert.equal(
+        guardTarget?.opcode,
+        0x12,
+        'LinkUpdater.method_3000 null guard must branch through the shared iffalse so dup is popped'
+    );
+
+    assert.equal(
+        instructions.some((instruction, index) =>
+            getLocalOperand(instruction) === 2 &&
+            instructions[index + 1]?.opcode === 0x24 &&
+            instructions[index + 1]?.operands[0]?.[1] === 0 &&
+            instructions[index + 2]?.opcode === 0x0c &&
+            getLocalOperand(instructions[index + 3]) === 1 &&
+            getLocalOperand(instructions[index + 4]) === 2 &&
+            instructions[index + 5]?.opcode === 0x90 &&
+            getLocalOperand(instructions[index + 6]) === 3 &&
+            instructions[index + 7]?.opcode === 0x4f &&
+            u30OperandName(instructions[index + 7], abc.multinameNames) === 'TakeDamage'
+        ),
+        true,
+        'LinkUpdater.method_3000 must turn negative server HP adjustments into remote-player damage'
+    );
+}
+
+function assertLinkUpdaterIncrementalStateGuardsVisualRestore(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'LinkUpdater', 'method_1072');
+    const restoreGuardIndex = instructions.findIndex((instruction, index) =>
+        getLocalOperand(instruction) === 3 &&
+        instructions[index + 1]?.opcode === 0x66 &&
+        u30OperandName(instructions[index + 1], abc.multinameNames) === 'gfx' &&
+        instructions[index + 2]?.opcode === 0x2a &&
+        instructions[index + 3]?.opcode === 0x12 &&
+        instructions[index + 4]?.opcode === 0x66 &&
+        u30OperandName(instructions[index + 4], abc.multinameNames) === 'm_TheDO' &&
+        instructions[index + 5]?.opcode === 0x2a &&
+        instructions[index + 6]?.opcode === 0x12 &&
+        instructions[index + 7]?.opcode === 0x26 &&
+        instructions[index + 8]?.opcode === 0x61 &&
+        u30OperandName(instructions[index + 8], abc.multinameNames) === 'visible'
+    );
+    assert.notEqual(
+        restoreGuardIndex,
+        -1,
+        'LinkUpdater.method_1072 must guard gfx.m_TheDO before restoring visibility on incremental state updates'
+    );
+
+    const noDisplayTarget = branchTargetOffset(instructions[restoreGuardIndex + 6]);
+    const noGfxTarget = branchTargetOffset(instructions[restoreGuardIndex + 3]);
+    assert.equal(
+        instructions.find((instruction) => instruction.offset === noDisplayTarget)?.opcode,
+        0x29,
+        'LinkUpdater.method_1072 missing m_TheDO null-path pop'
+    );
+    assert.equal(
+        instructions.find((instruction) => instruction.offset === noGfxTarget)?.opcode,
+        0x29,
+        'LinkUpdater.method_1072 missing gfx null-path pop'
+    );
+}
+
+function assertLinkUpdaterIncrementalStateGuardsPlayerDeathCounter(swfPath: string): void {
+    const { abc, instructions } = getInstanceMethodCode(swfPath, 'LinkUpdater', 'method_1072');
+    const deathCounterGuardIndex = instructions.findIndex((instruction, index) =>
+        getLocalOperand(instruction) === 0 &&
+        instructions[index + 1]?.opcode === 0x66 &&
+        u30OperandName(instructions[index + 1], abc.multinameNames) === 'var_1' &&
+        instructions[index + 2]?.opcode === 0x2a &&
+        instructions[index + 3]?.opcode === 0x12 &&
+        instructions[index + 4]?.opcode === 0x66 &&
+        u30OperandName(instructions[index + 4], abc.multinameNames) === 'level' &&
+        instructions[index + 5]?.opcode === 0x2a &&
+        instructions[index + 6]?.opcode === 0x12 &&
+        instructions.slice(index + 7, index + 20).some(
+            (item) => item.opcode === 0x61 && u30OperandName(item, abc.multinameNames) === 'var_1270'
+        )
+    );
+    assert.notEqual(
+        deathCounterGuardIndex,
+        -1,
+        'LinkUpdater.method_1072 must guard var_1.level before incrementing remote player death count'
+    );
+
+    const noGameTarget = branchTargetOffset(instructions[deathCounterGuardIndex + 3]);
+    const noLevelTarget = branchTargetOffset(instructions[deathCounterGuardIndex + 6]);
+    assert.equal(
+        instructions.find((instruction) => instruction.offset === noGameTarget)?.opcode,
+        0x29,
+        'LinkUpdater.method_1072 missing var_1 null-path pop'
+    );
+    assert.equal(
+        instructions.find((instruction) => instruction.offset === noLevelTarget)?.opcode,
+        0x29,
+        'LinkUpdater.method_1072 missing level null-path pop'
+    );
+}
+
 function assertSuperAnimMethod200BitmapDataGuard(swfPath: string): void {
     assertBitmapDataGuardWindow(swfPath, 10, 11, 'SuperAnimData.method_200 direct allocation');
     assertBitmapDataGuardWindow(swfPath, 25, 26, 'SuperAnimData.method_200 cropped allocation');
@@ -911,6 +1023,21 @@ function testBaseAndLocalVariantKeepDungeonQuestHelperGuard(): void {
     });
 }
 
+function testLocalVariantHandlesNegativeServerHpAdjustments(): void {
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertLinkUpdaterServerHpAdjustDamagesOnNegativeDelta(tempPath);
+    });
+}
+
+function testLocalVariantGuardsIncrementalEntityVisualRestore(): void {
+    const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
+    withTempSwf(buffer, (tempPath) => {
+        assertLinkUpdaterIncrementalStateGuardsVisualRestore(tempPath);
+        assertLinkUpdaterIncrementalStateGuardsPlayerDeathCounter(tempPath);
+    });
+}
+
 function main(): void {
     testLocalVariantUsesLocalhostAndPort8000();
     testMultiplayerVariantUsesRemoteHostAndDefaultAssetPath();
@@ -929,6 +1056,8 @@ function main(): void {
     testBaseAndLocalVariantKeepChatBubbleNullGuard();
     testBaseAndLocalVariantKeepMainMethod561UnclampedScale();
     testBaseAndLocalVariantKeepDungeonQuestHelperGuard();
+    testLocalVariantHandlesNegativeServerHpAdjustments();
+    testLocalVariantGuardsIncrementalEntityVisualRestore();
     console.log('dungeonblitz_swf_variant_regression: ok');
 }
 

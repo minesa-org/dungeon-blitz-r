@@ -8,6 +8,7 @@ import { getClientLevelScope } from '../core/LevelScope';
 import { CharacterSync } from '../utils/CharacterSync';
 import { markAlertState } from '../utils/AlertState';
 import { readSavedKeyBindingsPacket, savedKeyBindingsHaveOverrides } from '../utils/KeyBindings';
+import { EntityHandler } from './EntityHandler';
 import {
     ensureActiveDungeonPotionReserved,
     getActivePotionCharges,
@@ -23,6 +24,31 @@ const POTION_DRAIN_STEP_UNITS = 50;
 const POTION_DRAIN_STEP_MS = POTION_CHARGE_UNIT_MS * POTION_DRAIN_STEP_UNITS;
 
 export class CommandHandler {
+    private static syncAuthoritativeMaxHp(client: Client, nextMaxHp: number): void {
+        const oldMaxHp = Math.max(1, Math.round(Number(client.authoritativeMaxHp ?? 100) || 100));
+        const maxHp = Math.max(1, Math.round(Number(nextMaxHp) || oldMaxHp));
+        const currentHp = Math.max(0, Math.round(Number(client.authoritativeCurrentHp ?? oldMaxHp) || 0));
+        const maxHpDelta = maxHp - oldMaxHp;
+        const nextCurrentHp = currentHp <= 0
+            ? 0
+            : Math.max(0, Math.min(maxHp, currentHp + Math.max(0, maxHpDelta)));
+
+        client.authoritativeMaxHp = maxHp;
+        client.authoritativeCurrentHp = nextCurrentHp;
+
+        const entity = client.clientEntID > 0 ? client.entities.get(client.clientEntID) : null;
+        if (entity && typeof entity === 'object') {
+            entity.maxHp = maxHp;
+            entity.hp = nextCurrentHp;
+        }
+
+        const levelEntity = client.clientEntID > 0 ? GlobalState.levelEntities.get(getClientLevelScope(client))?.get(client.clientEntID) : null;
+        if (levelEntity && typeof levelEntity === 'object') {
+            levelEntity.maxHp = maxHp;
+            levelEntity.hp = nextCurrentHp;
+        }
+    }
+
     static async handleLinkUpdater(client: Client, data: Buffer): Promise<void> {
         if (await CommandHandler.tryHandleKeyBindingSave(client, data)) {
             return;
@@ -127,22 +153,10 @@ export class CommandHandler {
         const currentMaxHp = Math.max(1, Number(client.authoritativeMaxHp ?? 100));
         const newMaxHp = Math.max(1, currentMaxHp + maxHpDelta);
 
-        client.authoritativeMaxHp = newMaxHp;
-        client.authoritativeCurrentHp = Math.min(Math.max(0, Number(client.authoritativeCurrentHp ?? newMaxHp)), newMaxHp);
-
-        const entity = client.clientEntID > 0 ? client.entities.get(client.clientEntID) : null;
-        if (entity && typeof entity === 'object') {
-            entity.maxHp = newMaxHp;
-            entity.hp = Math.min(Math.max(0, Number(entity.hp ?? newMaxHp)), newMaxHp);
-        }
-
-        const levelEntity = client.clientEntID > 0 ? GlobalState.levelEntities.get(getClientLevelScope(client))?.get(client.clientEntID) : null;
-        if (levelEntity && typeof levelEntity === 'object') {
-            levelEntity.maxHp = newMaxHp;
-            levelEntity.hp = Math.min(Math.max(0, Number(levelEntity.hp ?? newMaxHp)), newMaxHp);
-        }
+        CommandHandler.syncAuthoritativeMaxHp(client, newMaxHp);
         client.combatStatsDirty = false;
         client.allowDirtyCombatStatsRegen = false;
+        EntityHandler.refreshPlayerSnapshot(client);
     }
 
     static handleSendCombatStats(client: Client, data: Buffer): void {
@@ -153,26 +167,22 @@ export class CommandHandler {
         br.readMethod20(4);
         br.readMethod9();
 
-        client.authoritativeMaxHp = maxHp;
-        client.authoritativeCurrentHp = Math.min(Math.max(0, Number(client.authoritativeCurrentHp ?? maxHp)), maxHp);
+        CommandHandler.syncAuthoritativeMaxHp(client, maxHp);
 
         const entity = client.clientEntID > 0 ? client.entities.get(client.clientEntID) : null;
         if (entity && typeof entity === 'object') {
-            entity.maxHp = maxHp;
-            entity.hp = Math.min(Math.max(0, Number(entity.hp ?? maxHp)), maxHp);
             entity.meleeDamage = meleeDamage;
             entity.magicDamage = magicDamage;
         }
 
         const levelEntity = client.clientEntID > 0 ? GlobalState.levelEntities.get(getClientLevelScope(client))?.get(client.clientEntID) : null;
         if (levelEntity && typeof levelEntity === 'object') {
-            levelEntity.maxHp = maxHp;
-            levelEntity.hp = Math.min(Math.max(0, Number(levelEntity.hp ?? maxHp)), maxHp);
             levelEntity.meleeDamage = meleeDamage;
             levelEntity.magicDamage = magicDamage;
         }
         client.combatStatsDirty = false;
         client.allowDirtyCombatStatsRegen = false;
+        EntityHandler.refreshPlayerSnapshot(client);
     }
 
     static async handleUpdateAlertState(client: Client, data: Buffer): Promise<void> {

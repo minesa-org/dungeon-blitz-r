@@ -335,6 +335,49 @@ async function testSameAccountPartyMembersShareDungeonProgress(): Promise<void> 
     );
 }
 
+async function testJadeCityDungeonQuestProgressBroadcastsScopedMax(): Promise<void> {
+    const leader = createClient(807, 'Fleerpuh', 'JC_Mission9');
+    const joiner = createClient(808, 'Caurib', 'JC_Mission9');
+    const levelScope = getClientLevelScope(leader as never);
+
+    GlobalState.sessionsByToken.set(leader.token, leader as never);
+    GlobalState.sessionsByToken.set(joiner.token, joiner as never);
+    setPartyLeader(leader, joiner);
+
+    await LevelHandler.handleQuestProgressUpdate(joiner as never, createQuestProgressPacket(2));
+
+    assert.equal(joiner.character.questTrackerState, 2, 'sender should be normalized to the scoped dungeon progress');
+    assert.equal(leader.character.questTrackerState, 2, 'party peer should receive the same scoped dungeon progress');
+    assert.deepEqual(
+        leader.sentPackets.filter((packet) => packet.id === 0xB7).map((packet) => parseQuestProgress(packet.payload)),
+        [2],
+        'peer should receive the scoped progress packet'
+    );
+    assert.deepEqual(
+        joiner.sentPackets.filter((packet) => packet.id === 0xB7).map((packet) => parseQuestProgress(packet.payload)),
+        [2],
+        'sender should also receive the scoped progress packet so local UI cannot drift'
+    );
+    assert.equal(getSharedDungeonProgressState(levelScope)?.progress, 2);
+
+    leader.sentPackets.length = 0;
+    joiner.sentPackets.length = 0;
+    await LevelHandler.handleQuestProgressUpdate(leader as never, createQuestProgressPacket(0));
+
+    assert.equal(leader.character.questTrackerState, 2, 'lower local progress should not roll back the scoped dungeon progress');
+    assert.equal(joiner.character.questTrackerState, 2, 'party peer should stay at the scoped max progress');
+    assert.deepEqual(
+        leader.sentPackets.filter((packet) => packet.id === 0xB7).map((packet) => parseQuestProgress(packet.payload)),
+        [2],
+        'lower sender should be corrected back to the scoped max'
+    );
+    assert.deepEqual(
+        joiner.sentPackets.filter((packet) => packet.id === 0xB7).map((packet) => parseQuestProgress(packet.payload)),
+        [2],
+        'peer should receive the corrected scoped max instead of the lower raw value'
+    );
+}
+
 async function testGoblinRiverLevelCompleteWaitsForSharedProgressCompletion(): Promise<void> {
     const authority = createClient(811, 'Leader');
     const joiner = createClient(812, 'Member');
@@ -1024,6 +1067,13 @@ async function main(): Promise<void> {
         GlobalState.partyByMember.clear();
         GlobalState.partyGroups.clear();
         await testSameAccountPartyMembersShareDungeonProgress();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.partyGroups.clear();
+        await testJadeCityDungeonQuestProgressBroadcastsScopedMax();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

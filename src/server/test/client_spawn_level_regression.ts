@@ -138,6 +138,7 @@ function readSerializedRemotePlayer(payload: Buffer): {
     level: number;
     masterClass: number;
     velocity: number;
+    team: number;
     healthDelta: number;
     buffCount: number;
 } {
@@ -174,7 +175,7 @@ function readSerializedRemotePlayer(payload: Buffer): {
     br.readMethod45(); // x
     br.readMethod45(); // y
     const velocity = br.readMethod45();
-    br.readMethod6(Entity.TEAM_BITS);
+    const team = br.readMethod6(Entity.TEAM_BITS);
     assert.equal(br.readMethod15(), true, 'remote player payload should take the player branch');
     br.readMethod15(); // idle reset
     br.readMethod15(); // spawn fx
@@ -214,7 +215,7 @@ function readSerializedRemotePlayer(payload: Buffer): {
 
     const healthDelta = br.readMethod45();
     const buffCount = br.readMethod4();
-    return { id, name, level, masterClass, velocity, healthDelta, buffCount };
+    return { id, name, level, masterClass, velocity, team, healthDelta, buffCount };
 }
 
 function createGoblinRiverHostile(
@@ -293,6 +294,7 @@ function testRemotePlayerEntityPacketMatchesClientReadOrder(): void {
         level: 37,
         masterClass: 3,
         velocity: 0,
+        team: 1,
         healthDelta: 9,
         buffCount: 0
     });
@@ -309,7 +311,7 @@ function testNewlyRelevantEntitySeedsClearVelocity(): void {
         x: 321,
         y: 654,
         v: 190,
-        team: 1,
+        team: 2,
         entState: 0,
         level: 12,
         masterClass: 1,
@@ -327,6 +329,11 @@ function testNewlyRelevantEntitySeedsClearVelocity(): void {
         readSerializedRemotePlayer(packet!.payload).velocity,
         0,
         'server-seeded newly relevant entities should not trip the client hidden-until-movement flag'
+    );
+    assert.equal(
+        readSerializedRemotePlayer(packet!.payload).team,
+        1,
+        'server-seeded players should always serialize as player team'
     );
 }
 

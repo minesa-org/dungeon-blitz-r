@@ -241,6 +241,59 @@ function testPlayerRegenAfterIdleDoesNotHealLivingPlayerBoss(): void {
     assert.deepEqual(selfPacket, { entityId: player.clientEntID, amount: 100 });
 }
 
+function testPlayerRegenBroadcastsOnlyStatusAudience(): void {
+    resetState();
+
+    const nowMs = 10_000;
+    const player = createFakeClient(20, 'StatusAlpha', 3);
+    const sameRoomWatcher = createFakeClient(21, 'StatusSameRoom', 3);
+    const partyOtherRoom = createFakeClient(22, 'StatusParty', 7);
+    const otherRoomStranger = createFakeClient(23, 'StatusStranger', 7);
+
+    player.authoritativeCurrentHp = 600;
+    player.lastCombatActivityAt = nowMs - 6000;
+
+    attachPlayerEntity(player);
+    attachPlayerEntity(sameRoomWatcher);
+    attachPlayerEntity(partyOtherRoom);
+    attachPlayerEntity(otherRoomStranger);
+    const playerEntity = player.entities.get(player.clientEntID)!;
+    playerEntity.hp = 600;
+    playerEntity.maxHp = 1000;
+
+    sameRoomWatcher.knownEntityIds.add(player.clientEntID);
+    partyOtherRoom.knownEntityIds.add(player.clientEntID);
+    otherRoomStranger.knownEntityIds.add(player.clientEntID);
+
+    GlobalState.partyByMember.set('statusalpha', 200);
+    GlobalState.partyByMember.set('statusparty', 200);
+
+    GlobalState.sessionsByToken.set(player.token, player as never);
+    GlobalState.sessionsByToken.set(sameRoomWatcher.token, sameRoomWatcher as never);
+    GlobalState.sessionsByToken.set(partyOtherRoom.token, partyOtherRoom as never);
+    GlobalState.sessionsByToken.set(otherRoomStranger.token, otherRoomStranger as never);
+
+    CombatHandler.processOutOfCombatRegen(getClientLevelScope(player as never), nowMs);
+
+    assert.deepEqual(parseRegenPacket(player.sentPackets.find((packet) => packet.id === 0x3B)!.payload), {
+        entityId: player.clientEntID,
+        amount: 100
+    });
+    assert.deepEqual(parseRegenPacket(sameRoomWatcher.sentPackets.find((packet) => packet.id === 0x3B)!.payload), {
+        entityId: player.clientEntID,
+        amount: 100
+    });
+    assert.deepEqual(parseRegenPacket(partyOtherRoom.sentPackets.find((packet) => packet.id === 0x3B)!.payload), {
+        entityId: player.clientEntID,
+        amount: 100
+    });
+    assert.equal(
+        otherRoomStranger.sentPackets.some((packet) => packet.id === 0x3B),
+        false,
+        'non-party viewers in another room should not receive private player regen status'
+    );
+}
+
 function testPlayerRegenUsesEntityHealEncoding(): void {
     resetState();
 
@@ -779,6 +832,7 @@ async function testKnownOverworldBossNameDoesNotUseDungeonBossRegen(): Promise<v
 
 async function run(): Promise<void> {
     testPlayerRegenAfterIdleDoesNotHealLivingPlayerBoss();
+    testPlayerRegenBroadcastsOnlyStatusAudience();
     testPlayerRegenUsesEntityHealEncoding();
     testAiHeartbeatContinuesPlayerRegenUntilFull();
     testDeadPlayerDoesNotRegen();

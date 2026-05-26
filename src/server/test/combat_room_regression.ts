@@ -4,6 +4,7 @@ import { GlobalState } from '../core/GlobalState';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { CombatHandler } from '../handlers/CombatHandler';
+import { EntityHandler } from '../handlers/EntityHandler';
 import { LevelHandler } from '../handlers/LevelHandler';
 import { Entity, EntityState, EntityTeam } from '../core/Entity';
 import { LevelConfig } from '../core/LevelConfig';
@@ -200,6 +201,87 @@ function parseEntityState(payload: Buffer): { entityId: number; entState: number
     };
 }
 
+function parseSpawnEntityState(payload: Buffer): { entityId: number; entState: number; isPlayer: boolean } {
+    const br = new BitReader(payload);
+    const entityId = br.readMethod4();
+    br.readMethod13();
+    const isPlayer = Boolean(br.readMethod6(1));
+
+    if (isPlayer) {
+        br.readMethod13();
+        br.readMethod13();
+        br.readMethod13();
+        br.readMethod13();
+        br.readMethod13();
+        br.readMethod13();
+        br.readMethod6(24);
+        br.readMethod6(24);
+        br.readMethod6(24);
+        br.readMethod6(24);
+
+        for (let slot = 0; slot < 6; slot += 1) {
+            if (!br.readMethod6(1)) {
+                continue;
+            }
+
+            br.readMethod6(11);
+            br.readMethod6(2);
+            br.readMethod6(16);
+            br.readMethod6(16);
+            br.readMethod6(16);
+            br.readMethod6(8);
+            br.readMethod6(8);
+        }
+    }
+
+    br.readMethod45();
+    br.readMethod45();
+    br.readMethod45();
+    br.readMethod6(Entity.TEAM_BITS);
+
+    if (isPlayer) {
+        if (br.readMethod6(1)) {
+            br.readMethod6(1);
+            br.readMethod6(1);
+            br.readMethod6(7);
+            br.readMethod6(6);
+            br.readMethod6(7);
+            br.readMethod6(5);
+            if (br.readMethod6(1)) {
+                for (let slot = 0; slot < 3; slot += 1) {
+                    br.readMethod6(7);
+                    br.readMethod6(6);
+                }
+            }
+        }
+    } else {
+        br.readMethod6(1);
+        br.readMethod739();
+        if (br.readMethod6(1)) {
+            br.readMethod4();
+        }
+    }
+
+    for (let cue = 0; cue < 3; cue += 1) {
+        if (br.readMethod6(1)) {
+            br.readMethod13();
+        }
+    }
+
+    if (br.readMethod6(1)) {
+        br.readMethod4();
+    }
+    if (br.readMethod6(1)) {
+        br.readMethod4();
+    }
+
+    return {
+        entityId,
+        entState: br.readMethod6(Entity.STATE_BITS),
+        isPlayer
+    };
+}
+
 function parsePowerHitDamage(payload: Buffer): number {
     const br = new BitReader(payload);
     br.readMethod4();
@@ -213,6 +295,39 @@ function parseHpDelta(payload: Buffer): { entityId: number; delta: number } {
         entityId: br.readMethod4(),
         delta: br.readMethod45()
     };
+}
+
+function findPacketIndex(packets: SentPacket[], id: number, predicate: (packet: SentPacket) => boolean = () => true): number {
+    return packets.findIndex((packet) => packet.id === id && predicate(packet));
+}
+
+function assertSeedHpSequence(packets: SentPacket[], entityId: number, delta: number, label: string): void {
+    const seedIndex = findPacketIndex(packets, 0x0F, (packet) => {
+        const parsed = parseSpawnEntityState(packet.payload);
+        return parsed.entityId === entityId && parsed.isPlayer && parsed.entState === EntityState.DEAD;
+    });
+    const hpIndex = findPacketIndex(packets, 0x3A, (packet) => {
+        const parsed = parseHpDelta(packet.payload);
+        return parsed.entityId === entityId && parsed.delta === delta;
+    });
+
+    assert.notEqual(seedIndex, -1, `${label} should receive a dead remote player seed`);
+    assert.notEqual(hpIndex, -1, `${label} should receive the player HP correction`);
+    assert.ok(
+        seedIndex < hpIndex,
+        `${label} should receive 0x0F seed before 0x3A HP`
+    );
+}
+
+function hasEntityDeathState(packets: SentPacket[], entityId: number): boolean {
+    return packets.some((packet) => {
+        if (packet.id !== 0x07) {
+            return false;
+        }
+
+        const parsed = parseEntityState(packet.payload);
+        return parsed.entityId === entityId && parsed.entState === EntityState.DEAD;
+    });
 }
 
 function parsePowerHitIds(payload: Buffer): { targetId: number; sourceId: number; damage: number } {
@@ -670,37 +785,28 @@ async function testHostileHitsCanKillPlayersAndStayRoomScoped(): Promise<void> {
     assert.equal(victim.authoritativeCurrentHp, 0);
     assert.equal(victimEntity?.dead, true);
     assert.equal(victimEntity?.entState, EntityState.DEAD);
+    assertSeedHpSequence(sameRoomWatcher.sentPackets, victim.clientEntID, -100, 'same-room watchers');
+    assertSeedHpSequence(partyOtherRoom.sentPackets, victim.clientEntID, -100, 'party viewers in another room');
     assert.equal(
-        sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x0F),
-        true,
-        'same-room watchers should be seeded before receiving hostile combat packets'
+        hasEntityDeathState(sameRoomWatcher.sentPackets, victim.clientEntID),
+        false,
+        'newly seeded viewers should not receive immediate 0x07 because Flash may not have initialized remote graphics yet'
     );
     assert.equal(
-        sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x3A),
-        true,
-        'hostile hits should emit a status-scoped HP delta so viewers do not keep stale player health'
+        hasEntityDeathState(partyOtherRoom.sentPackets, victim.clientEntID),
+        false,
+        'newly seeded party viewers should use the dead 0x0F seed instead of an immediate 0x07'
     );
     assert.equal(
         sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x0A),
         false,
         'hostile player hits should not also relay the power-hit packet to viewers because that can double-apply damage'
     );
-    assert.equal(
-        sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x07),
-        true,
-        'hostile lethal hits should broadcast a player death state to same-room viewers'
-    );
     const victimHitPacket = victim.sentPackets.find((packet) => packet.id === 0x0A);
-    const watcherHpPacket = sameRoomWatcher.sentPackets.find((packet) => packet.id === 0x3A);
     assert.equal(
         victimHitPacket,
         undefined,
         'local player already simulated the hostile hit and should not receive an overkill echo'
-    );
-    assert.deepEqual(
-        parseHpDelta(watcherHpPacket!.payload),
-        { entityId: victim.clientEntID, delta: -100 },
-        'same-room viewers should receive the lethal applied HP delta for synchronization'
     );
     assert.equal(
         victim.sentPackets.some((packet) => packet.id === 0x07),
@@ -717,23 +823,11 @@ async function testHostileHitsCanKillPlayersAndStayRoomScoped(): Promise<void> {
         false,
         'party members in a different room should not receive hostile NPC power-hit packets from outside their room'
     );
-    assert.deepEqual(
-        parseHpDelta(partyOtherRoom.sentPackets.find((packet) => packet.id === 0x3A)!.payload),
-        { entityId: victim.clientEntID, delta: -100 },
-        'party members should still receive player HP status even if room tracking is stale'
-    );
     assert.equal(
-        partyOtherRoom.sentPackets.some((packet) => {
-            if (packet.id !== 0x07) {
-                return false;
-            }
-            const state = parseEntityState(packet.payload);
-            return state.entityId === victim.clientEntID && state.entState === EntityState.DEAD;
-        }),
-        true,
-        'party members should receive player death status even if room tracking is stale'
+        otherRoomStranger.sentPackets.some((packet) => packet.id === 0x3A || packet.id === 0x07),
+        false,
+        'non-party viewers in another room should not receive player death status from this room'
     );
-    assert.equal(otherRoomStranger.sentPackets.some((packet) => packet.id === 0x3A), false);
 
     const incoming = new BitBuffer(false);
     incoming.writeMethod4(victim.clientEntID);
@@ -920,15 +1014,64 @@ async function testRespawnRequestBroadcastsPartyHpAndDeathState(): Promise<void>
 
     assert.equal(victim.authoritativeCurrentHp, 0);
     assert.equal(victim.entities.get(victim.clientEntID)?.dead, true);
-    assert.deepEqual(
-        parseHpDelta(sameRoomWatcher.sentPackets.find((packet) => packet.id === 0x3A)!.payload),
-        { entityId: victim.clientEntID, delta: -37 },
-        'same-room viewers should receive HP zeroing when a player enters the respawn flow'
+    assertSeedHpSequence(sameRoomWatcher.sentPackets, victim.clientEntID, -37, 'same-room respawn viewers');
+    assertSeedHpSequence(partyOtherRoom.sentPackets, victim.clientEntID, -37, 'party respawn viewers in another room');
+    assert.equal(
+        hasEntityDeathState(sameRoomWatcher.sentPackets, victim.clientEntID),
+        false,
+        'newly seeded respawn viewers should not receive immediate 0x07'
     );
-    assert.deepEqual(
-        parseHpDelta(partyOtherRoom.sentPackets.find((packet) => packet.id === 0x3A)!.payload),
-        { entityId: victim.clientEntID, delta: -37 },
-        'party viewers should receive HP zeroing even when their room id differs'
+    assert.equal(
+        hasEntityDeathState(partyOtherRoom.sentPackets, victim.clientEntID),
+        false,
+        'newly seeded party respawn viewers should not receive immediate 0x07'
+    );
+    assert.equal(
+        otherRoomWatcher.sentPackets.some((packet) => packet.id === 0x3A || packet.id === 0x07),
+        false,
+        'non-party viewers in another room should not receive player death status from this room'
+    );
+}
+
+async function testPlayerDeathStateDoesNotEchoToSameEntitySession(): Promise<void> {
+    const victim = createFakeClient(348, 'VictimSameEntity', 2);
+    const duplicateSession = createFakeClient(349, 'VictimSameEntityMirror', 2);
+    const sameRoomWatcher = createFakeClient(350, 'WatcherSameEntity', 2);
+
+    duplicateSession.clientEntID = victim.clientEntID;
+
+    attachPlayerEntity(victim);
+    attachPlayerEntity(duplicateSession);
+    attachPlayerEntity(sameRoomWatcher);
+
+    const npc = {
+        id: 930050,
+        isPlayer: false,
+        team: EntityTeam.ENEMY,
+        roomId: victim.currentRoomId,
+        entState: EntityState.ACTIVE,
+        dead: false,
+        hp: 100,
+        maxHp: 100
+    };
+    GlobalState.levelEntities.get(getClientLevelScope(victim as never))?.set(npc.id, npc);
+
+    GlobalState.sessionsByToken.set(victim.token, victim as never);
+    GlobalState.sessionsByToken.set(duplicateSession.token, duplicateSession as never);
+    GlobalState.sessionsByToken.set(sameRoomWatcher.token, sameRoomWatcher as never);
+    sameRoomWatcher.knownEntityIds.add(victim.clientEntID);
+
+    await CombatHandler.handlePowerHit(victim as never, buildPowerHitPayload(victim.clientEntID, npc.id, 120, 55));
+
+    assert.equal(
+        duplicateSession.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            return parseEntityState(packet.payload).entityId === duplicateSession.clientEntID;
+        }),
+        false,
+        'a session must not receive a 0x07 state echo for its own player entity'
     );
     assert.equal(
         sameRoomWatcher.sentPackets.some((packet) => {
@@ -939,23 +1082,51 @@ async function testRespawnRequestBroadcastsPartyHpAndDeathState(): Promise<void>
             return state.entityId === victim.clientEntID && state.entState === EntityState.DEAD;
         }),
         true,
-        'same-room viewers should receive the death state from the respawn flow'
+        'other same-room viewers should still receive the player death state'
+    );
+}
+
+async function testRelayedIncrementalStateDoesNotEchoRecipientOwnEntity(): Promise<void> {
+    const sender = createFakeClient(351, 'RelaySender', 2);
+    const recipient = createFakeClient(352, 'RelayRecipient', 2);
+    const watcher = createFakeClient(353, 'RelayWatcher', 2);
+
+    attachPlayerEntity(sender);
+    attachPlayerEntity(recipient);
+    attachPlayerEntity(watcher);
+    sender.entities.set(recipient.clientEntID, buildPlayerEntity(recipient));
+    sender.knownEntityIds.add(recipient.clientEntID);
+    watcher.knownEntityIds.add(recipient.clientEntID);
+
+    GlobalState.sessionsByToken.set(sender.token, sender as never);
+    GlobalState.sessionsByToken.set(recipient.token, recipient as never);
+    GlobalState.sessionsByToken.set(watcher.token, watcher as never);
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        sender as never,
+        buildIncrementalStatePayload(recipient.clientEntID, EntityState.DEAD)
+    );
+
+    assert.equal(
+        recipient.sentPackets.some((packet) => {
+            if (packet.id !== 0x07) {
+                return false;
+            }
+            return parseEntityState(packet.payload).entityId === recipient.clientEntID;
+        }),
+        false,
+        'relayed incremental updates must not be sent back to the client that owns that entity id'
     );
     assert.equal(
-        partyOtherRoom.sentPackets.some((packet) => {
+        watcher.sentPackets.some((packet) => {
             if (packet.id !== 0x07) {
                 return false;
             }
             const state = parseEntityState(packet.payload);
-            return state.entityId === victim.clientEntID && state.entState === EntityState.DEAD;
+            return state.entityId === recipient.clientEntID && state.entState === EntityState.DEAD;
         }),
         true,
-        'party viewers should receive the death state even when their room id differs'
-    );
-    assert.equal(
-        otherRoomWatcher.sentPackets.some((packet) => packet.id === 0x3A || packet.id === 0x07),
-        false,
-        'non-party viewers in another room should not receive player death status from this room'
+        'other viewers should still receive the relayed incremental state'
     );
 }
 
@@ -1057,24 +1228,186 @@ async function testPartySharedDungeonDestroyKeepsJoinerDeathState(): Promise<voi
 
     assert.equal(
         watcher.sentPackets.some((packet) => packet.id === 0x0D && parseDestroyEntityId(packet.payload) === hostile.id),
-        false,
-        'party joiners should not receive immediate remove packets for shared dungeon enemy death'
+        true,
+        'party joiners should receive safe cleanup for shared dungeon enemy death'
     );
     assert.equal(
-        watcher.sentPackets.some((packet) => {
-            if (packet.id !== 0x07) {
-                return false;
-            }
-            const state = parseEntityState(packet.payload);
-            return state.entityId === hostile.id && state.entState === EntityState.DEAD;
-        }),
-        true,
-        'party joiners should receive a dead state so the enemy dies locally instead of disappearing'
+        watcher.sentPackets.some((packet) => packet.id === 0x07),
+        false,
+        'party joiners should not receive crash-prone 0x07 death states for shared client-spawn enemies'
     );
     assert.equal(watcher.knownEntityIds.has(hostile.id), false);
     assert.equal(watcher.entities.has(hostile.id), true, 'joiner local enemy record should remain for the death display');
     assert.equal(watcher.entities.get(hostile.id)?.dead, true);
     assert.equal(watcher.entities.get(hostile.id)?.entState, EntityState.DEAD);
+}
+
+async function testPartySharedDungeonDestroyUsesKnownCanonicalWithoutLocalCache(): Promise<void> {
+    const sender = createFakeClient(405, 'Alpha', 2);
+    const watcher = createFakeClient(406, 'Beta', 2);
+
+    sender.currentLevel = 'TutorialDungeon';
+    watcher.currentLevel = 'TutorialDungeon';
+
+    attachPlayerEntity(sender);
+    attachPlayerEntity(watcher);
+    GlobalState.partyByMember.set('alpha', 77);
+    GlobalState.partyByMember.set('beta', 77);
+
+    const hostile = {
+        id: 9360,
+        name: 'SharedGoblin',
+        isPlayer: false,
+        x: 12,
+        y: 16,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: sender.token,
+        ownerPartyId: 77,
+        summonerId: sender.clientEntID,
+        roomId: sender.currentRoomId,
+        hp: 100,
+        maxHp: 100
+    };
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
+    sender.entities.set(hostile.id, hostile);
+    sender.knownEntityIds.add(hostile.id);
+    watcher.knownEntityIds.add(hostile.id);
+
+    GlobalState.sessionsByToken.set(sender.token, sender as never);
+    GlobalState.sessionsByToken.set(watcher.token, watcher as never);
+
+    await CombatHandler.handleEntityDestroy(sender as never, buildDestroyEntityPayload(hostile.id));
+
+    assert.equal(
+        watcher.sentPackets.some((packet) => packet.id === 0x07),
+        false,
+        'known same-id shared hostiles should not receive crash-prone 0x07 death states'
+    );
+    assert.equal(
+        watcher.sentPackets.some((packet) => packet.id === 0x0D && parseDestroyEntityId(packet.payload) === hostile.id),
+        true,
+        'known same-id shared hostiles should receive safe cleanup even without a server-side local cache entry'
+    );
+    assert.equal(watcher.entities.get(hostile.id)?.dead, true);
+    assert.equal(watcher.entities.get(hostile.id)?.entState, EntityState.DEAD);
+}
+
+async function testSharedDungeonHostileDefeatFindsUnaliasedViewerLocalDuplicate(): Promise<void> {
+    const sender = createFakeClient(407, 'Alpha', 2);
+    const watcher = createFakeClient(408, 'Beta', 2);
+
+    sender.currentLevel = 'TutorialDungeon';
+    watcher.currentLevel = 'TutorialDungeon';
+
+    attachPlayerEntity(sender);
+    attachPlayerEntity(watcher);
+    GlobalState.partyByMember.set('alpha', 78);
+    GlobalState.partyByMember.set('beta', 78);
+
+    const hostile = {
+        id: 9370,
+        name: 'SharedGoblin',
+        isPlayer: false,
+        x: 120,
+        y: 220,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: sender.token,
+        ownerPartyId: 78,
+        summonerId: sender.clientEntID,
+        roomId: sender.currentRoomId,
+        hp: 100,
+        maxHp: 100
+    };
+    const watcherLocalId = 8370;
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
+    sender.entities.set(hostile.id, hostile);
+    sender.knownEntityIds.add(hostile.id);
+    watcher.entities.set(watcherLocalId, {
+        ...hostile,
+        id: watcherLocalId,
+        ownerToken: watcher.token,
+        ownerPartyId: 78,
+        x: 123,
+        y: 218
+    });
+
+    GlobalState.sessionsByToken.set(sender.token, sender as never);
+    GlobalState.sessionsByToken.set(watcher.token, watcher as never);
+
+    await CombatHandler.handleEntityDestroy(sender as never, buildDestroyEntityPayload(hostile.id));
+
+    assert.equal(watcher.entityIdAliases.get(watcherLocalId), hostile.id);
+    assert.equal(
+        watcher.sentPackets.some((packet) => packet.id === 0x07),
+        false,
+        'unaliased local duplicates should not receive crash-prone 0x07 death states after fallback matching'
+    );
+    const destroyPacket = watcher.sentPackets.find((packet) => packet.id === 0x0D);
+    assert.ok(destroyPacket, 'fallback-matched local duplicate should receive destroy cleanup');
+    assert.equal(parseDestroyEntityId(destroyPacket!.payload), watcherLocalId);
+    assert.equal(watcher.entities.get(watcherLocalId)?.dead, true);
+}
+
+async function testSharedDungeonHostileDeadStateRelaysSafeCleanupToLocalAlias(): Promise<void> {
+    const sender = createFakeClient(409, 'Alpha', 2);
+    const watcher = createFakeClient(410, 'Beta', 2);
+
+    sender.currentLevel = 'TutorialDungeon';
+    watcher.currentLevel = 'TutorialDungeon';
+
+    attachPlayerEntity(sender);
+    attachPlayerEntity(watcher);
+    GlobalState.partyByMember.set('alpha', 79);
+    GlobalState.partyByMember.set('beta', 79);
+
+    const hostile = {
+        id: 9380,
+        name: 'SharedGoblin',
+        isPlayer: false,
+        x: 120,
+        y: 220,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: sender.token,
+        ownerPartyId: 79,
+        summonerId: sender.clientEntID,
+        roomId: sender.currentRoomId,
+        hp: 100,
+        maxHp: 100
+    };
+    const watcherLocalId = 8380;
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
+    sender.entities.set(hostile.id, hostile);
+    sender.knownEntityIds.add(hostile.id);
+    watcher.entityIdAliases.set(watcherLocalId, hostile.id);
+    watcher.knownEntityIds.add(hostile.id);
+    watcher.entities.set(watcherLocalId, { ...hostile, id: watcherLocalId, sharedCanonicalId: hostile.id });
+
+    GlobalState.sessionsByToken.set(sender.token, sender as never);
+    GlobalState.sessionsByToken.set(watcher.token, watcher as never);
+
+    await LevelHandler.handleEntityIncrementalUpdate(
+        sender as never,
+        buildIncrementalStatePayload(hostile.id, EntityState.DEAD)
+    );
+
+    assert.equal(
+        watcher.sentPackets.some((packet) => packet.id === 0x07),
+        false,
+        'dead-state relay for aliased shared hostiles should use safe cleanup instead of 0x07'
+    );
+    const destroyPacket = watcher.sentPackets.find((packet) => packet.id === 0x0D);
+    assert.ok(destroyPacket, 'client-reported dead state should destroy the teammate local alias');
+    assert.equal(parseDestroyEntityId(destroyPacket!.payload), watcherLocalId);
+    assert.equal(watcher.entities.get(watcherLocalId)?.dead, true);
 }
 
 async function testOutdoorEntityDestroyStaysOwnerLocal(): Promise<void> {
@@ -1240,6 +1573,64 @@ async function testAliasedDungeonHostileHitUsesCanonicalEntity(): Promise<void> 
     );
 }
 
+async function testSharedDungeonHostileHitFindsUnaliasedViewerLocalDuplicate(): Promise<void> {
+    const sender = createFakeClient(525, 'Alpha', 1);
+    const watcher = createFakeClient(526, 'Beta', 1);
+
+    sender.currentLevel = 'TutorialDungeon';
+    watcher.currentLevel = 'TutorialDungeon';
+
+    attachPlayerEntity(sender);
+    attachPlayerEntity(watcher);
+
+    GlobalState.partyByMember.set('alpha', 18);
+    GlobalState.partyByMember.set('beta', 18);
+
+    const hostile = {
+        id: 9751,
+        name: 'SharedGoblin',
+        isPlayer: false,
+        x: 200,
+        y: 140,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: sender.token,
+        ownerPartyId: 18,
+        summonerId: sender.clientEntID,
+        roomId: sender.currentRoomId,
+        hp: 100,
+        maxHp: 100
+    };
+    const watcherLocalId = 8751;
+    GlobalState.levelEntities.get(getClientLevelScope(sender as never))?.set(hostile.id, hostile);
+    sender.entities.set(hostile.id, hostile);
+    sender.knownEntityIds.add(hostile.id);
+    watcher.entities.set(watcherLocalId, {
+        ...hostile,
+        id: watcherLocalId,
+        ownerToken: watcher.token,
+        ownerPartyId: 18,
+        x: 202,
+        y: 142
+    });
+
+    GlobalState.sessionsByToken.set(sender.token, sender as never);
+    GlobalState.sessionsByToken.set(watcher.token, watcher as never);
+
+    await CombatHandler.handlePowerHit(sender as never, buildPowerHitPayload(hostile.id, sender.clientEntID, 15, 77));
+
+    assert.equal(watcher.entityIdAliases.get(watcherLocalId), hostile.id);
+    const relayedHit = watcher.sentPackets.find((packet) => packet.id === 0x0A);
+    assert.ok(relayedHit, 'party peer should receive damage after fallback-matching its local duplicate');
+    assert.deepEqual(
+        parsePowerHitIds(relayedHit!.payload),
+        { targetId: watcherLocalId, sourceId: sender.clientEntID, damage: 15 },
+        'damage relay should target the viewer local hostile id'
+    );
+}
+
 async function testSharedDungeonHostileCombatWaitsForJoinerAdoption(): Promise<void> {
     const owner = createFakeClient(530, 'Alpha', 1);
     const joiner = createFakeClient(531, 'Beta', 1);
@@ -1298,7 +1689,7 @@ async function testSharedDungeonHostileCombatWaitsForJoinerAdoption(): Promise<v
     );
 }
 
-async function testSharedDungeonHostileDefeatUsesViewerLocalId(): Promise<void> {
+async function testSharedDungeonHostileDefeatDestroysReadyViewerLocalId(): Promise<void> {
     const owner = createFakeClient(540, 'Alpha', 1);
     const joiner = createFakeClient(541, 'Beta', 1);
 
@@ -1332,18 +1723,78 @@ async function testSharedDungeonHostileDefeatUsesViewerLocalId(): Promise<void> 
     joiner.entityIdAliases.set(8901, hostile.id);
     joiner.knownEntityIds.add(hostile.id);
     joiner.entities.set(8901, { ...hostile, id: 8901, sharedCanonicalId: hostile.id });
+    EntityHandler.markSharedEntityRemoteUpdatesReady(joiner as never, hostile.id);
 
     GlobalState.sessionsByToken.set(owner.token, owner as never);
     GlobalState.sessionsByToken.set(joiner.token, joiner as never);
 
     await CombatHandler.handleEntityDestroy(owner as never, buildDestroyEntityPayload(hostile.id));
 
-    const defeatState = joiner.sentPackets.find((packet) => packet.id === 0x07);
-    assert.ok(defeatState, 'joiner should receive a local death state for the shared hostile');
-    assert.deepEqual(
-        parseEntityState(defeatState!.payload),
-        { entityId: 8901, entState: EntityState.DEAD },
-        'shared hostile death state should use the joiner local enemy id'
+    assert.equal(
+        joiner.sentPackets.some((packet) => packet.id === 0x07),
+        false,
+        'ready shared hostile local aliases should not receive crash-prone 0x07 death states'
+    );
+    const destroyPacket = joiner.sentPackets.find((packet) => packet.id === 0x0D);
+    assert.ok(destroyPacket, 'ready shared hostile local aliases should receive a safe destroy cleanup');
+    assert.equal(
+        parseDestroyEntityId(destroyPacket!.payload),
+        8901,
+        'destroy cleanup should use the viewer local hostile id'
+    );
+}
+
+async function testSharedDungeonHostileDefeatDestroysUnreadyViewerLocalId(): Promise<void> {
+    const owner = createFakeClient(542, 'Alpha', 1);
+    const joiner = createFakeClient(543, 'Beta', 1);
+
+    owner.currentLevel = 'TutorialDungeon';
+    joiner.currentLevel = 'TutorialDungeon';
+
+    attachPlayerEntity(owner);
+    attachPlayerEntity(joiner);
+
+    GlobalState.partyByMember.set('alpha', 11);
+    GlobalState.partyByMember.set('beta', 11);
+
+    const hostile = {
+        id: 9951,
+        name: 'SharedGoblin',
+        isPlayer: false,
+        x: 10,
+        y: 15,
+        v: 0,
+        team: 2,
+        entState: EntityState.ACTIVE,
+        clientSpawned: true,
+        ownerToken: owner.token,
+        ownerPartyId: 11,
+        roomId: owner.currentRoomId,
+        hp: 100,
+        maxHp: 100
+    };
+    GlobalState.levelEntities.get(getClientLevelScope(owner as never))?.set(hostile.id, hostile);
+    owner.knownEntityIds.add(hostile.id);
+    joiner.entityIdAliases.set(8951, hostile.id);
+    joiner.knownEntityIds.add(hostile.id);
+    joiner.entities.set(8951, { ...hostile, id: 8951, sharedCanonicalId: hostile.id });
+
+    GlobalState.sessionsByToken.set(owner.token, owner as never);
+    GlobalState.sessionsByToken.set(joiner.token, joiner as never);
+
+    await CombatHandler.handleEntityDestroy(owner as never, buildDestroyEntityPayload(hostile.id));
+
+    assert.equal(
+        joiner.sentPackets.some((packet) => packet.id === 0x07),
+        false,
+        'unready shared hostile local aliases should not receive a 0x07 death state'
+    );
+    const destroyPacket = joiner.sentPackets.find((packet) => packet.id === 0x0D);
+    assert.ok(destroyPacket, 'unready shared hostile local aliases should receive a safe destroy cleanup');
+    assert.equal(
+        parseDestroyEntityId(destroyPacket!.payload),
+        8951,
+        'destroy cleanup should use the viewer local hostile id'
     );
 }
 
@@ -1464,6 +1915,24 @@ async function main(): Promise<void> {
         GlobalState.entityLifeNonces.clear();
         GlobalState.entityLastRewardNonces.clear();
 
+        await testPlayerDeathStateDoesNotEchoToSameEntitySession();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testRelayedIncrementalStateDoesNotEchoRecipientOwnEntity();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
         await testHostileDeathStateDoesNotEchoBackToLocalVictim();
 
         GlobalState.sessionsByToken.clear();
@@ -1474,6 +1943,33 @@ async function main(): Promise<void> {
         GlobalState.entityLastRewardNonces.clear();
 
         await testPartySharedDungeonDestroyKeepsJoinerDeathState();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testPartySharedDungeonDestroyUsesKnownCanonicalWithoutLocalCache();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testSharedDungeonHostileDefeatFindsUnaliasedViewerLocalDuplicate();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testSharedDungeonHostileDeadStateRelaysSafeCleanupToLocalAlias();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.levelEntities.clear();
@@ -1509,6 +2005,15 @@ async function main(): Promise<void> {
         GlobalState.entityLifeNonces.clear();
         GlobalState.entityLastRewardNonces.clear();
 
+        await testSharedDungeonHostileHitFindsUnaliasedViewerLocalDuplicate();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
         await testSharedDungeonHostileCombatWaitsForJoinerAdoption();
 
         GlobalState.sessionsByToken.clear();
@@ -1518,7 +2023,16 @@ async function main(): Promise<void> {
         GlobalState.entityLifeNonces.clear();
         GlobalState.entityLastRewardNonces.clear();
 
-        await testSharedDungeonHostileDefeatUsesViewerLocalId();
+        await testSharedDungeonHostileDefeatDestroysReadyViewerLocalId();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelEntities.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.combatContributions.clear();
+        GlobalState.entityLifeNonces.clear();
+        GlobalState.entityLastRewardNonces.clear();
+
+        await testSharedDungeonHostileDefeatDestroysUnreadyViewerLocalId();
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.levelEntities = levelEntities;

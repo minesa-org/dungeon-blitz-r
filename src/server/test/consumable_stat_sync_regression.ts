@@ -306,8 +306,22 @@ function testCombatStatSyncUpdatesAuthoritativeHealth(): void {
     CommandHandler.handleSendCombatStats(client as never, buildCombatStatsPayload(123, 234, 9876, 3, 12));
 
     assert.equal(client.authoritativeMaxHp, 9876, 'combat stat sync should update the server max HP');
-    assert.equal(client.authoritativeCurrentHp, 100, 'combat stat sync should clamp current HP against the new max HP');
+    assert.equal(client.authoritativeCurrentHp, 9876, 'initial combat stat sync should preserve the client full-health ratio');
     assert.equal(client.entities.get(4001)?.maxHp, 9876, 'combat stat sync should refresh the live entity max HP');
+    assert.equal(client.entities.get(4001)?.hp, 9876, 'combat stat sync should refresh the live entity current HP');
+}
+
+function testCombatStatSyncPreservesMissingHealthAcrossMaxHpIncrease(): void {
+    const client = createClient();
+    client.authoritativeMaxHp = 1000;
+    client.authoritativeCurrentHp = 650;
+    client.entities.set(4001, { id: 4001, x: 12, y: 24, activeConsumableId: 0, hp: 650, maxHp: 1000 });
+
+    CommandHandler.handleSendCombatStats(client as never, buildCombatStatsPayload(123, 234, 1200, 3, 12));
+
+    assert.equal(client.authoritativeMaxHp, 1200, 'combat stat sync should accept the increased max HP');
+    assert.equal(client.authoritativeCurrentHp, 850, 'combat stat sync should add max HP gains to current HP like the Flash client');
+    assert.equal(client.entities.get(4001)?.hp, 850, 'live entity HP should match authoritative current HP');
   }
 
 async function main(): Promise<void> {
@@ -322,6 +336,7 @@ async function main(): Promise<void> {
         await testDungeonHeartbeatMigratesAlreadyActivePotionIntoChargeModel();
         await testActiveDungeonPotionBonusesApplyToRewardMath();
         testCombatStatSyncUpdatesAuthoritativeHealth();
+        testCombatStatSyncPreservesMissingHealthAcrossMaxHpIncrease();
         console.log('consumable_stat_sync_regression: ok');
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;

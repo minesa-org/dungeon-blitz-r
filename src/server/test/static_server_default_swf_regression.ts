@@ -20,6 +20,18 @@ function testStaticServerServesSingleSwfByDefault(): void {
     assert.equal(fs.existsSync(selectedSwfPath), true);
 }
 
+function testStaticServerServesManifestForAdvertisedFlashVersion(): void {
+    const server = new StaticServer();
+    const selectedSwfUrl = (server as any).getSelectedSwfUrl() as string;
+    const flashVersion = new URL(`http://localhost${selectedSwfUrl}`).searchParams.get('fv') ?? '';
+    const manifestPath = (server as any).getMasterFileListPathForVersion(flashVersion) as string;
+
+    assert.equal(flashVersion, 'cbw');
+    assert.equal(path.basename(manifestPath), 'masterFileList.xml');
+    assert.equal(path.basename(path.dirname(manifestPath)), 'cbq');
+    assert.equal(fs.existsSync(manifestPath), true);
+}
+
 function testStaticServerSelectsLocalizedGameSwz(): void {
     const server = new StaticServer();
     const englishPath = (server as any).getGameSwzPathForLocale('en') as string;
@@ -80,6 +92,19 @@ function testBrowserEmbedFillsViewportWithoutCropping(): void {
     );
 }
 
+function testStaticServerFallsBackVersionedBootXml(): void {
+    const server = new StaticServer();
+    const manifestPath = (server as any).getVersionedBootXmlPath('cbw', 'masterFileList.xml') as string;
+    const devSettingsPath = (server as any).getVersionedBootXmlPath('cbw', 'devSettings.xml') as string;
+
+    assert.equal(path.basename(path.dirname(manifestPath)), 'cbq');
+    assert.equal(path.basename(manifestPath), 'masterFileList.xml');
+    assert.equal(path.basename(path.dirname(devSettingsPath)), 'cbq');
+    assert.equal(path.basename(devSettingsPath), 'devSettings.xml');
+    assert.equal(fs.existsSync(manifestPath), true);
+    assert.equal(fs.existsSync(devSettingsPath), true);
+}
+
 function testStaticServerResolvesGameSwzLocaleFromRequest(): void {
     const server = new StaticServer();
     const queryRequest = {
@@ -131,9 +156,11 @@ function testStaticServerBuildsLocalizedSwfTextByLocale(): void {
 
 function main(): void {
     testStaticServerServesSingleSwfByDefault();
+    testStaticServerServesManifestForAdvertisedFlashVersion();
     testStaticServerSelectsLocalizedGameSwz();
     testStaticServerAliasesCurrentFlashVersionManifest();
     testBrowserEmbedFillsViewportWithoutCropping();
+    testStaticServerFallsBackVersionedBootXml();
     testStaticServerResolvesGameSwzLocaleFromRequest();
     testStaticServerBuildsLocalizedSwfTextByLocale();
     console.log('static_server_default_swf_regression: ok');

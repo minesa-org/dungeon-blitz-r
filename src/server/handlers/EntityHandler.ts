@@ -4,7 +4,7 @@ import { Client, clearClientSpawnFallbackTimer, createKeepTutorialState } from '
 import { BitReader } from '../network/protocol/bitReader';
 import { DebugConfig } from '../core/Debug';
 import { GlobalState } from '../core/GlobalState';
-import { Entity, EntityProps, EntityState } from '../core/Entity';
+import { Entity, EntityProps, EntityState, EntityTeam } from '../core/Entity';
 import { LevelConfig } from '../core/LevelConfig';
 import { PetHandler } from './PetHandler';
 import { BuildingHandler } from './BuildingHandler';
@@ -445,6 +445,15 @@ export class EntityHandler {
         return dynamicClient.sharedEntityRemoteUpdateDeferredIds;
     }
 
+    private static getReadyRemoteUpdateIds(client: Client): Set<number> {
+        const dynamicClient = client as Client & { sharedEntityRemoteUpdateReadyIds?: Set<number> };
+        if (!dynamicClient.sharedEntityRemoteUpdateReadyIds) {
+            dynamicClient.sharedEntityRemoteUpdateReadyIds = new Set<number>();
+        }
+
+        return dynamicClient.sharedEntityRemoteUpdateReadyIds;
+    }
+
     private static setSharedEntityRemoteUpdatesDeferred(
         client: Client,
         canonicalEntityId: number,
@@ -458,13 +467,30 @@ export class EntityHandler {
         const deferredIds = EntityHandler.getDeferredRemoteUpdateIds(client);
         if (deferred) {
             deferredIds.add(canonicalId);
+            EntityHandler.getReadyRemoteUpdateIds(client).delete(canonicalId);
         } else {
             deferredIds.delete(canonicalId);
         }
     }
 
     static markSharedEntityRemoteUpdatesReady(client: Client, canonicalEntityId: number): void {
-        EntityHandler.setSharedEntityRemoteUpdatesDeferred(client, canonicalEntityId, false);
+        const canonicalId = Math.max(0, Math.round(Number(canonicalEntityId) || 0));
+        if (canonicalId <= 0) {
+            return;
+        }
+
+        EntityHandler.setSharedEntityRemoteUpdatesDeferred(client, canonicalId, false);
+        EntityHandler.getReadyRemoteUpdateIds(client).add(canonicalId);
+    }
+
+    static hasSharedEntityRemoteUpdatesReady(client: Client, canonicalEntityId: number): boolean {
+        const canonicalId = Math.max(0, Math.round(Number(canonicalEntityId) || 0));
+        if (canonicalId <= 0) {
+            return false;
+        }
+
+        return EntityHandler.getReadyRemoteUpdateIds(client).has(canonicalId) &&
+            !EntityHandler.getDeferredRemoteUpdateIds(client).has(canonicalId);
     }
 
     static resolveEntityLocalId(client: Client, canonicalEntityId: number): number {
@@ -480,6 +506,100 @@ export class EntityHandler {
         }
 
         return canonicalId;
+    }
+
+    static resolvePartySharedClientSpawnLocalEntity(
+        client: Client,
+        levelName: string | null | undefined,
+        canonicalEntityId: number,
+        canonicalEntity: any
+    ): { entityId: number; entity: any; usesLocalAlias: boolean } | null {
+        const canonicalId = Math.max(0, Math.round(Number(canonicalEntityId) || 0));
+        const resolvedLevelName = LevelConfig.normalizeLevelName(levelName || client.currentLevel) || String(levelName || client.currentLevel || '');
+        if (
+            canonicalId <= 0 ||
+            !resolvedLevelName ||
+            !EntityHandler.isPartySharedClientSpawnHostile(resolvedLevelName, canonicalEntity)
+        ) {
+            return null;
+        }
+
+        const localId = EntityHandler.resolveEntityLocalId(client, canonicalId);
+        const directEntity = client.entities.get(localId) ?? client.entities.get(canonicalId);
+        if (EntityHandler.isPartySharedClientSpawnHostile(resolvedLevelName, directEntity)) {
+            return {
+                entityId: localId,
+                entity: directEntity,
+                usesLocalAlias: localId !== canonicalId
+            };
+        }
+
+        if (EntityHandler.canClientResolveCanonicalEntity(client, canonicalId)) {
+            return {
+                entityId: localId,
+                entity: {
+                    ...canonicalEntity,
+                    id: localId
+                },
+                usesLocalAlias: localId !== canonicalId
+            };
+        }
+
+        const targetName = EntityHandler.normalizeIdentityName(canonicalEntity?.name);
+        const targetTeam = Number(canonicalEntity?.team ?? 0);
+        const targetRoomId = Number.isFinite(Number(canonicalEntity?.roomId)) ? Number(canonicalEntity.roomId) : -1;
+        let bestMatchId = 0;
+        let bestMatchEntity: any = null;
+        let bestRoomPenalty = Number.POSITIVE_INFINITY;
+        let bestDistanceSq = Number.POSITIVE_INFINITY;
+
+        for (const [candidateIdRaw, candidate] of client.entities.entries()) {
+            const candidateId = Math.max(0, Math.round(Number(candidateIdRaw) || 0));
+            if (
+                candidateId <= 0 ||
+                candidateId === client.clientEntID ||
+                !EntityHandler.isPartySharedClientSpawnHostile(resolvedLevelName, candidate)
+            ) {
+                continue;
+            }
+            if (EntityHandler.normalizeIdentityName(candidate?.name) !== targetName) {
+                continue;
+            }
+            if (Number(candidate?.team ?? 0) !== targetTeam) {
+                continue;
+            }
+
+            const candidateRoomId = Number.isFinite(Number(candidate?.roomId)) ? Number(candidate.roomId) : -1;
+            const roomPenalty = sharesRoomIds(targetRoomId, candidateRoomId) ? 0 : 1;
+            const dx = Number(candidate?.x ?? 0) - Number(canonicalEntity?.x ?? 0);
+            const dy = Number(candidate?.y ?? 0) - Number(canonicalEntity?.y ?? 0);
+            const distanceSq = (dx * dx) + (dy * dy);
+            if (
+                roomPenalty < bestRoomPenalty ||
+                (roomPenalty === bestRoomPenalty && distanceSq < bestDistanceSq)
+            ) {
+                bestMatchId = candidateId;
+                bestMatchEntity = candidate;
+                bestRoomPenalty = roomPenalty;
+                bestDistanceSq = distanceSq;
+            }
+        }
+
+        if (!bestMatchEntity || bestMatchId <= 0) {
+            return null;
+        }
+
+        if (bestMatchId !== canonicalId) {
+            EntityHandler.rememberEntityAlias(client, bestMatchId, canonicalId);
+            client.knownEntityIds?.delete(bestMatchId);
+        }
+        client.knownEntityIds?.add(canonicalId);
+
+        return {
+            entityId: bestMatchId,
+            entity: bestMatchEntity,
+            usesLocalAlias: bestMatchId !== canonicalId
+        };
     }
 
     static canClientResolveCanonicalEntity(client: Client, canonicalEntityId: number): boolean {
@@ -509,6 +629,11 @@ export class EntityHandler {
         const canonicalId = Math.max(0, Math.round(Number(canonicalEntityId) || 0));
         if (canonicalId <= 0) {
             return true;
+        }
+
+        const localId = EntityHandler.resolveEntityLocalId(client, canonicalId);
+        if (canonicalId === client.clientEntID || localId === client.clientEntID) {
+            return false;
         }
 
         if (!EntityHandler.canClientResolveCanonicalEntity(client, canonicalId)) {
@@ -1240,9 +1365,25 @@ export class EntityHandler {
         }
 
         const current = client.entities.get(entityId) ?? EntityHandler.getLevelMapForClient(client)?.get(entityId) ?? {};
+        const maxHp = Math.max(
+            1,
+            Math.round(Number(current.maxHp ?? current.maxHP ?? client.authoritativeMaxHp ?? 0) || 1)
+        );
+        const currentHp = Math.max(
+            0,
+            Math.min(
+                maxHp,
+                Math.round(Number(current.hp ?? current.currHP ?? client.authoritativeCurrentHp ?? maxHp) || 0)
+            )
+        );
+        const healthDelta = Math.max(0, maxHp - currentHp);
         const playerEntity = Entity.fromCharacter(entityId, client.character, {
             ...current,
-            roomId: client.currentRoomId
+            roomId: client.currentRoomId,
+            hp: currentHp,
+            maxHp,
+            healthDelta,
+            health_delta: healthDelta
         });
         const persistedEntity = {
             ...current,
@@ -1250,7 +1391,11 @@ export class EntityHandler {
             clientSpawned: false,
             ownerToken: client.token || 0,
             ownerUserId: client.userId || 0,
-            roomId: client.currentRoomId
+            roomId: client.currentRoomId,
+            hp: currentHp,
+            maxHp,
+            healthDelta,
+            health_delta: healthDelta
         };
 
         client.entities.set(entityId, persistedEntity);
@@ -1398,8 +1543,9 @@ export class EntityHandler {
         const velocityX = br.readMethod24();
         let entName = br.readMethod26();
 
-        const team = br.readMethod20(Entity.TEAM_BITS);
+        const rawTeam = br.readMethod20(Entity.TEAM_BITS);
         const isPlayer = br.readMethod15(); // bool
+        const team = isPlayer ? EntityTeam.PLAYER : rawTeam;
         const yOffset = br.readMethod706();
 
         // Optional Cue Data

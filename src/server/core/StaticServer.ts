@@ -47,6 +47,7 @@ export class StaticServer {
     private readonly discordAccountLinks: DiscordAccountLinkService;
     private readonly flashVersion = 'cbw';
     private readonly gameVersion = 'cbv';
+    private readonly bootXmlFallbackVersion = 'cbq';
 
     constructor(
         port: number = Config.STATIC_PORT,
@@ -87,6 +88,10 @@ export class StaticServer {
 
     private getSelectedSwfUrl(): string {
         return `/p/cbp/DungeonBlitz.swf?fv=${this.flashVersion}&gv=${this.gameVersion}`;
+    }
+
+    private getMasterFileListPathForVersion(version: string): string {
+        return this.getVersionedBootXmlPath(version, 'masterFileList.xml');
     }
 
     private normalizeLocale(value: unknown): 'en' | 'tr' | null {
@@ -189,7 +194,19 @@ export class StaticServer {
             return versionedPath;
         }
 
-        return path.join(this.contentDir, 'p', 'cbq', normalizedAssetPath);
+        return path.join(this.contentDir, 'p', this.bootXmlFallbackVersion, normalizedAssetPath);
+    }
+
+    private getVersionedBootXmlPath(version: string, fileName: 'masterFileList.xml' | 'devSettings.xml'): string {
+        const normalizedVersion = String(version ?? '').trim();
+        if (/^[A-Za-z0-9_-]+$/.test(normalizedVersion)) {
+            const requestedPath = path.join(this.contentDir, 'p', normalizedVersion, fileName);
+            if (fs.existsSync(requestedPath)) {
+                return requestedPath;
+            }
+        }
+
+        return path.join(this.contentDir, 'p', this.bootXmlFallbackVersion, fileName);
     }
 
     private renderDevSettings(devSettingsPath: string): string {
@@ -214,8 +231,6 @@ export class StaticServer {
     }
 
     private setupRoutes(): void {
-        const devSettingsPath = path.join(this.contentDir, 'p', 'cbq', 'devSettings.xml');
-
         this.app.use(express.json({ limit: '64kb' }));
 
         this.app.use((req, res, next) => {
@@ -290,7 +305,14 @@ export class StaticServer {
             res.send(this.getSelectedSwfBuffer(locale));
         });
 
-        this.app.get('/p/cbq/devSettings.xml', (_req, res) => {
+        this.app.get('/p/:version/masterFileList.xml', (req, res) => {
+            const manifestPath = this.getVersionedBootXmlPath(req.params.version ?? '', 'masterFileList.xml');
+            res.type('application/xml');
+            res.sendFile(manifestPath);
+        });
+
+        this.app.get('/p/:version/devSettings.xml', (req, res) => {
+            const devSettingsPath = this.getVersionedBootXmlPath(req.params.version ?? '', 'devSettings.xml');
             res.type('application/xml');
             res.send(this.renderDevSettings(devSettingsPath));
         });

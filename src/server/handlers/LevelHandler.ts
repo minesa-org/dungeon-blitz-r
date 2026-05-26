@@ -3691,6 +3691,7 @@ export class LevelHandler {
         }
 
         const levelScope = getClientLevelScope(client);
+        let shouldBroadcastScopedQuestProgress = false;
         if (usesSharedDungeonProgress(currentLevel) && levelScope) {
             const sharedState = recomputeSharedDungeonProgress(levelScope);
             if (sharedState) {
@@ -3702,6 +3703,19 @@ export class LevelHandler {
             } else {
                 progress = getSharedDungeonInitialProgress(currentLevel);
             }
+            shouldBroadcastScopedQuestProgress = true;
+        } else if (currentLevel && LevelConfig.isDungeonLevel(currentLevel) && levelScope) {
+            const progressState = getOrCreateSharedDungeonProgressState(levelScope);
+            const previousScopedProgress = LevelHandler.normalizeQuestProgress(progressState?.progress) ?? 0;
+            progress = Math.max(previousScopedProgress, previousProgress, LevelHandler.normalizeQuestProgress(progress) ?? 0);
+            if (progressState) {
+                progressState.progress = progress;
+                const liveAuthorityToken = resolveSharedDungeonProgressAuthorityToken(levelScope);
+                if (liveAuthorityToken > 0) {
+                    progressState.authorityToken = liveAuthorityToken;
+                }
+            }
+            shouldBroadcastScopedQuestProgress = true;
         }
 
         if (client.character) {
@@ -3728,7 +3742,7 @@ export class LevelHandler {
             });
         }
 
-        if (usesSharedDungeonProgress(currentLevel) && levelScope) {
+        if (shouldBroadcastScopedQuestProgress && levelScope) {
             LevelHandler.broadcastSharedDungeonQuestProgress(levelScope, progress);
             return;
         }
@@ -4316,11 +4330,20 @@ export class LevelHandler {
             return;
         }
 
+        const relayEntity = levelEntity ?? ent;
+        if (
+            isEnemyEntity &&
+            effectiveEntState === EntityState.DEAD &&
+            EntityHandler.shouldMirrorClientSpawnEntityToParty(currentLevel, relayEntity)
+        ) {
+            const { CombatHandler } = require('./CombatHandler') as typeof import('./CombatHandler');
+            CombatHandler.relaySharedClientSpawnEntityDefeat(client, getClientLevelScope(client), entityId, relayEntity);
+        }
+
         if (!client.playerSpawned || !client.currentLevel) {
             return;
         }
 
-        const relayEntity = levelEntity ?? ent;
         const relayData = rawEntityId === entityId && effectiveEntState === entState
             ? data
             : LevelHandler.buildEntityIncrementalUpdatePayload(
@@ -4349,6 +4372,10 @@ export class LevelHandler {
             }
 
             const localEntityId = EntityHandler.resolveEntityLocalId(other, entityId);
+            if (entityId === other.clientEntID || localEntityId === other.clientEntID) {
+                continue;
+            }
+
             const outboundData = localEntityId === entityId
                 ? relayData
                 : LevelHandler.buildEntityIncrementalUpdatePayload(
