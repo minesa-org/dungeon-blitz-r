@@ -46,7 +46,7 @@ export class StaticServer {
     private selectedSwfCache: { key: string; buffer: Buffer } | null;
     private readonly discordAccountLinks: DiscordAccountLinkService;
     private readonly flashVersion = 'cbw';
-    private readonly gameVersion = 'cbv';
+    private readonly gameVersion = 'cbw';
 
     constructor(
         port: number = Config.STATIC_PORT,

@@ -16,7 +16,7 @@ function testStaticServerServesSingleSwfByDefault(): void {
     const selectedSwfUrl = (server as any).getSelectedSwfUrl() as string;
 
     assert.equal(path.basename(selectedSwfPath), 'DungeonBlitz.swf');
-    assert.equal(selectedSwfUrl, '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv');
+    assert.equal(selectedSwfUrl, '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw');
     assert.equal(fs.existsSync(selectedSwfPath), true);
 }
 
@@ -40,43 +40,77 @@ function testStaticServerAliasesCurrentFlashVersionManifest(): void {
     assert.equal(fs.existsSync(manifestPath), true);
 }
 
-function testBrowserEmbedFillsViewportWithoutCropping(): void {
+function testBrowserEmbedKeepsGameAspectRatioWithoutOverflow(): void {
     const server = new StaticServer();
     const contentDir = (server as any).contentDir as string;
     const indexHtml = fs.readFileSync(path.join(contentDir, 'index.html'), 'utf8');
-    const embedRule = indexHtml.match(/#game-container,\s*\r?\n\s*#DungeonBlitz,\s*\r?\n\s*object#DungeonBlitz,\s*\r?\n\s*embed#DungeonBlitz\s*\{([\s\S]*?)\n    \}/);
+    const shellRule = indexHtml.match(/#game-shell\s*\{([\s\S]*?)\n    \}/);
+    const stageRule = indexHtml.match(/#game-stage,\s*\r?\n\s*#game-container,\s*\r?\n\s*#DungeonBlitz,\s*\r?\n\s*object#DungeonBlitz,\s*\r?\n\s*embed#DungeonBlitz,\s*\r?\n\s*canvas#DungeonBlitz\s*\{([\s\S]*?)\n    \}/);
+    const innerSurfaceRule = indexHtml.match(/#game-stage > \*,\s*\r?\n\s*#game-stage object,\s*\r?\n\s*#game-stage embed,\s*\r?\n\s*#game-stage canvas,\s*\r?\n\s*#game-stage > \* > object,\s*\r?\n\s*#game-stage > \* > embed,\s*\r?\n\s*#game-stage > \* > canvas,\s*\r?\n\s*#DungeonBlitz,\s*\r?\n\s*object#DungeonBlitz,\s*\r?\n\s*embed#DungeonBlitz,\s*\r?\n\s*canvas#DungeonBlitz\s*\{([\s\S]*?)\n    \}/);
 
-    assert.ok(embedRule, 'DungeonBlitz embed CSS rule not found');
-    assert.equal(indexHtml.includes('id="game-shell"'), false, 'Flash host must not use the removed game-shell wrapper');
+    assert.ok(shellRule, 'DungeonBlitz shell CSS rule not found');
+    assert.ok(stageRule, 'DungeonBlitz stage CSS rule not found');
+    assert.ok(innerSurfaceRule, 'DungeonBlitz inner surface CSS rule not found');
+    assert.equal(indexHtml.includes('id="game-shell"'), true, 'Flash host must keep a stable shell around the game');
+    assert.equal(indexHtml.includes('id="game-stage"'), true, 'Flash host must keep a stable stage around the game surface');
     assert.equal(
-        /transform\s*:\s*scale/.test(embedRule[1]),
+        /transform\s*:\s*scale/.test(stageRule[1]) || /transform\s*:\s*scale/.test(innerSurfaceRule[1]),
         false,
         'DungeonBlitz embed must not browser-scale the SWF beyond the viewport'
     );
     assert.equal(
-        /--game-fill/.test(embedRule[1]),
+        /--game-fill/.test(stageRule[1]) || /--game-fill/.test(innerSurfaceRule[1]),
         false,
         'DungeonBlitz embed must not use a crop/fill multiplier'
     );
     assert.equal(
-        /position:\s*fixed/.test(embedRule[1]) && /inset:\s*0/.test(embedRule[1]),
+        /position:\s*fixed/.test(shellRule[1]) && /inset:\s*0/.test(shellRule[1]),
         true,
-        'DungeonBlitz embed must be pinned to the viewport'
+        'DungeonBlitz shell must be pinned to the viewport'
     );
     assert.equal(
-        /width:\s*100dvw\s*!important/.test(embedRule[1]),
+        /display:\s*flex/.test(shellRule[1]) &&
+        /align-items:\s*center/.test(shellRule[1]) &&
+        /justify-content:\s*center/.test(shellRule[1]),
         true,
-        'DungeonBlitz embed must fill the dynamic viewport width'
+        'DungeonBlitz shell must center the native-ratio game surface'
     );
     assert.equal(
-        /height:\s*100dvh\s*!important/.test(embedRule[1]),
+        /width:\s*min\(100dvw,\s*150dvh\)\s*!important/.test(stageRule[1]),
         true,
-        'DungeonBlitz embed must fill the dynamic viewport height'
+        'DungeonBlitz embed must fit the dynamic viewport width without exceeding the 3:2 game ratio'
     );
     assert.equal(
-        /aspect-ratio/.test(embedRule[1]),
-        false,
-        'DungeonBlitz embed must not force a 3:2 letterboxed viewport'
+        /height:\s*min\(100dvh,\s*66\.6667dvw\)\s*!important/.test(stageRule[1]),
+        true,
+        'DungeonBlitz embed must fit the dynamic viewport height without exceeding the 3:2 game ratio'
+    );
+    assert.equal(
+        /aspect-ratio:\s*3\s*\/\s*2/.test(stageRule[1]) &&
+        /flex:\s*0\s+0\s+auto/.test(stageRule[1]) &&
+        /overflow:\s*hidden/.test(stageRule[1]),
+        true,
+        'DungeonBlitz stage must preserve the 3:2 viewport and clip overflow'
+    );
+    assert.equal(
+        /width:\s*100%\s*!important/.test(innerSurfaceRule[1]) &&
+        /height:\s*100%\s*!important/.test(innerSurfaceRule[1]) &&
+        /max-width:\s*100%\s*!important/.test(innerSurfaceRule[1]) &&
+        /max-height:\s*100%\s*!important/.test(innerSurfaceRule[1]),
+        true,
+        'DungeonBlitz inner canvas surfaces must fill only the constrained game viewport'
+    );
+    assert.equal(
+        /function syncGameStageSize\(\)/.test(indexHtml) &&
+        /new MutationObserver\(syncGameStageSize\)/.test(indexHtml) &&
+        /stage\.replaceChildren\(detachedSurface\)/.test(indexHtml),
+        true,
+        'DungeonBlitz host must actively reclaim detached FlashBrowser surfaces into the clipping stage'
+    );
+    assert.equal(
+        /swfobject\.embedSWF\([\s\S]*"1152",\s*\r?\n\s*"768"/.test(indexHtml),
+        true,
+        'DungeonBlitz SWF must be created at the native game canvas size'
     );
 }
 
@@ -133,7 +167,7 @@ function main(): void {
     testStaticServerServesSingleSwfByDefault();
     testStaticServerSelectsLocalizedGameSwz();
     testStaticServerAliasesCurrentFlashVersionManifest();
-    testBrowserEmbedFillsViewportWithoutCropping();
+    testBrowserEmbedKeepsGameAspectRatioWithoutOverflow();
     testStaticServerResolvesGameSwzLocaleFromRequest();
     testStaticServerBuildsLocalizedSwfTextByLocale();
     console.log('static_server_default_swf_regression: ok');

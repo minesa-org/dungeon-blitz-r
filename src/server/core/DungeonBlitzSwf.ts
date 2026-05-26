@@ -30,10 +30,14 @@ const CURRENT_PREVIOUS_LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonB
 const CURRENT_PREVIOUS_LOCAL_REFRESH_URL_LEGACY = 'http://localhost/p/cbp/DungeonBlitz.swf?fv=cbv&gv=cbu';
 const CURRENT_PREVIOUS_REMOTE_REFRESH_URL = `http://${REMOTE_HOST}/p/cbp/DungeonBlitz.swf?fv=cbv&gv=cbu`;
 const CURRENT_PREVIOUS_REMOTE_REFRESH_URL_LEGACY = `http://${REMOTE_HOST}/p/cbp/DungeonBlitz.swf?fv=cbv&gv=cbu`;
-const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
-const LOCAL_REFRESH_URL_LEGACY = 'http://localhost/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
-const REMOTE_REFRESH_URL = `http://${REMOTE_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv`;
-const REMOTE_REFRESH_URL_LEGACY = `http://${REMOTE_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv`;
+const CURRENT_LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
+const CURRENT_LOCAL_REFRESH_URL_LEGACY = 'http://localhost/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
+const CURRENT_REMOTE_REFRESH_URL = `http://${REMOTE_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv`;
+const CURRENT_REMOTE_REFRESH_URL_LEGACY = `http://${REMOTE_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv`;
+const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw';
+const LOCAL_REFRESH_URL_LEGACY = 'http://localhost/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw';
+const REMOTE_REFRESH_URL = `http://${REMOTE_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw`;
+const REMOTE_REFRESH_URL_LEGACY = `http://${REMOTE_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw`;
 const MOUNT_SPEED_PATCH_CLASS = 'CombatState';
 const MOUNT_SPEED_PATCH_METHOD = 'method_960';
 const MOUNT_SPEED_DUNGEON_FLAG = 'bInstanced';
@@ -123,6 +127,10 @@ function getReplacements(mode: DungeonBlitzSwfMode, locale: DungeonBlitzSwfLocal
             { oldValue: CURRENT_PREVIOUS_REMOTE_REFRESH_URL_LEGACY, newValue: LOCAL_REFRESH_URL },
             { oldValue: CURRENT_PREVIOUS_LOCAL_REFRESH_URL, newValue: LOCAL_REFRESH_URL },
             { oldValue: CURRENT_PREVIOUS_LOCAL_REFRESH_URL_LEGACY, newValue: LOCAL_REFRESH_URL },
+            { oldValue: CURRENT_REMOTE_REFRESH_URL, newValue: LOCAL_REFRESH_URL },
+            { oldValue: CURRENT_REMOTE_REFRESH_URL_LEGACY, newValue: LOCAL_REFRESH_URL },
+            { oldValue: CURRENT_LOCAL_REFRESH_URL, newValue: LOCAL_REFRESH_URL },
+            { oldValue: CURRENT_LOCAL_REFRESH_URL_LEGACY, newValue: LOCAL_REFRESH_URL },
             { oldValue: REMOTE_REFRESH_URL, newValue: LOCAL_REFRESH_URL },
             { oldValue: REMOTE_REFRESH_URL_LEGACY, newValue: LOCAL_REFRESH_URL },
             { oldValue: LOCAL_REFRESH_URL_LEGACY, newValue: LOCAL_REFRESH_URL },
@@ -145,6 +153,10 @@ function getReplacements(mode: DungeonBlitzSwfMode, locale: DungeonBlitzSwfLocal
         { oldValue: CURRENT_PREVIOUS_LOCAL_REFRESH_URL_LEGACY, newValue: REMOTE_REFRESH_URL },
         { oldValue: CURRENT_PREVIOUS_REMOTE_REFRESH_URL, newValue: REMOTE_REFRESH_URL },
         { oldValue: CURRENT_PREVIOUS_REMOTE_REFRESH_URL_LEGACY, newValue: REMOTE_REFRESH_URL },
+        { oldValue: CURRENT_LOCAL_REFRESH_URL, newValue: REMOTE_REFRESH_URL },
+        { oldValue: CURRENT_LOCAL_REFRESH_URL_LEGACY, newValue: REMOTE_REFRESH_URL },
+        { oldValue: CURRENT_REMOTE_REFRESH_URL, newValue: REMOTE_REFRESH_URL },
+        { oldValue: CURRENT_REMOTE_REFRESH_URL_LEGACY, newValue: REMOTE_REFRESH_URL },
         { oldValue: LOCAL_REFRESH_URL, newValue: REMOTE_REFRESH_URL },
         { oldValue: REMOTE_REFRESH_URL_LEGACY, newValue: REMOTE_REFRESH_URL },
         { oldValue: LOCAL_REFRESH_URL_LEGACY, newValue: REMOTE_REFRESH_URL },
