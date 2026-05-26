@@ -22,11 +22,13 @@ function main(): void {
     assert.equal(indexHtml.includes('id="game-stage"'), true, 'Flash host should keep a persistent game stage inside the shell');
     assert.equal(indexHtml.includes('box-sizing: border-box'), true, 'Flash host should include borders in constrained viewport sizing');
     assert.equal(indexHtml.includes('background: #484955'), true, 'Flash host should use the site background color behind the game');
+    assert.equal(indexHtml.includes('padding: 0 0 70px'), true, 'Flash host body should reserve bottom browser chrome space');
     assert.equal(indexHtml.includes('transform: scale('), false, 'Flash host should not browser-scale the SWF');
     assert.equal(indexHtml.includes('layout=fit-center-buffer'), false, 'Flash host should not request the fit-center-buffer layout');
     assert.equal(indexHtml.includes('#DungeonBlitz'), true, 'Flash host should pin the embedded SWF object by id');
     assert.equal(indexHtml.includes('#game-shell'), true, 'Flash host should pin the game shell to the viewport');
     assert.equal(indexHtml.includes('top: 40px'), true, 'Flash host should reserve the top browser chrome offset');
+    assert.equal(indexHtml.includes('bottom: 70px'), true, 'Flash host should reserve the bottom browser chrome offset');
     assert.equal(indexHtml.includes('#game-stage'), true, 'Flash host should keep the aspect-ratio stage as a stable clipping layer');
     assert.equal(indexHtml.includes('canvas#DungeonBlitz'), true, 'Flash host should constrain FlashBrowser canvas replacements');
     assert.equal(indexHtml.includes('syncGameStageSize'), true, 'Flash host should actively resync detached FlashBrowser surfaces');

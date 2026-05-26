@@ -68,6 +68,11 @@ function testBrowserEmbedKeepsGameAspectRatioWithoutOverflow(): void {
         'DungeonBlitz host must use the configured site background behind the centered game'
     );
     assert.equal(
+        /padding:\s*0\s+0\s+70px/.test(rootRule[1]),
+        true,
+        'DungeonBlitz root page must reserve bottom browser chrome space at body level'
+    );
+    assert.equal(
         /transform\s*:\s*scale/.test(stageRule[1]) || /transform\s*:\s*scale/.test(innerSurfaceRule[1]),
         false,
         'DungeonBlitz embed must not browser-scale the SWF beyond the viewport'
@@ -81,10 +86,10 @@ function testBrowserEmbedKeepsGameAspectRatioWithoutOverflow(): void {
         /position:\s*fixed/.test(shellRule[1]) &&
         /top:\s*40px/.test(shellRule[1]) &&
         /right:\s*0/.test(shellRule[1]) &&
-        /bottom:\s*0/.test(shellRule[1]) &&
+        /bottom:\s*70px/.test(shellRule[1]) &&
         /left:\s*0/.test(shellRule[1]),
         true,
-        'DungeonBlitz shell must be pinned below the browser chrome offset'
+        'DungeonBlitz shell must be pinned inside the browser chrome offsets'
     );
     assert.equal(
         /display:\s*flex/.test(shellRule[1]) &&

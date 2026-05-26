@@ -645,9 +645,10 @@ function assertMainMethod561ClipsViewport(swfPath: string): void {
         .map((instruction) => instruction.operands[0]?.[1]);
     assert.equal(
         scrollRectByteLiterals.filter((value) => value === -31).length >= 2 &&
-        scrollRectByteLiterals.filter((value) => value === 62).length >= 2,
+        scrollRectByteLiterals.includes(62) &&
+        scrollRectByteLiterals.includes(101),
         true,
-        'Main.method_561 scrollRect clip must preserve symmetric 31px viewport padding'
+        'Main.method_561 scrollRect clip must preserve 31px top and 70px bottom viewport padding'
     );
     assert.equal(
         instructions.some((instruction, index) =>
@@ -665,11 +666,11 @@ function assertMainMethod561ClipsViewport(swfPath: string): void {
             instruction.opcode === 0x66 &&
             u30OperandName(instruction, abc.multinameNames) === 'SCREEN_HEIGHT' &&
             instructions[index + 1]?.opcode === 0x24 &&
-            instructions[index + 1]?.operands[0]?.[1] === 62 &&
+            instructions[index + 1]?.operands[0]?.[1] === 101 &&
             isAddThenDivide(index)
         ),
         true,
-        'Main.method_561 fit scale must include symmetric vertical clip padding'
+        'Main.method_561 fit scale must include 31px top and 70px bottom clip padding'
     );
     assert.equal(
         ctx.body.subarray(methodBody.maxStackPos, methodBody.localCountPos).equals(writeU30(7)),
