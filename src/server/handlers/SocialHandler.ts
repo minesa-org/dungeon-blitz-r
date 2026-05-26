@@ -54,6 +54,7 @@ export interface DiscordPartyJoinResult {
 
 export class SocialHandler {
     private static readonly MAX_PARTY_SIZE = 4;
+    private static readonly MAX_SOCIAL_ZONE_PLAYERS = 64;
     private static readonly FRIEND_REQUEST_PROMPT_TTL_MS = 5 * 60_000;
     private static readonly pendingFriendRequestPrompts: Map<number, PendingFriendRequestPrompt> = new Map();
 
@@ -93,12 +94,6 @@ export class SocialHandler {
             case 'paladin':
             default:
                 return 0;
-        }
-    }
-
-    private static appendBuffer(bb: BitBuffer, buffer: Buffer): void {
-        for (const byte of buffer) {
-            bb.writeMethod11(byte, 8);
         }
     }
 
@@ -269,8 +264,12 @@ export class SocialHandler {
         return removed ?? null;
     }
 
-    private static buildFriendStatusPayload(friendName: string, isRequest: boolean, session: Client | null): Buffer {
-        const bb = new BitBuffer(false);
+    private static writeFriendStatusPayload(
+        bb: BitBuffer,
+        friendName: string,
+        isRequest: boolean,
+        session: Client | null
+    ): void {
         bb.writeMethod13(friendName);
         bb.writeMethod15(isRequest);
 
@@ -286,7 +285,11 @@ export class SocialHandler {
             bb.writeMethod6(SocialHandler.classIdFromName(String(session.character.class ?? 'Paladin')), 2);
             bb.writeMethod6(Math.max(1, Math.min(Number(session.character.level ?? 1), 63)), 6);
         }
+    }
 
+    private static buildFriendStatusPayload(friendName: string, isRequest: boolean, session: Client | null): Buffer {
+        const bb = new BitBuffer(false);
+        SocialHandler.writeFriendStatusPayload(bb, friendName, isRequest, session);
         return bb.toBuffer();
     }
 
@@ -323,13 +326,11 @@ export class SocialHandler {
         bb.writeMethod4(friends.length);
 
         for (const friend of friends) {
-            SocialHandler.appendBuffer(
+            SocialHandler.writeFriendStatusPayload(
                 bb,
-                SocialHandler.buildFriendStatusPayload(
-                    friend.name,
-                    friend.isRequest,
-                    SocialHandler.getOnlineSession(friend.name)
-                )
+                friend.name,
+                friend.isRequest,
+                SocialHandler.getOnlineSession(friend.name)
             );
         }
 
@@ -578,19 +579,38 @@ export class SocialHandler {
     private static buildZonePlayersPayload(client: Client): Buffer {
         const bb = new BitBuffer(false);
         const selfName = SocialHandler.normalizeName(client.character?.name);
+        const seenNames = new Set<string>();
+        let writtenPlayers = 0;
+        if (selfName) {
+            seenNames.add(selfName);
+        }
 
         for (const other of GlobalState.sessionsByToken.values()) {
-            if (!other.playerSpawned || !areClientsInSameLevelScope(client, other) || !other.character) {
-                continue;
-            }
-            if (SocialHandler.normalizeName(other.character.name) === selfName) {
+            if (
+                other === client ||
+                !GlobalState.isSessionOpen(other) ||
+                !other.playerSpawned ||
+                !areClientsInSameLevelScope(client, other) ||
+                !other.character
+            ) {
                 continue;
             }
 
+            const otherNameKey = SocialHandler.normalizeName(other.character.name);
+            if (!otherNameKey || seenNames.has(otherNameKey)) {
+                continue;
+            }
+
+            seenNames.add(otherNameKey);
             bb.writeMethod15(true);
             bb.writeMethod13(other.character.name);
             bb.writeMethod6(SocialHandler.classIdFromName(String(other.character.class ?? 'Paladin')), 2);
             bb.writeMethod6(Math.max(1, Math.min(Number(other.character.level ?? 1), 63)), 6);
+
+            writtenPlayers++;
+            if (writtenPlayers >= SocialHandler.MAX_SOCIAL_ZONE_PLAYERS) {
+                break;
+            }
         }
 
         bb.writeMethod15(false);

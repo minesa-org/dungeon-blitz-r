@@ -118,6 +118,33 @@ function decodeFriendUpdate(payload: Buffer): { name: string; isRequest: boolean
     };
 }
 
+function decodeFriendStatus(br: BitReader): { name: string; isRequest: boolean; online: boolean } {
+    const name = br.readMethod13();
+    const isRequest = br.readMethod15();
+    const online = br.readMethod15();
+
+    if (online) {
+        const hasCustomCharacterName = br.readMethod15();
+        if (hasCustomCharacterName) {
+            br.readMethod13();
+        }
+        br.readMethod6(2);
+        br.readMethod6(6);
+    }
+
+    return { name, isRequest, online };
+}
+
+function decodeFullFriendList(payload: Buffer): Array<{ name: string; isRequest: boolean; online: boolean }> {
+    const br = new BitReader(payload);
+    const count = br.readMethod4();
+    const friends: Array<{ name: string; isRequest: boolean; online: boolean }> = [];
+    for (let index = 0; index < count; index++) {
+        friends.push(decodeFriendStatus(br));
+    }
+    return friends;
+}
+
 function decodeFriendRemoved(payload: Buffer): string {
     const br = new BitReader(payload);
     return br.readMethod13();
@@ -130,6 +157,21 @@ function decodeQueryMessageQuestion(payload: Buffer): { token: number; name: str
         name: br.readMethod26(),
         message: br.readMethod26()
     };
+}
+
+function decodeZonePlayers(payload: Buffer): Array<{ name: string; classId: number; level: number }> {
+    const br = new BitReader(payload);
+    const players: Array<{ name: string; classId: number; level: number }> = [];
+
+    while (br.readMethod15()) {
+        players.push({
+            name: br.readMethod13(),
+            classId: br.readMethod6(2),
+            level: br.readMethod6(6)
+        });
+    }
+
+    return players;
 }
 
 function ensureLevelConfigLoaded(): void {
@@ -234,6 +276,29 @@ async function testPendingFriendRequestResendsVisiblePrompt(): Promise<void> {
     assert.ok(prompt, 'already-pending live friend request should still show a visible prompt');
     assert.equal(prompt?.name, 'Elmayuk');
     assert.equal(prompt?.message, 'Elmayuk wants to be your friend');
+}
+
+function testFullFriendListHasNoPaddingBetweenEntries(): void {
+    const client = createFakeClient('Zeus', [
+        { name: 'Iondoblack', isRequest: false },
+        { name: 'Neoagain', isRequest: false },
+        { name: 'Telahair', isRequest: false }
+    ]);
+
+    SocialHandler.handleRequestFriendList(client as never, Buffer.alloc(0));
+
+    const fullListPacket = client.sentPackets.filter((packet) => packet.id === 0xca).at(-1);
+    assert.ok(fullListPacket, 'friend list request should receive a full friend-list response');
+
+    const friends = decodeFullFriendList(fullListPacket!.payload);
+    assert.deepEqual(
+        friends.map((friend) => ({ name: friend.name, isRequest: friend.isRequest, online: friend.online })),
+        [
+            { name: 'Iondoblack', isRequest: false, online: false },
+            { name: 'Neoagain', isRequest: false, online: false },
+            { name: 'Telahair', isRequest: false, online: false }
+        ]
+    );
 }
 
 async function testStaleCharacterIndexFallsBackToActiveTokenSession(): Promise<void> {
@@ -449,6 +514,59 @@ async function testVisitHousePrefersLiveServerCharacter(): Promise<void> {
     }
 }
 
+function testZonePanelSkipsStaleDuplicateAndOverlargeSessions(): void {
+    const viewer = createFakeClient('Viewer');
+    viewer.token = 1300;
+    viewer.currentLevel = 'NewbieRoad';
+    viewer.playerSpawned = true;
+
+    GlobalState.sessionsByToken.set(viewer.token, viewer as never);
+
+    const stale = createFakeClient('StalePlayer');
+    stale.token = 1301;
+    stale.currentLevel = viewer.currentLevel;
+    stale.playerSpawned = true;
+    stale.socket.destroyed = true;
+    stale.socket.readyState = 'closed';
+    GlobalState.sessionsByToken.set(stale.token, stale as never);
+
+    const duplicateA = createFakeClient('DuplicateName');
+    duplicateA.token = 1302;
+    duplicateA.currentLevel = viewer.currentLevel;
+    duplicateA.playerSpawned = true;
+    GlobalState.sessionsByToken.set(duplicateA.token, duplicateA as never);
+
+    const duplicateB = createFakeClient('DuplicateName');
+    duplicateB.token = 1303;
+    duplicateB.currentLevel = viewer.currentLevel;
+    duplicateB.playerSpawned = true;
+    GlobalState.sessionsByToken.set(duplicateB.token, duplicateB as never);
+
+    for (let index = 0; index < 70; index++) {
+        const other = createFakeClient(`ZonePlayer${index}`);
+        other.token = 1400 + index;
+        other.currentLevel = viewer.currentLevel;
+        other.playerSpawned = true;
+        GlobalState.sessionsByToken.set(other.token, other as never);
+    }
+
+    SocialHandler.handleZonePanelRequest(viewer as never, Buffer.alloc(0));
+
+    const zonePacket = viewer.sentPackets.filter((packet) => packet.id === 0x96).at(-1);
+    assert.ok(zonePacket, 'zone panel request should receive a zone list response');
+
+    const players = decodeZonePlayers(zonePacket!.payload);
+    const names = players.map((player) => player.name);
+
+    assert.equal(names.includes('StalePlayer'), false, 'stale sessions should not be sent to the social zone list');
+    assert.equal(
+        names.filter((name) => name === 'DuplicateName').length,
+        1,
+        'duplicate character sessions should only appear once'
+    );
+    assert.equal(players.length, 64, 'zone social list should be capped to protect the client UI');
+}
+
 function testTeleportToLockedPartyDungeonStartsPartyJoinTransfer(): void {
     const caller = createFakeClient('Caller');
     const target = createFakeClient('Target');
@@ -569,6 +687,10 @@ async function main(): Promise<void> {
 
         GlobalState.sessionsByCharacterName.clear();
         GlobalState.sessionsByToken.clear();
+        testFullFriendListHasNoPaddingBetweenEntries();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
         await testStaleCharacterIndexFallsBackToActiveTokenSession();
 
         GlobalState.sessionsByCharacterName.clear();
@@ -602,6 +724,10 @@ async function main(): Promise<void> {
         GlobalState.pendingTeleports.clear();
         GlobalState.houseVisits.clear();
         await testVisitHousePrefersLiveServerCharacter();
+
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.sessionsByToken.clear();
+        testZonePanelSkipsStaleDuplicateAndOverlargeSessions();
 
         GlobalState.sessionsByCharacterName.clear();
         GlobalState.sessionsByToken.clear();
