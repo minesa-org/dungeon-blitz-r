@@ -2209,6 +2209,8 @@ export class CombatHandler {
 
         const deferDungeonCompletionUntilDestroy = Boolean(
             targetEntity &&
+            !targetEntity.isPlayer &&
+            Number(targetEntity.team ?? 0) === EntityTeam.ENEMY &&
             MissionHandler.shouldProcessEnemyKillStateDungeonCompletion(client, targetEntity)
         );
         const resolution = CombatHandler.updateNpcTargetAfterHit(levelScope, targetId, damage);

@@ -1168,6 +1168,12 @@ async function testDreadValhavenGateTransferUsesDoorPortalSpawn(): Promise<void>
             currCount: 1,
             claimed: 1,
             complete: 1
+        },
+        [String(MissionID.HeadToValhavenHard)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
         }
     };
     client.entities.set(9106, { id: 9106, x: 10399, y: 1043 });
@@ -1198,6 +1204,12 @@ async function testDreadValhavenGateTransferRecoversFromCurrentLevelEcho(): Prom
     client.character.CurrentLevel = { name: 'JadeCity', x: 10399, y: 1043 };
     client.character.missions = {
         [String(MissionID.Capstone)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        [String(MissionID.HeadToValhavenHard)]: {
             state: 3,
             currCount: 1,
             claimed: 1,
@@ -1718,7 +1730,7 @@ function testMindlessQueenDungeonRequiresAcceptedMission(): void {
         assert.ok(openDoorStatePacket);
         assert.deepEqual(parseDoorStatePacket(openDoorStatePacket.payload), {
             doorId: 106,
-            state: 1,
+            state: 2,
             target: testCase.targetLevel
         });
     }

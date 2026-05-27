@@ -91,7 +91,7 @@ function createBuffTickDotPacket(targetId: number, sourceId: number, powerId: nu
 async function testLethalDotDefersDungeonBossCompletionUntilDestroy(): Promise<void> {
     const client = createClient();
     const levelScope = getClientLevelScope(client as never);
-    const boss = {
+    const boss: any = {
         id: 9001,
         name: 'LizardLord',
         team: EntityTeam.ENEMY,
