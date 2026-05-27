@@ -1211,6 +1211,60 @@ async function testSigginOffersUnearthingThePastBeforeDepthsTurnIn(): Promise<vo
     );
 }
 
+async function testBellaSageswordOffersIntoTheDepthsAfterCapstone(): Promise<void> {
+    const client = createFakeClient(
+        'BridgeTown',
+        {
+            [String(MissionID.DeliverToSwamp)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            },
+            [String(MissionID.Capstone)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            }
+        },
+        0
+    );
+    client.character.level = 22;
+    client.character.CurrentLevel = { name: 'BridgeTown', x: 11254, y: 2199 };
+
+    await NpcHandler.handleTalkToNpc(client as never, createNpcTalkPacket(2355488));
+
+    assert.equal(
+        Number(client.character.missions[String(MissionID.IntoTheDepths)]?.state ?? 0),
+        2,
+        'Bella Sagesword should offer Into the Depths as a ready turn-in travel handoff after Capstone'
+    );
+
+    const missionAdded = client.sentPackets.find((entry) => entry.id === 0x85);
+    assert.ok(missionAdded, 'Bella should push the Into the Depths mission snapshot');
+    assert.deepEqual(
+        decodeMissionAddedPacket(missionAdded!.payload),
+        {
+            missionId: MissionID.IntoTheDepths,
+            active: 0
+        },
+        'Into the Depths should be sent as ready to turn in'
+    );
+
+    const skitPacket = client.sentPackets.find((entry) => entry.id === 0x7B);
+    assert.ok(skitPacket, 'Bella should open the Into the Depths offer dialogue');
+    assert.deepEqual(
+        decodeStartSkitPacket(skitPacket!.payload),
+        {
+            npcId: 2355488,
+            dialogueId: 2,
+            missionId: MissionID.IntoTheDepths
+        },
+        'Bella should use the Into the Depths offer dialogue'
+    );
+}
+
 async function testShazariGoblinMessengerCompletesAtSecondMessenger(): Promise<void> {
     const cases: Array<{
         levelName: string;
@@ -1587,6 +1641,7 @@ async function main(): Promise<void> {
     await testOdemOffersMindlessQueenFromRawNpcEntityName();
     await testHardOdemOffersMindlessQueenFromRawNpcEntityName();
     await testSigginOffersUnearthingThePastBeforeDepthsTurnIn();
+    await testBellaSageswordOffersIntoTheDepthsAfterCapstone();
     await testShazariGoblinMessengerCompletesAtSecondMessenger();
     await testShazariGoblinMessengerTurnsInAtChiefAfterSecondMessenger();
     await testCompletedTowerOfTuataraRepairsReadyTurnInAtAbbod();

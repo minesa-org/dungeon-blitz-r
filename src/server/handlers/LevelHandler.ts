@@ -2969,7 +2969,18 @@ export class LevelHandler {
     }
 
     private static mustAcceptMissionBeforeDungeonEntry(missionId: number): boolean {
-        return missionId === MissionID.TempleOfShadows || missionId === MissionID.TempleOfShadowsHard;
+        return missionId === MissionID.TempleOfShadows ||
+            missionId === MissionID.TempleOfShadowsHard ||
+            missionId === MissionID.SlayMindlessQueen ||
+            missionId === MissionID.SlayMindlessQueenHard;
+    }
+
+    private static getAdditionalDreadfoldGateRequiredMission(currentLevel: string, targetLevel: string): number {
+        if (currentLevel === 'JadeCity' && targetLevel === 'JadeCityHard') {
+            return MissionID.HeadToValhavenHard;
+        }
+
+        return 0;
     }
 
     private static isDreadfoldGateUnlocked(
@@ -2993,7 +3004,13 @@ export class LevelHandler {
             return true;
         }
 
-        return LevelHandler.getMissionState(client, MissionID.Capstone) >= LevelHandler.MISSION_CLAIMED;
+        if (LevelHandler.getMissionState(client, MissionID.Capstone) < LevelHandler.MISSION_CLAIMED) {
+            return false;
+        }
+
+        const requiredMissionId = LevelHandler.getAdditionalDreadfoldGateRequiredMission(normalizedCurrentLevel, targetLevel);
+        return requiredMissionId <= 0 ||
+            LevelHandler.getMissionState(client, requiredMissionId) >= LevelHandler.MISSION_CLAIMED;
     }
 
     private static isDreadfoldGateTransferUnlocked(client: Client, targetLevelRaw: string | null): boolean {

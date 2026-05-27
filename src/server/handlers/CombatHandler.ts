@@ -2207,8 +2207,12 @@ export class CombatHandler {
             });
         }
 
+        const deferDungeonCompletionUntilDestroy = Boolean(
+            targetEntity &&
+            MissionHandler.shouldProcessEnemyKillStateDungeonCompletion(client, targetEntity)
+        );
         const resolution = CombatHandler.updateNpcTargetAfterHit(levelScope, targetId, damage);
-        if (resolution.killed && resolution.entity) {
+        if (resolution.killed && resolution.entity && !deferDungeonCompletionUntilDestroy) {
             CombatHandler.handleEnemyDefeatState(sourceSession ?? client, levelScope, targetId, resolution.entity);
         }
 

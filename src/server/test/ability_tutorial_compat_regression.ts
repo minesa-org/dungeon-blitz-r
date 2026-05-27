@@ -265,12 +265,71 @@ async function testAbilitySpeedupAppliesCompletedRank(): Promise<void> {
     assert.equal(client.sentPackets.some((packet) => packet.id === 0xBF), true);
 }
 
+function prepareSentinelClient(): FakeClient {
+    const client = createClient();
+    client.character.class = 'Paladin';
+    client.character.level = 50;
+    client.character.gold = 1000000;
+    client.character.mammothIdols = 100;
+    client.character.MasterClass = 4;
+    client.character.learnedAbilities = [
+        { abilityID: 20, rank: 1 },
+        { abilityID: 24, rank: 1 },
+        { abilityID: 48, rank: 10 },
+        { abilityID: 50, rank: 10 },
+        { abilityID: 52, rank: 10 },
+        { abilityID: 54, rank: 3 }
+    ];
+    client.character.activeAbilities = [48, 50, 52, 54];
+    client.character.SkillResearch = {};
+    return client;
+}
+
+async function testSentinelInstantIdolResearchAppliesRank(): Promise<void> {
+    const client = prepareSentinelClient();
+
+    await withMockedCharacterSave(async () => {
+        await AbilityHandler.handleStartAbilityResearch(client as never, createAbilityStartPacket(54, 4, true));
+    });
+
+    assert.deepEqual(
+        client.character.learnedAbilities.find((ability: any) => ability.abilityID === 54),
+        { abilityID: 54, rank: 4 },
+        'instant idol research should apply the completed Sentinel rank immediately'
+    );
+    assert.deepEqual(client.character.SkillResearch, {});
+    assert.equal(client.character.mammothIdols, 51);
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0xB5), true);
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0xBF), true);
+}
+
+async function testSentinelInstantIdolResearchInfersMissingSavedRank(): Promise<void> {
+    const client = prepareSentinelClient();
+    client.character.learnedAbilities = client.character.learnedAbilities.filter((ability: any) => ability.abilityID !== 54);
+
+    await withMockedCharacterSave(async () => {
+        await AbilityHandler.handleStartAbilityResearch(client as never, createAbilityStartPacket(54, 2, true));
+    });
+
+    assert.deepEqual(
+        client.character.learnedAbilities.find((ability: any) => ability.abilityID === 54),
+        { abilityID: 54, rank: 2 },
+        'instant idol research should infer a missing active Sentinel ability before applying the target rank'
+    );
+    assert.deepEqual(client.character.SkillResearch, {});
+    assert.equal(client.character.mammothIdols, 79);
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0xB5), true);
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0xBF), true);
+}
+
 async function main(): Promise<void> {
     await testDuplicateTutorialAbilityRequestCompletesWithoutGrantingExtraRank();
     await testDefaultMasterAbilityCanStartRankTwoResearch();
     await testAnyActiveDisciplineSkillCanInferMissingSavedRank();
     await testShadowWalkerDisciplineSkillsCanStartRankTwoResearch();
     await testAbilitySpeedupAppliesCompletedRank();
+    await testSentinelInstantIdolResearchAppliesRank();
+    await testSentinelInstantIdolResearchInfersMissingSavedRank();
     console.log('ability_tutorial_compat_regression: ok');
 }
 

@@ -13,8 +13,10 @@ import { getClientLevelScope, getScopeLevelName } from './LevelScope';
 export class AILogic {
     static readonly INTERVAL = 125; // ms (0.125s)
     static readonly TIMESTEP = 1 / 60.0;
-    static readonly MELEE_AGGRO_RADIUS = 320;
-    static readonly RANGED_AGGRO_RADIUS = 520;
+    static readonly MELEE_AGGRO_RADIUS = 240;
+    static readonly RANGED_AGGRO_RADIUS = 360;
+    static readonly BOSS_MELEE_AGGRO_RADIUS = 180;
+    static readonly BOSS_RANGED_AGGRO_RADIUS = 260;
     static readonly LEASH_RADIUS = 1800;
     static readonly STOP_DISTANCE = 50;
     static readonly ATTACK_RANGE = 95;
@@ -74,10 +76,18 @@ export class AILogic {
         const npcX = npc.x || 0;
         const npcY = npc.y || 0;
         const npcRoomId = Number.isFinite(Number(npc?.roomId)) ? Number(npc.roomId) : -1;
+        const entType = GameData.getEntType(npc.name);
+        const isRanged = entType?.RangedPower ? true : false;
+        const isBoss = AILogic.isBossLike(npc);
 
         for (const p of players) {
              if (!p.character || !p.character.CurrentLevel) continue;
-             if (!sharesRoomIds(p.currentRoomId, npcRoomId)) continue;
+             const playerRoomId = Number.isFinite(Number(p.currentRoomId)) ? Math.round(Number(p.currentRoomId)) : -1;
+             if (isBoss) {
+                 if (playerRoomId < 0 || npcRoomId < 0 || playerRoomId !== Math.round(npcRoomId)) continue;
+             } else if (!sharesRoomIds(p.currentRoomId, npcRoomId)) {
+                 continue;
+             }
              const px = p.character.CurrentLevel.x;
              const py = p.character.CurrentLevel.y;
              
@@ -93,10 +103,10 @@ export class AILogic {
 
         if (!target || !target.character || !target.character.CurrentLevel) return;
 
-        const entType = GameData.getEntType(npc.name);
-        const isRanged = entType?.RangedPower ? true : false;
         const attackRange = isRanged ? AILogic.RANGED_ATTACK_RANGE : AILogic.ATTACK_RANGE;
-        const aggroRadius = isRanged ? AILogic.RANGED_AGGRO_RADIUS : AILogic.MELEE_AGGRO_RADIUS;
+        const aggroRadius = isBoss
+            ? (isRanged ? AILogic.BOSS_RANGED_AGGRO_RADIUS : AILogic.BOSS_MELEE_AGGRO_RADIUS)
+            : (isRanged ? AILogic.RANGED_AGGRO_RADIUS : AILogic.MELEE_AGGRO_RADIUS);
 
         if (minDist <= aggroRadius) {
             const targetX = target.character.CurrentLevel.x;
@@ -180,5 +190,10 @@ export class AILogic {
                 }
             }
         }
+    }
+
+    private static isBossLike(npc: any): boolean {
+        const rank = GameData.getEntityRank(npc);
+        return rank === 'Boss' || rank === 'MiniBoss' || GameData.isBossEntity(npc);
     }
 }

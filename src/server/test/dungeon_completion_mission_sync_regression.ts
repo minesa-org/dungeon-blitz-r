@@ -283,6 +283,36 @@ function createCompletedValhavenFullClearClient(currentLevel: string, missionId:
     return client;
 }
 
+function createAcceptedStormshardFullClearClient(currentLevel: string, missionId: MissionID): FakeClient {
+    const client = createFakeClient();
+    client.currentLevel = currentLevel;
+    client.levelInstanceId = `${currentLevel.toLowerCase()}-full-clear-flow`;
+    client.forcedDungeonCompletionScope = '';
+    client.character.name = `${currentLevel}FullClearTester`;
+    client.character.level = currentLevel.endsWith('Hard') ? 32 : 17;
+    client.character.CurrentLevel = { name: currentLevel, x: 0, y: 0 };
+    client.character.PreviousLevel = {
+        name: currentLevel.endsWith('Hard') ? 'OldMineMountainHard' : 'OldMineMountain',
+        x: 189,
+        y: 1335
+    };
+    client.character.missions = {
+        [String(MissionID.DeliverToSwamp)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        },
+        [String(missionId)]: {
+            state: 1,
+            currCount: 0
+        }
+    };
+    client.character.questTrackerState = 64;
+    client.sentPackets.length = 0;
+    return client;
+}
+
 function createLevelCompletePacket(progress: number = 100, remainingKills: number = 0, requiredKills: number = 1): Buffer {
     const bb = new BitBuffer(false);
     bb.writeMethod9(progress);
@@ -734,6 +764,47 @@ async function testCompletedValhavenFullClearDoesNotRestartOnRepeatEntry(): Prom
     }
 }
 
+async function testStormshardFullClearDungeonsAcceptHundredPercentPacket(): Promise<void> {
+    const testCases: Array<{ level: string; missionId: MissionID }> = [
+        { level: 'OMM_Mission2', missionId: MissionID.GardenOfTheLost },
+        { level: 'OMM_Mission5', missionId: MissionID.HuntedToTheEdge }
+    ];
+
+    for (const testCase of testCases) {
+        const client = createAcceptedStormshardFullClearClient(testCase.level, testCase.missionId);
+        const levelScope = getClientLevelScope(client as never);
+        GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+            [9001, {
+                id: 9001,
+                name: 'RockHulk',
+                team: 2,
+                hp: 50,
+                entState: 1,
+                clientSpawned: true
+            }]
+        ]));
+
+        await MissionHandler.handleSetLevelComplete(client as never, createLevelCompletePacket(100, 0, 1));
+        GlobalState.levelEntities.delete(levelScope);
+
+        assert.equal(
+            Number(client.character.missions[String(testCase.missionId)]?.state ?? 0),
+            2,
+            `${testCase.level} should become ready to turn in from a 100% completion packet`
+        );
+        assert.equal(
+            client.sentPackets.some((packet) => packet.id === 0x86),
+            true,
+            `${testCase.level} should emit mission-complete notification`
+        );
+        assert.equal(
+            client.sentPackets.some((packet) => packet.id === 0x84),
+            false,
+            `${testCase.level} should still wait for its Moai turn-in reward`
+        );
+    }
+}
+
 async function main(): Promise<void> {
     const sessionsByToken = new Map(GlobalState.sessionsByToken);
     const levelEntities = new Map(GlobalState.levelEntities);
@@ -753,6 +824,7 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         await testCemeteryMiniDungeonCompletesOnlyFromFullClearProgress();
         await testCompletedValhavenFullClearDoesNotRestartOnRepeatEntry();
+        await testStormshardFullClearDungeonsAcceptHundredPercentPacket();
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.levelEntities = levelEntities;

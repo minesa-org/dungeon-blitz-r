@@ -194,7 +194,39 @@ export class AbilityHandler {
                 });
                 return;
             }
+
+            client.character.SkillResearch = {
+                abilityID: abilityId,
+                rank,
+                ReadyTime: 0
+            };
+
+            const claimResult = AbilityHandler.applyCompletedAbilityResearch(client.character);
+            if (!claimResult) {
+                DebugLogger.logProgress('AbilityResearch:startRejected', client, client.character, {
+                    abilityId,
+                    rank,
+                    payWithIdols,
+                    idolCost,
+                    reason: 'invalid_instant_research',
+                    raw: DebugLogger.previewBuffer(data)
+                });
+                return;
+            }
+
             client.character.mammothIdols = idols - idolCost;
+            await AbilityHandler.saveCharacter(client);
+            DebugLogger.logProgress('AbilityResearch:instantApplied', client, client.character, {
+                abilityId,
+                rank,
+                idolCost,
+                targetRank: claimResult.targetRank,
+                applied: claimResult.applied
+            });
+            AbilityHandler.sendPremiumPurchase(client, 'AbilityResearch', idolCost);
+            AbilityHandler.sendAbilityResearchDone(client, abilityId);
+            AbilityHandler.refreshPlayerSnapshot(client);
+            return;
         } else {
             const gold = Number(client.character.gold ?? 0);
             if (gold < goldCost) {

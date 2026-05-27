@@ -33,6 +33,9 @@ export class NpcHandler {
     private static readonly ATTACK_OF_OPPORTUNITY_HARD_MISSION_ID = 254;
     private static readonly ATTACK_OF_OPPORTUNITY_SATELLITE_IDS = new Set([234, 235, 236]);
     private static readonly ATTACK_OF_OPPORTUNITY_HARD_SATELLITE_IDS = new Set([255, 256, 257]);
+    private static readonly ALTERNATE_MISSION_CONTACT_KEYS: Readonly<Record<number, readonly string[]>> = {
+        [MissionID.IntoTheDepths]: ['npctraveller']
+    };
     private static readonly STONE_ORACLE_MISSION_BY_MOAI_KEY: Readonly<Record<string, { missionId: number; bit: number }>> = {
         ommmoai01: { missionId: MissionID.StoneOraclesSpeak, bit: 1 },
         ommmoai02: { missionId: MissionID.StoneOraclesSpeak, bit: 2 },
@@ -281,6 +284,10 @@ export class NpcHandler {
             const entry = NpcHandler.getMissionEntry(character, missionId);
             const state = NpcHandler.getMissionState(character, missionId);
             const contactKey = NpcHandler.normalizeMissionNpcKey(missionDef.ContactName ?? '');
+            const contactKeys = new Set([
+                contactKey,
+                ...(NpcHandler.ALTERNATE_MISSION_CONTACT_KEYS[missionId] ?? [])
+            ].filter(Boolean));
             const returnKey = NpcHandler.getMissionReturnNpcKey(missionDef);
             const primedContactOffer =
                 missionId === MissionID.FindAnnasFather &&
@@ -296,13 +303,13 @@ export class NpcHandler {
                 priority = 4;
                 dialogueId = 4;
             } else if (
-                npcKey === contactKey &&
+                contactKeys.has(npcKey) &&
                 primedContactOffer
             ) {
                 priority = 3;
                 dialogueId = 2;
             } else if (
-                npcKey === contactKey &&
+                contactKeys.has(npcKey) &&
                 (
                     state === NpcHandler.MISSION_IN_PROGRESS ||
                     state === NpcHandler.MISSION_READY_TO_TURN_IN
@@ -311,14 +318,14 @@ export class NpcHandler {
                 priority = 3;
                 dialogueId = 3;
             } else if (
-                npcKey === contactKey &&
+                contactKeys.has(npcKey) &&
                 state === NpcHandler.MISSION_NOT_STARTED &&
                 NpcHandler.canStartMission(character, missionDef)
             ) {
                 priority = 2;
                 dialogueId = 2;
             } else if (
-                (npcKey === contactKey || npcKey === returnKey) &&
+                (contactKeys.has(npcKey) || npcKey === returnKey) &&
                 state >= NpcHandler.MISSION_CLAIMED
             ) {
                 priority = 1;

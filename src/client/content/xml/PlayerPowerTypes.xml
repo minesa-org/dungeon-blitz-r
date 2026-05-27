@@ -24805,7 +24805,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostArmor</PowerGroup>
-		<AddTargetBuff>Last:IceArmor1</AddTargetBuff>
+		<AddSelfBuff>IceArmor1</AddSelfBuff>
 		<ComboName>GrantFrostArmor</ComboName>
 		<DisplayName>Dolu Sarmali</DisplayName>
 		<BasePowerName>HailstoneEmbrace</BasePowerName>
@@ -24838,7 +24838,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostArmor</PowerGroup>
-		<AddTargetBuff>Last:IceArmor2</AddTargetBuff>
+		<AddSelfBuff>IceArmor2</AddSelfBuff>
 		<ComboName>GrantFrostArmor</ComboName>
 		<DisplayName>Dolu Sarmali</DisplayName>
 		<BasePowerName>HailstoneEmbrace</BasePowerName>
@@ -24871,7 +24871,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostArmor</PowerGroup>
-		<AddTargetBuff>Last:IceArmor3</AddTargetBuff>
+		<AddSelfBuff>IceArmor3</AddSelfBuff>
 		<ComboName>GrantFrostArmor</ComboName>
 		<DisplayName>Dolu Sarmali</DisplayName>
 		<BasePowerName>HailstoneEmbrace</BasePowerName>
@@ -24904,7 +24904,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostArmor</PowerGroup>
-		<AddTargetBuff>Last:IceArmor4</AddTargetBuff>
+		<AddSelfBuff>IceArmor4</AddSelfBuff>
 		<ComboName>GrantFrostArmor</ComboName>
 		<DisplayName>Dolu Sarmali</DisplayName>
 		<BasePowerName>HailstoneEmbrace</BasePowerName>
@@ -24937,7 +24937,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostArmor</PowerGroup>
-		<AddTargetBuff>Last:IceArmor5</AddTargetBuff>
+		<AddSelfBuff>IceArmor5</AddSelfBuff>
 		<ComboName>GrantFrostArmor</ComboName>
 		<DisplayName>Dolu Sarmali</DisplayName>
 		<BasePowerName>HailstoneEmbrace</BasePowerName>
@@ -24970,7 +24970,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostArmor</PowerGroup>
-		<AddTargetBuff>Last:IceArmor6</AddTargetBuff>
+		<AddSelfBuff>IceArmor6</AddSelfBuff>
 		<ComboName>GrantFrostArmor</ComboName>
 		<DisplayName>Dolu Sarmali</DisplayName>
 		<BasePowerName>HailstoneEmbrace</BasePowerName>
@@ -25003,7 +25003,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostArmor</PowerGroup>
-		<AddTargetBuff>Last:IceArmor7</AddTargetBuff>
+		<AddSelfBuff>IceArmor7</AddSelfBuff>
 		<ComboName>GrantFrostArmor</ComboName>
 		<DisplayName>Dolu Sarmali</DisplayName>
 		<BasePowerName>HailstoneEmbrace</BasePowerName>
@@ -25036,7 +25036,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostArmor</PowerGroup>
-		<AddTargetBuff>Last:IceArmor8</AddTargetBuff>
+		<AddSelfBuff>IceArmor8</AddSelfBuff>
 		<ComboName>GrantFrostArmor</ComboName>
 		<DisplayName>Dolu Sarmali</DisplayName>
 		<BasePowerName>HailstoneEmbrace</BasePowerName>
@@ -25069,7 +25069,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostArmor</PowerGroup>
-		<AddTargetBuff>Last:IceArmor9</AddTargetBuff>
+		<AddSelfBuff>IceArmor9</AddSelfBuff>
 		<ComboName>GrantFrostArmor</ComboName>
 		<DisplayName>Dolu Sarmali</DisplayName>
 		<BasePowerName>HailstoneEmbrace</BasePowerName>
@@ -25102,7 +25102,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostArmor</PowerGroup>
-		<AddTargetBuff>Last:IceArmor10</AddTargetBuff>
+		<AddSelfBuff>IceArmor10</AddSelfBuff>
 		<ComboName>GrantFrostArmor</ComboName>
 		<DisplayName>Dolu Sarmali</DisplayName>
 		<BasePowerName>HailstoneEmbrace</BasePowerName>
