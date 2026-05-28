@@ -126,6 +126,18 @@ const DUNGEON_DOOR_CASES: DungeonDoorCase[] = [
     { currentLevel: 'JadeCityHard', doorId: 111, dungeonTarget: 'JC_Mission11Hard' }
 ];
 
+function getRequiredDirectTravelMission(currentLevel: string, travelTarget: string): MissionID | null {
+    if (currentLevel === 'BridgeTownHard' && travelTarget === 'CemeteryHillHard') {
+        return MissionID.OldHeroesNeverDieHard;
+    }
+
+    if (currentLevel === 'BridgeTownHard' && travelTarget === 'OldMineMountainHard') {
+        return MissionID.DerelictionOfDutyHard;
+    }
+
+    return null;
+}
+
 function ensureDataLoaded(): void {
     const dataDir = path.resolve(__dirname, '../data');
     if (!LevelConfig.has('BridgeTown')) {
@@ -289,6 +301,15 @@ function testClaimedOldSaveStoryDoorsStayMapTravelWithoutStars(): void {
 function testDirectWorldTravelDoorsUseTravelState(): void {
     for (const testCase of DIRECT_WORLD_TRAVEL_CASES) {
         const client = createClient(testCase.currentLevel, MissionID.DefendTheShip, 0);
+        const requiredMissionId = getRequiredDirectTravelMission(testCase.currentLevel, testCase.travelTarget);
+        if (requiredMissionId !== null) {
+            client.character.missions[String(requiredMissionId)] = {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            };
+        }
 
         LevelHandler.handleRequestDoorState(client as never, createDoorPacket(testCase.doorId));
 

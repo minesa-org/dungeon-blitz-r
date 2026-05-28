@@ -127,6 +127,7 @@ export class LevelHandler {
     private static readonly DREADFOLD_GATE_LOCKED_MESSAGE =
         '^tA powerful magic seals this entrance.=^tI still need to learn more about the Sleeping Lands.';
     private static readonly LOCKED_DUNGEON_ENTRY_MESSAGE = "^tI haven't unlocked this dungeon yet.";
+    private static readonly LOCKED_STORY_AREA_ENTRY_MESSAGE = "^tI haven't unlocked this area yet.";
     private static readonly CASTLE_HOCKE_GATE_DOOR_ID = 3;
     private static readonly VALHAVEN_GATE_DOOR_ID = 2;
     private static readonly GOBLIN_RIVER_INITIAL_PROGRESS = 11;
@@ -903,6 +904,10 @@ export class LevelHandler {
         'EmeraldGlades->EmeraldGladesHard',
         'ShazariDesert->ShazariDesertHard',
         'JadeCity->JadeCityHard'
+    ]);
+    private static readonly STORY_AREA_ENTRY_REQUIREMENTS = new Map<string, number>([
+        ['BridgeTownHard->CemeteryHillHard', MissionID.OldHeroesNeverDieHard],
+        ['BridgeTownHard->OldMineMountainHard', MissionID.DerelictionOfDutyHard]
     ]);
     private static readonly KEEP_TUTORIAL_BOSS_TRIGGER_X = Number.MAX_SAFE_INTEGER;
     private static readonly KEEP_TUTORIAL_CUTSCENE_STEP_MS = 250;
@@ -3026,6 +3031,35 @@ export class LevelHandler {
         );
     }
 
+    private static getRequiredStoryAreaEntryMission(currentLevel: string, targetLevelRaw: string | null): number {
+        const normalizedCurrentLevel =
+            LevelConfig.normalizeLevelName(currentLevel) ||
+            String(currentLevel ?? '').trim();
+        const targetLevel =
+            LevelConfig.normalizeLevelName(targetLevelRaw || '') ||
+            String(targetLevelRaw || '').trim();
+
+        if (!normalizedCurrentLevel || !targetLevel) {
+            return 0;
+        }
+
+        return LevelHandler.STORY_AREA_ENTRY_REQUIREMENTS.get(`${normalizedCurrentLevel}->${targetLevel}`) ?? 0;
+    }
+
+    private static isStoryAreaEntryUnlocked(client: Client, currentLevel: string, targetLevelRaw: string | null): boolean {
+        const requiredMissionId = LevelHandler.getRequiredStoryAreaEntryMission(currentLevel, targetLevelRaw);
+        return requiredMissionId <= 0 ||
+            LevelHandler.getMissionState(client, requiredMissionId) >= LevelHandler.MISSION_CLAIMED;
+    }
+
+    private static isStoryAreaTransferUnlocked(client: Client, targetLevelRaw: string | null): boolean {
+        const currentLevel =
+            LevelConfig.normalizeLevelName(client.currentLevel || String(client.character?.CurrentLevel?.name ?? '')) ||
+            String(client.currentLevel || client.character?.CurrentLevel?.name || '').trim();
+
+        return LevelHandler.isStoryAreaEntryUnlocked(client, currentLevel, targetLevelRaw);
+    }
+
     private static sendDoorState(client: Client, doorId: number, state: number, targetLevel: string): void {
         const bb = new BitBuffer();
         bb.writeMethod4(doorId);
@@ -3578,11 +3612,17 @@ export class LevelHandler {
         const isDreadfoldGateLocked =
             Boolean(target) &&
             !LevelHandler.isDreadfoldGateUnlocked(client, currentLevel, doorId, target);
+        const isStoryAreaEntryLocked =
+            Boolean(target) &&
+            !LevelHandler.isStoryAreaEntryUnlocked(client, currentLevel, target);
         
         const bb = new BitBuffer();
         bb.writeMethod4(doorId);
         
         if (target && isDreadfoldGateLocked) {
+            bb.writeMethod91(LevelHandler.DOORSTATE_LOCKED);
+            bb.writeMethod13(target);
+        } else if (target && isStoryAreaEntryLocked) {
             bb.writeMethod91(LevelHandler.DOORSTATE_LOCKED);
             bb.writeMethod13(target);
         } else if (target && !isDungeonEntryUnlocked) {
@@ -3658,6 +3698,25 @@ export class LevelHandler {
                 client,
                 doorId,
                 LevelHandler.DREADFOLD_GATE_LOCKED_MESSAGE
+            );
+            return;
+        }
+
+        if (
+            rawTargetLevel &&
+            !LevelHandler.isStoryAreaEntryUnlocked(client, currentLevel, rawTargetLevel)
+        ) {
+            console.log(`[Level] Open Door ${doorId} in ${currentLevel} blocked until the required story area mission is claimed`);
+            LevelHandler.sendDoorState(
+                client,
+                doorId,
+                LevelHandler.DOORSTATE_LOCKED,
+                LevelConfig.normalizeLevelName(rawTargetLevel) || rawTargetLevel
+            );
+            LevelHandler.sendLockedDoorThought(
+                client,
+                doorId,
+                LevelHandler.LOCKED_STORY_AREA_ENTRY_MESSAGE
             );
             return;
         }
@@ -3970,6 +4029,16 @@ export class LevelHandler {
 
         if (!teleportOverride && !LevelHandler.isDreadfoldGateTransferUnlocked(client, targetLevel)) {
             console.log(`[Level] Transfer to ${targetLevel} blocked until Capstone is completed`);
+            return;
+        }
+
+        if (!teleportOverride && !LevelHandler.isStoryAreaTransferUnlocked(client, targetLevel)) {
+            console.log(`[Level] Transfer to ${targetLevel} blocked until the required story area mission is claimed`);
+            LevelHandler.sendLockedDoorThought(
+                client,
+                client.lastDoorId,
+                LevelHandler.LOCKED_STORY_AREA_ENTRY_MESSAGE
+            );
             return;
         }
 

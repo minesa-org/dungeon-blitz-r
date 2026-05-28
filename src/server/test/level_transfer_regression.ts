@@ -1627,6 +1627,163 @@ function testOtherDreadfoldGatesOpenAfterCapstoneClaimedWithoutLevelRequirement(
     }
 }
 
+function testDreadStoryAreaDoorsRequireClaimedStoryMission(): void {
+    const storyAreaEntries = [
+        {
+            currentLevel: 'BridgeTownHard',
+            doorId: 2,
+            targetLevel: 'CemeteryHillHard',
+            requiredMissionId: MissionID.OldHeroesNeverDieHard
+        },
+        {
+            currentLevel: 'BridgeTownHard',
+            doorId: 5,
+            targetLevel: 'CemeteryHillHard',
+            requiredMissionId: MissionID.OldHeroesNeverDieHard
+        },
+        {
+            currentLevel: 'BridgeTownHard',
+            doorId: 6,
+            targetLevel: 'OldMineMountainHard',
+            requiredMissionId: MissionID.DerelictionOfDutyHard
+        }
+    ];
+
+    for (const entry of storyAreaEntries) {
+        const client = createClient();
+        client.currentLevel = entry.currentLevel;
+        client.clientEntID = 451;
+        client.character = createCharacter(`${entry.targetLevel}Runner`);
+        client.character.level = 50;
+
+        LevelHandler.handleRequestDoorState(client as never, createDoorStateRequestPacket(entry.doorId));
+
+        const lockedDoorStatePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x42);
+        assert.ok(lockedDoorStatePacket);
+        assert.deepEqual(parseDoorStatePacket(lockedDoorStatePacket.payload), {
+            doorId: entry.doorId,
+            state: 4,
+            target: entry.targetLevel
+        });
+
+        client.sentPackets.length = 0;
+        client.character.missions = {
+            [String(entry.requiredMissionId)]: {
+                state: 2,
+                currCount: 1
+            }
+        };
+
+        LevelHandler.handleOpenDoor(client as never, createOpenDoorPacket(entry.doorId));
+
+        assert.equal(client.lastDoorId, -1);
+        assert.equal(client.lastDoorTargetLevel, '');
+        assert.equal(
+            client.sentPackets.some((packet: { id: number }) => packet.id === 0x2E),
+            false,
+            `${entry.targetLevel} door must not open while its story mission is only ready to turn in`
+        );
+        const blockedDialoguePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x76);
+        assert.ok(blockedDialoguePacket);
+        assert.deepEqual(parseRoomThoughtPacket(blockedDialoguePacket.payload), {
+            entityId: 451,
+            text: "^tI haven't unlocked this area yet."
+        });
+
+        client.sentPackets.length = 0;
+        client.character.missions[String(entry.requiredMissionId)] = {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        };
+
+        LevelHandler.handleRequestDoorState(client as never, createDoorStateRequestPacket(entry.doorId));
+
+        const openDoorStatePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x42);
+        assert.ok(openDoorStatePacket);
+        assert.deepEqual(parseDoorStatePacket(openDoorStatePacket.payload), {
+            doorId: entry.doorId,
+            state: 1,
+            target: entry.targetLevel
+        });
+
+        client.sentPackets.length = 0;
+        LevelHandler.handleOpenDoor(client as never, createOpenDoorPacket(entry.doorId));
+
+        assert.equal(client.lastDoorId, entry.doorId);
+        assert.equal(client.lastDoorTargetLevel, entry.targetLevel);
+        assert.equal(client.sentPackets.some((packet: { id: number }) => packet.id === 0x2E), true);
+    }
+}
+
+async function testDreadStoryAreaTransferRequestRequiresClaimedStoryMission(): Promise<void> {
+    const storyAreaTransfers = [
+        {
+            currentLevel: 'BridgeTownHard',
+            doorId: 2,
+            targetLevel: 'CemeteryHillHard',
+            requiredMissionId: MissionID.OldHeroesNeverDieHard
+        },
+        {
+            currentLevel: 'BridgeTownHard',
+            doorId: 6,
+            targetLevel: 'OldMineMountainHard',
+            requiredMissionId: MissionID.DerelictionOfDutyHard
+        }
+    ];
+
+    for (const entry of storyAreaTransfers) {
+        const client = createClient();
+        client.token = 4400 + entry.doorId;
+        client.currentLevel = entry.currentLevel;
+        client.clientEntID = 451;
+        client.lastDoorId = entry.doorId;
+        client.lastDoorTargetLevel = entry.targetLevel;
+        client.character = createCharacter(`${entry.targetLevel}TransferRunner`);
+        client.character.level = 50;
+        client.character.CurrentLevel = { name: entry.currentLevel, x: 0, y: 0 };
+
+        await LevelHandler.handleLevelTransferRequest(
+            client as never,
+            createLevelTransferPacket(client.token, entry.targetLevel)
+        );
+
+        assert.equal(
+            client.sentPackets.some((packet: { id: number }) => packet.id === 0x21),
+            false,
+            `${entry.targetLevel} transfer request must be blocked before its story mission is claimed`
+        );
+        const blockedDialoguePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x76);
+        assert.ok(blockedDialoguePacket);
+        assert.deepEqual(parseRoomThoughtPacket(blockedDialoguePacket.payload), {
+            entityId: 451,
+            text: "^tI haven't unlocked this area yet."
+        });
+
+        client.sentPackets.length = 0;
+        client.character.missions = {
+            [String(entry.requiredMissionId)]: {
+                state: 3,
+                currCount: 1,
+                claimed: 1,
+                complete: 1
+            }
+        };
+
+        await LevelHandler.handleLevelTransferRequest(
+            client as never,
+            createLevelTransferPacket(client.token, entry.targetLevel)
+        );
+
+        assert.equal(
+            client.sentPackets.some((packet: { id: number }) => packet.id === 0x21),
+            true,
+            `${entry.targetLevel} transfer request should proceed after its story mission is claimed`
+        );
+    }
+}
+
 function testValhavenDreadGateRequiresHardShazariProgression(): void {
     const client = createClient();
     client.currentLevel = 'JadeCity';
@@ -2805,6 +2962,8 @@ async function main(): Promise<void> {
         testFelbridgeDreadGateOpensAfterCapstoneClaimedWithoutLevelRequirement();
         testOtherDreadfoldGatesRequireCapstoneClaim();
         testOtherDreadfoldGatesOpenAfterCapstoneClaimedWithoutLevelRequirement();
+        testDreadStoryAreaDoorsRequireClaimedStoryMission();
+        await testDreadStoryAreaTransferRequestRequiresClaimedStoryMission();
         testValhavenDreadGateRequiresHardShazariProgression();
         testDreadfoldReturnGatesStayOpenWithoutCapstone();
         testMindlessQueenDungeonRequiresAcceptedMission();

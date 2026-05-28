@@ -1259,6 +1259,7 @@
 		<ZoneSet>OldMineMountain</ZoneSet>
 		<Priority>Story</Priority>
 		<ContactName>OMM_Moai01</ContactName>
+		<ReturnName>OMM_Moai01</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission2</Dungeon>
 		<MissionLevel>16</MissionLevel>
@@ -1266,9 +1267,11 @@
 		<GoldReward>M</GoldReward>
 		<DisplayName>Kaya Devlerinin Bahcesi</DisplayName>
 		<TrackerText>Fel Koprusu mahkumlarini Meylour'un tarikatindan kurtarin</TrackerText>
+		<TrackerReturn>Odulunu almak icin Moai'ye don</TrackerReturn>
 		<Description>Moai, Meylour'un takipcileri tarafindan zincire vurulan insanlardan soz ediyor.</Description>
 		<OfferText>Turunuzden bazilari hâlâ bir zamanlar oldugu gibi yasayabilir.</OfferText>
 		<ActiveText>Sizin turunuzden bazilarinin nereye goturuldugunu biliyorum.=@Sen nesin? Biraz ruh mu?=Biz bu dagin kadim koruyuculariyiz.=Meylour bizi tahtlarimizdan devirdi.=@Hayatta kalanlar nerede?=Eger yasiyorlarsa Meylour'un igrenc tapinaklarindan birindeler demektir.=Acele etmelisin, yoksa onlarin zamani gelir.=@Yoldayim!</ActiveText>
+		<ReturnText>Meylour, elli yil onceki derinliklerden ofkeyle yukseldi.</ReturnText>
 		<PraiseText>Meylour, elli yil onceki derinliklerden ofkeyle yukseldi.</PraiseText>
 	</MissionType>
 	<MissionType>
@@ -1446,6 +1449,8 @@
 		<PreReqMissions>AbandonedArmory</PreReqMissions>
 		<ZoneSet>OldMineMountain</ZoneSet>
 		<Priority>Dungeon</Priority>
+		<ContactName>OMM_Statue01</ContactName>
+		<ReturnName>OMM_Statue01</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission6</Dungeon>
 		<MissionLevel>17</MissionLevel>
@@ -1453,7 +1458,12 @@
 		<GoldReward>M</GoldReward>
 		<DisplayName>Unutulmus Demirhane</DisplayName>
 		<TrackerText>Zanaatkar Uthor'un efsanevi kayip demirhanesini bulun</TrackerText>
+		<TrackerReturn>Odulunu almak icin Uthor'un heykeline don</TrackerReturn>
 		<Description>Firtina Tasi Zirveleri'nin yukseklerinde Zanaatkar Uthor'un demirhanesi gizli. Onu arayacak kadar cesur ya da akilsiz kisi cok az.</Description>
+		<OfferText>Uthor'un Enfes Kreasyonlari</OfferText>
+		<ActiveText>Demirhane Firtina Tasi Zirveleri'nde gizli kalmaya devam ediyor.</ActiveText>
+		<ReturnText>Uthor'un Enfes Kreasyonlari=Demirhane bulundu.</ReturnText>
+		<PraiseText>Uthor'un Enfes Kreasyonlari=Demirhane bulundu.</PraiseText>
 		<ISayOnAccept>^tI wonder who this Uthor they speak of is…</ISayOnAccept>
 	</MissionType>
 	<MissionType>
@@ -3406,6 +3416,7 @@
 		<ZoneSet>OldMineMountainHard</ZoneSet>
 		<Priority>Story</Priority>
 		<ContactName>OMM_Moai01Hard</ContactName>
+		<ReturnName>OMM_Moai01Hard</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission2Hard</Dungeon>
 		<MissionLevel>31</MissionLevel>
@@ -3413,9 +3424,11 @@
 		<GoldReward>M</GoldReward>
 		<DisplayName>Kaya Devlerinin Bahcesi</DisplayName>
 		<TrackerText>Fel Koprusu mahkumlarini Meylour'un tarikatindan kurtarin</TrackerText>
+		<TrackerReturn>Odulunu almak icin Moai'ye don</TrackerReturn>
 		<Description>Moai, Meylour'un takipcileri tarafindan zincire vurulan insanlardan soz ediyor.</Description>
 		<OfferText>Turunuzden bazilari hâlâ bir zamanlar oldugu gibi yasayabilir.</OfferText>
 		<ActiveText>Sizin turunuzden bazilarinin nereye goturuldugunu biliyorum.=@Sen nesin? Biraz ruh mu?=Biz bu dagin kadim koruyuculariyiz.=Meylour bizi tahtlarimizdan devirdi.=@Hayatta kalanlar nerede?=Eger yasiyorlarsa Meylour'un igrenc tapinaklarindan birindeler demektir.=Acele etmelisin, yoksa onlarin zamani gelir.=@Yoldayim!</ActiveText>
+		<ReturnText>Meylour, elli yil onceki derinliklerden ofkeyle yukseldi.</ReturnText>
 		<PraiseText>Meylour, elli yil onceki derinliklerden ofkeyle yukseldi.</PraiseText>
 	</MissionType>
 	<MissionType>
@@ -3593,6 +3606,8 @@
 		<PreReqMissions>AbandonedArmoryHard</PreReqMissions>
 		<ZoneSet>OldMineMountainHard</ZoneSet>
 		<Priority>Dungeon</Priority>
+		<ContactName>OMM_Statue01Hard</ContactName>
+		<ReturnName>OMM_Statue01Hard</ReturnName>
 		<CompleteCount>1</CompleteCount>
 		<Dungeon>OMM_Mission6Hard</Dungeon>
 		<MissionLevel>32</MissionLevel>
@@ -3600,7 +3615,12 @@
 		<GoldReward>M</GoldReward>
 		<DisplayName>Unutulmus Demirhane</DisplayName>
 		<TrackerText>Zanaatkar Uthor'un efsanevi kayip demirhanesini bulun</TrackerText>
+		<TrackerReturn>Odulunu almak icin Uthor'un heykeline don</TrackerReturn>
 		<Description>Firtina Tasi Zirveleri'nin yukseklerinde Zanaatkar Uthor'un demirhanesi gizli. Onu arayacak kadar cesur ya da akilsiz kisi cok az.</Description>
+		<OfferText>Uthor'un Enfes Kreasyonlari</OfferText>
+		<ActiveText>Demirhane Firtina Tasi Zirveleri'nde gizli kalmaya devam ediyor.</ActiveText>
+		<ReturnText>Uthor'un Enfes Kreasyonlari=Demirhane bulundu.</ReturnText>
+		<PraiseText>Uthor'un Enfes Kreasyonlari=Demirhane bulundu.</PraiseText>
 		<ISayOnAccept>^tI wonder who this Uthor they speak of is…</ISayOnAccept>
 	</MissionType>
 	<MissionType>
