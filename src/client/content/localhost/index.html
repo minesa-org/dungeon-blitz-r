@@ -6,80 +6,34 @@
   <script src="js/swfobject.min.js"></script>
 
   <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-    }
-
     html, body {
       margin: 0;
-      padding: 0 0 70px;
+      padding: 0;
       width: 100%;
       height: 100%;
       background: #484955;
       overflow: hidden;
-    }
-
-    #game-shell {
-      position: fixed;
-      top: 40px;
-      right: 0;
-      bottom: 70px;
-      left: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      background: #484955;
-      overflow: hidden;
     }
 
-    #game-stage,
-    #game-container,
-    #DungeonBlitz,
-    object#DungeonBlitz,
-    embed#DungeonBlitz,
-    canvas#DungeonBlitz {
-      display: block;
-      width: min(100vw, 150vh) !important;
-      height: min(100vh, 66.6667vw) !important;
-      width: min(100dvw, 150dvh) !important;
-      height: min(100dvh, 66.6667dvw) !important;
+    #game-container {
+      width: min(100vw, 150vh);
+      height: min(100vh, 66.6667vw);
       aspect-ratio: 3 / 2;
       flex: 0 0 auto;
-      margin: 0;
-      border: 0;
-      max-width: none;
-      max-height: none;
-      overflow: hidden;
-      position: relative;
-      text-align: center;
+      background: #484955;
     }
 
-    #game-stage {
-      border-right: 1px solid #484955;
-    }
-
-    #game-stage > *,
-    #game-stage object,
-    #game-stage embed,
-    #game-stage canvas,
-    #game-stage > * > object,
-    #game-stage > * > embed,
-    #game-stage > * > canvas,
     #DungeonBlitz,
     object#DungeonBlitz,
-    embed#DungeonBlitz,
-    canvas#DungeonBlitz {
+    embed#DungeonBlitz {
       display: block;
       width: 100% !important;
       height: 100% !important;
-      max-width: 100% !important;
-      max-height: 100% !important;
       margin: 0;
       border: 0;
-      box-sizing: border-box;
     }
 
     #flash-hint {
@@ -88,7 +42,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #aaa;
+      color: #3A3A45;
       font-family: sans-serif;
       text-align: center;
       pointer-events: none;
@@ -108,11 +62,7 @@
 
 <body>
 
-  <div id="game-shell">
-    <div id="game-stage">
-      <div id="game-container"></div>
-    </div>
-  </div>
+  <div id="game-container"></div>
 
   <div id="flash-hint">
     <div>
@@ -147,19 +97,14 @@
     document.cookie = "db_lang=; path=/; max-age=0; SameSite=Lax";
 
     const languageParam = urlLanguage ? `&lang=${urlLanguage}` : "";
-    const swfUrl = `p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw${languageParam}`;
+    const swfUrl = `p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv${languageParam}`;
     const localBridgeBaseUrl = "http://127.0.0.1:47631";
     const selfPresenceUrl = "/api/presence/self";
     const discordJoinUrl = "/api/presence/discord-join";
     const presencePollMs = 4000;
-    const gameWidth = 1152;
-    const gameHeight = 768;
-    const gameAspectRatio = gameWidth / gameHeight;
     const localDiscordBridgeEnabled =
       window.location.protocol === "http:" || window.location.protocol === "https:";
     let lastPresenceHash = "";
-    let syncGameStageSizeFrame = 0;
-    let gameSurfaceResizeObserver = null;
 
     function showFallback() {
       document.getElementById("flash-hint").style.display = "none";
@@ -169,108 +114,6 @@
     function hideHint() {
       const hint = document.getElementById("flash-hint");
       if (hint) hint.style.display = "none";
-    }
-
-    function getGameStage() {
-      return document.getElementById("game-stage");
-    }
-
-    function isGameSurfaceCarrier(node) {
-      return node instanceof HTMLElement &&
-        node.id !== "game-shell" &&
-        node.id !== "game-stage" &&
-        node.id !== "flash-hint" &&
-        node.id !== "fallback" &&
-        node.tagName !== "SCRIPT" &&
-        (
-          node.matches("#DungeonBlitz, canvas, object, embed") ||
-          !!node.querySelector("#DungeonBlitz, canvas, object, embed")
-        );
-    }
-
-    function normalizeGameSurfaceElement(node) {
-      if (!(node instanceof HTMLElement)) return;
-      node.style.width = "100%";
-      node.style.height = "100%";
-      node.style.maxWidth = "100%";
-      node.style.maxHeight = "100%";
-      node.style.margin = "0";
-      node.style.border = "0";
-      node.style.display = "block";
-      node.setAttribute("align", "center");
-
-      for (const child of node.querySelectorAll("canvas, object, embed")) {
-        child.style.width = "100%";
-        child.style.height = "100%";
-        child.style.maxWidth = "100%";
-        child.style.maxHeight = "100%";
-        child.style.margin = "0";
-        child.style.border = "0";
-        child.style.display = "block";
-        child.setAttribute("align", "center");
-      }
-    }
-
-    function refreshGameSurfaceResizeTargets() {
-      if (!gameSurfaceResizeObserver) return;
-      const targets = document.querySelectorAll([
-        "#game-shell",
-        "#game-stage",
-        "#game-container",
-        "#DungeonBlitz",
-        "#game-stage canvas",
-        "#game-stage object",
-        "#game-stage embed"
-      ].join(", "));
-
-      for (const target of targets) {
-        if (target instanceof Element) {
-          gameSurfaceResizeObserver.observe(target);
-        }
-      }
-    }
-
-    function syncGameStageSize() {
-      syncGameStageSizeFrame = 0;
-      const stage = getGameStage();
-      if (!stage) return;
-
-      const shell = document.getElementById("game-shell");
-      const shellRect = shell ? shell.getBoundingClientRect() : null;
-      const viewportWidth = Math.floor(shellRect && shellRect.width ? shellRect.width : (document.documentElement.clientWidth || window.innerWidth));
-      const viewportHeight = Math.floor(shellRect && shellRect.height ? shellRect.height : (document.documentElement.clientHeight || window.innerHeight));
-      let width = Math.min(viewportWidth, viewportHeight * gameAspectRatio);
-      let height = width / gameAspectRatio;
-
-      if (height > viewportHeight) {
-        height = viewportHeight;
-        width = height * gameAspectRatio;
-      }
-
-      const nextWidth = `${Math.round(width)}px`;
-      const nextHeight = `${Math.round(height)}px`;
-      if (stage.style.width !== nextWidth) {
-        stage.style.width = nextWidth;
-      }
-      if (stage.style.height !== nextHeight) {
-        stage.style.height = nextHeight;
-      }
-
-      const detachedSurface = Array.from(document.body.children).find(isGameSurfaceCarrier);
-      if (detachedSurface && detachedSurface.parentElement === document.body) {
-        stage.replaceChildren(detachedSurface);
-      }
-
-      const surface = stage.firstElementChild;
-      if (surface) {
-        normalizeGameSurfaceElement(surface);
-      }
-      refreshGameSurfaceResizeTargets();
-    }
-
-    function requestGameStageSizeSync() {
-      if (syncGameStageSizeFrame) return;
-      syncGameStageSizeFrame = window.requestAnimationFrame(syncGameStageSize);
     }
 
     async function postToLocalBridge(path, body) {
@@ -348,43 +191,22 @@
     swfobject.embedSWF(
       swfUrl,
       "game-container",
-      "1152",
-      "768",
+      "100%",
+      "100%",
       "10.0.0",
       null,
-      { fv: "cbw", gv: "cbw" },
+      { fv: "cbq", gv: "cbp" },
       { allowScriptAccess: "always", allowFullScreen: "true" },
-      { id: "DungeonBlitz", name: "DungeonBlitz", align: "center" },
+      { id: "DungeonBlitz", name: "DungeonBlitz" },
       function (e) {
         if (!e.success) {
           // Flash not installed or unavailable
           showFallback();
-          return;
         }
-        syncGameStageSize();
       }
     );
 
     // Give Flash time to initialize after permission
-    const gameSurfaceObserver = new MutationObserver(requestGameStageSizeSync);
-    gameSurfaceObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["style", "width", "height", "align"]
-    });
-    gameSurfaceResizeObserver = typeof ResizeObserver === "function"
-      ? new ResizeObserver(requestGameStageSizeSync)
-      : null;
-    if (gameSurfaceResizeObserver) {
-      refreshGameSurfaceResizeTargets();
-    }
-    window.addEventListener("resize", requestGameStageSizeSync);
-    window.addEventListener("fullscreenchange", requestGameStageSizeSync);
-    syncGameStageSize();
-    setTimeout(requestGameStageSizeSync, 100);
-    setTimeout(requestGameStageSizeSync, 1000);
-    setInterval(requestGameStageSizeSync, 1000);
     setTimeout(hideHint, 2500);
     if (localDiscordBridgeEnabled) {
       setTimeout(syncDiscordPresence, 2500);

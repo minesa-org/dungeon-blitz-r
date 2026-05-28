@@ -46,7 +46,7 @@ export class StaticServer {
     private selectedSwfCache: { key: string; buffer: Buffer } | null;
     private readonly discordAccountLinks: DiscordAccountLinkService;
     private readonly flashVersion = 'cbw';
-    private readonly gameVersion = 'cbw';
+    private readonly gameVersion = 'cbv';
 
     constructor(
         port: number = Config.STATIC_PORT,
@@ -293,8 +293,8 @@ export class StaticServer {
             next();
         });
 
-        this.app.get('/', (req, res) => {
-            res.redirect(302, this.getCanonicalSelectedSwfUrl(req));
+        this.app.get('/', (_req, res) => {
+            res.sendFile(path.join(this.contentDir, 'index.html'));
         });
 
         this.app.get('/p/cbp/DungeonBlitz.swf', (req, res) => {
