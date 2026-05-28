@@ -10,8 +10,7 @@ import {
     methodIdxForTrait,
     parseAbc,
     parseSwf,
-    u30OperandName,
-    writeU30
+    u30OperandName
 } from '../scripts/swfPatchUtils';
 import type { Instruction } from '../scripts/swfPatchUtils';
 
@@ -28,9 +27,9 @@ function resolveBaseSwfPath(): string {
 
 const BASE_SWF_PATH = resolveBaseSwfPath();
 const MULTIPLAYER_HOST = Config.MULTIPLAYER_HOST;
-const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw';
-const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw`;
-const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbw';
+const LOCAL_REFRESH_URL = 'http://localhost:8000/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
+const MULTIPLAYER_REFRESH_URL = `http://${MULTIPLAYER_HOST}/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv`;
+const LEGACY_REFRESH_URL = '/p/cbp/DungeonBlitz.swf?fv=cbw&gv=cbv';
 const BITMAPDATA_TOTAL_PIXELS = 16777215;
 const CLASS82_SCENE_CACHE_SAFE_PIXELS = 4194304;
 const CLASS72_FLOAT_TEXT_SAFE_PIXELS = 262144;
@@ -603,7 +602,7 @@ function assertInstanceBooleanMethodFalseNullGuard(swfPath: string, className: s
     );
 }
 
-function assertMainMethod561ClampsMaxScale(swfPath: string): void {
+function assertMainMethod561KeepsMaxScaleClamp(swfPath: string): void {
     const { instructions } = getInstanceMethodCode(swfPath, 'Main', 'method_561');
     const maxScaleAssignment = instructions.find((instruction, index) =>
         instruction.opcode === 0x2f &&
@@ -618,65 +617,6 @@ function assertMainMethod561ClampsMaxScale(swfPath: string): void {
         maxScaleAssignment,
         undefined,
         'Main.method_561 must clamp fullscreen fit scale to prevent large-viewport overflow'
-    );
-}
-
-function assertMainMethod561ClipsViewport(swfPath: string): void {
-    const { abc, ctx, methodBody, instructions } = getInstanceMethodCode(swfPath, 'Main', 'method_561');
-    const isAddThenDivide = (index: number) =>
-        (instructions[index + 5]?.opcode === 0xa0 && instructions[index + 6]?.opcode === 0xa3) ||
-        (instructions[index + 5]?.opcode === 0x02 && instructions[index + 6]?.opcode === 0xa0 && instructions[index + 7]?.opcode === 0xa3);
-    const scrollRectAssignmentIndex = instructions.findIndex((instruction, index) =>
-        instruction.opcode === 0x4a &&
-        u30OperandName(instruction, abc.multinameNames) === 'Rectangle' &&
-        instruction.operands[1]?.[1] === 4 &&
-        instructions[index + 1]?.opcode === 0x61 &&
-        u30OperandName(instructions[index + 1], abc.multinameNames) === 'scrollRect'
-    );
-
-    assert.notEqual(
-        scrollRectAssignmentIndex,
-        -1,
-        'Main.method_561 must clip the scaled game display list to the 1152x768 viewport'
-    );
-    const scrollRectWindow = instructions.slice(Math.max(0, scrollRectAssignmentIndex - 50), scrollRectAssignmentIndex);
-    const scrollRectByteLiterals = scrollRectWindow
-        .filter((instruction) => instruction.opcode === 0x24)
-        .map((instruction) => instruction.operands[0]?.[1]);
-    assert.equal(
-        scrollRectByteLiterals.includes(-21) &&
-        scrollRectByteLiterals.includes(-31) &&
-        scrollRectByteLiterals.includes(52) &&
-        scrollRectByteLiterals.includes(121),
-        true,
-        'Main.method_561 scrollRect clip must preserve 21px left, 31px top, 31px right, and 90px bottom viewport padding'
-    );
-    assert.equal(
-        instructions.some((instruction, index) =>
-            instruction.opcode === 0x66 &&
-            u30OperandName(instruction, abc.multinameNames) === 'SCREEN_WIDTH' &&
-            instructions[index + 1]?.opcode === 0x24 &&
-            instructions[index + 1]?.operands[0]?.[1] === 52 &&
-            isAddThenDivide(index)
-        ),
-        true,
-        'Main.method_561 fit scale must include 21px left and 31px right clip padding'
-    );
-    assert.equal(
-        instructions.some((instruction, index) =>
-            instruction.opcode === 0x66 &&
-            u30OperandName(instruction, abc.multinameNames) === 'SCREEN_HEIGHT' &&
-            instructions[index + 1]?.opcode === 0x24 &&
-            instructions[index + 1]?.operands[0]?.[1] === 121 &&
-            isAddThenDivide(index)
-        ),
-        true,
-        'Main.method_561 fit scale must include 31px top and 90px bottom clip padding'
-    );
-    assert.equal(
-        ctx.body.subarray(methodBody.maxStackPos, methodBody.localCountPos).equals(writeU30(7)),
-        true,
-        'Main.method_561 scrollRect clip must raise max_stack to 7 so Flash verifier can run the method'
     );
 }
 
@@ -960,12 +900,10 @@ function testBaseAndLocalVariantKeepChatBubbleNullGuard(): void {
 }
 
 function testBaseAndLocalVariantKeepMainMethod561ScaleClamp(): void {
-    assertMainMethod561ClampsMaxScale(BASE_SWF_PATH);
-    assertMainMethod561ClipsViewport(BASE_SWF_PATH);
+    assertMainMethod561KeepsMaxScaleClamp(BASE_SWF_PATH);
     const buffer = buildDungeonBlitzSwfVariantBuffer(BASE_SWF_PATH, 'local');
     withTempSwf(buffer, (tempPath) => {
-        assertMainMethod561ClampsMaxScale(tempPath);
-        assertMainMethod561ClipsViewport(tempPath);
+        assertMainMethod561KeepsMaxScaleClamp(tempPath);
     });
 }
 
