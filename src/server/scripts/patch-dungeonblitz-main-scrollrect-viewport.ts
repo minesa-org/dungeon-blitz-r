@@ -230,7 +230,7 @@ function buildScrollRectPatch(abc: ReturnType<typeof parseAbc>): Buffer {
 }
 
 function patchSwf(swfPath: string, verify: boolean): void {
-  const { ctx, abc, methodBody, code, instructions } = getMainMethod561(swfPath);
+  const { ctx, abc, methodBody, instructions } = getMainMethod561(swfPath);
   const names = abc.multinameNames;
   const existingPatchBounds = findExistingScrollRectPatchBounds(instructions, names);
 
