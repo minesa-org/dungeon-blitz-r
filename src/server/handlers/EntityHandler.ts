@@ -918,11 +918,42 @@ export class EntityHandler {
         return Array.from(roomIds).sort((left, right) => left - right);
     }
 
+    private static getClosedRoomIdsForLevel(
+        client: Pick<Client, 'closedRoomEvents'> | null | undefined,
+        levelName: string | null | undefined
+    ): Set<number> {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        if (!normalizedLevel || !client?.closedRoomEvents) {
+            return new Set<number>();
+        }
+
+        const prefix = `${normalizedLevel}:`;
+        const roomIds = new Set<number>();
+        for (const key of client.closedRoomEvents) {
+            if (!key.startsWith(prefix)) {
+                continue;
+            }
+
+            const roomId = Number(key.substring(prefix.length));
+            if (Number.isFinite(roomId) && roomId >= 0) {
+                roomIds.add(Math.round(roomId));
+            }
+        }
+
+        return roomIds;
+    }
+
     private static sendRoomEventStartPacket(client: Client, roomId: number): void {
         const bb = new BitBuffer(false);
         bb.writeMethod9(roomId);
         bb.writeMethod15(true);
         client.sendBitBuffer(0xA5, bb);
+    }
+
+    private static sendRoomClosePacket(client: Client, roomId: number): void {
+        const bb = new BitBuffer(false);
+        bb.writeMethod9(roomId);
+        client.sendBitBuffer(0xA6, bb);
     }
 
     private static replayStartedDungeonRoomEventsToJoiner(joiner: Client): void {
@@ -936,6 +967,7 @@ export class EntityHandler {
 
         let anchor: Client | null = null;
         let anchorStartedRoomIds: number[] = [];
+        let anchorClosedRoomIds = new Set<number>();
 
         for (const other of GlobalState.sessionsByToken.values()) {
             if (other === joiner) {
@@ -957,6 +989,7 @@ export class EntityHandler {
             ) {
                 anchor = other;
                 anchorStartedRoomIds = startedRoomIds;
+                anchorClosedRoomIds = EntityHandler.getClosedRoomIdsForLevel(other, levelName);
             }
         }
 
@@ -971,12 +1004,15 @@ export class EntityHandler {
 
         for (const roomId of anchorStartedRoomIds) {
             const key = `${levelName}:${roomId}`;
-            if (joiner.startedRoomEvents.has(key)) {
-                continue;
+            if (!joiner.startedRoomEvents.has(key)) {
+                EntityHandler.sendRoomEventStartPacket(joiner, roomId);
+                joiner.startedRoomEvents.add(key);
             }
 
-            EntityHandler.sendRoomEventStartPacket(joiner, roomId);
-            joiner.startedRoomEvents.add(key);
+            if (anchorClosedRoomIds.has(roomId) && !joiner.closedRoomEvents.has(key)) {
+                EntityHandler.sendRoomClosePacket(joiner, roomId);
+                joiner.closedRoomEvents.add(key);
+            }
         }
     }
 

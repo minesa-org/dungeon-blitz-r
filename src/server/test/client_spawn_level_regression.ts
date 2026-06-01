@@ -30,6 +30,7 @@ type FakeClient = {
     mountTransferGraceUntil: number;
     syncAnchorStartedAt: number;
     startedRoomEvents: Set<string>;
+    closedRoomEvents: Set<string>;
     triggeredLevelStates: Set<string>;
     knownEntityIds: Set<number>;
     entityIdAliases: Map<number, number>;
@@ -80,6 +81,7 @@ function createFakeClient(name: string, level: number = 1): FakeClient {
         mountTransferGraceUntil: 0,
         syncAnchorStartedAt: 0,
         startedRoomEvents: new Set<string>(),
+        closedRoomEvents: new Set<string>(),
         triggeredLevelStates: new Set<string>(),
         knownEntityIds: new Set<number>(),
         entityIdAliases: new Map<number, number>(),
@@ -115,6 +117,13 @@ function parseRoomEventStart(payload: Buffer): { roomId: number; flag: boolean }
     return {
         roomId: br.readMethod4(),
         flag: br.readMethod15()
+    };
+}
+
+function parseRoomClose(payload: Buffer): { roomId: number } {
+    const br = new BitReader(payload);
+    return {
+        roomId: br.readMethod4()
     };
 }
 
@@ -2393,6 +2402,64 @@ function testDungeonJoinerReplaysStartedRoomEventsFromPartyAnchor(): void {
     assert.equal(joiner.startedRoomEvents.has('TutorialBoat:5'), true);
 }
 
+function testProdigalSonJoinerReplaysClosedRoomEventsFromPartyAnchor(): void {
+    const anchor = createFakeClient('Alpha');
+    const joiner = createFakeClient('Beta');
+    const roomId = 1971923064;
+
+    anchor.currentLevel = 'JC_Mission3';
+    joiner.currentLevel = 'JC_Mission3';
+    anchor.levelInstanceId = 'prodigal-run';
+    joiner.levelInstanceId = 'prodigal-run';
+    anchor.currentRoomId = roomId;
+    joiner.currentRoomId = 0;
+    anchor.syncAnchorStartedAt = 100;
+    joiner.syncAnchorStartedAt = 50;
+    anchor.clientEntID = 7201;
+    joiner.clientEntID = 7202;
+
+    anchor.startedRoomEvents.add(`JC_Mission3:${roomId}`);
+    anchor.closedRoomEvents.add(`JC_Mission3:${roomId}`);
+
+    anchor.entities.set(anchor.clientEntID, {
+        id: anchor.clientEntID,
+        name: 'Alpha',
+        isPlayer: true,
+        x: 100,
+        y: 200,
+        team: 1,
+        entState: 0
+    });
+    joiner.entities.set(joiner.clientEntID, {
+        id: joiner.clientEntID,
+        name: 'Beta',
+        isPlayer: true,
+        x: 120,
+        y: 200,
+        team: 1,
+        entState: 0
+    });
+
+    GlobalState.sessionsByToken.set(anchor.token, anchor as never);
+    GlobalState.sessionsByToken.set(joiner.token, joiner as never);
+    GlobalState.partyByMember.set('alpha', 177);
+    GlobalState.partyByMember.set('beta', 177);
+
+    (EntityHandler as any).sendExistingPlayersToJoiner(joiner as never);
+
+    const roomStartPackets = joiner.sentPackets.filter((packet) => packet.id === 0xA5);
+    const roomClosePackets = joiner.sentPackets.filter((packet) => packet.id === 0xA6);
+    assert.deepEqual(roomStartPackets.map((packet) => parseRoomEventStart(packet.payload)), [
+        { roomId, flag: true }
+    ]);
+    assert.deepEqual(roomClosePackets.map((packet) => parseRoomClose(packet.payload)), [
+        { roomId }
+    ]);
+    assert.equal(joiner.currentRoomId, roomId, 'Prodigal Son joiner should inherit the party anchor room');
+    assert.equal(joiner.startedRoomEvents.has(`JC_Mission3:${roomId}`), true);
+    assert.equal(joiner.closedRoomEvents.has(`JC_Mission3:${roomId}`), true);
+}
+
 function testGoblinRiverDungeonLeaderHostilesSeedToPartyJoinersOnly(): void {
     for (const levelName of GOBLIN_RIVER_LEVELS) {
         const owner = createFakeClient('Alpha');
@@ -3128,6 +3195,11 @@ async function main(): Promise<void> {
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
         testDungeonJoinerReplaysStartedRoomEventsFromPartyAnchor();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        testProdigalSonJoinerReplaysClosedRoomEventsFromPartyAnchor();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

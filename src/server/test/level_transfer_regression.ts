@@ -50,6 +50,7 @@ function createClient(): any {
         playerSpawned: false,
         mountTransferGraceUntil: 0,
         startedRoomEvents: new Set<string>(),
+        closedRoomEvents: new Set<string>(),
         knownEntityIds: new Set<number>(),
         pendingLoot: new Map(),
         processedRewardSources: new Set<string>(),
@@ -121,6 +122,21 @@ function parseRoomThoughtPacket(payload: Buffer): { entityId: number; text: stri
     return {
         entityId: br.readMethod4(),
         text: br.readMethod13()
+    };
+}
+
+function parseRoomEventStart(payload: Buffer): { roomId: number; flag: boolean } {
+    const br = new BitReader(payload);
+    return {
+        roomId: br.readMethod4(),
+        flag: br.readMethod15()
+    };
+}
+
+function parseRoomClose(payload: Buffer): { roomId: number } {
+    const br = new BitReader(payload);
+    return {
+        roomId: br.readMethod4()
     };
 }
 
@@ -432,6 +448,45 @@ function testBuildTransferSyncStatePrefersPartyAnchorInDungeon(): void {
     assert.equal(syncState.syncEntryLevel, 'NewbieRoad');
     assert.equal(syncState.syncRoomId, 15);
     assert.deepEqual(syncState.syncStartedRoomIds, [0, 5, 15]);
+}
+
+function testBuildTransferSyncStateCarriesProdigalClosedRoomProgress(): void {
+    const follower = createClient();
+    follower.character = createCharacter('Follower');
+    follower.currentLevel = 'JadeCity';
+    follower.playerSpawned = true;
+    const roomId = 1971923064;
+
+    const leader = {
+        token: 6003,
+        userId: 52,
+        character: createCharacter('Leader'),
+        characters: [],
+        entities: new Map<number, any>([[93, { x: 1777, y: 2888 }]]),
+        currentLevel: 'JC_Mission3',
+        levelInstanceId: 'prodigal-run-88',
+        entryLevel: 'JadeCity',
+        syncAnchorStartedAt: 2222,
+        currentRoomId: roomId,
+        startedRoomEvents: new Set<string>([`JC_Mission3:${roomId}`]),
+        closedRoomEvents: new Set<string>([`JC_Mission3:${roomId}`]),
+        clientEntID: 93,
+        lastDoorId: 0,
+        lastDoorTargetLevel: '',
+        playerSpawned: true
+    };
+
+    GlobalState.sessionsByToken.set(leader.token, leader as never);
+    GlobalState.partyByMember.set('follower', 188);
+    GlobalState.partyByMember.set('leader', 188);
+
+    const syncState = (LevelHandler as any).buildTransferSyncState(follower, 'JC_Mission3', null);
+
+    assert.ok(syncState);
+    assert.equal(syncState.levelInstanceId, 'prodigal-run-88');
+    assert.equal(syncState.syncRoomId, roomId);
+    assert.deepEqual(syncState.syncStartedRoomIds, [roomId]);
+    assert.deepEqual(syncState.syncClosedRoomIds, [roomId]);
 }
 
 function testFindActiveTransferSessionPrefersNamedCharacterOverSameUserIndex(): void {
@@ -2136,6 +2191,27 @@ function testRestoreTransferredRoomProgressReplaysRoomEvents(): void {
     assert.deepEqual(client.sentPackets.map((packet: { id: number }) => packet.id), [0xA5, 0xA5]);
 }
 
+function testRestoreTransferredRoomProgressReplaysClosedRoomEvents(): void {
+    const client = createClient();
+    const roomId = 1971923064;
+    client.currentLevel = 'JC_Mission3';
+
+    const restored = LevelHandler.restoreTransferredRoomProgress(client as never, {
+        targetLevel: 'JC_Mission3',
+        syncRoomId: roomId,
+        syncStartedRoomIds: [roomId],
+        syncClosedRoomIds: [roomId]
+    });
+
+    assert.equal(restored, true);
+    assert.equal(client.currentRoomId, roomId);
+    assert.equal(client.startedRoomEvents.has(`JC_Mission3:${roomId}`), true);
+    assert.equal(client.closedRoomEvents.has(`JC_Mission3:${roomId}`), true);
+    assert.deepEqual(client.sentPackets.map((packet: { id: number }) => packet.id), [0xA5, 0xA6]);
+    assert.deepEqual(parseRoomEventStart(client.sentPackets[0]!.payload), { roomId, flag: true });
+    assert.deepEqual(parseRoomClose(client.sentPackets[1]!.payload), { roomId });
+}
+
 function testTutorialDungeonTransferredRoomProgressIsIgnored(): void {
     const client = createClient();
     client.currentLevel = 'TutorialDungeon';
@@ -2894,6 +2970,14 @@ async function main(): Promise<void> {
         GlobalState.pendingWorld.clear();
         GlobalState.partyByMember.clear();
 
+        testBuildTransferSyncStateCarriesProdigalClosedRoomProgress();
+
+        GlobalState.sessionsByToken.clear();
+        GlobalState.sessionsByUserId.clear();
+        GlobalState.sessionsByCharacterName.clear();
+        GlobalState.pendingWorld.clear();
+        GlobalState.partyByMember.clear();
+
         testFindActiveTransferSessionPrefersNamedCharacterOverSameUserIndex();
 
         GlobalState.sessionsByToken.clear();
@@ -3042,6 +3126,8 @@ async function main(): Promise<void> {
         await testPrepareCraftTownTutorialEntryResetsActiveKeepQuestProgress();
 
         testRestoreTransferredRoomProgressReplaysRoomEvents();
+
+        testRestoreTransferredRoomProgressReplaysClosedRoomEvents();
 
         testTutorialDungeonTransferredRoomProgressIsIgnored();
 

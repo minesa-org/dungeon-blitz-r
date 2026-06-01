@@ -168,6 +168,7 @@ export class Client {
     public pendingTransferUntil: number = 0;
     public mountTransferGraceUntil: number = 0;
     public startedRoomEvents: Set<string> = new Set();
+    public closedRoomEvents: Set<string> = new Set();
     public knownEntityIds: Set<number> = new Set();
     public entityIdAliases: Map<number, number> = new Map();
     public sharedEntityRemoteUpdateDeferredIds: Set<number> = new Set();
@@ -420,6 +421,7 @@ export class Client {
         this.pendingTransferUntil = 0;
         this.mountTransferGraceUntil = 0;
         this.startedRoomEvents.clear();
+        this.closedRoomEvents.clear();
         this.knownEntityIds.clear();
         this.entityIdAliases.clear();
         this.sharedEntityRemoteUpdateDeferredIds.clear();
@@ -538,6 +540,11 @@ export class Client {
             .map((key) => Number(key.substring(currentLevel.length + 1)))
             .filter((roomId) => Number.isFinite(roomId) && roomId >= 0)
             .map((roomId) => Math.round(roomId));
+        const syncClosedRoomIds = Array.from(this.closedRoomEvents.values())
+            .filter((key) => key.startsWith(`${currentLevel}:`))
+            .map((key) => Number(key.substring(currentLevel.length + 1)))
+            .filter((roomId) => Number.isFinite(roomId) && roomId >= 0)
+            .map((roomId) => Math.round(roomId));
 
         GlobalState.tokenChar.set(snapshot.token, {
             character: this.character,
@@ -564,6 +571,7 @@ export class Client {
             syncEntryHasCoord: this.entryHasCoord,
             syncRoomId,
             syncStartedRoomIds,
+            syncClosedRoomIds,
             syncQuestProgress: Number.isFinite(Number(this.character.questTrackerState))
                 ? Math.max(0, Math.min(100, Math.round(Number(this.character.questTrackerState))))
                 : undefined,

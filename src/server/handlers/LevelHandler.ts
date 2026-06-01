@@ -71,6 +71,7 @@ type LevelSyncState = {
     syncEntryHasCoord?: boolean;
     syncRoomId?: number;
     syncStartedRoomIds?: number[];
+    syncClosedRoomIds?: number[];
     syncQuestProgress?: number;
 };
 
@@ -288,6 +289,7 @@ export class LevelHandler {
         target.syncQuestProgress = LevelHandler.normalizeQuestProgress(source.syncQuestProgress ?? source.character?.questTrackerState);
         target.entities = new Map(source.entities);
         target.startedRoomEvents = new Set(source.startedRoomEvents);
+        target.closedRoomEvents = new Set(source.closedRoomEvents);
         target.triggeredLevelStates = new Set(source.triggeredLevelStates);
         target.dungeonRun = cloneDungeonRunStats(source.dungeonRun);
     }
@@ -391,6 +393,33 @@ export class LevelHandler {
         return Array.from(startedRoomIds.values()).sort((left, right) => left - right);
     }
 
+    private static getClosedRoomIdsForLevel(session: Client, levelName: string): number[] {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        if (!normalizedLevel) {
+            return [];
+        }
+
+        const closedRoomIds = new Set<number>();
+        for (const key of session.closedRoomEvents ?? new Set<string>()) {
+            const separatorIndex = key.lastIndexOf(':');
+            if (separatorIndex <= 0) {
+                continue;
+            }
+
+            const eventLevel = LevelConfig.normalizeLevelName(key.substring(0, separatorIndex));
+            if (eventLevel !== normalizedLevel) {
+                continue;
+            }
+
+            const roomId = Number(key.substring(separatorIndex + 1));
+            if (Number.isFinite(roomId) && roomId >= 0) {
+                closedRoomIds.add(Math.round(roomId));
+            }
+        }
+
+        return Array.from(closedRoomIds.values()).sort((left, right) => left - right);
+    }
+
     private static normalizeSyncAnchorStartedAt(value: unknown): number | undefined {
         const numericValue = Number(value);
         if (!Number.isFinite(numericValue) || numericValue <= 0) {
@@ -434,6 +463,7 @@ export class LevelHandler {
         }
 
         const startedRoomIds = LevelHandler.getStartedRoomIdsForLevel(session, targetLevel);
+        const closedRoomIds = LevelHandler.getClosedRoomIdsForLevel(session, targetLevel);
         return {
             source: 'active',
             token: session.token > 0 ? session.token : undefined,
@@ -457,6 +487,7 @@ export class LevelHandler {
                     ? Math.round(Number(session.currentRoomId))
                     : undefined,
                 syncStartedRoomIds: startedRoomIds,
+                syncClosedRoomIds: closedRoomIds,
                 syncQuestProgress: LevelHandler.normalizeQuestProgress(session.character.questTrackerState)
             }
         };
@@ -500,6 +531,7 @@ export class LevelHandler {
                     ? Math.round(Number(entry.syncRoomId))
                     : undefined,
                 syncStartedRoomIds: LevelHandler.normalizeStartedRoomIds(targetLevel, entry.syncStartedRoomIds),
+                syncClosedRoomIds: LevelHandler.normalizeStartedRoomIds(targetLevel, entry.syncClosedRoomIds),
                 syncQuestProgress: LevelHandler.normalizeQuestProgress(entry.syncQuestProgress)
             }
         };
@@ -654,6 +686,7 @@ export class LevelHandler {
         levelName: string,
         syncRoomId?: number,
         syncStartedRoomIds?: number[],
+        syncClosedRoomIds?: number[],
         replayPackets: boolean = false
     ): boolean {
         const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
@@ -665,10 +698,17 @@ export class LevelHandler {
         }
 
         const startedRoomIds = LevelHandler.normalizeStartedRoomIds(normalizedLevel, syncStartedRoomIds);
+        const closedRoomIds = LevelHandler.normalizeStartedRoomIds(normalizedLevel, syncClosedRoomIds);
+        for (const closedRoomId of closedRoomIds) {
+            if (!startedRoomIds.includes(closedRoomId)) {
+                startedRoomIds.push(closedRoomId);
+            }
+        }
+        startedRoomIds.sort((left, right) => left - right);
         const roomId = Number.isFinite(Number(syncRoomId)) && Number(syncRoomId) >= 0
             ? Math.round(Number(syncRoomId))
             : -1;
-        const didApplyState = roomId >= 0 || startedRoomIds.length > 0;
+        const didApplyState = roomId >= 0 || startedRoomIds.length > 0 || closedRoomIds.length > 0;
 
         if (roomId >= 0 && !startedRoomIds.includes(roomId)) {
             startedRoomIds.push(roomId);
@@ -681,6 +721,10 @@ export class LevelHandler {
 
         for (const startedRoomId of startedRoomIds) {
             client.startedRoomEvents.add(`${normalizedLevel}:${startedRoomId}`);
+        }
+        for (const closedRoomId of closedRoomIds) {
+            client.closedRoomEvents ??= new Set<string>();
+            client.closedRoomEvents.add(`${normalizedLevel}:${closedRoomId}`);
         }
 
         if (!replayPackets) {
@@ -695,6 +739,11 @@ export class LevelHandler {
                 bb.writeMethod9(startedRoomId);
                 bb.writeMethod15(true);
                 client.sendBitBuffer(0xA5, bb);
+            }
+            if (closedRoomIds.includes(startedRoomId)) {
+                const bb = new BitBuffer(false);
+                bb.writeMethod9(startedRoomId);
+                client.sendBitBuffer(0xA6, bb);
             }
         }
 
@@ -748,6 +797,9 @@ export class LevelHandler {
         let syncStartedRoomIds = shouldSyncDungeonProgress
             ? LevelHandler.normalizeStartedRoomIds(normalizedTargetLevel, teleportOverride?.syncStartedRoomIds)
             : [];
+        let syncClosedRoomIds = shouldSyncDungeonProgress
+            ? LevelHandler.normalizeStartedRoomIds(normalizedTargetLevel, teleportOverride?.syncClosedRoomIds)
+            : [];
         let syncQuestProgress = shouldSyncDungeonProgress
             ? LevelHandler.normalizeQuestProgress((teleportOverride as PendingTeleport & { syncQuestProgress?: number } | null)?.syncQuestProgress)
             : undefined;
@@ -798,6 +850,13 @@ export class LevelHandler {
                 if (anchorStartedRoomIds.length > 0) {
                     syncStartedRoomIds = anchorStartedRoomIds;
                 }
+                const anchorClosedRoomIds = LevelHandler.normalizeStartedRoomIds(
+                    normalizedTargetLevel,
+                    anchorState.syncClosedRoomIds
+                );
+                if (anchorClosedRoomIds.length > 0) {
+                    syncClosedRoomIds = anchorClosedRoomIds;
+                }
                 syncQuestProgress = LevelHandler.normalizeQuestProgress(anchorState.syncQuestProgress) ?? syncQuestProgress;
             }
         }
@@ -829,7 +888,8 @@ export class LevelHandler {
                 !anchor &&
                 !levelInstanceId &&
                 syncRoomId === undefined &&
-                syncStartedRoomIds.length === 0
+                syncStartedRoomIds.length === 0 &&
+                syncClosedRoomIds.length === 0
                     ? LevelConfig.getDungeonEntrySpawnOverride(normalizedTargetLevel)
                     : null;
             if (dungeonEntrySpawnOverride) {
@@ -847,6 +907,7 @@ export class LevelHandler {
             !hasCoord &&
             !levelInstanceId &&
             !syncStartedRoomIds.length &&
+            !syncClosedRoomIds.length &&
             syncRoomId === undefined &&
             !syncEntryLevel
         ) {
@@ -871,6 +932,7 @@ export class LevelHandler {
             syncEntryHasCoord,
             syncRoomId,
             syncStartedRoomIds,
+            syncClosedRoomIds,
             syncQuestProgress
         };
     }
@@ -1290,6 +1352,7 @@ export class LevelHandler {
                 continue;
             }
             MissionHandler.noteDungeonCutsceneStart(other, roomId);
+            LevelHandler.markRoomEventStarted(other, roomId);
             other.send(0xA5, payload);
         }
     }
@@ -1305,6 +1368,7 @@ export class LevelHandler {
                 continue;
             }
             other.send(0xA6, payload);
+            LevelHandler.markRoomEventClosed(other, roomId);
             MissionHandler.noteDungeonCutsceneEnd(other, roomId);
         }
     }
@@ -2961,7 +3025,18 @@ export class LevelHandler {
         if (!client.currentLevel) {
             return;
         }
-        client.startedRoomEvents.add(`${client.currentLevel}:${roomId}`);
+        const key = `${client.currentLevel}:${roomId}`;
+        client.startedRoomEvents.add(key);
+    }
+
+    private static markRoomEventClosed(client: Client, roomId: number): void {
+        if (!client.currentLevel) {
+            return;
+        }
+        const key = `${client.currentLevel}:${roomId}`;
+        client.startedRoomEvents.add(key);
+        client.closedRoomEvents ??= new Set<string>();
+        client.closedRoomEvents.add(key);
     }
 
     private static getMissionState(client: Client, missionId: number): number {
@@ -3289,6 +3364,7 @@ export class LevelHandler {
                 syncEntryHasCoord: Boolean(syncState?.syncEntryHasCoord),
                 syncRoomId: syncState?.syncRoomId,
                 syncStartedRoomIds: syncState?.syncStartedRoomIds,
+                syncClosedRoomIds: syncState?.syncClosedRoomIds,
                 syncQuestProgress: syncState?.syncQuestProgress,
                 sourceDoorId: doorContext?.sourceDoorId,
                 sourceDoorLevel: doorContext?.sourceLevel,
@@ -3465,7 +3541,8 @@ export class LevelHandler {
                 client,
                 usedEntry.targetLevel,
                 usedEntry.syncRoomId,
-                usedEntry.syncStartedRoomIds
+                usedEntry.syncStartedRoomIds,
+                usedEntry.syncClosedRoomIds
             );
             console.log(
                 `[Level] Recovered transfer session from used token ${token} for user ${client.userId} (Char: ${client.character.name})`
@@ -3544,7 +3621,8 @@ export class LevelHandler {
                 client,
                 pendingEntry.targetLevel,
                 pendingEntry.syncRoomId,
-                pendingEntry.syncStartedRoomIds
+                pendingEntry.syncStartedRoomIds,
+                pendingEntry.syncClosedRoomIds
             );
             console.log(
                 `[Level] Recovered transfer session from pendingWorld ${token} for user ${client.userId} (Char: ${client.character.name})`
@@ -3619,13 +3697,14 @@ export class LevelHandler {
 
     static restoreTransferredRoomProgress(
         client: Client,
-        entry: { targetLevel: string; syncRoomId?: number; syncStartedRoomIds?: number[] }
+        entry: { targetLevel: string; syncRoomId?: number; syncStartedRoomIds?: number[]; syncClosedRoomIds?: number[] }
     ): boolean {
         return LevelHandler.applyStoredRoomProgressState(
             client,
             entry.targetLevel,
             entry.syncRoomId,
             entry.syncStartedRoomIds,
+            entry.syncClosedRoomIds,
             true
         );
     }
@@ -3896,6 +3975,7 @@ export class LevelHandler {
 
         LevelHandler.relayToLevel(client, 0xA5, data);
         for (const other of LevelHandler.forLevelRecipients(client, true)) {
+            LevelHandler.markRoomEventStarted(other, roomId);
             MissionHandler.noteDungeonCutsceneStart(other, roomId);
         }
     }
@@ -3918,7 +3998,9 @@ export class LevelHandler {
         LevelHandler.cacheRoomId(client, roomId);
 
         LevelHandler.relayToLevel(client, 0xA6, data);
+        LevelHandler.markRoomEventClosed(client, roomId);
         for (const other of LevelHandler.forLevelRecipients(client, true)) {
+            LevelHandler.markRoomEventClosed(other, roomId);
             MissionHandler.noteDungeonCutsceneEnd(other, roomId);
         }
     }

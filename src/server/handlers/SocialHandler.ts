@@ -862,6 +862,33 @@ export class SocialHandler {
         return Array.from(startedRoomIds.values()).sort((left, right) => left - right);
     }
 
+    private static getClosedRoomIdsForLevel(target: Client, levelName: string): number[] {
+        const normalizedLevel = LevelConfig.normalizeLevelName(levelName);
+        if (!normalizedLevel) {
+            return [];
+        }
+
+        const closedRoomIds = new Set<number>();
+        for (const key of target.closedRoomEvents ?? new Set<string>()) {
+            const separatorIndex = key.lastIndexOf(':');
+            if (separatorIndex <= 0) {
+                continue;
+            }
+
+            const eventLevel = LevelConfig.normalizeLevelName(key.substring(0, separatorIndex));
+            if (eventLevel !== normalizedLevel) {
+                continue;
+            }
+
+            const roomId = Number(key.substring(separatorIndex + 1));
+            if (Number.isFinite(roomId) && roomId >= 0) {
+                closedRoomIds.add(Math.round(roomId));
+            }
+        }
+
+        return Array.from(closedRoomIds.values()).sort((left, right) => left - right);
+    }
+
     private static getTeleportTargetPosition(target: Client): PendingTeleport | null {
         const targetLevel = LevelConfig.normalizeLevelName(target.currentLevel || target.character?.CurrentLevel?.name);
         if (!targetLevel || !LevelConfig.has(targetLevel)) {
@@ -905,6 +932,9 @@ export class SocialHandler {
         const syncStartedRoomIds = shouldSyncDungeonProgress
             ? SocialHandler.getStartedRoomIdsForLevel(target, targetLevel)
             : undefined;
+        const syncClosedRoomIds = shouldSyncDungeonProgress
+            ? SocialHandler.getClosedRoomIdsForLevel(target, targetLevel)
+            : undefined;
         const syncQuestProgress = shouldSyncDungeonProgress && Number.isFinite(Number(target.character?.questTrackerState))
             ? Math.max(0, Math.min(100, Math.round(Number(target.character?.questTrackerState))))
             : undefined;
@@ -922,6 +952,7 @@ export class SocialHandler {
             syncAnchorCharacterName: target.character?.name,
             syncRoomId,
             syncStartedRoomIds,
+            syncClosedRoomIds,
             syncQuestProgress
         };
     }

@@ -931,6 +931,7 @@ export class CharacterHandler {
              let syncAnchorCharacterName: string | undefined = isDungeonLevel ? char.name : undefined;
              let syncRoomId: number | undefined;
              let syncStartedRoomIds: number[] | undefined;
+             let syncClosedRoomIds: number[] | undefined;
              let syncEntryLevel: string | undefined;
              let syncQuestProgress: number | undefined;
 
@@ -984,8 +985,9 @@ export class CharacterHandler {
                 syncStartedRoomIds,
                 syncEntryLevel,
                 syncQuestProgress,
+                syncClosedRoomIds,
                 playSessionStartedAt: Date.now()
-            });
+             });
             GlobalState.pendingExtended.set(token, true);
         }
 
@@ -1195,6 +1197,7 @@ export class CharacterHandler {
             syncEntryLevel: entry.syncEntryLevel,
             syncRoomId: entry.syncRoomId,
             syncStartedRoomIds: entry.syncStartedRoomIds,
+            syncClosedRoomIds: entry.syncClosedRoomIds,
             syncQuestProgress: client.syncQuestProgress,
             playSessionStartedAt: client.playSessionStartedAt
         });

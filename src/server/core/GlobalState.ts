@@ -23,6 +23,7 @@ export interface PendingTransfer {
     syncEntryHasCoord?: boolean;
     syncRoomId?: number;
     syncStartedRoomIds?: number[];
+    syncClosedRoomIds?: number[];
     syncQuestProgress?: number;
     sourceDoorId?: number;
     sourceDoorLevel?: string;
