@@ -3083,6 +3083,27 @@ export class LevelHandler {
         client.sendBitBuffer(0x76, bb);
     }
 
+    private static sendDeniedDoorResponse(
+        client: Client,
+        doorId: number,
+        targetLevelRaw: string | null | undefined,
+        text: string,
+        clearDoorTransferState: boolean = false
+    ): void {
+        const targetLevel = LevelConfig.normalizeLevelName(targetLevelRaw) || String(targetLevelRaw ?? '').trim();
+        if (Number.isFinite(Number(doorId)) && Number(doorId) >= 0 && targetLevel) {
+            LevelHandler.sendDoorState(client, Math.round(Number(doorId)), LevelHandler.DOORSTATE_LOCKED, targetLevel);
+        }
+
+        LevelHandler.sendLockedDoorThought(client, doorId, text);
+
+        if (clearDoorTransferState) {
+            client.lastDoorId = -1;
+            client.lastDoorTargetLevel = '';
+            client.mountTransferGraceUntil = 0;
+        }
+    }
+
     private static resolveKeepTutorialTransferTarget(client: Client, targetLevel: string): string {
         if (
             targetLevel === 'CraftTown' &&
@@ -3688,17 +3709,7 @@ export class LevelHandler {
             !LevelHandler.isDreadfoldGateUnlocked(client, currentLevel, doorId, rawTargetLevel)
         ) {
             console.log(`[Level] Open Door ${doorId} in ${currentLevel} blocked until Capstone is completed`);
-            LevelHandler.sendDoorState(
-                client,
-                doorId,
-                LevelHandler.DOORSTATE_LOCKED,
-                LevelConfig.normalizeLevelName(rawTargetLevel) || rawTargetLevel
-            );
-            LevelHandler.sendLockedDoorThought(
-                client,
-                doorId,
-                LevelHandler.DREADFOLD_GATE_LOCKED_MESSAGE
-            );
+            LevelHandler.sendDeniedDoorResponse(client, doorId, rawTargetLevel, LevelHandler.DREADFOLD_GATE_LOCKED_MESSAGE);
             return;
         }
 
@@ -3707,17 +3718,7 @@ export class LevelHandler {
             !LevelHandler.isStoryAreaEntryUnlocked(client, currentLevel, rawTargetLevel)
         ) {
             console.log(`[Level] Open Door ${doorId} in ${currentLevel} blocked until the required story area mission is claimed`);
-            LevelHandler.sendDoorState(
-                client,
-                doorId,
-                LevelHandler.DOORSTATE_LOCKED,
-                LevelConfig.normalizeLevelName(rawTargetLevel) || rawTargetLevel
-            );
-            LevelHandler.sendLockedDoorThought(
-                client,
-                doorId,
-                LevelHandler.LOCKED_STORY_AREA_ENTRY_MESSAGE
-            );
+            LevelHandler.sendDeniedDoorResponse(client, doorId, rawTargetLevel, LevelHandler.LOCKED_STORY_AREA_ENTRY_MESSAGE);
             return;
         }
 
@@ -3726,17 +3727,7 @@ export class LevelHandler {
             !LevelHandler.isDungeonEntryUnlocked(client, currentLevel, rawTargetLevel)
         ) {
             console.log(`[Level] Open Door ${doorId} in ${currentLevel} blocked until the matching dungeon quest is accepted`);
-            LevelHandler.sendDoorState(
-                client,
-                doorId,
-                LevelHandler.DOORSTATE_LOCKED,
-                LevelConfig.normalizeLevelName(rawTargetLevel) || rawTargetLevel
-            );
-            LevelHandler.sendLockedDoorThought(
-                client,
-                doorId,
-                LevelHandler.LOCKED_DUNGEON_ENTRY_MESSAGE
-            );
+            LevelHandler.sendDeniedDoorResponse(client, doorId, rawTargetLevel, LevelHandler.LOCKED_DUNGEON_ENTRY_MESSAGE);
             return;
         }
 
@@ -4029,25 +4020,36 @@ export class LevelHandler {
 
         if (!teleportOverride && !LevelHandler.isDreadfoldGateTransferUnlocked(client, targetLevel)) {
             console.log(`[Level] Transfer to ${targetLevel} blocked until Capstone is completed`);
+            LevelHandler.sendDeniedDoorResponse(
+                client,
+                client.lastDoorId,
+                targetLevel,
+                LevelHandler.DREADFOLD_GATE_LOCKED_MESSAGE,
+                true
+            );
             return;
         }
 
         if (!teleportOverride && !LevelHandler.isStoryAreaTransferUnlocked(client, targetLevel)) {
             console.log(`[Level] Transfer to ${targetLevel} blocked until the required story area mission is claimed`);
-            LevelHandler.sendLockedDoorThought(
+            LevelHandler.sendDeniedDoorResponse(
                 client,
                 client.lastDoorId,
-                LevelHandler.LOCKED_STORY_AREA_ENTRY_MESSAGE
+                targetLevel,
+                LevelHandler.LOCKED_STORY_AREA_ENTRY_MESSAGE,
+                true
             );
             return;
         }
 
         if (!teleportOverride && !LevelHandler.isDungeonEntryUnlocked(client, client.currentLevel || '', targetLevel)) {
             console.log(`[Level] Transfer to ${targetLevel} blocked until the matching dungeon quest is accepted`);
-            LevelHandler.sendLockedDoorThought(
+            LevelHandler.sendDeniedDoorResponse(
                 client,
                 client.lastDoorId,
-                LevelHandler.LOCKED_DUNGEON_ENTRY_MESSAGE
+                targetLevel,
+                LevelHandler.LOCKED_DUNGEON_ENTRY_MESSAGE,
+                true
             );
             return;
         }

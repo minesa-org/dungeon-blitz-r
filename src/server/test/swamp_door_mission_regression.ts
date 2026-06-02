@@ -18,6 +18,7 @@ type FakeClient = {
     levelInstanceId: string;
     playerSpawned: boolean;
     mountTransferGraceUntil: number;
+    clientEntID?: number;
     lastDoorId?: number;
     lastDoorTargetLevel?: string;
     character: {
@@ -74,6 +75,14 @@ function decodeDoorTargetPacket(payload: Buffer): { doorId: number; targetLevel:
     };
 }
 
+function parseRoomThoughtPacket(payload: Buffer): { entityId: number; text: string } {
+    const br = new BitReader(payload);
+    return {
+        entityId: br.readMethod4(),
+        text: br.readMethod13()
+    };
+}
+
 function createClient(): FakeClient {
     const sentPackets: SentPacket[] = [];
 
@@ -119,10 +128,10 @@ function testSwampRoadNorthOnlyShowsAcceptedDungeonDoors(): void {
             .filter((entry) => entry.id === 0x42)
             .map((entry) => decodeDoorStatePacket(entry.payload)),
         [
-            { doorId: 101, state: 1, targetLevel: 'SRN_Mission1', stars: 0 },
-            { doorId: 102, state: 0, targetLevel: '', stars: 0 }
+            { doorId: 101, state: 2, targetLevel: 'SRN_Mission1', stars: 0 },
+            { doorId: 102, state: 2, targetLevel: 'SRN_Mission2', stars: 0 }
         ],
-        'Black Rose Mire should only mark dungeon doors usable after their quests are accepted'
+        'Black Rose Mire should report startable dungeon doors as dungeon doors'
     );
 }
 
@@ -154,13 +163,62 @@ function testCompletedDungeonDoorIncludesStoredStars(): void {
 
 function testLockedSwampDungeonDoorDoesNotTransferPlayer(): void {
     const client = createClient();
+    client.character.missions = {
+        [String(MissionID.DeliverToSwamp)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        }
+    };
 
-    LevelHandler.handleOpenDoor(client as never, createDoorPacket(102));
+    LevelHandler.handleOpenDoor(client as never, createDoorPacket(106));
 
     assert.equal(
         client.sentPackets.some((entry) => entry.id === 0x2E),
         false,
-        'opening a locked Black Rose Mire dungeon door should not transfer the player'
+        'opening a locked Mindless Queen dungeon door should not transfer the player'
+    );
+}
+
+function testLockedMindlessQueenDoorReportsLockedAndDoesNotTransfer(): void {
+    const client = createClient();
+    client.clientEntID = 451;
+    client.character.missions = {
+        [String(MissionID.DeliverToSwamp)]: {
+            state: 3,
+            currCount: 1,
+            claimed: 1,
+            complete: 1
+        }
+    };
+
+    LevelHandler.handleOpenDoor(client as never, createDoorPacket(106));
+
+    assert.equal(client.lastDoorId, undefined);
+    assert.equal(client.lastDoorTargetLevel, undefined);
+    assert.equal(
+        client.sentPackets.some((entry) => entry.id === 0x2E),
+        false,
+        'opening locked SwampRoadNorth door 106 should not start a transfer'
+    );
+    assert.deepEqual(
+        decodeDoorStatePacket(client.sentPackets.find((entry) => entry.id === 0x42)!.payload),
+        {
+            doorId: 106,
+            state: 4,
+            targetLevel: 'SRN_Mission6',
+            stars: 0
+        },
+        'locked SwampRoadNorth door 106 should re-send locked door state'
+    );
+    assert.deepEqual(
+        parseRoomThoughtPacket(client.sentPackets.find((entry) => entry.id === 0x76)!.payload),
+        {
+            entityId: 451,
+            text: "^tI haven't unlocked this dungeon yet."
+        },
+        'locked SwampRoadNorth door 106 should explain the dungeon is locked'
     );
 }
 
@@ -215,7 +273,7 @@ function testUnclearedArachnaeStillUsesFelbridgeDungeonEntrance(): void {
         decodeDoorStatePacket(client.sentPackets.find((entry) => entry.id === 0x42)!.payload),
         {
             doorId: 1,
-            state: 1,
+            state: 2,
             targetLevel: 'SwampRoadConnectionMission',
             stars: 0
         },
@@ -228,6 +286,7 @@ async function main(): Promise<void> {
     testSwampRoadNorthOnlyShowsAcceptedDungeonDoors();
     testCompletedDungeonDoorIncludesStoredStars();
     testLockedSwampDungeonDoorDoesNotTransferPlayer();
+    testLockedMindlessQueenDoorReportsLockedAndDoesNotTransfer();
     testClearedArachnaeOpensFelbridgeRoadToBlackRoseMireConnector();
     testUnclearedArachnaeStillUsesFelbridgeDungeonEntrance();
     console.log('swamp_door_mission_regression: ok');

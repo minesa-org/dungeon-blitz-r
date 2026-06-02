@@ -1300,12 +1300,22 @@ async function testLockedDungeonTransferRequestIsBlocked(): Promise<void> {
         false,
         'locked dungeon transfer request must not send an enter-world packet'
     );
+    const lockedDoorStatePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x42);
+    assert.ok(lockedDoorStatePacket);
+    assert.deepEqual(parseDoorStatePacket(lockedDoorStatePacket.payload), {
+        doorId: 209,
+        state: 4,
+        target: 'CH_MiniMission9'
+    });
     const lockedDialoguePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x76);
     assert.ok(lockedDialoguePacket);
     assert.deepEqual(parseRoomThoughtPacket(lockedDialoguePacket.payload), {
         entityId: 451,
         text: "^tI haven't unlocked this dungeon yet."
     });
+    assert.equal(client.lastDoorId, -1);
+    assert.equal(client.lastDoorTargetLevel, '');
+    assert.equal(client.mountTransferGraceUntil, 0);
 }
 
 async function testPartyTeleportCanJoinLockedDungeonTransfer(): Promise<void> {
@@ -1754,14 +1764,25 @@ async function testDreadStoryAreaTransferRequestRequiresClaimedStoryMission(): P
             false,
             `${entry.targetLevel} transfer request must be blocked before its story mission is claimed`
         );
+        const blockedDoorStatePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x42);
+        assert.ok(blockedDoorStatePacket);
+        assert.deepEqual(parseDoorStatePacket(blockedDoorStatePacket.payload), {
+            doorId: entry.doorId,
+            state: 4,
+            target: entry.targetLevel
+        });
         const blockedDialoguePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x76);
         assert.ok(blockedDialoguePacket);
         assert.deepEqual(parseRoomThoughtPacket(blockedDialoguePacket.payload), {
             entityId: 451,
             text: "^tI haven't unlocked this area yet."
         });
+        assert.equal(client.lastDoorId, -1);
+        assert.equal(client.lastDoorTargetLevel, '');
 
         client.sentPackets.length = 0;
+        client.lastDoorId = entry.doorId;
+        client.lastDoorTargetLevel = entry.targetLevel;
         client.character.missions = {
             [String(entry.requiredMissionId)]: {
                 state: 3,
