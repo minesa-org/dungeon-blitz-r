@@ -172,7 +172,13 @@ function hasCopyPowerPatch(abc: ReturnType<typeof parseAbc>, instructions: Instr
   return false;
 }
 
-function patchSwf(swfPath: string, verify: boolean): void {
+export function hasDragonSoulCopyPowerPatch(swfPath: string): boolean {
+  const { abc, code } = getActivePowerMethod872(swfPath);
+  const instructions = disassemble(code, "ActivePower.method_872");
+  return hasCopyPowerPatch(abc, instructions);
+}
+
+export function patchDragonSoulCopyPower(swfPath: string, verify: boolean): void {
   const { ctx, abc, methodBody, code } = getActivePowerMethod872(swfPath);
   const instructions = disassemble(code, "ActivePower.method_872");
   if (hasCopyPowerPatch(abc, instructions)) {
@@ -205,5 +211,7 @@ function patchSwf(swfPath: string, verify: boolean): void {
   console.log(`${swfPath}: patched Dragon Soul copy-power behavior.`);
 }
 
-const { swfPath, verify } = parseArgs(process.argv);
-patchSwf(swfPath, verify);
+if (require.main === module) {
+  const { swfPath, verify } = parseArgs(process.argv);
+  patchDragonSoulCopyPower(swfPath, verify);
+}
