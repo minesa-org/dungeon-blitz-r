@@ -107,21 +107,56 @@ function patchSource(source) {
         '               _loc5_.var_58[_loc6_] = new class_148(_loc10_,_loc8_);'
     ].join(eol);
 
-    if (source.includes(patched)) {
-        return source;
-    }
-    if (!source.includes(original)) {
-        throw new Error('Could not find LinkUpdater.method_1914 talent decode block');
+    let next = source;
+    if (!next.includes(patched)) {
+        if (!next.includes(original)) {
+            throw new Error('Could not find LinkUpdater.method_1914 talent decode block');
+        }
+
+        next = next.replace(original, patched);
     }
 
-    return source.replace(original, patched);
+    const originalRefresh = [
+        '         if(_loc3_ == this.var_1.clientEnt)',
+        '         {',
+        '            if(this.var_1.var_1922)',
+        '            {',
+        '               _loc3_.ResetEntType(_loc3_.entType);',
+        '               this.var_1.var_1922 = false;',
+        '               this.var_1.bWaitingForChangeMasterClassResponse = false;',
+        '            }',
+        '         }'
+    ].join(eol);
+    const patchedRefresh = [
+        '         if(_loc3_ == this.var_1.clientEnt)',
+        '         {',
+        '            if(this.var_1.var_1922)',
+        '            {',
+        '               _loc3_.ResetEntType(_loc3_.entType);',
+        '               this.var_1.var_1922 = false;',
+        '               this.var_1.bWaitingForChangeMasterClassResponse = false;',
+        '            }',
+        '            this.var_1.screenSigil.Refresh();',
+        '         }'
+    ].join(eol);
+
+    if (!next.includes(patchedRefresh)) {
+        if (!next.includes(originalRefresh)) {
+            throw new Error('Could not find LinkUpdater.method_1914 local talent refresh block');
+        }
+
+        next = next.replace(originalRefresh, patchedRefresh);
+    }
+
+    return next;
 }
 
 function verifySource(source) {
     const required = [
         '_loc8_ += param1.method_6(_loc7_);',
         'class_14.var_368[_loc4_][_loc9_]',
-        'new class_148(_loc10_,_loc8_)'
+        'new class_148(_loc10_,_loc8_)',
+        'this.var_1.screenSigil.Refresh();'
     ];
 
     for (const snippet of required) {
