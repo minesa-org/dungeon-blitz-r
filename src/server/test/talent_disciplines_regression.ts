@@ -16,13 +16,17 @@ type SentPacket = {
 type FakeClient = {
     authenticated: boolean;
     userId: number;
+    token: number;
     character: Character;
     characters: Character[];
     currentLevel: string;
     playerSpawned: boolean;
     sentPackets: SentPacket[];
     talentResearchTimer: NodeJS.Timeout | null;
+    clientEntID: number;
+    entities: Map<number, any>;
     sendBitBuffer(id: number, bb: BitBuffer): void;
+    send(id: number, payload: Buffer): void;
 };
 
 function createCharacter(): Character {
@@ -68,14 +72,20 @@ function createClient(): FakeClient {
     return {
         authenticated: true,
         userId: 6,
+        token: 77,
         character,
         characters: [character],
         currentLevel: 'CraftTown',
         playerSpawned: false,
         sentPackets,
         talentResearchTimer: null,
+        clientEntID: 41,
+        entities: new Map<number, any>(),
         sendBitBuffer(id: number, bb: BitBuffer): void {
             sentPackets.push({ id, payload: bb.toBuffer() });
+        },
+        send(id: number, payload: Buffer): void {
+            sentPackets.push({ id, payload: Buffer.from(payload) });
         }
     };
 }
@@ -423,6 +433,42 @@ async function testSelectedDisciplinePersistsHomeTowerAfterRestart(): Promise<vo
     assert.equal(decoded.towerRank, 1, 'restart CraftTown packet should include the selected discipline tower');
 }
 
+async function testMageDisciplineChangeAssignsDefaultActiveAbilities(): Promise<void> {
+    const client = createClient();
+    client.character.class = 'Mage';
+    client.character.MasterClass = 8;
+    client.character.learnedAbilities = [
+        { abilityID: 10, rank: 10 },
+        { abilityID: 14, rank: 10 },
+        { abilityID: 17, rank: 10 },
+        { abilityID: 58, rank: 10 },
+        { abilityID: 63, rank: 10 },
+        { abilityID: 64, rank: 10 }
+    ];
+    client.character.activeAbilities = [58, 63, 64];
+
+    await withMockedCharacterSave(async () => {
+        await TalentHandler.handleActiveTalentChangeRequest(client as never, createActiveTalentPacket(41, 7));
+    });
+
+    assert.equal(client.character.MasterClass, 7);
+    assert.deepEqual(
+        client.character.activeAbilities,
+        [10, 14, 17],
+        'Mage discipline changes should reset hotbar slots to Fire Blast, Ice Nova, and Hail Storm'
+    );
+    assert.deepEqual(
+        client.character.learnedAbilities.find((ability: any) => ability.abilityID === 63),
+        { abilityID: 63, rank: 10 },
+        'resetting active abilities must not remove learned off-discipline ranks'
+    );
+    assert.equal(
+        client.sentPackets.some((packet) => packet.id === 0x10),
+        true,
+        'discipline change should refresh player data so the client applies the default active hotbar'
+    );
+}
+
 function testCompletedDisciplineResearchSerializesAfterRestart(): void {
     const character = createCharacter();
     character.talentResearch = {
@@ -463,6 +509,7 @@ async function main(): Promise<void> {
     testEntityTalentSlotsKeepClientSlotPositions();
     testWorldEnterResolvesMasterClassFromTowerState();
     await testSelectedDisciplinePersistsHomeTowerAfterRestart();
+    await testMageDisciplineChangeAssignsDefaultActiveAbilities();
     testCompletedDisciplineResearchSerializesAfterRestart();
     testCompletedClassZeroResearchSerializesAfterRestart();
     console.log('talent_disciplines_regression: ok');

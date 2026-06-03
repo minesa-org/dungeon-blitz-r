@@ -11,6 +11,7 @@ import { EntityHandler } from './EntityHandler';
 type AbilityDef = {
     AbilityID: string;
     Rank: string;
+    Class?: string;
     GoldCost?: string;
     IdolCost?: string;
     UpgradeTime?: string;
@@ -31,6 +32,18 @@ const abilityDefs = abilityTypes as AbilityDef[];
 const abilityDefsByKey = new Map<string, AbilityDef>(
     abilityDefs.map((def) => [`${def.AbilityID}:${def.Rank}`, def])
 );
+const abilityDefsByAbilityId = new Map<number, AbilityDef>();
+for (const def of abilityDefs) {
+    const abilityId = Number(def.AbilityID ?? 0);
+    if (abilityId <= 0) {
+        continue;
+    }
+
+    const existing = abilityDefsByAbilityId.get(abilityId);
+    if (!existing || Number(def.Rank ?? 0) === 1) {
+        abilityDefsByAbilityId.set(abilityId, def);
+    }
+}
 const knownAbilityIds = new Set<number>(
     abilityDefs.map((def) => Number(def.AbilityID ?? 0)).filter((abilityId) => abilityId > 0)
 );
@@ -66,12 +79,25 @@ export class AbilityHandler {
                 continue;
             }
 
-            activeAbilities[i] = br.readMethod20(7);
+            const abilityId = br.readMethod20(7);
+            if (AbilityHandler.isAbilityAllowedForCurrentDiscipline(client.character, abilityId)) {
+                activeAbilities[i] = abilityId;
+            } else {
+                DebugLogger.logProgress('ActiveAbilities:updateRejected', client, client.character, {
+                    slot: i,
+                    abilityId,
+                    abilityClass: AbilityHandler.getAbilityClassName(abilityId),
+                    characterClass: String(client.character.class ?? ''),
+                    masterClass: Number(client.character.MasterClass ?? 0),
+                    reason: 'wrong_discipline'
+                });
+            }
         }
 
         client.character.activeAbilities = activeAbilities;
         AbilityHandler.repairCharacterAbilityState(client.character);
         await AbilityHandler.saveCharacter(client);
+        AbilityHandler.refreshPlayerSnapshot(client, true);
     }
 
     static async handleStartAbilityResearch(client: Client, data: Buffer): Promise<void> {
@@ -412,7 +438,12 @@ export class AbilityHandler {
 
         for (const rawAbilityId of originalActive) {
             const abilityId = Number(rawAbilityId ?? 0);
-            if (abilityId <= 0 || !knownAbilityIds.has(abilityId) || learnedRanks.has(abilityId)) {
+            if (
+                abilityId <= 0 ||
+                !knownAbilityIds.has(abilityId) ||
+                learnedRanks.has(abilityId) ||
+                !AbilityHandler.isAbilityAllowedForCurrentDiscipline(character, abilityId)
+            ) {
                 continue;
             }
 
@@ -430,7 +461,12 @@ export class AbilityHandler {
 
         for (const rawAbilityId of originalActive) {
             const abilityId = Number(rawAbilityId ?? 0);
-            if (abilityId <= 0 || !validAbilityIds.has(abilityId) || seenActive.has(abilityId)) {
+            if (
+                abilityId <= 0 ||
+                !validAbilityIds.has(abilityId) ||
+                seenActive.has(abilityId) ||
+                !AbilityHandler.isAbilityAllowedForCurrentDiscipline(character, abilityId)
+            ) {
                 continue;
             }
 
@@ -597,6 +633,29 @@ export class AbilityHandler {
         );
     }
 
+    private static getAbilityClassName(abilityId: number): string {
+        return String(abilityDefsByAbilityId.get(abilityId)?.Class ?? '');
+    }
+
+    private static isAbilityAllowedForCurrentDiscipline(character: CharacterRecord, abilityId: number): boolean {
+        if (abilityId <= 0 || !knownAbilityIds.has(abilityId)) {
+            return false;
+        }
+
+        const abilityClass = AbilityHandler.getAbilityClassName(abilityId).toLowerCase();
+        if (!abilityClass || abilityClass === 'any') {
+            return true;
+        }
+
+        const characterClass = String(character.class ?? '').toLowerCase();
+        if (abilityClass === characterClass) {
+            return true;
+        }
+
+        const masterClassName = AbilityHandler.MASTERCLASS_NAMES[Number(character.MasterClass ?? 0)];
+        return Boolean(masterClassName) && abilityClass === masterClassName.toLowerCase();
+    }
+
     private static getActiveAbilities(character: CharacterRecord): number[] {
         const activeAbilities = Array.isArray(character.activeAbilities)
             ? character.activeAbilities.map((value) => Number(value ?? 0)).slice(0, 3)
@@ -667,9 +726,9 @@ export class AbilityHandler {
         client.sendBitBuffer(0xB5, bb);
     }
 
-    private static refreshPlayerSnapshot(client: Client): void {
+    private static refreshPlayerSnapshot(client: Client, includeSelf: boolean = false): void {
         if (client.playerSpawned && client.currentLevel) {
-            EntityHandler.refreshPlayerSnapshot(client);
+            EntityHandler.refreshPlayerSnapshot(client, includeSelf);
         }
     }
 
