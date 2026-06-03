@@ -637,7 +637,7 @@ export class AbilityHandler {
         return String(abilityDefsByAbilityId.get(abilityId)?.Class ?? '');
     }
 
-    private static isAbilityAllowedForCurrentDiscipline(character: CharacterRecord, abilityId: number): boolean {
+    static isAbilityAllowedForCurrentDiscipline(character: CharacterRecord, abilityId: number): boolean {
         if (abilityId <= 0 || !knownAbilityIds.has(abilityId)) {
             return false;
         }

@@ -467,6 +467,18 @@ async function testMageDisciplineChangeAssignsDefaultActiveAbilities(): Promise<
         false,
         'discipline change must not send player-data reloads because they duplicate the local player instance'
     );
+
+    client.character.activeAbilities = [58, 63, 64];
+    await withMockedCharacterSave(async () => {
+        await TalentHandler.handleActiveTalentChangeRequest(client as never, createActiveTalentPacket(41, 8));
+    });
+
+    assert.equal(client.character.MasterClass, 8);
+    assert.deepEqual(
+        client.character.activeAbilities,
+        [10, 14, 17],
+        'every Mage discipline change should reapply Fire Blast, Ice Nova, and Hail Storm'
+    );
 }
 
 function testCompletedDisciplineResearchSerializesAfterRestart(): void {

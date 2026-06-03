@@ -7,9 +7,11 @@ const { execFileSync } = require('child_process');
 const TARGET_SWF = path.join('src', 'client', 'content', 'localhost', 'p', 'cbp', 'DungeonBlitz.swf');
 const ABILITY_BOOK_CLASS = 'class_45';
 const TOOLTIP_CLASS = 'class_101';
+const LINK_UPDATER_CLASS = 'LinkUpdater';
 const ABILITY_BOOK_MARKER = 'param2.className.toLowerCase() != this.var_1.clientEnt.mMasterClass';
 const CATEGORY_FILTER_MARKER = 'param1 != _loc7_.mMasterClass';
 const TOOLTIP_MARKER = 'param3.className.toLowerCase() != param1.mMasterClass';
+const LINK_UPDATER_HOTBAR_MARKER = 'mAbilityBook.mHotbarList[1] = class_14.var_478[10]';
 
 function parseArgs(argv) {
     const args = {
@@ -69,8 +71,18 @@ function detectFfdec(root, preferred) {
     candidates.push(
         '/Applications/FFDec.app/Contents/Resources/ffdec.sh',
         '/Applications/FFDec.app/Contents/Resources/ffdec.jar',
+        path.join(root, 'build', 'tools', 'ffdec_25.0.0', 'ffdec-cli.exe'),
+        path.join(root, 'build', 'tools', 'ffdec_25.0.0', 'ffdec-cli.jar'),
+        path.join(root, 'build', 'tools', 'ffdec_25.0.0', 'ffdec.jar'),
+        path.join(root, 'build', 'tools', 'ffdec_25.0.0', 'ffdec.sh'),
+        path.join(root, 'build', 'tools', 'ffdec_25.1.3', 'ffdec-cli.exe'),
+        path.join(root, 'build', 'tools', 'ffdec_25.1.3', 'ffdec-cli.jar'),
+        path.join(root, 'build', 'tools', 'ffdec_25.1.3', 'ffdec.jar'),
+        path.join(root, 'build', 'tools', 'ffdec_25.1.3', 'ffdec.sh'),
         path.join(root, 'build', 'ffdec', 'ffdec.sh'),
-        path.join(root, 'build', 'ffdec', 'ffdec.jar')
+        path.join(root, 'build', 'ffdec', 'ffdec.jar'),
+        path.join(root, 'build', 'ffdec_24.0.1', 'ffdec-cli.exe'),
+        path.join(root, 'build', 'ffdec_24.0.1', 'ffdec-cli.jar')
     );
 
     for (const candidate of candidates) {
@@ -84,12 +96,20 @@ function detectFfdec(root, preferred) {
 function ffdecHome(root) {
     const home = path.join(root, 'build', 'ffdec-home');
     fs.mkdirSync(path.join(home, 'Library', 'Application Support', 'FFDec', 'logs'), { recursive: true });
+    fs.mkdirSync(path.join(home, 'JPEXS', 'FFDec', 'logs'), { recursive: true });
+    fs.mkdirSync(path.join(home, 'LocalAppData'), { recursive: true });
     return home;
 }
 
 function runFfdec(root, ffdec, args) {
     const home = ffdecHome(root);
-    const env = { ...process.env, HOME: home };
+    const env = {
+        ...process.env,
+        APPDATA: home,
+        HOME: home,
+        LOCALAPPDATA: path.join(home, 'LocalAppData'),
+        USERPROFILE: home
+    };
     if (ffdec.toLowerCase().endsWith('.jar')) {
         execFileSync('java', [`-Duser.home=${home}`, '-jar', ffdec, '-cli', ...args], {
             stdio: 'inherit',
@@ -223,6 +243,33 @@ function patchTooltipSource(source) {
     return patched.replace(oldBlock, newBlock);
 }
 
+function patchLinkUpdaterSource(source) {
+    if (source.includes(LINK_UPDATER_HOTBAR_MARKER)) {
+        return source;
+    }
+
+    const eol = source.includes('\r\n') ? '\r\n' : '\n';
+    const oldBlock = [
+        '                  this.var_1.mAbilityBook.DefaultMasterRanks(_loc5_.var_85,_loc5_.mMasterClass);'
+    ].join(eol);
+    const newBlock = [
+        '                  this.var_1.mAbilityBook.DefaultMasterRanks(_loc5_.var_85,_loc5_.mMasterClass);',
+        '                  if(_loc5_.entType && _loc5_.entType.className.toLowerCase() == "mage" && class_14.var_478[10] && class_14.var_478[14] && class_14.var_478[17])',
+        '                  {',
+        '                     this.var_1.mAbilityBook.mHotbarList[1] = class_14.var_478[10];',
+        '                     this.var_1.mAbilityBook.mHotbarList[2] = class_14.var_478[14];',
+        '                     this.var_1.mAbilityBook.mHotbarList[3] = class_14.var_478[17];',
+        '                     this.var_1.screenSpellbook.Refresh();',
+        '                     this.var_1.screenHudTop.Refresh();',
+        '                  }'
+    ].join(eol);
+
+    if (!source.includes(oldBlock)) {
+        throw new Error('Could not find LinkUpdater.method_1172 hotbar reset insertion point.');
+    }
+    return source.replace(oldBlock, newBlock);
+}
+
 function verifyAbilityBookSource(source, label) {
     if (!source.includes(ABILITY_BOOK_MARKER)) {
         throw new Error(`${label}: missing discipline gate in ${ABILITY_BOOK_CLASS}.SetAbilities`);
@@ -235,6 +282,12 @@ function verifyAbilityBookSource(source, label) {
 function verifyTooltipSource(source, label) {
     if (!source.includes(TOOLTIP_MARKER)) {
         throw new Error(`${label}: missing discipline requirement in ${TOOLTIP_CLASS}.ShowSpellbookTooltip`);
+    }
+}
+
+function verifyLinkUpdaterSource(source, label) {
+    if (!source.includes(LINK_UPDATER_HOTBAR_MARKER)) {
+        throw new Error(`${label}: missing Mage hotbar reset in ${LINK_UPDATER_CLASS}.method_1172`);
     }
 }
 
@@ -253,23 +306,29 @@ function main() {
     const workRoot = path.join(root, 'build', 'ffdec-ability-discipline-gate');
     const abilityExportRoot = path.join(workRoot, 'export-ability-book');
     const tooltipExportRoot = path.join(workRoot, 'export-tooltip');
+    const linkExportRoot = path.join(workRoot, 'export-link-updater');
 
     const abilityClassPath = exportClass(root, ffdec, swfPath, abilityExportRoot, ABILITY_BOOK_CLASS);
     const tooltipClassPath = exportClass(root, ffdec, swfPath, tooltipExportRoot, TOOLTIP_CLASS);
+    const linkClassPath = exportClass(root, ffdec, swfPath, linkExportRoot, LINK_UPDATER_CLASS);
     const abilitySource = fs.readFileSync(abilityClassPath, 'utf8');
     const tooltipSource = fs.readFileSync(tooltipClassPath, 'utf8');
+    const linkSource = fs.readFileSync(linkClassPath, 'utf8');
     const patchedAbilitySource = patchAbilityBookSource(abilitySource);
     const patchedTooltipSource = patchTooltipSource(tooltipSource);
+    const patchedLinkSource = patchLinkUpdaterSource(linkSource);
 
     if (args.verify) {
         verifyAbilityBookSource(abilitySource, swfPath);
         verifyTooltipSource(tooltipSource, swfPath);
+        verifyLinkUpdaterSource(linkSource, swfPath);
         console.log(`${swfPath}: already patched (ability discipline gate).`);
         return;
     }
-    if (patchedAbilitySource === abilitySource && patchedTooltipSource === tooltipSource) {
+    if (patchedAbilitySource === abilitySource && patchedTooltipSource === tooltipSource && patchedLinkSource === linkSource) {
         verifyAbilityBookSource(abilitySource, swfPath);
         verifyTooltipSource(tooltipSource, swfPath);
+        verifyLinkUpdaterSource(linkSource, swfPath);
         console.log(`${swfPath}: already patched (ability discipline gate).`);
         return;
     }
@@ -280,15 +339,19 @@ function main() {
     fs.mkdirSync(importScriptsRoot, { recursive: true });
     fs.writeFileSync(path.join(importScriptsRoot, `${ABILITY_BOOK_CLASS}.as`), patchedAbilitySource);
     fs.writeFileSync(path.join(importScriptsRoot, `${TOOLTIP_CLASS}.as`), patchedTooltipSource);
+    fs.writeFileSync(path.join(importScriptsRoot, `${LINK_UPDATER_CLASS}.as`), patchedLinkSource);
     const outSwf = path.join(workRoot, 'DungeonBlitz.swf');
     runFfdec(root, ffdec, ['-importScript', swfPath, outSwf, importScriptsRoot]);
 
     const verifyAbilityRoot = path.join(workRoot, 'verify-ability-book');
     const verifyTooltipRoot = path.join(workRoot, 'verify-tooltip');
+    const verifyLinkRoot = path.join(workRoot, 'verify-link-updater');
     const verifyAbilityPath = exportClass(root, ffdec, outSwf, verifyAbilityRoot, ABILITY_BOOK_CLASS);
     const verifyTooltipPath = exportClass(root, ffdec, outSwf, verifyTooltipRoot, TOOLTIP_CLASS);
+    const verifyLinkPath = exportClass(root, ffdec, outSwf, verifyLinkRoot, LINK_UPDATER_CLASS);
     verifyAbilityBookSource(fs.readFileSync(verifyAbilityPath, 'utf8'), outSwf);
     verifyTooltipSource(fs.readFileSync(verifyTooltipPath, 'utf8'), outSwf);
+    verifyLinkUpdaterSource(fs.readFileSync(verifyLinkPath, 'utf8'), outSwf);
 
     ensureBackup(swfPath);
     fs.copyFileSync(outSwf, swfPath);
