@@ -1,7 +1,10 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { Client, clearKeepTutorialTimers } from '../core/Client';
 import { BitReader } from '../network/protocol/bitReader';
 import { GlobalState } from '../core/GlobalState';
 import { BitBuffer } from '../network/protocol/bitBuffer';
+import abilityTypes from '../data/AbilityTypes.json';
 import {
     noteDungeonRunCast,
     noteDungeonRunDeath,
@@ -24,6 +27,7 @@ import { EquipmentHandler } from './EquipmentHandler';
 import { GameData } from '../core/GameData';
 import { CharacterSync } from '../utils/CharacterSync';
 import { sendConsumableUpdate } from '../utils/ConsumableState';
+import { AbilityHandler } from './AbilityHandler';
 
 type CombatRelayOptions = {
     includeAnchor?: boolean;
@@ -82,6 +86,99 @@ type NpcHitResolution = {
     entity: any | null;
     killed: boolean;
 };
+
+type PlayerAbilityDef = {
+    AbilityName?: string;
+    AbilityID?: string;
+    Class?: string;
+    HotbarLocation?: string;
+    Rank?: string;
+};
+
+type PlayerAbilityPowerInfo = {
+    abilityId: number;
+    abilityName: string;
+    hotbarLocation: number;
+};
+
+const PLAYER_ABILITY_DEFS = abilityTypes as PlayerAbilityDef[];
+const PLAYER_ABILITY_POWER_BY_POWER_ID = buildPlayerAbilityPowerMap();
+
+function normalizePlayerAbilityName(value: string | null | undefined): string {
+    return String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function readXmlTagValue(body: string, tagName: string): string {
+    const match = new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`).exec(body);
+    return match ? match[1].trim() : '';
+}
+
+function resolvePlayerPowerTypesXmlPath(): string | null {
+    const candidates = [
+        path.resolve(process.cwd(), 'src', 'client', 'content', 'xml', 'PlayerPowerTypes.xml'),
+        path.resolve(process.cwd(), '..', 'client', 'content', 'xml', 'PlayerPowerTypes.xml'),
+        path.resolve(__dirname, '..', '..', 'client', 'content', 'xml', 'PlayerPowerTypes.xml'),
+        path.resolve(__dirname, '..', '..', '..', 'client', 'content', 'xml', 'PlayerPowerTypes.xml')
+    ];
+
+    return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+}
+
+function buildPlayerAbilityPowerMap(): Map<number, PlayerAbilityPowerInfo> {
+    const abilitiesByName = new Map<string, PlayerAbilityPowerInfo>();
+    for (const def of PLAYER_ABILITY_DEFS) {
+        if (Number(def.Rank ?? 0) !== 1) {
+            continue;
+        }
+
+        const abilityId = Number(def.AbilityID ?? 0);
+        const abilityName = String(def.AbilityName ?? '');
+        if (abilityId <= 0 || !abilityName) {
+            continue;
+        }
+
+        abilitiesByName.set(normalizePlayerAbilityName(abilityName), {
+            abilityId,
+            abilityName,
+            hotbarLocation: Number(def.HotbarLocation ?? 0)
+        });
+    }
+
+    const xmlPath = resolvePlayerPowerTypesXmlPath();
+    if (!xmlPath) {
+        return new Map();
+    }
+
+    const powerMap = new Map<number, PlayerAbilityPowerInfo>();
+    const xml = fs.readFileSync(xmlPath, 'utf8');
+    const powerBlockPattern = /<Power\s+PowerName="([^"]+)">([\s\S]*?)<\/Power>/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = powerBlockPattern.exec(xml)) !== null) {
+        const powerName = match[1];
+        const body = match[2];
+        const powerId = Number(readXmlTagValue(body, 'PowerID'));
+        if (powerId <= 0) {
+            continue;
+        }
+
+        const candidateNames = [
+            readXmlTagValue(body, 'BasePowerName'),
+            readXmlTagValue(body, 'PowerGroup'),
+            powerName.replace(/\d+$/u, '')
+        ];
+
+        for (const candidateName of candidateNames) {
+            const ability = abilitiesByName.get(normalizePlayerAbilityName(candidateName));
+            if (ability) {
+                powerMap.set(powerId, ability);
+                break;
+            }
+        }
+    }
+
+    return powerMap;
+}
 
 export class CombatHandler {
     private static readonly MAX_RELAY_POWER_HIT_DAMAGE = 4_000_000;
@@ -2155,6 +2252,30 @@ export class CombatHandler {
         return Boolean(sourceSession && sourceSession !== client && !isHostileNpcSource);
     }
 
+    private static isPlayerAbilityPowerAllowed(sourceSession: Client | null, powerId: number): boolean {
+        if (!sourceSession?.character) {
+            return true;
+        }
+
+        const ability = PLAYER_ABILITY_POWER_BY_POWER_ID.get(powerId);
+        if (!ability) {
+            return true;
+        }
+
+        if (!AbilityHandler.isAbilityAllowedForCurrentDiscipline(sourceSession.character, ability.abilityId)) {
+            return false;
+        }
+
+        if (ability.hotbarLocation >= 1 && ability.hotbarLocation <= 3) {
+            const activeAbilities = Array.isArray(sourceSession.character.activeAbilities)
+                ? sourceSession.character.activeAbilities.map((value) => Number(value ?? 0)).slice(0, 3)
+                : [];
+            return activeAbilities.includes(ability.abilityId);
+        }
+
+        return true;
+    }
+
     static async handlePowerCast(client: Client, data: Buffer): Promise<void> {
         if (LevelHandler.isGoblinRiverBossIntroLocked(client)) {
             return;
@@ -2177,6 +2298,9 @@ export class CombatHandler {
 
         const sourceSession = CombatHandler.resolveCombatSourceSession(levelScope, info.sourceId, client);
         const sourceEntity = CombatHandler.resolvePowerCastSourceEntity(levelScope, info.sourceId, client);
+        if (!CombatHandler.isPlayerAbilityPowerAllowed(sourceSession, info.powerId)) {
+            return;
+        }
         if (sourceSession) {
             noteDungeonRunCast(sourceSession, {
                 sourceId: info.sourceId,
@@ -2230,6 +2354,9 @@ export class CombatHandler {
 
         const sourceSession = CombatHandler.resolveCombatSourceSession(levelScope, sourceId, client);
         if (CombatHandler.shouldSuppressForeignOwnedHit(client, sourceSession, isHostileNpcSource)) {
+            return;
+        }
+        if (!CombatHandler.isPlayerAbilityPowerAllowed(sourceSession, info.powerId)) {
             return;
         }
         if (
@@ -2549,6 +2676,9 @@ export class CombatHandler {
 
         const sourceSession = CombatHandler.resolveCombatSourceSession(levelScope, sourceId, client);
         if (CombatHandler.shouldSuppressForeignOwnedHit(client, sourceSession, isHostileNpcSource)) {
+            return;
+        }
+        if (!CombatHandler.isPlayerAbilityPowerAllowed(sourceSession, info.powerId)) {
             return;
         }
 
