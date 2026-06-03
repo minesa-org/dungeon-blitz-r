@@ -557,7 +557,7 @@ async function testFireBrandPiercingShotFansOutLineHits(): Promise<void> {
     }));
 
     assert.equal(firstHostile.hp, 75, 'the first enemy on the FireBrand facing line should take cast-driven damage');
-    assert.equal(linedHostile.hp, 75, 'the lined-up enemy behind the first target should take cast-driven damage without a cast targetPos');
+    assert.equal(linedHostile.hp, 81, 'the lined-up enemy behind the first target should take 75% cast-driven damage');
     assert.equal(offLineHostile.hp, 100, 'off-line enemies should not be hit by the piercing cast damage');
 
     const senderHits = sender.sentPackets
@@ -568,7 +568,7 @@ async function testFireBrandPiercingShotFansOutLineHits(): Promise<void> {
         [firstHostile.id, linedHostile.id],
         'the caster should receive server-generated hit packets for each pierced enemy'
     );
-    assert.deepEqual(senderHits.map((hit) => hit.damage), [25, 25]);
+    assert.deepEqual(senderHits.map((hit) => hit.damage), [25, 19]);
 
     const watcherHits = sameRoomWatcher.sentPackets
         .filter((packet) => packet.id === 0x0A)
@@ -662,7 +662,7 @@ async function testFireBrandPiercingShotHitsHomeDummiesWithoutEnemyTeam(): Promi
     }));
 
     assert.equal(firstDummy.healthDelta, -25, 'the first home dummy should take FireBrand piercing damage even without enemy team');
-    assert.equal(linedDummy.healthDelta, -25, 'the lined-up home dummy should also take FireBrand piercing damage');
+    assert.equal(linedDummy.healthDelta, -19, 'the lined-up home dummy should take 75% FireBrand piercing damage');
     assert.equal(offLineDummy.healthDelta ?? 0, 0, 'off-line home dummies should not be hit by FireBrand piercing');
 
     const senderHits = sender.sentPackets
@@ -673,6 +673,7 @@ async function testFireBrandPiercingShotHitsHomeDummiesWithoutEnemyTeam(): Promi
         [firstDummy.id, linedDummy.id],
         'the caster should receive server-generated hit packets for each pierced home dummy'
     );
+    assert.deepEqual(senderHits.map((hit) => hit.damage), [25, 19]);
 
     const watcherHits = sameRoomWatcher.sentPackets
         .filter((packet) => packet.id === 0x0A)

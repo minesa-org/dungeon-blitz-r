@@ -31604,7 +31604,7 @@
 		<CastTime>290</CastTime>
 		<RecoverTime>910</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>18</ManaCost>
 		<BaseDamageMult>0</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
@@ -31881,7 +31881,7 @@
 		<CastTime>290</CastTime>
 		<RecoverTime>910</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>35</ManaCost>
+		<ManaCost>18</ManaCost>
 		<BaseDamageMult>0</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
@@ -31912,7 +31912,7 @@
 		<CastTime>290</CastTime>
 		<RecoverTime>910</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>35</ManaCost>
+		<ManaCost>18</ManaCost>
 		<BaseDamageMult>0</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
@@ -32044,6 +32044,42 @@
 		<AddTargetBuff>Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<Description>Alevgorur temel menzilli saldirisi. Hedeflere carpinca durmak yerine iclerinden gecer.</Description>
+		<IconName>a_PowerIcon_FireBall</IconName>
+		<CastSound>CHR_FlameSeer_Fireball_Fire_01|CHR_FlameSeer_Fireball_Fire_02|CHR_FlameSeer_Fireball_Fire_03</CastSound>
+		<CastGfx/>
+		<CastAnimSource>Feet</CastAnimSource>
+		<FireSound>snd_pwr_range_fireball_imp_01</FireSound>
+		<FireAnimSource>Center</FireAnimSource>
+		<FireGfx>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_CrimsonShotImpact</AnimClass>
+			<AnimScale>1</AnimScale>
+			<FireAndForget>true</FireAndForget>
+		</FireGfx>
+		<HitGfx/>
+		<ProjGfx>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_CrimsonShotMolten,a_CrimsonShotSuper</AnimClass>
+			<AnimScale>1</AnimScale>
+			<FireAndForget>FALSE</FireAndForget>
+		</ProjGfx>
+	</Power>
+	<Power PowerName="FlameAxeFireBrandShot8Pierce">
+		<PowerID>6147</PowerID>
+		<TargetMethod>ProjectileCombo</TargetMethod>
+		<Range>800</Range>
+		<CastAnim>Shoot</CastAnim>
+		<CastTime>0</CastTime>
+		<RecoverTime>500</RecoverTime>
+		<CoolDownTime>0</CoolDownTime>
+		<ManaCost>0</ManaCost>
+		<BaseDamageMult>0.75</BaseDamageMult>
+		<ProcModifier>0</ProcModifier>
+		<DamageType>Fire</DamageType>
+		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>Scorched</AddTargetBuff>
+		<DisplayName>Ates Topu</DisplayName>
+		<Description>Alevgorur temel menzilli saldirisi. Ilk hedeften sonraki hedeflere azaltimli hasar verir.</Description>
 		<IconName>a_PowerIcon_FireBall</IconName>
 		<CastSound>CHR_FlameSeer_Fireball_Fire_01|CHR_FlameSeer_Fireball_Fire_02|CHR_FlameSeer_Fireball_Fire_03</CastSound>
 		<CastGfx/>

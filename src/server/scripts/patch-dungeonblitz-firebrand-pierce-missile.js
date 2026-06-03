@@ -6,6 +6,7 @@ const { execFileSync } = require('child_process');
 
 const TARGET_SWF = path.join('src', 'client', 'content', 'localhost', 'p', 'cbp', 'DungeonBlitz.swf');
 const TARGET_POWER = 'FlameAxeFireBrandShot8';
+const SECONDARY_POWER = 'FlameAxeFireBrandShot8Pierce';
 
 function parseArgs(argv) {
     const args = {
@@ -96,21 +97,33 @@ function patchSource(source, swfPath) {
     let next = source.replace(/\r\n/g, '\n');
 
     const varDecl = '      internal var var_2413:uint = 0;\n      \n';
-    const patchedVarDecl = '      internal var var_2413:uint = 0;\n      \n      internal var fireBrandPiercedTargets:Object = null;\n      \n';
+    const patchedVarDecl = '      internal var var_2413:uint = 0;\n      \n      internal var fireBrandPiercedTargets:Object = null;\n      \n      internal var fireBrandPierceHitCount:uint = 0;\n      \n';
     if (!next.includes('internal var fireBrandPiercedTargets:Object = null;')) {
         if (!next.includes(varDecl)) {
             throw new Error(`${path.basename(swfPath)} has an unexpected class_130 field block.`);
         }
         next = next.replace(varDecl, patchedVarDecl);
     }
+    if (!next.includes('internal var fireBrandPierceHitCount:uint = 0;')) {
+        next = next.replace(
+            '      internal var fireBrandPiercedTargets:Object = null;\n      \n',
+            '      internal var fireBrandPiercedTargets:Object = null;\n      \n      internal var fireBrandPierceHitCount:uint = 0;\n      \n'
+        );
+    }
 
     const constructorAnchor = '         this.var_743 = param10;\n';
-    const constructorPatch = `         this.var_743 = param10;\n         this.fireBrandPiercedTargets = param6.powerName == "${TARGET_POWER}" ? new Object() : null;\n`;
+    const constructorPatch = `         this.var_743 = param10;\n         this.fireBrandPiercedTargets = param6.powerName == "${TARGET_POWER}" ? new Object() : null;\n         this.fireBrandPierceHitCount = 0;\n`;
     if (!next.includes(`this.fireBrandPiercedTargets = param6.powerName == "${TARGET_POWER}" ? new Object() : null;`)) {
         if (!next.includes(constructorAnchor)) {
             throw new Error(`${path.basename(swfPath)} has an unexpected class_130 constructor block.`);
         }
         next = next.replace(constructorAnchor, constructorPatch);
+    }
+    if (!next.includes('this.fireBrandPierceHitCount = 0;')) {
+        next = next.replace(
+            `         this.fireBrandPiercedTargets = param6.powerName == "${TARGET_POWER}" ? new Object() : null;\n`,
+            `         this.fireBrandPiercedTargets = param6.powerName == "${TARGET_POWER}" ? new Object() : null;\n         this.fireBrandPierceHitCount = 0;\n`
+        );
     }
 
     const originalGather = '_loc11_ = this.var_1.GatherEntities(this.var_19,this.var_11.x,this.var_11.y,_loc10_,_loc10_,this.power.damageMultFull < 0 ? Game.FRIEND : Game.ENEMY);';
@@ -123,6 +136,53 @@ function patchSource(source, swfPath) {
     }
 
     const oldExperimentalCollision = [
+        '                        if(CombatState.method_255(this.var_11,_loc4_,_loc13_))',
+        '                        {',
+        `                           if(this.power.powerName != "${TARGET_POWER}")`,
+        '                           {',
+        '                              _loc9_ = _loc13_;',
+        '                              _loc1_ = true;',
+        '                              _loc5_.x = this.var_11.x * 0.3 + _loc13_.appearPosX * 0.7;',
+        '                              _loc5_.y = this.var_11.y;',
+        '                              break;',
+        '                           }',
+        '                           if(!this.fireBrandPiercedTargets[_loc13_.id])',
+        '                           {',
+        '                              this.fireBrandPiercedTargets[_loc13_.id] = true;',
+        '                              ++this.fireBrandPierceHitCount;',
+        `                              this.var_19.combatState.FireThisPower(this.fireBrandPierceHitCount == 1 ? this.power : class_14.powerTypesDict["${SECONDARY_POWER}"],this.var_11,new Array(_loc13_),this.var_743,0,this.var_1448,0,null,0,this.var_249);`,
+        '                           }',
+        '                        }'
+    ].join('\n');
+    const patchedDecompiledCollision = [
+        '                        if(CombatState.method_255(this.var_11,_loc4_,_loc13_))',
+        '                        {',
+        `                           if(this.power.powerName != "${TARGET_POWER}")`,
+        '                           {',
+        '                              _loc9_ = _loc13_;',
+        '                              _loc1_ = true;',
+        '                              _loc5_.x = this.var_11.x * 0.3 + _loc13_.appearPosX * 0.7;',
+        '                              _loc5_.y = this.var_11.y;',
+        '                              break;',
+        '                           }',
+        '                           if(!this.fireBrandPiercedTargets[_loc13_.id])',
+        '                           {',
+        '                              this.fireBrandPiercedTargets[_loc13_.id] = true;',
+        '                              ++this.fireBrandPierceHitCount;',
+        `                              this.var_19.combatState.FireThisPower(this.fireBrandPierceHitCount == 1 ? this.power : class_14.powerTypesDict["${SECONDARY_POWER}"],this.var_11,new Array(_loc13_),this.var_743,0,this.var_1448,0,null,0,this.var_249);`,
+        '                              if(this.var_19.var_20 & Entity.LOCAL)',
+        '                              {',
+        '                                 this.var_19.var_31 += 1;',
+        '                                 if(this.var_19.var_31 > this.var_19.const_156)',
+        '                                 {',
+        '                                    this.var_19.var_31 = this.var_19.const_156;',
+        '                                 }',
+        '                                 this.var_1.method_114(this.var_19.var_31);',
+        '                              }',
+        '                           }',
+        '                        }'
+    ].join('\n');
+    const previousFullDamageCollision = [
         '                        if(CombatState.method_255(this.var_11,_loc4_,_loc13_))',
         '                        {',
         `                           if(this.power.powerName != "${TARGET_POWER}")`,
@@ -158,7 +218,17 @@ function patchSource(source, swfPath) {
         '                              if(!this.fireBrandPiercedTargets[_loc13_.id])',
         '                              {',
         '                                 this.fireBrandPiercedTargets[_loc13_.id] = true;',
-        '                                 this.var_19.combatState.FireThisPower(this.power,this.var_11,new Array(_loc13_),this.var_743,0,this.var_1448,0,null,0,this.var_249);',
+        '                                 ++this.fireBrandPierceHitCount;',
+        `                                 this.var_19.combatState.FireThisPower(this.fireBrandPierceHitCount == 1 ? this.power : class_14.powerTypesDict["${SECONDARY_POWER}"],this.var_11,new Array(_loc13_),this.var_743,0,this.var_1448,0,null,0,this.var_249);`,
+        '                                 if(this.var_19.var_20 & Entity.LOCAL)',
+        '                                 {',
+        '                                    this.var_19.var_31 += 1;',
+        '                                    if(this.var_19.var_31 > this.var_19.const_156)',
+        '                                    {',
+        '                                       this.var_19.var_31 = this.var_19.const_156;',
+        '                                    }',
+        '                                    this.var_1.method_114(this.var_19.var_31);',
+        '                                 }',
         '                              }',
         '                           }',
         '                           else',
@@ -171,9 +241,11 @@ function patchSource(source, swfPath) {
         '                           }',
         '                        }'
     ].join('\n');
-    if (!next.includes(patchedCollision)) {
+    if (!next.includes(patchedCollision) && !next.includes(patchedDecompiledCollision)) {
         if (next.includes(oldExperimentalCollision)) {
             next = next.replace(oldExperimentalCollision, patchedCollision);
+        } else if (next.includes(previousFullDamageCollision)) {
+            next = next.replace(previousFullDamageCollision, patchedCollision);
         } else if (next.includes(originalCollision)) {
             next = next.replace(originalCollision, patchedCollision);
         } else {
@@ -188,12 +260,19 @@ function verifySource(source, swfPath) {
     source = source.replace(/\r\n/g, '\n');
     const required = [
         'internal var fireBrandPiercedTargets:Object = null;',
+        'internal var fireBrandPierceHitCount:uint = 0;',
         `this.fireBrandPiercedTargets = param6.powerName == "${TARGET_POWER}" ? new Object() : null;`,
+        'this.fireBrandPierceHitCount = 0;',
         'this.var_1.GatherEntities(this.var_19,this.var_11.x,this.var_11.y,_loc10_,_loc10_,this.power.damageMultFull < 0 ? Game.FRIEND : Game.ENEMY);',
         `if(this.power.powerName != "${TARGET_POWER}")`,
         'if(!this.fireBrandPiercedTargets[_loc13_.id])',
         'this.fireBrandPiercedTargets[_loc13_.id] = true;',
-        'this.var_19.combatState.FireThisPower(this.power,this.var_11,new Array(_loc13_),this.var_743,0,this.var_1448,0,null,0,this.var_249);'
+        '++this.fireBrandPierceHitCount;',
+        `this.var_19.combatState.FireThisPower(this.fireBrandPierceHitCount == 1 ? this.power : class_14.powerTypesDict["${SECONDARY_POWER}"],this.var_11,new Array(_loc13_),this.var_743,0,this.var_1448,0,null,0,this.var_249);`,
+        'if(this.var_19.var_20 & Entity.LOCAL)',
+        'this.var_19.var_31 += 1;',
+        'this.var_19.var_31 = this.var_19.const_156;',
+        'this.var_1.method_114(this.var_19.var_31);'
     ];
     for (const snippet of required) {
         if (!source.includes(snippet)) {

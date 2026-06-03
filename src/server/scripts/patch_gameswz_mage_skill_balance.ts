@@ -39,6 +39,7 @@ const FIREBRAND_SHOTS: FireBrandShotDef[] = [
   { name: "FireBrandShot3", powerID: 6144, targetMethod: "ProjectileCombo", aoeRadius: 105, baseDamageMult: "1", addTargetBuff: "Scorched" },
   { name: "FireBrandShot6", powerID: 6145, targetMethod: "ProjectileCombo", aoeRadius: 120, baseDamageMult: "0.5", addTargetBuff: "Scorched,Burned" },
   { name: "FlameAxeFireBrandShot8", powerID: 6146, targetMethod: "ProjectileCombo", range: 800, baseDamageMult: "1", addTargetBuff: "Scorched" },
+  { name: "FlameAxeFireBrandShot8Pierce", powerID: 6147, targetMethod: "ProjectileCombo", range: 800, baseDamageMult: "0.75", addTargetBuff: "Scorched" },
 ];
 
 function cloneStats(): PatchStats {
@@ -170,7 +171,7 @@ function buildFireBrandShotPower(def: FireBrandShotDef): string {
     def.range ? `\t\t<Range>${def.range}</Range>` : "",
     def.aoeRadius ? `\t\t<AoERadius>${def.aoeRadius}</AoERadius>` : "",
   ].filter(Boolean).join("\r\n");
-  const isPiercingBasicShot = def.name === "FlameAxeFireBrandShot8";
+  const isPiercingBasicShot = def.name === "FlameAxeFireBrandShot8" || def.name === "FlameAxeFireBrandShot8Pierce";
   return [
     `\t<Power PowerName="${def.name}">`,
     `\t\t<PowerID>${def.powerID}</PowerID>`,
@@ -187,7 +188,9 @@ function buildFireBrandShotPower(def: FireBrandShotDef): string {
     "\t\t<PowerGroup>FireBrandShot</PowerGroup>",
     `\t\t<AddTargetBuff>${def.addTargetBuff}</AddTargetBuff>`,
     isPiercingBasicShot ? "\t\t<DisplayName>Ates Topu</DisplayName>" : "\t\t<DisplayName>Alev Damgasi Atisi</DisplayName>",
-    isPiercingBasicShot
+    def.name === "FlameAxeFireBrandShot8Pierce"
+      ? "\t\t<Description>Alevgorur temel menzilli saldirisi. Ilk hedeften sonraki hedeflere azaltimli hasar verir.</Description>"
+      : isPiercingBasicShot
       ? "\t\t<Description>Alevgorur temel menzilli saldirisi. Hedeflere carpinca durmak yerine iclerinden gecer.</Description>"
       : "\t\t<Description>Alev Damgasi etkinken menzilli saldirilar alev hasari verir.</Description>",
     isPiercingBasicShot ? "\t\t<IconName>a_PowerIcon_FireBall</IconName>" : "\t\t<IconName>a_PowerIcon_CrimsonShot</IconName>",
@@ -214,7 +217,7 @@ function buildFireBrandShotPower(def: FireBrandShotDef): string {
 
 function ensureFireBrandShotPowers(xml: string, stats: PatchStats): string {
   const withoutFireBrandShots = xml.replace(
-    /\r?\n\t<Power PowerName="(?:FireBrandShot(?:1|3|4|6|7|8)|FlameAxeFireBrandShot8)">[\s\S]*?\r?\n\t<\/Power>/g,
+    /\r?\n\t<Power PowerName="(?:FireBrandShot(?:1|3|4|6|7|8)|FlameAxeFireBrandShot8(?:Pierce)?)">[\s\S]*?\r?\n\t<\/Power>/g,
     "",
   );
   const fireBrandShotXml = FIREBRAND_SHOTS.map(buildFireBrandShotPower).join("\r\n");
@@ -316,6 +319,9 @@ function patchPowerBlock(powerName: string, block: string, stats: PatchStats): s
     const rank = rankOf(powerName, "FireBrand");
     const buff = rank >= 8 ? "FireBrandRank8" : rank >= 6 ? "FireBrandRank6" : rank >= 3 ? "FireBrandRank3" : "FireBrandRank1";
     next = apply(next, stats, replaceTag(next, "AddTargetBuff", buff));
+    if (rank >= 9) {
+      next = apply(next, stats, replaceTag(next, "ManaCost", "18"));
+    }
   } else if (/^SummonDragonSoul(?:\d+)?$/.test(powerName)) {
     stats.powerBlocks += 1;
     next = apply(next, stats, removeSelfBuff(next, "FireBrandRank1", "FireBrandRank3", "FireBrandRank8"));

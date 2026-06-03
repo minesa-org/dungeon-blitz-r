@@ -86,8 +86,10 @@ type NpcHitResolution = {
 export class CombatHandler {
     private static readonly MAX_RELAY_POWER_HIT_DAMAGE = 4_000_000;
     private static readonly FIREBRAND_PIERCING_SHOT_POWER_ID = 6146;
+    private static readonly FIREBRAND_PIERCING_SECONDARY_SHOT_POWER_ID = 6147;
     private static readonly FIREBRAND_PIERCING_SHOT_RANGE = 800;
     private static readonly FIREBRAND_PIERCING_SHOT_MIN_HIT_RADIUS = 35;
+    private static readonly FIREBRAND_PIERCING_SECONDARY_DAMAGE_MULT = 0.75;
     private static readonly FIREBRAND_PIERCING_HIT_DEDUPE_MS = 1_500;
     private static readonly recentFireBrandPiercingCasts = new Map<string, number>();
 
@@ -1565,6 +1567,15 @@ export class CombatHandler {
         return 25;
     }
 
+    private static scaleFireBrandPiercingShotDamage(baseDamage: number, targetIndex: number): number {
+        const damage = Math.max(0, Math.round(Number(baseDamage) || 0));
+        if (damage <= 0 || targetIndex <= 0) {
+            return damage;
+        }
+
+        return Math.max(1, Math.round(damage * CombatHandler.FIREBRAND_PIERCING_SECONDARY_DAMAGE_MULT));
+    }
+
     private static resolveFireBrandPiercingTargetPos(info: PowerCastRelayInfo, sourceEntity: any): CombatPoint | null {
         if (info.targetPos) {
             return info.targetPos;
@@ -1610,13 +1621,15 @@ export class CombatHandler {
             return;
         }
 
-        const damage = CombatHandler.resolveFireBrandPiercingShotDamage(sourceSession, sourceEntity);
+        const baseDamage = CombatHandler.resolveFireBrandPiercingShotDamage(sourceSession, sourceEntity);
         CombatHandler.markFireBrandPiercingCastDamage(levelScope, info.sourceId);
-        for (const targetEntity of targets) {
+        for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
+            const targetEntity = targets[targetIndex];
             const targetId = Number(targetEntity?.id ?? 0);
             if (targetId <= 0) {
                 continue;
             }
+            const damage = CombatHandler.scaleFireBrandPiercingShotDamage(baseDamage, targetIndex);
 
             CombatHandler.noteCombatInteraction(levelScope, info.sourceId, targetId, client);
             CombatHandler.maybeRecordNpcContribution(levelScope, targetId, info.sourceId, damage, client);
@@ -2220,7 +2233,10 @@ export class CombatHandler {
             return;
         }
         if (
-            info.powerId === CombatHandler.FIREBRAND_PIERCING_SHOT_POWER_ID &&
+            (
+                info.powerId === CombatHandler.FIREBRAND_PIERCING_SHOT_POWER_ID ||
+                info.powerId === CombatHandler.FIREBRAND_PIERCING_SECONDARY_SHOT_POWER_ID
+            ) &&
             CombatHandler.didRecentlyApplyFireBrandPiercingCastDamage(levelScope, sourceId)
         ) {
             return;
