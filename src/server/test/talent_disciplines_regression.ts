@@ -464,8 +464,8 @@ async function testMageDisciplineChangeAssignsDefaultActiveAbilities(): Promise<
     );
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x10),
-        true,
-        'discipline change should refresh player data so the client applies the default active hotbar'
+        false,
+        'discipline change must not send player-data reloads because they duplicate the local player instance'
     );
 }
 
