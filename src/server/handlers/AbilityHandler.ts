@@ -67,6 +67,12 @@ export class AbilityHandler {
         [MasterClassID.Necromancer]: 'Necromancer'
     };
 
+    private static readonly ABILITY_CLASSES_BY_BASE_CLASS: Record<string, Set<string>> = {
+        rogue: new Set(['rogue', 'executioner', 'shadowwalker', 'soulthief']),
+        paladin: new Set(['paladin', 'sentinel', 'justicar', 'templar']),
+        mage: new Set(['mage', 'frostwarden', 'flameseer', 'necromancer'])
+    };
+
     static async handleActiveAbilitiesUpdate(client: Client, data: Buffer): Promise<void> {
         if (!client.character) return;
 
@@ -89,7 +95,7 @@ export class AbilityHandler {
                     abilityClass: AbilityHandler.getAbilityClassName(abilityId),
                     characterClass: String(client.character.class ?? ''),
                     masterClass: Number(client.character.MasterClass ?? 0),
-                    reason: 'wrong_discipline'
+                    reason: 'wrong_class'
                 });
             }
         }
@@ -652,8 +658,8 @@ export class AbilityHandler {
             return true;
         }
 
-        const masterClassName = AbilityHandler.MASTERCLASS_NAMES[Number(character.MasterClass ?? 0)];
-        return Boolean(masterClassName) && abilityClass === masterClassName.toLowerCase();
+        const allowedAbilityClasses = AbilityHandler.ABILITY_CLASSES_BY_BASE_CLASS[characterClass];
+        return Boolean(allowedAbilityClasses?.has(abilityClass));
     }
 
     private static getActiveAbilities(character: CharacterRecord): number[] {

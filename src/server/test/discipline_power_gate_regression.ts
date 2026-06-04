@@ -26,7 +26,7 @@ type FakeClient = {
     sendBitBuffer(id: number, payload: BitBuffer): void;
 };
 
-function createMageClient(): FakeClient {
+function createMageClient(activeAbilities: number[] = [10, 14, 17]): FakeClient {
     const sentPackets: SentPacket[] = [];
     return {
         token: 8801,
@@ -39,12 +39,13 @@ function createMageClient(): FakeClient {
         character: {
             name: 'DiscPowerGate',
             class: 'Mage',
-            MasterClass: 8,
-            activeAbilities: [10, 14, 17],
+            MasterClass: 7,
+            activeAbilities,
             learnedAbilities: [
                 { abilityID: 10, rank: 10 },
                 { abilityID: 14, rank: 10 },
                 { abilityID: 17, rank: 10 },
+                { abilityID: 66, rank: 10 },
                 { abilityID: 98, rank: 10 }
             ]
         },
@@ -72,11 +73,10 @@ function buildPowerHitPacket(targetId: number, sourceId: number, damage: number,
     return bb.toBuffer();
 }
 
-async function testOffDisciplinePlayerPowerHitIsRejected(): Promise<void> {
+async function withCombatFixture(client: FakeClient, fn: (targetEntity: any) => Promise<void>): Promise<void> {
     const sessionsByToken = GlobalState.sessionsByToken;
     const levelEntities = GlobalState.levelEntities;
     const combatContributions = GlobalState.combatContributions;
-    const client = createMageClient();
     const levelScope = getClientLevelScope(client as never);
     const targetId = 61101;
     const playerEntity = {
@@ -109,17 +109,7 @@ async function testOffDisciplinePlayerPowerHitIsRejected(): Promise<void> {
     client.entities.set(targetEntity.id, targetEntity);
 
     try {
-        await CombatHandler.handlePowerHit(
-            client as never,
-            buildPowerHitPacket(targetId, client.clientEntID, 25, 5901)
-        );
-        assert.equal(targetEntity.hp, 100, 'off-discipline Necromancer power hits must not apply damage');
-
-        await CombatHandler.handlePowerHit(
-            client as never,
-            buildPowerHitPacket(targetId, client.clientEntID, 13, 500)
-        );
-        assert.equal(targetEntity.hp, 87, 'active Mage Fire Blast power hits should still apply damage');
+        await fn(targetEntity);
     } finally {
         GlobalState.sessionsByToken = sessionsByToken;
         GlobalState.levelEntities = levelEntities;
@@ -127,8 +117,55 @@ async function testOffDisciplinePlayerPowerHitIsRejected(): Promise<void> {
     }
 }
 
+async function testSelectedSameBaseDisciplinePowerHitIsAllowed(): Promise<void> {
+    const client = createMageClient([98, 14, 17]);
+    await withCombatFixture(client, async (targetEntity) => {
+        await CombatHandler.handlePowerHit(
+            client as never,
+            buildPowerHitPacket(targetEntity.id, client.clientEntID, 25, 5901)
+        );
+        assert.equal(targetEntity.hp, 75, 'selected same-base Necromancer power hits should apply damage');
+    });
+}
+
+async function testUnselectedHotbarDisciplinePowerHitIsRejected(): Promise<void> {
+    const client = createMageClient([10, 14, 17]);
+    await withCombatFixture(client, async (targetEntity) => {
+        await CombatHandler.handlePowerHit(
+            client as never,
+            buildPowerHitPacket(targetEntity.id, client.clientEntID, 25, 5901)
+        );
+        assert.equal(targetEntity.hp, 100, 'unselected hotbar discipline power hits must not apply damage');
+    });
+}
+
+async function testSameBaseMasterDisciplinePowerHitIsAllowed(): Promise<void> {
+    const client = createMageClient([10, 14, 17]);
+    await withCombatFixture(client, async (targetEntity) => {
+        await CombatHandler.handlePowerHit(
+            client as never,
+            buildPowerHitPacket(targetEntity.id, client.clientEntID, 25, 820)
+        );
+        assert.equal(targetEntity.hp, 75, 'same-base Flameseer master ability power hits should apply damage');
+    });
+}
+
+async function testActiveBaseClassPowerHitIsStillAllowed(): Promise<void> {
+    const client = createMageClient([10, 14, 17]);
+    await withCombatFixture(client, async (targetEntity) => {
+        await CombatHandler.handlePowerHit(
+            client as never,
+            buildPowerHitPacket(targetEntity.id, client.clientEntID, 13, 500)
+        );
+        assert.equal(targetEntity.hp, 87, 'active Mage Fire Blast power hits should still apply damage');
+    });
+}
+
 async function main(): Promise<void> {
-    await testOffDisciplinePlayerPowerHitIsRejected();
+    await testSelectedSameBaseDisciplinePowerHitIsAllowed();
+    await testUnselectedHotbarDisciplinePowerHitIsRejected();
+    await testSameBaseMasterDisciplinePowerHitIsAllowed();
+    await testActiveBaseClassPowerHitIsStillAllowed();
     console.log('discipline_power_gate_regression: ok');
 }
 

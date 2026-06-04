@@ -433,7 +433,7 @@ async function testSelectedDisciplinePersistsHomeTowerAfterRestart(): Promise<vo
     assert.equal(decoded.towerRank, 1, 'restart CraftTown packet should include the selected discipline tower');
 }
 
-async function testMageDisciplineChangeAssignsDefaultActiveAbilities(): Promise<void> {
+async function testMageDisciplineChangePreservesActiveAbilities(): Promise<void> {
     const client = createClient();
     client.character.class = 'Mage';
     client.character.MasterClass = 8;
@@ -454,13 +454,13 @@ async function testMageDisciplineChangeAssignsDefaultActiveAbilities(): Promise<
     assert.equal(client.character.MasterClass, 7);
     assert.deepEqual(
         client.character.activeAbilities,
-        [10, 14, 17],
-        'Mage discipline changes should reset hotbar slots to Fire Blast, Ice Nova, and Hail Storm'
+        [58, 63, 64],
+        'Mage discipline changes should preserve saved active ability slots'
     );
     assert.deepEqual(
         client.character.learnedAbilities.find((ability: any) => ability.abilityID === 63),
         { abilityID: 63, rank: 10 },
-        'resetting active abilities must not remove learned off-discipline ranks'
+        'discipline changes must not remove learned off-discipline ranks'
     );
     assert.equal(
         client.sentPackets.some((packet) => packet.id === 0x10),
@@ -476,8 +476,8 @@ async function testMageDisciplineChangeAssignsDefaultActiveAbilities(): Promise<
     assert.equal(client.character.MasterClass, 8);
     assert.deepEqual(
         client.character.activeAbilities,
-        [10, 14, 17],
-        'every Mage discipline change should reapply Fire Blast, Ice Nova, and Hail Storm'
+        [58, 63, 64],
+        'every Mage discipline change should preserve saved active ability slots'
     );
 }
 
@@ -521,7 +521,7 @@ async function main(): Promise<void> {
     testEntityTalentSlotsKeepClientSlotPositions();
     testWorldEnterResolvesMasterClassFromTowerState();
     await testSelectedDisciplinePersistsHomeTowerAfterRestart();
-    await testMageDisciplineChangeAssignsDefaultActiveAbilities();
+    await testMageDisciplineChangePreservesActiveAbilities();
     testCompletedDisciplineResearchSerializesAfterRestart();
     testCompletedClassZeroResearchSerializesAfterRestart();
     console.log('talent_disciplines_regression: ok');

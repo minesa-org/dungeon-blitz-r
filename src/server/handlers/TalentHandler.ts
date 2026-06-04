@@ -5,8 +5,6 @@ import { JsonAdapter } from '../database/JsonAdapter';
 import { TalentConfig } from '../core/TalentConfig';
 import { EntityHandler } from './EntityHandler';
 import { WorldEnter } from '../utils/WorldEnter';
-import { MasterClassID } from '../core/Enums';
-import { MageAbility } from '../data/runtime/Abilities';
 
 type TalentResearchRecord = {
     classIndex?: number | null;
@@ -14,16 +12,6 @@ type TalentResearchRecord = {
 };
 
 const db = new JsonAdapter();
-const MAGE_DISCIPLINE_MASTER_CLASSES = new Set<number>([
-    MasterClassID.Frostwarden,
-    MasterClassID.Flameseer,
-    MasterClassID.Necromancer
-]);
-const MAGE_DISCIPLINE_DEFAULT_ACTIVE_ABILITIES = [
-    MageAbility.FireBlast,
-    MageAbility.IceNova,
-    MageAbility.IceStorm
-];
 
 export class TalentHandler {
     static syncResearchTimer(client: Client): void {
@@ -308,7 +296,6 @@ export class TalentHandler {
 
         client.character.MasterClass = masterClassId;
         WorldEnter.ensureSelectedDisciplineTower(client.character);
-        TalentHandler.applyDefaultActiveAbilitiesForDisciplineChange(client.character, masterClassId);
         await TalentHandler.saveCharacter(client);
 
         const response = new BitBuffer();
@@ -320,35 +307,6 @@ export class TalentHandler {
         if (client.playerSpawned && client.currentLevel) {
             EntityHandler.refreshPlayerSnapshot(client);
         }
-    }
-
-    private static applyDefaultActiveAbilitiesForDisciplineChange(character: Record<string, unknown>, masterClassId: number): void {
-        if (String(character.class ?? '').toLowerCase() !== 'mage') {
-            return;
-        }
-        if (!MAGE_DISCIPLINE_MASTER_CLASSES.has(masterClassId)) {
-            return;
-        }
-
-        const learnedAbilities = Array.isArray(character.learnedAbilities)
-            ? character.learnedAbilities as Array<Record<string, number>>
-            : [];
-        const learnedAbilityIds = new Set<number>();
-        for (const ability of learnedAbilities) {
-            const abilityId = Number(ability?.abilityID ?? 0);
-            if (abilityId > 0) {
-                learnedAbilityIds.add(abilityId);
-            }
-        }
-
-        for (const abilityID of MAGE_DISCIPLINE_DEFAULT_ACTIVE_ABILITIES) {
-            if (!learnedAbilityIds.has(abilityID)) {
-                learnedAbilities.push({ abilityID, rank: 1 });
-            }
-        }
-
-        character.learnedAbilities = learnedAbilities;
-        character.activeAbilities = [...MAGE_DISCIPLINE_DEFAULT_ACTIVE_ABILITIES];
     }
 
     private static sendActiveTalentTreeData(client: Client, entityId: number, masterClassId: number): void {

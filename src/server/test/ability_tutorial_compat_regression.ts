@@ -93,10 +93,11 @@ function createSpeedupPacket(idolCost: number): Buffer {
     return bb.toBuffer();
 }
 
-async function withMockedCharacterSave<T>(fn: () => Promise<T>): Promise<T> {
+async function withMockedCharacterSave<T>(fn: () => Promise<T>, onSave?: (character: Character) => void): Promise<T> {
     const originalSaveCharacterSnapshot = JsonAdapter.prototype.saveCharacterSnapshot;
     JsonAdapter.prototype.saveCharacterSnapshot = async function(userId: number, character: Character): Promise<Character[]> {
         assert.equal(userId, 6);
+        onSave?.(character);
         return [character];
     };
 
@@ -240,7 +241,7 @@ async function testShadowWalkerDisciplineSkillsCanStartRankTwoResearch(): Promis
     }
 }
 
-async function testOffDisciplineInfernalCircleSkillCannotBecomeActive(): Promise<void> {
+async function testSameClassDisciplineSkillCanBecomeActive(): Promise<void> {
     const client = createClient();
     client.character.level = 50;
     client.character.MasterClass = 7;
@@ -255,27 +256,35 @@ async function testOffDisciplineInfernalCircleSkillCannotBecomeActive(): Promise
         { abilityID: 65, rank: 10 }
     ];
     client.character.activeAbilities = [10, 14, 28];
+    let savedActiveAbilities: number[] | null = null;
 
     await withMockedCharacterSave(async () => {
         await AbilityHandler.handleActiveAbilitiesUpdate(
             client as never,
             createActiveAbilitiesPacket([63, null, null])
         );
+    }, (savedCharacter) => {
+        savedActiveAbilities = [...(savedCharacter.activeAbilities ?? [])];
     });
 
     assert.deepEqual(
         client.character.activeAbilities,
-        [10, 14, 28],
-        'Frostwarden characters should not be able to activate Flameseer/Infernal Circle abilities'
+        [63, 14, 28],
+        'Frostwarden characters should be able to activate learned Flameseer/Infernal Circle abilities'
+    );
+    assert.deepEqual(
+        savedActiveAbilities,
+        [63, 14, 28],
+        'active ability updates must persist selected slots to the player database snapshot'
     );
     assert.deepEqual(
         client.character.learnedAbilities.find((ability: any) => ability.abilityID === 63),
         { abilityID: 63, rank: 10 },
-        'rejecting an off-discipline active ability must not remove the learned Flameseer rank'
+        'activating an off-discipline Mage ability must preserve the learned Flameseer rank'
     );
 }
 
-function testRepairDropsSavedOffDisciplineActiveAbilityWithoutRemovingRank(): void {
+function testRepairKeepsSavedSameClassDisciplineActiveAbility(): void {
     const character = createCharacter();
     character.level = 50;
     character.MasterClass = 7;
@@ -293,8 +302,8 @@ function testRepairDropsSavedOffDisciplineActiveAbilityWithoutRemovingRank(): vo
     assert.equal(repaired, true);
     assert.deepEqual(
         character.activeAbilities,
-        [10, 14, 28],
-        'repair should replace saved Flameseer active slots with allowed Mage/Frostwarden abilities'
+        [58, 63, 28],
+        'repair should keep saved same-class Flameseer active slots while a Frostwarden discipline is selected'
     );
     assert.deepEqual(
         character.learnedAbilities.find((ability: any) => ability.abilityID === 58),
@@ -306,7 +315,7 @@ function testRepairDropsSavedOffDisciplineActiveAbilityWithoutRemovingRank(): vo
     );
 }
 
-function testRepairDoesNotInferMissingOffDisciplineActiveAbilityRank(): void {
+function testRepairInfersMissingSameClassDisciplineActiveAbilityRank(): void {
     const character = createCharacter();
     character.level = 50;
     character.MasterClass = 7;
@@ -320,12 +329,12 @@ function testRepairDoesNotInferMissingOffDisciplineActiveAbilityRank(): void {
     const repaired = AbilityHandler.repairCharacterAbilityState(character);
 
     assert.equal(repaired, true);
-    assert.equal(
-        character.learnedAbilities.some((ability: any) => ability.abilityID === 63),
-        false,
-        'repair should not infer missing learned ranks from off-discipline active ability IDs'
+    assert.deepEqual(
+        character.learnedAbilities.find((ability: any) => ability.abilityID === 63),
+        { abilityID: 63, rank: 1 },
+        'repair should infer missing learned ranks from same-class off-discipline active ability IDs'
     );
-    assert.deepEqual(character.activeAbilities, [10, 14, 28]);
+    assert.deepEqual(character.activeAbilities, [63, 28]);
 }
 
 async function testAbilitySpeedupAppliesCompletedRank(): Promise<void> {
@@ -446,9 +455,9 @@ async function main(): Promise<void> {
     await testDefaultMasterAbilityCanStartRankTwoResearch();
     await testAnyActiveDisciplineSkillCanInferMissingSavedRank();
     await testShadowWalkerDisciplineSkillsCanStartRankTwoResearch();
-    await testOffDisciplineInfernalCircleSkillCannotBecomeActive();
-    testRepairDropsSavedOffDisciplineActiveAbilityWithoutRemovingRank();
-    testRepairDoesNotInferMissingOffDisciplineActiveAbilityRank();
+    await testSameClassDisciplineSkillCanBecomeActive();
+    testRepairKeepsSavedSameClassDisciplineActiveAbility();
+    testRepairInfersMissingSameClassDisciplineActiveAbilityRank();
     await testAbilitySpeedupAppliesCompletedRank();
     await testSentinelFormInstantIdolResearchAppliesRank();
     await testSentinelFormSpeedupResearchAppliesRank();

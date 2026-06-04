@@ -39,9 +39,9 @@ function parseArgs(argv) {
                 'Usage:',
                 '  node src/server/scripts/patch-dungeonblitz-ability-discipline-gate.js [--verify] [--swf <path>] [--ffdec <path>]',
                 '',
-                'Patches DungeonBlitz.swf so base class skills and the current',
-                'discipline can be equipped, while trained off-discipline skills',
-                'remain learned, show the discipline requirement, and cannot be selected.'
+                'Patches DungeonBlitz.swf so all trained same-base-class',
+                'discipline skills are displayed and can be equipped, and',
+                'discipline changes do not locally reset the Mage hotbar.'
             ].join('\n'));
             process.exit(0);
         }
@@ -140,40 +140,21 @@ function patchAbilityBookSource(source) {
     const eol = source.includes('\r\n') ? '\r\n' : '\n';
     let patched = source;
 
-    if (!patched.includes(ABILITY_BOOK_MARKER)) {
-        const oldBlock = [
-            '         if(param1 < 1 || param1 > 3)',
-            '         {',
-            '            return false;',
-            '         }',
-            '         if(param1 == 3 && param2.var_90 != 3)'
-        ].join(eol);
-        const newBlock = [
-            '         if(param1 < 1 || param1 > 3)',
-            '         {',
-            '            return false;',
-            '         }',
+    if (patched.includes(ABILITY_BOOK_MARKER)) {
+        const gateBlock = [
             '         if(Boolean(this.var_1.clientEnt) && Boolean(this.var_1.clientEnt.entType) && param2.className.toLowerCase() != this.var_1.clientEnt.mMasterClass && param2.className != this.var_1.clientEnt.entType.className)',
             '         {',
             '            return false;',
             '         }',
-            '         if(param1 == 3 && param2.var_90 != 3)'
         ].join(eol);
-
-        if (!patched.includes(oldBlock)) {
-            throw new Error('Could not find SetAbilities insertion point.');
+        if (!patched.includes(gateBlock)) {
+            throw new Error('Could not find SetAbilities discipline gate block.');
         }
-        patched = patched.replace(oldBlock, newBlock);
+        patched = patched.replace(gateBlock + eol, '');
     }
 
-    if (!patched.includes(CATEGORY_FILTER_MARKER)) {
-        const oldBlock = [
-            '         var _loc6_:class_10 = null;',
-            '         param1 = param1 ? param1.toLowerCase() : "";',
-            '         var _loc5_:Vector.<class_10> = new Vector.<class_10>();'
-        ].join(eol);
-        const newBlock = [
-            '         var _loc6_:class_10 = null;',
+    if (patched.includes(CATEGORY_FILTER_MARKER)) {
+        const filterBlock = [
             '         var _loc7_:Entity = this.var_1.clientEnt;',
             '         param1 = param1 ? param1.toLowerCase() : "";',
             '         var _loc5_:Vector.<class_10> = new Vector.<class_10>();',
@@ -182,11 +163,14 @@ function patchAbilityBookSource(source) {
             '            return _loc5_;',
             '         }'
         ].join(eol);
-
-        if (!patched.includes(oldBlock)) {
-            throw new Error('Could not find getSpellsByCategory insertion point.');
+        const openBlock = [
+            '         param1 = param1 ? param1.toLowerCase() : "";',
+            '         var _loc5_:Vector.<class_10> = new Vector.<class_10>();'
+        ].join(eol);
+        if (!patched.includes(filterBlock)) {
+            throw new Error('Could not find getSpellsByCategory discipline filter block.');
         }
-        patched = patched.replace(oldBlock, newBlock);
+        patched = patched.replace(filterBlock, openBlock);
     }
 
     return patched;
@@ -218,42 +202,37 @@ function patchTooltipSource(source) {
         .replace('param2.method_12(_loc12_.am_RuneHolder,null.runeIcon);', 'param2.method_12(_loc12_.am_RuneHolder,_loc19_.runeIcon);');
 
     if (patched.includes(TOOLTIP_MARKER)) {
-        return patched;
+        const gateBlock = [
+            '            if(param3.className.toLowerCase() != param1.mMasterClass && param3.className != param1.entType.className)',
+            '            {',
+            '               MathUtil.method_2(_loc6_.am_UseCase,"Requires " + Game.method_226(param3.className) + " discipline");',
+            '            }',
+            '            else if(!param3.var_223)'
+        ].join(sourceEol);
+        if (!patched.includes(gateBlock)) {
+            throw new Error('Could not find ShowSpellbookTooltip discipline gate block.');
+        }
+        return patched.replace(gateBlock, '            if(!param3.var_223)');
     }
 
     const eol = patched.includes('\r\n') ? '\r\n' : '\n';
-    const oldBlock = [
+    if (!patched.includes([
         '            if(!param3.var_223)',
         '            {',
         '               if(_loc10_)'
-    ].join(eol);
-    const newBlock = [
-        '            if(param3.className.toLowerCase() != param1.mMasterClass && param3.className != param1.entType.className)',
-        '            {',
-        '               MathUtil.method_2(_loc6_.am_UseCase,"Requires " + Game.method_226(param3.className) + " discipline");',
-        '            }',
-        '            else if(!param3.var_223)',
-        '            {',
-        '               if(_loc10_)'
-    ].join(eol);
-
-    if (!patched.includes(oldBlock)) {
-        throw new Error('Could not find ShowSpellbookTooltip insertion point.');
+    ].join(eol))) {
+        throw new Error('Could not verify ShowSpellbookTooltip equip-use block.');
     }
-    return patched.replace(oldBlock, newBlock);
+    return patched;
 }
 
 function patchLinkUpdaterSource(source) {
-    if (source.includes(LINK_UPDATER_HOTBAR_MARKER)) {
+    if (!source.includes(LINK_UPDATER_HOTBAR_MARKER)) {
         return source;
     }
 
     const eol = source.includes('\r\n') ? '\r\n' : '\n';
-    const oldBlock = [
-        '                  this.var_1.mAbilityBook.DefaultMasterRanks(_loc5_.var_85,_loc5_.mMasterClass);'
-    ].join(eol);
-    const newBlock = [
-        '                  this.var_1.mAbilityBook.DefaultMasterRanks(_loc5_.var_85,_loc5_.mMasterClass);',
+    const hotbarResetBlock = [
         '                  if(_loc5_.entType && _loc5_.entType.className.toLowerCase() == "mage" && class_14.var_478[10] && class_14.var_478[14] && class_14.var_478[17])',
         '                  {',
         '                     this.var_1.mAbilityBook.mHotbarList[1] = class_14.var_478[10];',
@@ -264,30 +243,30 @@ function patchLinkUpdaterSource(source) {
         '                  }'
     ].join(eol);
 
-    if (!source.includes(oldBlock)) {
-        throw new Error('Could not find LinkUpdater.method_1172 hotbar reset insertion point.');
+    if (!source.includes(hotbarResetBlock)) {
+        throw new Error('Could not find LinkUpdater.method_1172 hotbar reset block.');
     }
-    return source.replace(oldBlock, newBlock);
+    return source.replace(hotbarResetBlock + eol, '');
 }
 
 function verifyAbilityBookSource(source, label) {
-    if (!source.includes(ABILITY_BOOK_MARKER)) {
-        throw new Error(`${label}: missing discipline gate in ${ABILITY_BOOK_CLASS}.SetAbilities`);
+    if (source.includes(ABILITY_BOOK_MARKER)) {
+        throw new Error(`${label}: still has discipline gate in ${ABILITY_BOOK_CLASS}.SetAbilities`);
     }
-    if (!source.includes(CATEGORY_FILTER_MARKER)) {
-        throw new Error(`${label}: missing category filter in ${ABILITY_BOOK_CLASS}.getSpellsByCategory`);
+    if (source.includes(CATEGORY_FILTER_MARKER)) {
+        throw new Error(`${label}: still has category filter in ${ABILITY_BOOK_CLASS}.getSpellsByCategory`);
     }
 }
 
 function verifyTooltipSource(source, label) {
-    if (!source.includes(TOOLTIP_MARKER)) {
-        throw new Error(`${label}: missing discipline requirement in ${TOOLTIP_CLASS}.ShowSpellbookTooltip`);
+    if (source.includes(TOOLTIP_MARKER)) {
+        throw new Error(`${label}: still has discipline requirement in ${TOOLTIP_CLASS}.ShowSpellbookTooltip`);
     }
 }
 
 function verifyLinkUpdaterSource(source, label) {
-    if (!source.includes(LINK_UPDATER_HOTBAR_MARKER)) {
-        throw new Error(`${label}: missing Mage hotbar reset in ${LINK_UPDATER_CLASS}.method_1172`);
+    if (source.includes(LINK_UPDATER_HOTBAR_MARKER)) {
+        throw new Error(`${label}: still has Mage hotbar reset in ${LINK_UPDATER_CLASS}.method_1172`);
     }
 }
 
@@ -322,14 +301,14 @@ function main() {
         verifyAbilityBookSource(abilitySource, swfPath);
         verifyTooltipSource(tooltipSource, swfPath);
         verifyLinkUpdaterSource(linkSource, swfPath);
-        console.log(`${swfPath}: already patched (ability discipline gate).`);
+        console.log(`${swfPath}: already patched (all discipline skills enabled).`);
         return;
     }
     if (patchedAbilitySource === abilitySource && patchedTooltipSource === tooltipSource && patchedLinkSource === linkSource) {
         verifyAbilityBookSource(abilitySource, swfPath);
         verifyTooltipSource(tooltipSource, swfPath);
         verifyLinkUpdaterSource(linkSource, swfPath);
-        console.log(`${swfPath}: already patched (ability discipline gate).`);
+        console.log(`${swfPath}: already patched (all discipline skills enabled).`);
         return;
     }
 
@@ -355,7 +334,7 @@ function main() {
 
     ensureBackup(swfPath);
     fs.copyFileSync(outSwf, swfPath);
-    console.log(`${swfPath}: patched ability discipline gate.`);
+    console.log(`${swfPath}: patched all discipline skills enabled.`);
 }
 
 main();
