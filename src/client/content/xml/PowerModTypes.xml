@@ -1756,11 +1756,11 @@
 		<ModName>BurnDmg1</ModName>
 		<ModID>186</ModID>
 		<DisplayName>Hizlandirici</DisplayName>
-		<Description>Yanma Hasari artar.@Yanma Hasari:, +3%, +7%, +10%, +17%, +25%</Description>
+		<Description>Yanma Hasari artar.@Yanma Hasari:, +6%, +13%, +20%, +30%, +50%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>Burned</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
-		<BuffValue>.01</BuffValue>
+		<BuffValue>.02</BuffValue>
 		<IconName>a_Signet_Ignite01</IconName>
 	</PowerModType>
 	<PowerModType>
@@ -1770,7 +1770,7 @@
 		<ModType>Buff</ModType>
 		<BuffName>Burned</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
-		<BuffValue>.02</BuffValue>
+		<BuffValue>.04</BuffValue>
 		<IconName>a_Signet_Ignite01</IconName>
 	</PowerModType>
 	<PowerModType>
@@ -1780,7 +1780,7 @@
 		<ModType>Buff</ModType>
 		<BuffName>Burned</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
-		<BuffValue>.03</BuffValue>
+		<BuffValue>.06</BuffValue>
 		<IconName>a_Signet_Ignite01</IconName>
 	</PowerModType>
 	<PowerModType>
@@ -1790,7 +1790,7 @@
 		<ModType>Buff</ModType>
 		<BuffName>Burned</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
-		<BuffValue>.05</BuffValue>
+		<BuffValue>.09</BuffValue>
 		<IconName>a_Signet_Ignite01</IconName>
 	</PowerModType>
 	<PowerModType>
@@ -1800,7 +1800,7 @@
 		<ModType>Buff</ModType>
 		<BuffName>Burned</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
-		<BuffValue>.08</BuffValue>
+		<BuffValue>.15</BuffValue>
 		<IconName>a_Signet_Ignite01</IconName>
 	</PowerModType>
 	<PowerModType>

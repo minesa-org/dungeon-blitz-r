@@ -28690,7 +28690,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
 		<AddSelfBuff>FireArmor</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<Description>Dusmanlarin arasindan atilir ve ardinda kavuran bir ates izi birakir.</Description>
@@ -28721,7 +28721,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
 		<Description>Dusmanlarin arasindan atilir, onlari kavurur ve ardinda ates izi birakir.</Description>
@@ -28753,7 +28753,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
 		<Description>Dusmanlarin arasindan atilir, onlari kavurur ve ardinda ates izi birakir.</Description>
@@ -28785,7 +28785,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
 		<Description>Dusmanlarin arasindan atilir, onlari kavurur ve ardinda ates izi birakir.</Description>
@@ -28817,7 +28817,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
 		<AddSelfBuff>FireArmor30</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -28850,7 +28850,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
 		<AddSelfBuff>FireArmor30</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -28883,7 +28883,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
 		<AddSelfBuff>FireArmor30</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -28916,7 +28916,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Crippled</AddTargetBuff>
 		<AddSelfBuff>FireArmor30</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -28949,7 +28949,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Crippled</AddTargetBuff>
 		<AddSelfBuff>FireArmor</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -28982,7 +28982,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Burned,Crippled</AddTargetBuff>
 		<AddSelfBuff>FireArmor</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -29015,7 +29015,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Burned,Crippled</AddTargetBuff>
 		<AddSelfBuff>FireArmor</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -29412,9 +29412,9 @@
 		<AddSelfBuff>DragonSoulEffect</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>10000</SpawnDuration>
+		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
 		<CastGfx/>
@@ -29497,11 +29497,11 @@
 		<AddSelfBuff>DragonSoulRank1</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>8000</SpawnDuration>
+		<SpawnDuration>11000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
-		<UpgradeDescription>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</UpgradeDescription>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<UpgradeDescription>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
 		<CastGfx/>
@@ -29526,10 +29526,10 @@
 		<AddSelfBuff>DragonSoulRank1</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9000</SpawnDuration>
+		<SpawnDuration>12000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
 		<UpgradeDescription>Sure. artar.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29555,10 +29555,10 @@
 		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9000</SpawnDuration>
+		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
 		<UpgradeDescription>Aktifken saldiri artisi %20 olur.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29584,10 +29584,10 @@
 		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9000</SpawnDuration>
+		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
 		<UpgradeDescription>Mana maliyeti 5 azalir.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29613,10 +29613,10 @@
 		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9000</SpawnDuration>
+		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
 		<UpgradeDescription>Mana maliyeti 2 azalir. Atislar add kavurma</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29642,10 +29642,10 @@
 		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9500</SpawnDuration>
+		<SpawnDuration>13500</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
 		<UpgradeDescription>Sure artar. Hasar #olddmg# artar.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29671,10 +29671,10 @@
 		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9500</SpawnDuration>
+		<SpawnDuration>13500</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
 		<UpgradeDescription>Mana maliyeti 3 azalir. Hasar #olddmg# artar.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29700,10 +29700,10 @@
 		<AddSelfBuff>DragonSoulRank8</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9500</SpawnDuration>
+		<SpawnDuration>14500</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
 		<UpgradeDescription>Aktifken saldiri artisi %30 olur.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29729,10 +29729,10 @@
 		<AddSelfBuff>DragonSoulRank8</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>10000</SpawnDuration>
+		<SpawnDuration>15000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
 		<UpgradeDescription>Sure. artar.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29758,10 +29758,10 @@
 		<AddSelfBuff>DragonSoulRank8</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>10000</SpawnDuration>
+		<SpawnDuration>15000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
 		<UpgradeDescription>Hasar #olddmg# artar.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -30459,7 +30459,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>0</ManaCost>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
@@ -30487,7 +30487,7 @@
 		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
-		<CoolDownTime>0</CoolDownTime>
+		<CoolDownTime>10000</CoolDownTime>
 		<ManaCost>0</ManaCost>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30516,7 +30516,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>20</ManaCost>
+		<ManaCost>0</ManaCost>
 		<ManaRequirement>50</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30548,7 +30548,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>20</ManaCost>
+		<ManaCost>0</ManaCost>
 		<ManaRequirement>50</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30580,7 +30580,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>15</ManaCost>
+		<ManaCost>0</ManaCost>
 		<ManaRequirement>45</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30612,7 +30612,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>15</ManaCost>
+		<ManaCost>0</ManaCost>
 		<ManaRequirement>45</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30644,7 +30644,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>15</ManaCost>
+		<ManaCost>0</ManaCost>
 		<ManaRequirement>45</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30676,7 +30676,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>15</ManaCost>
+		<ManaCost>0</ManaCost>
 		<ManaRequirement>45</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30708,7 +30708,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>10</ManaCost>
+		<ManaCost>0</ManaCost>
 		<ManaRequirement>40</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30740,7 +30740,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>10</ManaCost>
+		<ManaCost>0</ManaCost>
 		<ManaRequirement>40</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30772,7 +30772,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>10</ManaCost>
+		<ManaCost>0</ManaCost>
 		<ManaRequirement>40</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30804,7 +30804,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>10</ManaCost>
+		<ManaCost>0</ManaCost>
 		<ManaRequirement>40</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -31935,6 +31935,171 @@
 		</HitGfx>
 		<ProjGfx/>
 	</Power>
+	<Power PowerName="FireBrandShot1">
+		<PowerID>6143</PowerID>
+		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>90</AoERadius>
+		<CastAnim>Shoot</CastAnim>
+		<CastTime>0</CastTime>
+		<RecoverTime>500</RecoverTime>
+		<CoolDownTime>0</CoolDownTime>
+		<ManaCost>0</ManaCost>
+		<BaseDamageMult>1</BaseDamageMult>
+		<ProcModifier>0</ProcModifier>
+		<DamageType>Fire</DamageType>
+		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>Scorched</AddTargetBuff>
+		<DisplayName>Alev Damgasi Atisi</DisplayName>
+		<Description>Alev Damgasi etkinken menzilli saldirilar alev alan hasari verir.</Description>
+		<IconName>a_PowerIcon_CrimsonShot</IconName>
+		<CastSound>CHR_Flameseer_CrimsonShot_A</CastSound>
+		<CastGfx/>
+		<CastAnimSource>Feet</CastAnimSource>
+		<FireSound>snd_pwr_range_fireball_imp_01</FireSound>
+		<FireAnimSource>Center</FireAnimSource>
+		<FireGfx/>
+		<HitGfx/>
+		<ProjGfx>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_CrimsonShotMolten,a_CrimsonShotSuper</AnimClass>
+			<AnimScale>1</AnimScale>
+			<FireAndForget>FALSE</FireAndForget>
+		</ProjGfx>
+	</Power>
+	<Power PowerName="FireBrandShot3">
+		<PowerID>6144</PowerID>
+		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>105</AoERadius>
+		<CastAnim>Shoot</CastAnim>
+		<CastTime>0</CastTime>
+		<RecoverTime>500</RecoverTime>
+		<CoolDownTime>0</CoolDownTime>
+		<ManaCost>0</ManaCost>
+		<BaseDamageMult>1</BaseDamageMult>
+		<ProcModifier>0</ProcModifier>
+		<DamageType>Fire</DamageType>
+		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>Scorched</AddTargetBuff>
+		<DisplayName>Alev Damgasi Atisi</DisplayName>
+		<Description>Alev Damgasi etkinken menzilli saldirilar alev alan hasari verir.</Description>
+		<IconName>a_PowerIcon_CrimsonShot</IconName>
+		<CastSound>CHR_Flameseer_CrimsonShot_A</CastSound>
+		<CastGfx/>
+		<CastAnimSource>Feet</CastAnimSource>
+		<FireSound>snd_pwr_range_fireball_imp_01</FireSound>
+		<FireAnimSource>Center</FireAnimSource>
+		<FireGfx/>
+		<HitGfx/>
+		<ProjGfx>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_CrimsonShotMolten,a_CrimsonShotSuper</AnimClass>
+			<AnimScale>1</AnimScale>
+			<FireAndForget>FALSE</FireAndForget>
+		</ProjGfx>
+	</Power>
+	<Power PowerName="FireBrandShot6">
+		<PowerID>6145</PowerID>
+		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>120</AoERadius>
+		<CastAnim>Shoot</CastAnim>
+		<CastTime>0</CastTime>
+		<RecoverTime>500</RecoverTime>
+		<CoolDownTime>0</CoolDownTime>
+		<ManaCost>0</ManaCost>
+		<BaseDamageMult>0.5</BaseDamageMult>
+		<ProcModifier>0</ProcModifier>
+		<DamageType>Fire</DamageType>
+		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>Scorched,Burned</AddTargetBuff>
+		<DisplayName>Alev Damgasi Atisi</DisplayName>
+		<Description>Alev Damgasi etkinken menzilli saldirilar alev alan hasari verir.</Description>
+		<IconName>a_PowerIcon_CrimsonShot</IconName>
+		<CastSound>CHR_Flameseer_CrimsonShot_A</CastSound>
+		<CastGfx/>
+		<CastAnimSource>Feet</CastAnimSource>
+		<FireSound>snd_pwr_range_fireball_imp_01</FireSound>
+		<FireAnimSource>Center</FireAnimSource>
+		<FireGfx/>
+		<HitGfx/>
+		<ProjGfx>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_CrimsonShotMolten,a_CrimsonShotSuper</AnimClass>
+			<AnimScale>1</AnimScale>
+			<FireAndForget>FALSE</FireAndForget>
+		</ProjGfx>
+	</Power>
+	<Power PowerName="FlameAxeFireBrandShot8">
+		<PowerID>6146</PowerID>
+		<TargetMethod>ProjectileCombo</TargetMethod>
+		<Range>800</Range>
+		<CastAnim>Shoot</CastAnim>
+		<CastTime>0</CastTime>
+		<RecoverTime>500</RecoverTime>
+		<CoolDownTime>0</CoolDownTime>
+		<ManaCost>0</ManaCost>
+		<BaseDamageMult>1</BaseDamageMult>
+		<ProcModifier>0</ProcModifier>
+		<DamageType>Fire</DamageType>
+		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>Scorched</AddTargetBuff>
+		<DisplayName>Ates Topu</DisplayName>
+		<Description>Alevgorur temel menzilli saldirisi. Hedeflere carpinca durmak yerine iclerinden gecer.</Description>
+		<IconName>a_PowerIcon_FireBall</IconName>
+		<CastSound>CHR_FlameSeer_Fireball_Fire_01|CHR_FlameSeer_Fireball_Fire_02|CHR_FlameSeer_Fireball_Fire_03</CastSound>
+		<CastGfx/>
+		<CastAnimSource>Feet</CastAnimSource>
+		<FireSound>snd_pwr_range_fireball_imp_01</FireSound>
+		<FireAnimSource>Center</FireAnimSource>
+		<FireGfx>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_CrimsonShotImpact</AnimClass>
+			<AnimScale>1</AnimScale>
+			<FireAndForget>true</FireAndForget>
+		</FireGfx>
+		<HitGfx/>
+		<ProjGfx>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_CrimsonShotMolten,a_CrimsonShotSuper</AnimClass>
+			<AnimScale>1</AnimScale>
+			<FireAndForget>FALSE</FireAndForget>
+		</ProjGfx>
+	</Power>
+	<Power PowerName="FlameAxeFireBrandShot8Pierce">
+		<PowerID>6147</PowerID>
+		<TargetMethod>ProjectileCombo</TargetMethod>
+		<Range>800</Range>
+		<CastAnim>Shoot</CastAnim>
+		<CastTime>0</CastTime>
+		<RecoverTime>500</RecoverTime>
+		<CoolDownTime>0</CoolDownTime>
+		<ManaCost>0</ManaCost>
+		<BaseDamageMult>0.75</BaseDamageMult>
+		<ProcModifier>0</ProcModifier>
+		<DamageType>Fire</DamageType>
+		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>Scorched</AddTargetBuff>
+		<DisplayName>Ates Topu</DisplayName>
+		<Description>Alevgorur temel menzilli saldirisi. Ilk hedeften sonraki hedeflere azaltimli hasar verir.</Description>
+		<IconName>a_PowerIcon_FireBall</IconName>
+		<CastSound>CHR_FlameSeer_Fireball_Fire_01|CHR_FlameSeer_Fireball_Fire_02|CHR_FlameSeer_Fireball_Fire_03</CastSound>
+		<CastGfx/>
+		<CastAnimSource>Feet</CastAnimSource>
+		<FireSound>snd_pwr_range_fireball_imp_01</FireSound>
+		<FireAnimSource>Center</FireAnimSource>
+		<FireGfx>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_CrimsonShotImpact</AnimClass>
+			<AnimScale>1</AnimScale>
+			<FireAndForget>true</FireAndForget>
+		</FireGfx>
+		<HitGfx/>
+		<ProjGfx>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_CrimsonShotMolten,a_CrimsonShotSuper</AnimClass>
+			<AnimScale>1</AnimScale>
+			<FireAndForget>FALSE</FireAndForget>
+		</ProjGfx>
+	</Power>
 	<Power PowerName="IridescentBurst">
 		<PowerID>899</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
@@ -31949,7 +32114,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Staggered,Burned,Blinded</AddTargetBuff>
+		<AddTargetBuff>Staggered,Burned,Blinded,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<Description>Yakindaki dusmanlari kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
 		<IconName>a_PowerIcon_BlindingLight</IconName>
@@ -31979,7 +32144,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Scorched,Blinded,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Blinded,Burned,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<BasePowerName>IridescentBurst</BasePowerName>
 		<Description>Yakindaki dusmanlari kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
@@ -32011,7 +32176,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Scorched,Blinded,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Blinded,Burned,Burned,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<BasePowerName>IridescentBurst</BasePowerName>
 		<Description>Yakindaki dusmanlari kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
@@ -32043,7 +32208,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Scorched,Blinded,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Blinded,Burned,Burned,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<BasePowerName>IridescentBurst</BasePowerName>
 		<Description>Yakindaki dusmanlari kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
@@ -32075,7 +32240,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Scorched,Scorched,Blinded,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Scorched,Blinded,Burned,Burned,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<BasePowerName>IridescentBurst</BasePowerName>
 		<Description>Yakindaki dusmanlari kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
@@ -32107,7 +32272,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Staggered,Scorched,Scorched,Blinded,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Staggered,Scorched,Scorched,Blinded,Burned,Burned,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<BasePowerName>IridescentBurst</BasePowerName>
 		<Description>Yakindaki dusmanlari sarsan, kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
@@ -32139,7 +32304,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Staggered,Scorched,Scorched,Blinded,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Staggered,Scorched,Scorched,Blinded,Burned,Burned,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<BasePowerName>IridescentBurst</BasePowerName>
 		<Description>Yakindaki dusmanlari sarsan, kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
@@ -32171,7 +32336,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Staggered,Scorched,Scorched,Blinded,Burned,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Staggered,Scorched,Scorched,Blinded,Burned,Burned,Burned,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<BasePowerName>IridescentBurst</BasePowerName>
 		<Description>Yakindaki dusmanlari sarsan, kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
@@ -32203,7 +32368,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Staggered,Scorched,Scorched,Scorched,Blinded,Burned,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Staggered,Scorched,Scorched,Scorched,Blinded,Burned,Burned,Burned,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<BasePowerName>IridescentBurst</BasePowerName>
 		<Description>Yakindaki dusmanlari sarsan, kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
@@ -32235,7 +32400,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Staggered,Scorched,Scorched,Scorched,Blinded,Burned,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Staggered,Scorched,Scorched,Scorched,Blinded,Burned,Burned,Burned,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<BasePowerName>IridescentBurst</BasePowerName>
 		<Description>Yakindaki dusmanlari sarsan, kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
@@ -32267,7 +32432,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>IridescentBurst</PowerGroup>
-		<AddTargetBuff>Staggered,Scorched,Scorched,Scorched,Blinded,Burned,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Staggered,Scorched,Scorched,Scorched,Blinded,Burned,Burned,Burned,Weakened</AddTargetBuff>
 		<DisplayName>Yanardoner Patlama</DisplayName>
 		<BasePowerName>IridescentBurst</BasePowerName>
 		<Description>Yakindaki dusmanlari sarsan, kavuran, yakan ve kor eden parlak bir ates patlamasi yayar.</Description>
@@ -32300,7 +32465,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Crippled,MoltenFistStun1000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>
 		<IconName>a_PowerIcon_MoltenFist</IconName>
@@ -32364,7 +32529,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Crippled,MoltenFistStun1000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>
@@ -32404,7 +32569,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Crippled,MoltenFistStun1000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>
@@ -32444,7 +32609,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Crippled,MoltenFistStun1000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>
@@ -32484,7 +32649,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Crippled,MoltenFistStun1000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>
@@ -32524,7 +32689,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Burned,Crippled,MoltenFistStun1000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>
@@ -32564,7 +32729,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Burned,Crippled,MoltenFistStun2000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>
@@ -32604,7 +32769,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Scorched,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Crippled,MoltenFistStun2000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>
@@ -32644,7 +32809,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Scorched,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Crippled,MoltenFistStun2000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>
@@ -32684,7 +32849,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Scorched,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Crippled,MoltenFistStun2000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>
@@ -32724,7 +32889,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Burned</AddTargetBuff>
+		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Burned,Crippled,MoltenFistStun2000</AddTargetBuff>
 		<DisplayName>Erimis Yumruk</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Dusmanlarin altinda dev bir erimis yumruk olusturur; onlari kavurup yakar, sonra daha fazla hasar icin patlar.</Description>

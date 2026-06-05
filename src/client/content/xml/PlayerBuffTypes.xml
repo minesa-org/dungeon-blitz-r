@@ -972,6 +972,7 @@
 		<BuffID>294</BuffID>
 		<Attack>false</Attack>
 		<Duration>7200</Duration>
+		<RangedOverride>FireBrandShot1</RangedOverride>
 		<BuffLoc>ChestBack</BuffLoc>
 		<GfxType>
 			<AnimScale>1</AnimScale>
@@ -1070,9 +1071,8 @@
 		<BuffID>304</BuffID>
 		<Attack>false</Attack>
 		<Duration>0</Duration>
+		<RangedOverride>FireBrandShot1</RangedOverride>
 		<MeleeDamage>0.3</MeleeDamage>
-		<MagicDefense>-0.15</MagicDefense>
-		<MeleeDefense>-0.15</MeleeDefense>
 		<GfxType/>
 	</BuffType>
 	<BuffType BuffName="Sacrifice">
@@ -2173,6 +2173,30 @@
 			<AnimClass>a_StunEffect</AnimClass>
 		</GfxType>
 	</BuffType>
+	<BuffType BuffName="MoltenFistStun1000">
+		<BuffID>739</BuffID>
+		<Attack>true</Attack>
+		<Duration>1000</Duration>
+		<Effect>Stunned</Effect>
+		<BuffIcon>a_StatusIcon_Immobile</BuffIcon>
+		<GfxType>
+			<AnimScale>0.25</AnimScale>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_StunEffect</AnimClass>
+		</GfxType>
+	</BuffType>
+	<BuffType BuffName="MoltenFistStun2000">
+		<BuffID>740</BuffID>
+		<Attack>true</Attack>
+		<Duration>2000</Duration>
+		<Effect>Stunned</Effect>
+		<BuffIcon>a_StatusIcon_Immobile</BuffIcon>
+		<GfxType>
+			<AnimScale>0.25</AnimScale>
+			<AnimFile>SFX_1.swf</AnimFile>
+			<AnimClass>a_StunEffect</AnimClass>
+		</GfxType>
+	</BuffType>
 	<BuffType BuffName="SecondWind1">
 		<BuffID>421</BuffID>
 		<Attack>false</Attack>
@@ -2641,6 +2665,7 @@
 		<BuffID>462</BuffID>
 		<Attack>false</Attack>
 		<Duration>7200</Duration>
+		<RangedOverride>FireBrandShot1</RangedOverride>
 		<BuffLoc>FeetBack</BuffLoc>
 		<GfxType>
 			<AnimScale>2</AnimScale>
@@ -2652,6 +2677,7 @@
 		<BuffID>463</BuffID>
 		<Attack>false</Attack>
 		<Duration>7700</Duration>
+		<RangedOverride>FireBrandShot3</RangedOverride>
 		<BuffLoc>FeetBack</BuffLoc>
 		<GfxType>
 			<AnimScale>2</AnimScale>
@@ -2663,6 +2689,7 @@
 		<BuffID>464</BuffID>
 		<Attack>false</Attack>
 		<Duration>8700</Duration>
+		<RangedOverride>FireBrandShot6</RangedOverride>
 		<BuffLoc>FeetBack</BuffLoc>
 		<GfxType>
 			<AnimScale>2</AnimScale>
@@ -2674,6 +2701,7 @@
 		<BuffID>465</BuffID>
 		<Attack>false</Attack>
 		<Duration>9200</Duration>
+		<RangedOverride>FlameAxeFireBrandShot8</RangedOverride>
 		<BuffLoc>FeetBack</BuffLoc>
 		<GfxType>
 			<AnimScale>2</AnimScale>
@@ -2940,27 +2968,24 @@
 		<BuffID>492</BuffID>
 		<Attack>false</Attack>
 		<Duration>0</Duration>
+		<RangedOverride>FireBrandShot1</RangedOverride>
 		<MeleeDamage>0.15</MeleeDamage>
-		<MagicDefense>-0.15</MagicDefense>
-		<MeleeDefense>-0.15</MeleeDefense>
 		<GfxType/>
 	</BuffType>
 	<BuffType BuffName="DragonSoulRank3">
 		<BuffID>493</BuffID>
 		<Attack>false</Attack>
 		<Duration>0</Duration>
+		<RangedOverride>FireBrandShot3</RangedOverride>
 		<MeleeDamage>0.2</MeleeDamage>
-		<MagicDefense>-0.15</MagicDefense>
-		<MeleeDefense>-0.15</MeleeDefense>
 		<GfxType/>
 	</BuffType>
 	<BuffType BuffName="DragonSoulRank8">
 		<BuffID>494</BuffID>
 		<Attack>false</Attack>
 		<Duration>0</Duration>
+		<RangedOverride>FlameAxeFireBrandShot8</RangedOverride>
 		<MeleeDamage>0.3</MeleeDamage>
-		<MagicDefense>-0.15</MagicDefense>
-		<MeleeDefense>-0.15</MeleeDefense>
 		<GfxType/>
 	</BuffType>
 	<BuffType BuffName="Berserker1">
