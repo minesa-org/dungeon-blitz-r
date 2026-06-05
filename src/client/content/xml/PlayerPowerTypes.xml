@@ -23734,18 +23734,18 @@
 		<PowerID>613</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>200</AoERadius>
+		<AoERadius>100,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.7</BaseDamageMult>
+		<BaseDamageMult>0,0.7</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<Description>Patlayip dusmanlari donduran usutucu bir muhafaza olusturur.</Description>
 		<IconName>a_PowerIcon_FrozenWard</IconName>
@@ -23771,18 +23771,18 @@
 		<PowerID>614</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>150</AoERadius>
+		<AoERadius>75,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.45</BaseDamageMult>
+		<BaseDamageMult>0,0.45</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari donduran usutucu bir muhafaza olusturur.</Description>
@@ -23810,18 +23810,18 @@
 		<PowerID>615</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>150</AoERadius>
+		<AoERadius>75,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.5</BaseDamageMult>
+		<BaseDamageMult>0,0.5</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari donduran usutucu bir muhafaza olusturur.</Description>
@@ -23849,18 +23849,18 @@
 		<PowerID>616</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>150</AoERadius>
+		<AoERadius>75,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.5</BaseDamageMult>
+		<BaseDamageMult>0,0.5</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari donduran usutucu bir muhafaza olusturur.</Description>
@@ -23888,18 +23888,18 @@
 		<PowerID>617</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>200</AoERadius>
+		<AoERadius>100,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.5</BaseDamageMult>
+		<BaseDamageMult>0,0.5</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari donduran usutucu bir muhafaza olusturur.</Description>
@@ -23927,18 +23927,18 @@
 		<PowerID>618</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>200</AoERadius>
+		<AoERadius>100,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.5</BaseDamageMult>
+		<BaseDamageMult>0,0.5</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500,Weakened,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500,Weakened,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan ve donduran usutucu bir muhafaza olusturur.</Description>
@@ -23966,18 +23966,18 @@
 		<PowerID>619</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>200</AoERadius>
+		<AoERadius>100,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.57</BaseDamageMult>
+		<BaseDamageMult>0,0.57</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500,Weakened,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500,Weakened,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan ve donduran usutucu bir muhafaza olusturur.</Description>
@@ -24005,18 +24005,18 @@
 		<PowerID>620</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>250</AoERadius>
+		<AoERadius>150,250</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.57</BaseDamageMult>
+		<BaseDamageMult>0,0.57</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500,Weakened,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500,Weakened,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan ve donduran usutucu bir muhafaza olusturur.</Description>
@@ -24044,18 +24044,18 @@
 		<PowerID>621</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>250</AoERadius>
+		<AoERadius>150,250</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.73</BaseDamageMult>
+		<BaseDamageMult>0,0.73</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500,Weakened,Chilblains,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500,Weakened,Chilblains,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan ve donduran usutucu bir muhafaza olusturur.</Description>
@@ -24083,18 +24083,18 @@
 		<PowerID>622</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>300</AoERadius>
+		<AoERadius>200,300</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.73</BaseDamageMult>
+		<BaseDamageMult>0,0.73</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500,Weakened,Chilblains,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500,Weakened,Chilblains,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan ve donduran usutucu bir muhafaza olusturur.</Description>
@@ -24122,18 +24122,18 @@
 		<PowerID>623</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
-		<AoERadius>300</AoERadius>
+		<AoERadius>200,300</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>600</CastTime>
+		<CastTime>0,600</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.73</BaseDamageMult>
+		<BaseDamageMult>0,0.73</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Chilled42,Freeze2500,Weakened,Frigid,Chilblains,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Last:Chilled42,Freeze2500,Weakened,Frigid,Chilblains,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan, donduran ve saldiri hizlarini azaltan usutucu bir muhafaza olusturur.</Description>
