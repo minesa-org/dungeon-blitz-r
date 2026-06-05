@@ -1918,17 +1918,6 @@
 		<Duration>100</Duration>
 		<GfxType/>
 	</BuffType>
-	<BuffType BuffName="PermafrostChilblains">
-		<BuffID>738</BuffID>
-		<Attack>true</Attack>
-		<Duration>2500</Duration>
-		<DoTDamage>0.5</DoTDamage>
-		<DoTTickLength>500</DoTTickLength>
-		<Effect>Chilblains</Effect>
-		<StackCount>1</StackCount>
-		<BuffIcon>a_StatusIcon_Chilblains</BuffIcon>
-		<GfxType/>
-	</BuffType>
 	<BuffType BuffName="ChilledGreater">
 		<BuffID>397</BuffID>
 		<Attack>true</Attack>
