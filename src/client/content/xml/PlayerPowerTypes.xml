@@ -23353,14 +23353,14 @@
 		<PowerID>603</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>400</Range>
-		<AoERadius>170</AoERadius>
+		<AoERadius>170,170</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>610</CastTime>
+		<CastTime>610,150</CastTime>
 		<RecoverTime>500</RecoverTime>
 		<ShakeTime>610</ShakeTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>30</ManaCost>
-		<BaseDamageMult>1.76</BaseDamageMult>
+		<BaseDamageMult>1.76,1.76</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>ice</DamageType>
 		<PowerGroup>FrigidComet</PowerGroup>
@@ -23391,14 +23391,14 @@
 		<PowerID>604</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>400</Range>
-		<AoERadius>170</AoERadius>
+		<AoERadius>170,170</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>610</CastTime>
+		<CastTime>610,150</CastTime>
 		<RecoverTime>500</RecoverTime>
 		<ShakeTime>610</ShakeTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>30</ManaCost>
-		<BaseDamageMult>1.97</BaseDamageMult>
+		<BaseDamageMult>1.97,1.97</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>ice</DamageType>
 		<PowerGroup>FrigidComet</PowerGroup>
@@ -23429,14 +23429,14 @@
 		<PowerID>605</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
-		<AoERadius>170</AoERadius>
+		<AoERadius>170,170</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>610</CastTime>
+		<CastTime>610,150</CastTime>
 		<RecoverTime>500</RecoverTime>
 		<ShakeTime>610</ShakeTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>30</ManaCost>
-		<BaseDamageMult>2.1</BaseDamageMult>
+		<BaseDamageMult>2.1,2.1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>ice</DamageType>
 		<PowerGroup>FrigidComet</PowerGroup>
@@ -23467,14 +23467,14 @@
 		<PowerID>606</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
-		<AoERadius>170</AoERadius>
+		<AoERadius>170,170</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>610</CastTime>
+		<CastTime>610,150</CastTime>
 		<RecoverTime>500</RecoverTime>
 		<ShakeTime>610</ShakeTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>30</ManaCost>
-		<BaseDamageMult>2.44</BaseDamageMult>
+		<BaseDamageMult>2.44,2.44</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>ice</DamageType>
 		<PowerGroup>FrigidComet</PowerGroup>
@@ -23505,14 +23505,14 @@
 		<PowerID>607</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>550</Range>
-		<AoERadius>170</AoERadius>
+		<AoERadius>170,170</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>610</CastTime>
+		<CastTime>610,150</CastTime>
 		<RecoverTime>500</RecoverTime>
 		<ShakeTime>610</ShakeTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>30</ManaCost>
-		<BaseDamageMult>2.44</BaseDamageMult>
+		<BaseDamageMult>2.44,2.44</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>ice</DamageType>
 		<PowerGroup>FrigidComet</PowerGroup>
@@ -23543,14 +23543,14 @@
 		<PowerID>608</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>700</Range>
-		<AoERadius>170</AoERadius>
+		<AoERadius>170,170</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>610</CastTime>
+		<CastTime>610,150</CastTime>
 		<RecoverTime>500</RecoverTime>
 		<ShakeTime>610</ShakeTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>30</ManaCost>
-		<BaseDamageMult>2.44</BaseDamageMult>
+		<BaseDamageMult>2.44,2.44</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>ice</DamageType>
 		<PowerGroup>FrigidComet</PowerGroup>
@@ -23581,14 +23581,14 @@
 		<PowerID>609</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>700</Range>
-		<AoERadius>170</AoERadius>
+		<AoERadius>170,170</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>610</CastTime>
+		<CastTime>610,150</CastTime>
 		<RecoverTime>500</RecoverTime>
 		<ShakeTime>610</ShakeTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>28</ManaCost>
-		<BaseDamageMult>2.5</BaseDamageMult>
+		<BaseDamageMult>2.5,2.5</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>ice</DamageType>
 		<PowerGroup>FrigidComet</PowerGroup>
@@ -23619,14 +23619,14 @@
 		<PowerID>610</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>700</Range>
-		<AoERadius>187</AoERadius>
+		<AoERadius>187,187</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>610</CastTime>
+		<CastTime>610,150</CastTime>
 		<RecoverTime>500</RecoverTime>
 		<ShakeTime>610</ShakeTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>28</ManaCost>
-		<BaseDamageMult>2.5</BaseDamageMult>
+		<BaseDamageMult>2.5,2.5</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>ice</DamageType>
 		<PowerGroup>FrigidComet</PowerGroup>
@@ -23657,14 +23657,14 @@
 		<PowerID>611</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>700</Range>
-		<AoERadius>187</AoERadius>
+		<AoERadius>187,187</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>610</CastTime>
+		<CastTime>610,150</CastTime>
 		<RecoverTime>500</RecoverTime>
 		<ShakeTime>610</ShakeTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>25</ManaCost>
-		<BaseDamageMult>2.6</BaseDamageMult>
+		<BaseDamageMult>2.6,2.6</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>ice</DamageType>
 		<PowerGroup>FrigidComet</PowerGroup>
@@ -23695,14 +23695,14 @@
 		<PowerID>612</PowerID>
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>700</Range>
-		<AoERadius>187</AoERadius>
+		<AoERadius>187,187</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>610</CastTime>
+		<CastTime>610,150</CastTime>
 		<RecoverTime>500</RecoverTime>
 		<ShakeTime>610</ShakeTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>25</ManaCost>
-		<BaseDamageMult>2.73</BaseDamageMult>
+		<BaseDamageMult>2.73,2.73</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>ice</DamageType>
 		<PowerGroup>FrigidComet</PowerGroup>
@@ -23773,9 +23773,9 @@
 		<Range>500</Range>
 		<AoERadius>75,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200</CastTime>
+		<CastTime>0,1650</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>1000</ReleaseTime>
+		<ReleaseTime>650</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.45</BaseDamageMult>
@@ -23812,9 +23812,9 @@
 		<Range>500</Range>
 		<AoERadius>75,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200</CastTime>
+		<CastTime>0,1650</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>1000</ReleaseTime>
+		<ReleaseTime>650</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.5</BaseDamageMult>
@@ -23851,9 +23851,9 @@
 		<Range>500</Range>
 		<AoERadius>75,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200</CastTime>
+		<CastTime>0,1650</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>800</ReleaseTime>
+		<ReleaseTime>650</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.5</BaseDamageMult>
@@ -23890,16 +23890,16 @@
 		<Range>500</Range>
 		<AoERadius>100,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200</CastTime>
+		<CastTime>0,1650</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>800</ReleaseTime>
+		<ReleaseTime>650</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.5</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Sequence:Chilled42,Freeze2500</AddTargetBuff>
+		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari donduran usutucu bir muhafaza olusturur.</Description>
@@ -23929,16 +23929,16 @@
 		<Range>500</Range>
 		<AoERadius>100,200,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200,0</CastTime>
+		<CastTime>0,1650,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>800</ReleaseTime>
+		<ReleaseTime>650</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.5</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened</AddTargetBuff>
+		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan ve donduran usutucu bir muhafaza olusturur.</Description>
@@ -23968,16 +23968,16 @@
 		<Range>500</Range>
 		<AoERadius>100,200,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200,0</CastTime>
+		<CastTime>0,1650,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>800</ReleaseTime>
+		<ReleaseTime>650</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.57</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened</AddTargetBuff>
+		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan ve donduran usutucu bir muhafaza olusturur.</Description>
@@ -24007,16 +24007,16 @@
 		<Range>500</Range>
 		<AoERadius>150,250,250</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200,0</CastTime>
+		<CastTime>0,1650,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>800</ReleaseTime>
+		<ReleaseTime>650</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.57</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened</AddTargetBuff>
+		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan ve donduran usutucu bir muhafaza olusturur.</Description>
@@ -24046,16 +24046,16 @@
 		<Range>500</Range>
 		<AoERadius>150,250,250</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200,0</CastTime>
+		<CastTime>0,1650,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>800</ReleaseTime>
+		<ReleaseTime>650</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.73</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened</AddTargetBuff>
+		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened,Chilblains,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan ve donduran usutucu bir muhafaza olusturur.</Description>
@@ -24085,16 +24085,16 @@
 		<Range>500</Range>
 		<AoERadius>200,300,300</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200,0</CastTime>
+		<CastTime>0,1650,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>800</ReleaseTime>
+		<ReleaseTime>650</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.73</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened</AddTargetBuff>
+		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened,Chilblains,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan ve donduran usutucu bir muhafaza olusturur.</Description>
@@ -24124,16 +24124,16 @@
 		<Range>500</Range>
 		<AoERadius>200,300,300,300</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200,0,0</CastTime>
+		<CastTime>0,1650,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>800</ReleaseTime>
+		<ReleaseTime>650</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.73</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrozenWard</PowerGroup>
-		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened,Frigid</AddTargetBuff>
+		<AddTargetBuff>Sequence:Chilled42,Freeze2500,Weakened,Frigid,Chilblains,Chilblains</AddTargetBuff>
 		<DisplayName>Donmus Muhur</DisplayName>
 		<BasePowerName>FrozenWard</BasePowerName>
 		<Description>Patlayip dusmanlari zayiflatan, donduran ve saldiri hizlarini azaltan usutucu bir muhafaza olusturur.</Description>
@@ -24209,7 +24209,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostBlast</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Weakened</AddTargetBuff>
 		<DisplayName>Kutup Patlamasi</DisplayName>
 		<BasePowerName>FrostBlast</BasePowerName>
 		<Description>Emit bir cone Chilling buz.</Description>
@@ -24248,7 +24248,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostBlast</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Weakened</AddTargetBuff>
 		<DisplayName>Kutup Patlamasi</DisplayName>
 		<BasePowerName>FrostBlast</BasePowerName>
 		<Description>Emit bir cone Chilling buz.</Description>
@@ -24287,7 +24287,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostBlast</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Weakened</AddTargetBuff>
 		<DisplayName>Kutup Patlamasi</DisplayName>
 		<BasePowerName>FrostBlast</BasePowerName>
 		<Description>Emit bir cone Chilling buz.</Description>
@@ -24326,7 +24326,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostBlast</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Weakened</AddTargetBuff>
 		<DisplayName>Kutup Patlamasi</DisplayName>
 		<BasePowerName>FrostBlast</BasePowerName>
 		<Description>Emit bir cone Chilling buz.</Description>
@@ -24365,7 +24365,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostBlast</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Weakened</AddTargetBuff>
 		<DisplayName>Kutup Patlamasi</DisplayName>
 		<BasePowerName>FrostBlast</BasePowerName>
 		<Description>Usutucu bir buz konisi yayar. Buz zayiflatmasi altindaki hedefler Soguk Yaralari kazanir</Description>
@@ -24404,7 +24404,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostBlast</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Weakened</AddTargetBuff>
 		<DisplayName>Kutup Patlamasi</DisplayName>
 		<BasePowerName>FrostBlast</BasePowerName>
 		<Description>Usutucu bir buz konisi yayar. Buz zayiflatmasi altindaki hedefler Soguk Yaralari kazanir</Description>
@@ -24443,7 +24443,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostBlast</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Weakened</AddTargetBuff>
 		<DisplayName>Kutup Patlamasi</DisplayName>
 		<BasePowerName>FrostBlast</BasePowerName>
 		<Description>Usutucu bir buz konisi yayar. Buz zayiflatmasi altindaki hedefler Soguk Yaralari kazanir</Description>
@@ -24482,7 +24482,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostBlast</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Weakened</AddTargetBuff>
 		<DisplayName>Kutup Patlamasi</DisplayName>
 		<BasePowerName>FrostBlast</BasePowerName>
 		<Description>Usutucu bir buz konisi yayar. Buz zayiflatmasi altindaki hedefler Soguk Yaralari kazanir</Description>
@@ -24521,7 +24521,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostBlast</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Weakened</AddTargetBuff>
 		<DisplayName>Kutup Patlamasi</DisplayName>
 		<BasePowerName>FrostBlast</BasePowerName>
 		<Description>Usutucu bir buz konisi yayar. Buz zayiflatmasi altindaki hedefler Soguk Yaralari kazanir</Description>
@@ -24560,7 +24560,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>FrostBlast</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Weakened</AddTargetBuff>
 		<DisplayName>Kutup Patlamasi</DisplayName>
 		<BasePowerName>FrostBlast</BasePowerName>
 		<Description>Usutucu bir buz konisi yayar. Buz zayiflatmasi altindaki hedefler Soguk Yaralari kazanir</Description>
@@ -25867,15 +25867,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150,150,150</CastTime>
+		<CastTime>364,105,105,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>0.85</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<Description>Yolundaki dusmanlari kokleyen bir buz dalgasi salar.</Description>
 		<IconName>a_PowerIcon_Cascade</IconName>
@@ -25903,15 +25903,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150</CastTime>
+		<CastTime>364,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>0.5</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<BasePowerName>Avalanche</BasePowerName>
 		<Description>Yolundaki dusmanlari kokleyen bir buz dalgasi salar.</Description>
@@ -25941,15 +25941,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150</CastTime>
+		<CastTime>364,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>0.6</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<BasePowerName>Avalanche</BasePowerName>
 		<Description>Yolundaki dusmanlari kokleyen bir buz dalgasi salar.</Description>
@@ -25979,15 +25979,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150,150,150</CastTime>
+		<CastTime>364,105,105,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>0.6</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<BasePowerName>Avalanche</BasePowerName>
 		<Description>Yolundaki dusmanlari kokleyen bir buz dalgasi salar.</Description>
@@ -26017,15 +26017,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150,150,150</CastTime>
+		<CastTime>364,105,105,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>0.75</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<BasePowerName>Avalanche</BasePowerName>
 		<Description>Yolundaki dusmanlari kokleyen bir buz dalgasi salar.</Description>
@@ -26055,15 +26055,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150,150,150</CastTime>
+		<CastTime>364,105,105,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>0.75</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1,Weakened</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,Weakened,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<BasePowerName>Avalanche</BasePowerName>
 		<Description>Yolundaki dusmanlari kokleyen ve zayiflatan bir buz dalgasi salar.</Description>
@@ -26093,15 +26093,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150,150,150</CastTime>
+		<CastTime>364,105,105,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>0.84</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1,Weakened</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,Weakened,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<BasePowerName>Avalanche</BasePowerName>
 		<Description>Yolundaki dusmanlari kokleyen ve zayiflatan bir buz dalgasi salar.</Description>
@@ -26131,15 +26131,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150,150,150,150,160</CastTime>
+		<CastTime>364,105,105,105,105,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>0.84</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1,Weakened</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,Weakened,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<BasePowerName>Avalanche</BasePowerName>
 		<Description>Yolundaki dusmanlari kokleyen ve zayiflatan bir buz dalgasi salar.</Description>
@@ -26169,15 +26169,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150,150,150,150,160</CastTime>
+		<CastTime>364,105,105,105,105,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>0.95</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1,Weakened</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,Weakened,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<BasePowerName>Avalanche</BasePowerName>
 		<Description>Yolundaki dusmanlari kokleyen ve zayiflatan bir buz dalgasi salar.</Description>
@@ -26207,15 +26207,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150,150,150,150,160</CastTime>
+		<CastTime>364,105,105,105,105,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>1.06</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1,Weakened</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,Weakened,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<BasePowerName>Avalanche</BasePowerName>
 		<Description>Yolundaki dusmanlari kokleyen ve zayiflatan bir buz dalgasi salar.</Description>
@@ -26245,15 +26245,15 @@
 		<Range>550</Range>
 		<AoERadius>50</AoERadius>
 		<CastAnim>CastStorm</CastAnim>
-		<CastTime>520,150,150,150,150,150,150,150,160</CastTime>
+		<CastTime>364,105,105,105,105,105,105,105,105</CastTime>
 		<RecoverTime>200</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>40</ManaCost>
+		<ManaCost>35</ManaCost>
 		<BaseDamageMult>1.06</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>Avalanche</PowerGroup>
-		<AddTargetBuff>NovaRank1,Weakened,Weakened</AddTargetBuff>
+		<AddTargetBuff>NovaRank1,Weakened,Weakened,FreezeSpire10,Chilled42,Frigid</AddTargetBuff>
 		<DisplayName>Buz Kulesi</DisplayName>
 		<BasePowerName>Avalanche</BasePowerName>
 		<Description>Yolundaki dusmanlari kokleyen ve zayiflatan bir buz dalgasi salar.</Description>
@@ -27041,7 +27041,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27074,7 +27074,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27107,7 +27107,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27140,7 +27140,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27173,7 +27173,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27206,7 +27206,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27239,7 +27239,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27272,7 +27272,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27305,7 +27305,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27338,7 +27338,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42</AddTargetBuff>
+		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>

@@ -53681,6 +53681,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>5000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
@@ -54142,6 +54143,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>3000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
@@ -54171,6 +54173,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>3000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
@@ -54200,6 +54203,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>3000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
@@ -54229,6 +54233,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>4000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
@@ -54258,6 +54263,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>4000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
@@ -54287,6 +54293,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>4000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
@@ -54316,6 +54323,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>4000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
@@ -54345,6 +54353,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>5000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
@@ -54374,6 +54383,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>5000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
@@ -54403,6 +54413,7 @@
 		<Width>150</Width>
 		<Height>290</Height>
 		<Behavior>PolarSentry</Behavior>
+		<Duration>5000</Duration>
 		<SoundDeathRattle>SND_NPC_DevourerBig_Death</SoundDeathRattle>
 		<SoundHitGrunt>SND_NPC_DevourerBig_Grunt_01|SND_NPC_DevourerBig_Grunt_02|SND_NPC_DevourerBig_Grunt_03</SoundHitGrunt>
 		<SoundActivate>SND_NPC_DevourerBig_Activate_01|SND_NPC_DevourerBig_Activate_02|SND_NPC_DevourerBig_Activate_03</SoundActivate>
