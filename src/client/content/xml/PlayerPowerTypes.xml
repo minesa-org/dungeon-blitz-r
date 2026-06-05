@@ -23736,9 +23736,9 @@
 		<Range>500</Range>
 		<AoERadius>100,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,2200</CastTime>
+		<CastTime>0,1100</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>800</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.7</BaseDamageMult>
@@ -23773,9 +23773,9 @@
 		<Range>500</Range>
 		<AoERadius>75,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,1650</CastTime>
+		<CastTime>0,1100</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>650</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.45</BaseDamageMult>
@@ -23812,9 +23812,9 @@
 		<Range>500</Range>
 		<AoERadius>75,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,1650</CastTime>
+		<CastTime>0,1100</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>650</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.5</BaseDamageMult>
@@ -23851,9 +23851,9 @@
 		<Range>500</Range>
 		<AoERadius>75,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,1650</CastTime>
+		<CastTime>0,1100</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>650</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.5</BaseDamageMult>
@@ -23890,9 +23890,9 @@
 		<Range>500</Range>
 		<AoERadius>100,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,1650</CastTime>
+		<CastTime>0,1100</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>650</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.5</BaseDamageMult>
@@ -23929,9 +23929,9 @@
 		<Range>500</Range>
 		<AoERadius>100,200,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,1650,0</CastTime>
+		<CastTime>0,1100,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>650</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.5</BaseDamageMult>
@@ -23968,9 +23968,9 @@
 		<Range>500</Range>
 		<AoERadius>100,200,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,1650,0</CastTime>
+		<CastTime>0,1100,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>650</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.57</BaseDamageMult>
@@ -24007,9 +24007,9 @@
 		<Range>500</Range>
 		<AoERadius>150,250,250</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,1650,0</CastTime>
+		<CastTime>0,1100,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>650</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.57</BaseDamageMult>
@@ -24046,9 +24046,9 @@
 		<Range>500</Range>
 		<AoERadius>150,250,250</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,1650,0</CastTime>
+		<CastTime>0,1100,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>650</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.73</BaseDamageMult>
@@ -24085,9 +24085,9 @@
 		<Range>500</Range>
 		<AoERadius>200,300,300</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,1650,0</CastTime>
+		<CastTime>0,1100,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>650</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.73</BaseDamageMult>
@@ -24124,9 +24124,9 @@
 		<Range>500</Range>
 		<AoERadius>200,300,300,300</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,1650,0,0</CastTime>
+		<CastTime>0,1100,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
-		<ReleaseTime>650</ReleaseTime>
+		<ReleaseTime>450</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
 		<BaseDamageMult>0,0.73</BaseDamageMult>
@@ -27031,13 +27031,13 @@
 	<Power PowerName="PermafrostCloneExplode1">
 		<PowerID>738</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200</AoERadius>
-		<CastTime>2000</CastTime>
+		<AoERadius>200,200,200,200,200</AoERadius>
+		<CastTime>2000,250,250,250,250</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1</BaseDamageMult>
+		<BaseDamageMult>1,1,1,1,1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
@@ -27064,13 +27064,13 @@
 	<Power PowerName="PermafrostCloneExplode2">
 		<PowerID>739</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200</AoERadius>
-		<CastTime>2000</CastTime>
+		<AoERadius>200,200,200,200,200</AoERadius>
+		<CastTime>2000,250,250,250,250</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1</BaseDamageMult>
+		<BaseDamageMult>1,1,1,1,1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
@@ -27097,13 +27097,13 @@
 	<Power PowerName="PermafrostCloneExplode3">
 		<PowerID>740</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200</AoERadius>
-		<CastTime>2000</CastTime>
+		<AoERadius>200,200,200,200,200</AoERadius>
+		<CastTime>2000,250,250,250,250</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.1</BaseDamageMult>
+		<BaseDamageMult>1.1,1.1,1.1,1.1,1.1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
@@ -27130,13 +27130,13 @@
 	<Power PowerName="PermafrostCloneExplode4">
 		<PowerID>741</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200</AoERadius>
-		<CastTime>2000</CastTime>
+		<AoERadius>200,200,200,200,200</AoERadius>
+		<CastTime>2000,250,250,250,250</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.1</BaseDamageMult>
+		<BaseDamageMult>1.1,1.1,1.1,1.1,1.1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
@@ -27163,13 +27163,13 @@
 	<Power PowerName="PermafrostCloneExplode5">
 		<PowerID>742</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200</AoERadius>
-		<CastTime>2000</CastTime>
+		<AoERadius>200,200,200,200,200</AoERadius>
+		<CastTime>2000,250,250,250,250</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.1</BaseDamageMult>
+		<BaseDamageMult>1.1,1.1,1.1,1.1,1.1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
@@ -27196,13 +27196,13 @@
 	<Power PowerName="PermafrostCloneExplode6">
 		<PowerID>743</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200</AoERadius>
-		<CastTime>2000</CastTime>
+		<AoERadius>200,200,200,200,200</AoERadius>
+		<CastTime>2000,250,250,250,250</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.21</BaseDamageMult>
+		<BaseDamageMult>1.21,1.21,1.21,1.21,1.21</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
@@ -27229,13 +27229,13 @@
 	<Power PowerName="PermafrostCloneExplode7">
 		<PowerID>744</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200</AoERadius>
-		<CastTime>2000</CastTime>
+		<AoERadius>200,200,200,200,200</AoERadius>
+		<CastTime>2000,250,250,250,250</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.21</BaseDamageMult>
+		<BaseDamageMult>1.21,1.21,1.21,1.21,1.21</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
@@ -27262,13 +27262,13 @@
 	<Power PowerName="PermafrostCloneExplode8">
 		<PowerID>745</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200</AoERadius>
-		<CastTime>2000</CastTime>
+		<AoERadius>200,200,200,200,200</AoERadius>
+		<CastTime>2000,250,250,250,250</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.33</BaseDamageMult>
+		<BaseDamageMult>1.33,1.33,1.33,1.33,1.33</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
@@ -27295,13 +27295,13 @@
 	<Power PowerName="PermafrostCloneExplode9">
 		<PowerID>746</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200</AoERadius>
-		<CastTime>2000</CastTime>
+		<AoERadius>200,200,200,200,200</AoERadius>
+		<CastTime>2000,250,250,250,250</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.46</BaseDamageMult>
+		<BaseDamageMult>1.46,1.46,1.46,1.46,1.46</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
@@ -27328,13 +27328,13 @@
 	<Power PowerName="PermafrostCloneExplode10">
 		<PowerID>747</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200</AoERadius>
-		<CastTime>2000</CastTime>
+		<AoERadius>200,200,200,200,200</AoERadius>
+		<CastTime>2000,250,250,250,250</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.63</BaseDamageMult>
+		<BaseDamageMult>1.63,1.63,1.63,1.63,1.63</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
@@ -27658,7 +27658,7 @@
 		<TargetMethod>Melee</TargetMethod>
 		<Range>300</Range>
 		<CastAnim>Melee2</CastAnim>
-		<CastTime>458,125</CastTime>
+		<CastTime>458</CastTime>
 		<RecoverTime>875</RecoverTime>
 		<ManaCost>0</ManaCost>
 		<BaseDamageMult>0.8</BaseDamageMult>
@@ -27675,7 +27675,7 @@
 		<TargetMethod>Melee</TargetMethod>
 		<Range>300</Range>
 		<CastAnim>Melee2</CastAnim>
-		<CastTime>458,125</CastTime>
+		<CastTime>458</CastTime>
 		<RecoverTime>875</RecoverTime>
 		<ManaCost>0</ManaCost>
 		<BaseDamageMult>0.8</BaseDamageMult>
@@ -27693,7 +27693,7 @@
 		<TargetMethod>Melee</TargetMethod>
 		<Range>300</Range>
 		<CastAnim>Melee2</CastAnim>
-		<CastTime>458,125</CastTime>
+		<CastTime>458</CastTime>
 		<RecoverTime>875</RecoverTime>
 		<ManaCost>0</ManaCost>
 		<BaseDamageMult>0.8</BaseDamageMult>
@@ -27711,7 +27711,7 @@
 		<TargetMethod>Melee</TargetMethod>
 		<Range>300</Range>
 		<CastAnim>Melee2</CastAnim>
-		<CastTime>458,125</CastTime>
+		<CastTime>458</CastTime>
 		<RecoverTime>875</RecoverTime>
 		<ManaCost>0</ManaCost>
 		<BaseDamageMult>0.8</BaseDamageMult>
