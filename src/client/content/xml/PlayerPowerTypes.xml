@@ -23736,7 +23736,7 @@
 		<Range>500</Range>
 		<AoERadius>100,200,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0</CastTime>
+		<CastTime>0,1400,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -23773,7 +23773,7 @@
 		<Range>500</Range>
 		<AoERadius>75,150,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0</CastTime>
+		<CastTime>0,1400,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -23812,7 +23812,7 @@
 		<Range>500</Range>
 		<AoERadius>75,150,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0</CastTime>
+		<CastTime>0,1400,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -23851,7 +23851,7 @@
 		<Range>500</Range>
 		<AoERadius>75,150,150</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0</CastTime>
+		<CastTime>0,1400,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -23890,7 +23890,7 @@
 		<Range>500</Range>
 		<AoERadius>100,200,200,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0,0</CastTime>
+		<CastTime>0,1400,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -23929,7 +23929,7 @@
 		<Range>500</Range>
 		<AoERadius>100,200,200,200,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0,0,0</CastTime>
+		<CastTime>0,1400,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -23968,7 +23968,7 @@
 		<Range>500</Range>
 		<AoERadius>100,200,200,200,200</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0,0,0</CastTime>
+		<CastTime>0,1400,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -24007,7 +24007,7 @@
 		<Range>500</Range>
 		<AoERadius>150,250,250,250,250</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0,0,0</CastTime>
+		<CastTime>0,1400,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -24046,7 +24046,7 @@
 		<Range>500</Range>
 		<AoERadius>150,250,250,250,250,250</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0,0,0,0</CastTime>
+		<CastTime>0,1400,0,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -24085,7 +24085,7 @@
 		<Range>500</Range>
 		<AoERadius>200,300,300,300,300,300</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0,0,0,0</CastTime>
+		<CastTime>0,1400,0,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -24124,7 +24124,7 @@
 		<Range>500</Range>
 		<AoERadius>200,300,300,300,300,300,300</AoERadius>
 		<CastAnim>SkyPower2</CastAnim>
-		<CastTime>0,600,0,0,0,0,0</CastTime>
+		<CastTime>0,1400,0,0,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
@@ -27031,17 +27031,17 @@
 	<Power PowerName="PermafrostCloneExplode1">
 		<PowerID>738</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200,200,200,200,200,200</AoERadius>
-		<CastTime>2000,1000,1000,1000,1000,1000</CastTime>
+		<AoERadius>200</AoERadius>
+		<CastTime>2000</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1,0.5,0.5,0.5,0.5,0.5</BaseDamageMult>
+		<BaseDamageMult>1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Chilled42,PermafrostChilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27064,17 +27064,17 @@
 	<Power PowerName="PermafrostCloneExplode2">
 		<PowerID>739</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200,200,200,200,200,200</AoERadius>
-		<CastTime>2000,1000,1000,1000,1000,1000</CastTime>
+		<AoERadius>200</AoERadius>
+		<CastTime>2000</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1,0.5,0.5,0.5,0.5,0.5</BaseDamageMult>
+		<BaseDamageMult>1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Chilled42,PermafrostChilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27097,17 +27097,17 @@
 	<Power PowerName="PermafrostCloneExplode3">
 		<PowerID>740</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200,200,200,200,200,200</AoERadius>
-		<CastTime>2000,1000,1000,1000,1000,1000</CastTime>
+		<AoERadius>200</AoERadius>
+		<CastTime>2000</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.1,0.5,0.5,0.5,0.5,0.5</BaseDamageMult>
+		<BaseDamageMult>1.1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Chilled42,PermafrostChilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27130,17 +27130,17 @@
 	<Power PowerName="PermafrostCloneExplode4">
 		<PowerID>741</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200,200,200,200,200,200</AoERadius>
-		<CastTime>2000,1000,1000,1000,1000,1000</CastTime>
+		<AoERadius>200</AoERadius>
+		<CastTime>2000</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.1,0.5,0.5,0.5,0.5,0.5</BaseDamageMult>
+		<BaseDamageMult>1.1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Chilled42,PermafrostChilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27163,17 +27163,17 @@
 	<Power PowerName="PermafrostCloneExplode5">
 		<PowerID>742</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200,200,200,200,200,200</AoERadius>
-		<CastTime>2000,1000,1000,1000,1000,1000</CastTime>
+		<AoERadius>200</AoERadius>
+		<CastTime>2000</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.1,0.5,0.5,0.5,0.5,0.5</BaseDamageMult>
+		<BaseDamageMult>1.1</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Chilled42,PermafrostChilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27196,17 +27196,17 @@
 	<Power PowerName="PermafrostCloneExplode6">
 		<PowerID>743</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200,200,200,200,200,200</AoERadius>
-		<CastTime>2000,1000,1000,1000,1000,1000</CastTime>
+		<AoERadius>200</AoERadius>
+		<CastTime>2000</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.21,0.5,0.5,0.5,0.5,0.5</BaseDamageMult>
+		<BaseDamageMult>1.21</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Chilled42,PermafrostChilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27229,17 +27229,17 @@
 	<Power PowerName="PermafrostCloneExplode7">
 		<PowerID>744</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200,200,200,200,200,200</AoERadius>
-		<CastTime>2000,1000,1000,1000,1000,1000</CastTime>
+		<AoERadius>200</AoERadius>
+		<CastTime>2000</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.21,0.5,0.5,0.5,0.5,0.5</BaseDamageMult>
+		<BaseDamageMult>1.21</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Chilled42,PermafrostChilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27262,17 +27262,17 @@
 	<Power PowerName="PermafrostCloneExplode8">
 		<PowerID>745</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200,200,200,200,200,200</AoERadius>
-		<CastTime>2000,1000,1000,1000,1000,1000</CastTime>
+		<AoERadius>200</AoERadius>
+		<CastTime>2000</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.33,0.5,0.5,0.5,0.5,0.5</BaseDamageMult>
+		<BaseDamageMult>1.33</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Chilled42,PermafrostChilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27295,17 +27295,17 @@
 	<Power PowerName="PermafrostCloneExplode9">
 		<PowerID>746</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200,200,200,200,200,200</AoERadius>
-		<CastTime>2000,1000,1000,1000,1000,1000</CastTime>
+		<AoERadius>200</AoERadius>
+		<CastTime>2000</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.46,0.5,0.5,0.5,0.5,0.5</BaseDamageMult>
+		<BaseDamageMult>1.46</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Chilled42,PermafrostChilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27328,17 +27328,17 @@
 	<Power PowerName="PermafrostCloneExplode10">
 		<PowerID>747</PowerID>
 		<TargetMethod>PBAoE</TargetMethod>
-		<AoERadius>200,200,200,200,200,200</AoERadius>
-		<CastTime>2000,1000,1000,1000,1000,1000</CastTime>
+		<AoERadius>200</AoERadius>
+		<CastTime>2000</CastTime>
 		<RecoverTime>0</RecoverTime>
 		<ReleaseTime>500</ReleaseTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>0</ManaCost>
-		<BaseDamageMult>1.63,0.5,0.5,0.5,0.5,0.5</BaseDamageMult>
+		<BaseDamageMult>1.63</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,Chilblains</AddTargetBuff>
+		<AddTargetBuff>Chilled42,PermafrostChilblains</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>Kalici don klon kombo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
