@@ -574,7 +574,7 @@ function patchPowerModBlock(modName: string, block: string, stats: PatchStats): 
     ColdHeart: "Reduces the target's healing effects.@Healing Reduction:, 10%, 20%, 30%, 40%, 50%",
     IgniteCrit: "Gain a Poison Damage bonus against Cursed targets.@Poison Damage Bonus:, 2%, 4%, 6%, 8%, 10%",
     PoisonDmg: "Increases Poison Damage@Poison Damage:, +7%, +14%, +21%, +28%, +35%",
-    CurseCrit: "Gain a Critical Chance bonus vs. Cursed Targets@Critical Chance Bonus:, 2%, 4%, 6%, 8%, 10%",
+    CurseCrit: "Gain a Critical Chance bonus vs. Cursed Targets@Critical Chance Bonus:, 0.3%, 0.6%, 0.9%, 1.2%, 1.5%",
   };
 
   const rankMatch = modName.match(/^(BurnDmg|ChilblainsDmg|DryIce|IceCasket|ColdHeart|IgniteCrit|PoisonDmg|CurseCrit)([1-5])$/);

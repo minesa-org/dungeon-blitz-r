@@ -468,7 +468,7 @@
 		<ModName>CritChance1</ModName>
 		<ModID>46</ModID>
 		<DisplayName>Steadiness</DisplayName>
-		<Description>Increases Critical Chance@Critical Chance:, +2%, +4%, +6%, +8%, +10%</Description>
+		<Description>Increases Critical Chance@Critical Chance:, +0.3%, +0.6%, +0.9%, +1.2%, +1.5%</Description>
 		<ModType>Stat</ModType>
 		<IconName>a_Signet_Critical01</IconName>
 		<StatProperty>ProcChance</StatProperty>
@@ -963,7 +963,7 @@
 		<ModName>Opportunist1</ModName>
 		<ModID>96</ModID>
 		<DisplayName>Opportunist</DisplayName>
-		<Description>Gain a Critical Chance bonus while in Stealth@Critical Chance Bonus:, 1%, 2%, 4%, 7%, 10%</Description>
+		<Description>Gain a Critical Chance bonus while in Stealth@Critical Chance Bonus:, 0.15%, 0.3%, 0.6%, 1.05%, 1.5%</Description>
 		<ModType>Buff</ModType>
 		<BuffName>ShadowArmor1,ShadowArmor2,ShadowArmor3,ShadowArmor4,ShadowArmor5,ShadowArmor6,ShadowArmor7,ShadowArmor8,ShadowArmor9,ShadowArmor10</BuffName>
 		<BuffProperty>ProcChance</BuffProperty>
@@ -1592,7 +1592,7 @@
 		<ModName>Dominate1</ModName>
 		<ModID>166</ModID>
 		<DisplayName>Dominate</DisplayName>
-		<Description>Gain a Critical Chance bonus vs. Staggered and Stunned targets@Critical Chance Bonus:, 1%, 2%, 3%, 5%, 8%</Description>
+		<Description>Gain a Critical Chance bonus vs. Staggered and Stunned targets@Critical Chance Bonus:, 0.15%, 0.3%, 0.45%, 0.75%, 1.2%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.01</SelfValue>
 		<IconName>a_Signet_Critical05</IconName>
@@ -2918,7 +2918,7 @@
 		<ModName>CurseCrit1</ModName>
 		<ModID>306</ModID>
 		<DisplayName>Crippling Curse</DisplayName>
-		<Description>Gain a Critical Chance bonus vs. Cursed Targets@Critical Chance Bonus:, 2%, 4%, 6%, 8%, 10%</Description>
+		<Description>Gain a Critical Chance bonus vs. Cursed Targets@Critical Chance Bonus:, 0.3%, 0.6%, 0.9%, 1.2%, 1.5%</Description>
 		<ModType>WTF</ModType>
 		<SelfValue>.02</SelfValue>
 		<IconName>a_Signet_CurseCrit</IconName>
