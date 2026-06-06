@@ -4,11 +4,13 @@ import { ensureBackup, parseSwz, SwzPatchError, writeSwz } from "./swzPatchUtils
 
 const FROZEN_WARD_POWER_RE = /^FrozenWard(?:\d+)?$/;
 export const FROZEN_WARD_CAST_ANIM = "RaiseArms2";
+export const FROZEN_WARD_IMPACT_CAST_TIME_MS = 1450;
 
 export type FrozenWardCastAnimPatchStats = {
   powerBlocks: number;
   castAnimsUpdated: number;
-  castTimesChanged: number;
+  castTimesUpdated: number;
+  castTimesUnexpected: number;
   freezeBuffsChanged: number;
 };
 
@@ -71,7 +73,8 @@ export function patchFrozenWardCastAnim(xml: string): { xml: string; stats: Froz
   const stats: FrozenWardCastAnimPatchStats = {
     powerBlocks: 0,
     castAnimsUpdated: 0,
-    castTimesChanged: 0,
+    castTimesUpdated: 0,
+    castTimesUnexpected: 0,
     freezeBuffsChanged: 0,
   };
 
@@ -83,17 +86,24 @@ export function patchFrozenWardCastAnim(xml: string): { xml: string; stats: Froz
       }
 
       stats.powerBlocks += 1;
-      if (!/<CastTime>0,1900(?:,0)*<\/CastTime>/.test(powerBlock)) {
-        stats.castTimesChanged += 1;
+      if (!/<CastTime>0,(?:1900|1450)(?:,0)*<\/CastTime>/.test(powerBlock)) {
+        stats.castTimesUnexpected += 1;
       }
       if (!powerBlock.includes(`<AddTargetBuff>${expectedFreezeBuff(powerName)}</AddTargetBuff>`)) {
         stats.freezeBuffsChanged += 1;
       }
 
-      return powerBlock.replace(/<CastAnim>SkyPower2<\/CastAnim>/, () => {
-        stats.castAnimsUpdated += 1;
-        return `<CastAnim>${FROZEN_WARD_CAST_ANIM}</CastAnim>`;
+      let patchedBlock = powerBlock.replace(/<CastAnim>SkyPower2<\/CastAnim>/, () => {
+          stats.castAnimsUpdated += 1;
+          return `<CastAnim>${FROZEN_WARD_CAST_ANIM}</CastAnim>`;
+        });
+
+      patchedBlock = patchedBlock.replace(/<CastTime>0,1900((?:,0)*)<\/CastTime>/, (_match, trailingZeros: string) => {
+        stats.castTimesUpdated += 1;
+        return `<CastTime>0,${FROZEN_WARD_IMPACT_CAST_TIME_MS}${trailingZeros}</CastTime>`;
       });
+
+      return patchedBlock;
     },
   );
 
@@ -103,7 +113,8 @@ export function patchFrozenWardCastAnim(xml: string): { xml: string; stats: Froz
 export function hasFrozenWardCastAnimOnlyPatch(xml: string): boolean {
   let matchingBlocks = 0;
   let totalBlocks = 0;
-  let castTimesChanged = 0;
+  let castTimesMatching = 0;
+  let castTimesUnexpected = 0;
   let freezeBuffsChanged = 0;
 
   xml.replace(/<Power PowerName="([^"]+)">[\s\S]*?<\/Power>/g, (powerBlock: string, powerName: string) => {
@@ -115,8 +126,10 @@ export function hasFrozenWardCastAnimOnlyPatch(xml: string): boolean {
     if (powerBlock.includes(`<CastAnim>${FROZEN_WARD_CAST_ANIM}</CastAnim>`)) {
       matchingBlocks += 1;
     }
-    if (!/<CastTime>0,1900(?:,0)*<\/CastTime>/.test(powerBlock)) {
-      castTimesChanged += 1;
+    if (new RegExp(`<CastTime>0,${FROZEN_WARD_IMPACT_CAST_TIME_MS}(?:,0)*<\\/CastTime>`).test(powerBlock)) {
+      castTimesMatching += 1;
+    } else {
+      castTimesUnexpected += 1;
     }
     if (!powerBlock.includes(`<AddTargetBuff>${expectedFreezeBuff(powerName)}</AddTargetBuff>`)) {
       freezeBuffsChanged += 1;
@@ -124,7 +137,7 @@ export function hasFrozenWardCastAnimOnlyPatch(xml: string): boolean {
     return powerBlock;
   });
 
-  return totalBlocks === 11 && matchingBlocks === 11 && castTimesChanged === 0 && freezeBuffsChanged === 0;
+  return totalBlocks === 11 && matchingBlocks === 11 && castTimesMatching === 11 && castTimesUnexpected === 0 && freezeBuffsChanged === 0;
 }
 
 function patchSourceXml(xmlPath: string, verifyOnly: boolean): FrozenWardCastAnimPatchStats {

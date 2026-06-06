@@ -29,7 +29,7 @@ function assertFrozenWardAnimOnly(xml: string, label: string): void {
   assert.equal(
     hasFrozenWardCastAnimOnlyPatch(xml),
     true,
-    `${label} should only shorten Frozen Ward's cast animation without changing freeze timing or buffs`,
+    `${label} should use the shortened Frozen Ward cast animation and align freeze timing with the visual impact`,
   );
   assert.equal(
     patchFrozenWardCastAnim(xml).stats.castAnimsUpdated,
