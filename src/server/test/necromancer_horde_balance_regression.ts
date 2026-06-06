@@ -33,6 +33,10 @@ function tagValue(block: string, tag: string): string | null {
   return block.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`))?.[1] ?? null;
 }
 
+function commaValues(block: string, tag: string): string[] {
+  return (tagValue(block, tag) ?? "").split(",").map((part) => part.trim()).filter(Boolean);
+}
+
 function assertNecromancerHordeBalance(powerXml: string, buffXml: string, modXml: string, entXml: string | null, label: string): void {
   assert.equal(tagValue(powerBlock(powerXml, "ProcLifethirstPets4"), "AddTargetBuff"), "MinionHoT1,MinionMaster3", `${label}: Lifethirst rank 4 pet proc`);
   assert.equal(tagValue(powerBlock(powerXml, "ProcLifethirstPets7"), "AddTargetBuff"), "MinionHoT2,MinionMaster4", `${label}: Lifethirst rank 7 pet proc`);
@@ -54,6 +58,14 @@ function assertNecromancerHordeBalance(powerXml: string, buffXml: string, modXml
   }
   assert.equal(tagValue(buffBlock(buffXml, "MinionMaster5"), "Duration"), "5000", `${label}: MinionMaster duration`);
   assert.equal(tagValue(buffBlock(buffXml, "MinionMaster5"), "MeleeDamage"), "0.05", `${label}: MinionMaster melee damage`);
+  assert.equal(tagValue(buffBlock(buffXml, "MinionMaster5"), "MagicDamage"), "0.05", `${label}: MinionMaster expertise stat`);
+  const minionMasterMod = modBlock(modXml, "MinionMaster5");
+  assert.equal(tagValue(minionMasterMod, "ModType"), "Power", `${label}: MinionMaster modifier type`);
+  assert.equal(tagValue(minionMasterMod, "PowerProperty"), "AddSelfBuff", `${label}: MinionMaster modifier property`);
+  assert.equal(tagValue(minionMasterMod, "PowerValue"), "Append:MinionMaster5", `${label}: MinionMaster modifier value`);
+  for (const powerName of ["SummonGhoul1", "SummonGhoul10", "SummonRangedGhoul1", "SummonRangedGhoul10", "InfestationSpawn1", "InfestationSpawn10", "InfestationSpawnKing"]) {
+    assert(commaValues(minionMasterMod, "PowerName").includes(powerName), `${label}: MinionMaster applies to ${powerName}`);
+  }
   assert.equal(tagValue(modBlock(modXml, "CurseCrit5"), "SelfValue"), ".1", `${label}: Crippling Curse max crit`);
   assert.equal(tagValue(modBlock(modXml, "PoisonDmg5"), "BuffValue"), ".35", `${label}: Concentrated Venom max scaling`);
 
