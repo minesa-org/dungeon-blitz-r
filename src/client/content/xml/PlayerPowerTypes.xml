@@ -28690,7 +28690,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled,ConflagrationSlow</AddTargetBuff>
 		<AddSelfBuff>FireArmor</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<Description>Dusmanlarin arasindan atilir ve ardinda kavuran bir ates izi birakir.</Description>
@@ -28721,7 +28721,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled,ConflagrationSlow</AddTargetBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
 		<Description>Dusmanlarin arasindan atilir, onlari kavurur ve ardinda ates izi birakir.</Description>
@@ -28753,7 +28753,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled,ConflagrationSlow</AddTargetBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
 		<Description>Dusmanlarin arasindan atilir, onlari kavurur ve ardinda ates izi birakir.</Description>
@@ -28785,7 +28785,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled,ConflagrationSlow</AddTargetBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
 		<Description>Dusmanlarin arasindan atilir, onlari kavurur ve ardinda ates izi birakir.</Description>
@@ -28817,7 +28817,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled,ConflagrationSlow</AddTargetBuff>
 		<AddSelfBuff>FireArmor30</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -28850,7 +28850,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled,ConflagrationSlow</AddTargetBuff>
 		<AddSelfBuff>FireArmor30</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -28883,7 +28883,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Crippled,ConflagrationSlow</AddTargetBuff>
 		<AddSelfBuff>FireArmor30</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -28916,7 +28916,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Burned,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Crippled,ConflagrationSlow</AddTargetBuff>
 		<AddSelfBuff>FireArmor30</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -28949,7 +28949,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Burned,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Crippled,ConflagrationSlow</AddTargetBuff>
 		<AddSelfBuff>FireArmor</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -28982,7 +28982,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Burned,Burned,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Burned,Crippled,ConflagrationSlow</AddTargetBuff>
 		<AddSelfBuff>FireArmor</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -29015,7 +29015,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FlameStrike</PowerGroup>
-		<AddTargetBuff>Scorched,Burned,Burned,Crippled</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Burned,Crippled,ConflagrationSlow</AddTargetBuff>
 		<AddSelfBuff>FireArmor</AddSelfBuff>
 		<DisplayName>Buyuk Yangin</DisplayName>
 		<BasePowerName>FlameStrike</BasePowerName>
@@ -29414,7 +29414,7 @@
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
 		<CastGfx/>
@@ -29450,6 +29450,7 @@
 	<Power PowerName="DragonSoulShot">
 		<PowerID>819</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>90</AoERadius>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -29459,6 +29460,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
 		<IconName>a_PowerIcon_FireBall</IconName>
@@ -29500,7 +29502,7 @@
 		<SpawnDuration>11000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<UpgradeDescription>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29529,7 +29531,7 @@
 		<SpawnDuration>12000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<UpgradeDescription>Sure. artar.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29558,7 +29560,7 @@
 		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<UpgradeDescription>Aktifken saldiri artisi %20 olur.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29587,7 +29589,7 @@
 		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<UpgradeDescription>Mana maliyeti 5 azalir.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29616,7 +29618,7 @@
 		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<UpgradeDescription>Mana maliyeti 2 azalir. Atislar add kavurma</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29645,7 +29647,7 @@
 		<SpawnDuration>13500</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<UpgradeDescription>Sure artar. Hasar #olddmg# artar.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29674,7 +29676,7 @@
 		<SpawnDuration>13500</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<UpgradeDescription>Mana maliyeti 3 azalir. Hasar #olddmg# artar.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29703,7 +29705,7 @@
 		<SpawnDuration>14500</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<UpgradeDescription>Aktifken saldiri artisi %30 olur.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29732,7 +29734,7 @@
 		<SpawnDuration>15000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<UpgradeDescription>Sure. artar.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29761,7 +29763,7 @@
 		<SpawnDuration>15000</SpawnDuration>
 		<DisplayName>Ejderha Ruhu</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.</Description>
+		<Description>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.</Description>
 		<UpgradeDescription>Hasar #olddmg# artar.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29773,6 +29775,7 @@
 	<Power PowerName="DragonSoulShot1">
 		<PowerID>830</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>90</AoERadius>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -29782,6 +29785,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29807,6 +29811,7 @@
 	<Power PowerName="DragonSoulShot2">
 		<PowerID>831</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>90</AoERadius>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -29816,6 +29821,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29841,6 +29847,7 @@
 	<Power PowerName="DragonSoulShot3">
 		<PowerID>832</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>105</AoERadius>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -29850,6 +29857,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29875,6 +29883,7 @@
 	<Power PowerName="DragonSoulShot4">
 		<PowerID>833</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>105</AoERadius>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -29884,6 +29893,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29909,6 +29919,7 @@
 	<Power PowerName="DragonSoulShot5">
 		<PowerID>834</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>105</AoERadius>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -29944,6 +29955,7 @@
 	<Power PowerName="DragonSoulShot6">
 		<PowerID>835</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>120</AoERadius>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -29953,7 +29965,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
-		<AddTargetBuff>Scorched</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29979,6 +29991,7 @@
 	<Power PowerName="DragonSoulShot7">
 		<PowerID>836</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<AoERadius>120</AoERadius>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -29988,7 +30001,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
-		<AddTargetBuff>Scorched</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -30014,6 +30027,7 @@
 	<Power PowerName="DragonSoulShot8">
 		<PowerID>837</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<Range>800</Range>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -30049,6 +30063,7 @@
 	<Power PowerName="DragonSoulShot9">
 		<PowerID>838</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<Range>800</Range>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -30084,6 +30099,7 @@
 	<Power PowerName="DragonSoulShot10">
 		<PowerID>839</PowerID>
 		<TargetMethod>ProjectileCombo</TargetMethod>
+		<Range>800</Range>
 		<CastAnim>Shoot</CastAnim>
 		<CastTime>0</CastTime>
 		<RecoverTime>500</RecoverTime>
@@ -30459,7 +30475,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>40</ManaCost>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
@@ -30516,7 +30532,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>20</ManaCost>
 		<ManaRequirement>50</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30548,7 +30564,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>20</ManaCost>
 		<ManaRequirement>50</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30580,7 +30596,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>15</ManaCost>
 		<ManaRequirement>45</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30612,7 +30628,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>15</ManaCost>
 		<ManaRequirement>45</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30644,7 +30660,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>15</ManaCost>
 		<ManaRequirement>45</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30676,7 +30692,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>15</ManaCost>
 		<ManaRequirement>45</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30708,7 +30724,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>10</ManaCost>
 		<ManaRequirement>40</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30740,7 +30756,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>10</ManaCost>
 		<ManaRequirement>40</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30772,7 +30788,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>10</ManaCost>
 		<ManaRequirement>40</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>
@@ -30804,7 +30820,7 @@
 		<CastTime>250</CastTime>
 		<RecoverTime>300</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
-		<ManaCost>0</ManaCost>
+		<ManaCost>10</ManaCost>
 		<ManaRequirement>40</ManaRequirement>
 		<FromMasterMana>TRUE</FromMasterMana>
 		<BaseDamageMult>0</BaseDamageMult>

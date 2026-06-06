@@ -87,6 +87,8 @@ export class CombatHandler {
     private static readonly MAX_RELAY_POWER_HIT_DAMAGE = 4_000_000;
     private static readonly FIREBRAND_PIERCING_SHOT_POWER_ID = 6146;
     private static readonly FIREBRAND_PIERCING_SECONDARY_SHOT_POWER_ID = 6147;
+    private static readonly PIERCING_FIRE_SHOT_POWER_IDS = new Set([6146, 837, 838, 839]);
+    private static readonly PIERCING_FIRE_SECONDARY_SHOT_POWER_IDS = new Set([6147]);
     private static readonly FIREBRAND_PIERCING_SHOT_RANGE = 800;
     private static readonly FIREBRAND_PIERCING_SHOT_MIN_HIT_RADIUS = 35;
     private static readonly FIREBRAND_PIERCING_SECONDARY_DAMAGE_MULT = 0.75;
@@ -1525,19 +1527,34 @@ export class CombatHandler {
         return targets.map((target) => target.entity);
     }
 
-    private static getFireBrandPiercingCastKey(levelScope: string, sourceId: number): string {
-        return `${levelScope}:${sourceId}:${CombatHandler.FIREBRAND_PIERCING_SHOT_POWER_ID}`;
+    private static getFireBrandPiercingCastKey(levelScope: string, sourceId: number, powerId: number): string {
+        return `${levelScope}:${sourceId}:${powerId}`;
     }
 
-    private static markFireBrandPiercingCastDamage(levelScope: string, sourceId: number): void {
+    private static getFireBrandPiercingDedupePowerId(powerId: number): number {
+        if (powerId === CombatHandler.FIREBRAND_PIERCING_SECONDARY_SHOT_POWER_ID) {
+            return CombatHandler.FIREBRAND_PIERCING_SHOT_POWER_ID;
+        }
+        return powerId;
+    }
+
+    private static markFireBrandPiercingCastDamage(levelScope: string, sourceId: number, powerId: number): void {
         CombatHandler.recentFireBrandPiercingCasts.set(
-            CombatHandler.getFireBrandPiercingCastKey(levelScope, sourceId),
+            CombatHandler.getFireBrandPiercingCastKey(
+                levelScope,
+                sourceId,
+                CombatHandler.getFireBrandPiercingDedupePowerId(powerId)
+            ),
             Date.now()
         );
     }
 
-    private static didRecentlyApplyFireBrandPiercingCastDamage(levelScope: string, sourceId: number): boolean {
-        const key = CombatHandler.getFireBrandPiercingCastKey(levelScope, sourceId);
+    private static didRecentlyApplyFireBrandPiercingCastDamage(levelScope: string, sourceId: number, powerId: number): boolean {
+        const key = CombatHandler.getFireBrandPiercingCastKey(
+            levelScope,
+            sourceId,
+            CombatHandler.getFireBrandPiercingDedupePowerId(powerId)
+        );
         const appliedAt = Number(CombatHandler.recentFireBrandPiercingCasts.get(key) ?? 0);
         if (appliedAt <= 0) {
             return false;
@@ -1597,7 +1614,7 @@ export class CombatHandler {
         sourceEntity: any
     ): void {
         if (
-            info.powerId !== CombatHandler.FIREBRAND_PIERCING_SHOT_POWER_ID ||
+            !CombatHandler.PIERCING_FIRE_SHOT_POWER_IDS.has(info.powerId) ||
             !sourceSession ||
             !sourceEntity
         ) {
@@ -1618,7 +1635,7 @@ export class CombatHandler {
         }
 
         const baseDamage = CombatHandler.resolveFireBrandPiercingShotDamage(sourceSession, sourceEntity);
-        CombatHandler.markFireBrandPiercingCastDamage(levelScope, info.sourceId);
+        CombatHandler.markFireBrandPiercingCastDamage(levelScope, info.sourceId, info.powerId);
         for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
             const targetEntity = targets[targetIndex];
             const targetId = Number(targetEntity?.id ?? 0);
@@ -2227,10 +2244,10 @@ export class CombatHandler {
 
         if (
             (
-                info.powerId === CombatHandler.FIREBRAND_PIERCING_SHOT_POWER_ID ||
-                info.powerId === CombatHandler.FIREBRAND_PIERCING_SECONDARY_SHOT_POWER_ID
+                CombatHandler.PIERCING_FIRE_SHOT_POWER_IDS.has(info.powerId) ||
+                CombatHandler.PIERCING_FIRE_SECONDARY_SHOT_POWER_IDS.has(info.powerId)
             ) &&
-            CombatHandler.didRecentlyApplyFireBrandPiercingCastDamage(levelScope, sourceId)
+            CombatHandler.didRecentlyApplyFireBrandPiercingCastDamage(levelScope, sourceId, info.powerId)
         ) {
             return;
         }

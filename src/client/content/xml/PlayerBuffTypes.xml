@@ -1071,7 +1071,6 @@
 		<BuffID>304</BuffID>
 		<Attack>false</Attack>
 		<Duration>0</Duration>
-		<RangedOverride>FireBrandShot1</RangedOverride>
 		<MeleeDamage>0.3</MeleeDamage>
 		<GfxType/>
 	</BuffType>
@@ -2173,10 +2172,19 @@
 			<AnimClass>a_StunEffect</AnimClass>
 		</GfxType>
 	</BuffType>
+	<BuffType BuffName="ConflagrationSlow">
+		<BuffID>738</BuffID>
+		<Attack>true</Attack>
+		<Duration>3000</Duration>
+		<SpeedChange>-0.1</SpeedChange>
+		<StackCount>1</StackCount>
+		<BuffIcon>a_StatusIcon_SpeedDown</BuffIcon>
+		<GfxType/>
+	</BuffType>
 	<BuffType BuffName="MoltenFistStun1000">
 		<BuffID>739</BuffID>
 		<Attack>true</Attack>
-		<Duration>1000</Duration>
+		<Duration>2000</Duration>
 		<Effect>Stunned</Effect>
 		<BuffIcon>a_StatusIcon_Immobile</BuffIcon>
 		<GfxType>
@@ -2188,7 +2196,7 @@
 	<BuffType BuffName="MoltenFistStun2000">
 		<BuffID>740</BuffID>
 		<Attack>true</Attack>
-		<Duration>2000</Duration>
+		<Duration>4000</Duration>
 		<Effect>Stunned</Effect>
 		<BuffIcon>a_StatusIcon_Immobile</BuffIcon>
 		<GfxType>
@@ -2968,7 +2976,6 @@
 		<BuffID>492</BuffID>
 		<Attack>false</Attack>
 		<Duration>0</Duration>
-		<RangedOverride>FireBrandShot1</RangedOverride>
 		<MeleeDamage>0.15</MeleeDamage>
 		<GfxType/>
 	</BuffType>
@@ -2976,7 +2983,6 @@
 		<BuffID>493</BuffID>
 		<Attack>false</Attack>
 		<Duration>0</Duration>
-		<RangedOverride>FireBrandShot3</RangedOverride>
 		<MeleeDamage>0.2</MeleeDamage>
 		<GfxType/>
 	</BuffType>
@@ -2984,7 +2990,6 @@
 		<BuffID>494</BuffID>
 		<Attack>false</Attack>
 		<Duration>0</Duration>
-		<RangedOverride>FlameAxeFireBrandShot8</RangedOverride>
 		<MeleeDamage>0.3</MeleeDamage>
 		<GfxType/>
 	</BuffType>

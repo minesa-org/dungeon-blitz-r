@@ -31,6 +31,19 @@ const BUFF_XML = path.join(XML_DIR, 'PlayerBuffTypes.xml');
 const POWER_MOD_XML = path.join(XML_DIR, 'PowerModTypes.xml');
 
 const PYROMANIA_EXPIRE_COOLDOWN_MS = '10000';
+const PYROMANIA_MANA_COST_BY_RANK = new Map<number, string>([
+    [0, '40'],
+    [1, '20'],
+    [2, '20'],
+    [3, '15'],
+    [4, '15'],
+    [5, '15'],
+    [6, '15'],
+    [7, '10'],
+    [8, '10'],
+    [9, '10'],
+    [10, '10']
+]);
 
 const FIREBRAND_SHOTS = [
     { name: 'FireBrandShot1', powerID: 6143, aoeRadius: 90, baseDamageMult: '1', addTargetBuff: 'Scorched' },
@@ -39,6 +52,12 @@ const FIREBRAND_SHOTS = [
     { name: 'FlameAxeFireBrandShot8', powerID: 6146, range: 800, baseDamageMult: '1', addTargetBuff: 'Scorched' },
     { name: 'FlameAxeFireBrandShot8Pierce', powerID: 6147, range: 800, baseDamageMult: '0.75', addTargetBuff: 'Scorched' }
 ];
+
+type DragonSoulShotEffect = {
+    aoeRadius?: string;
+    range?: string;
+    addTargetBuff: string;
+};
 
 const DRAGON_SOUL_SPAWN_DURATION_BY_RANK = new Map<number, string>([
     [0, '13000'],
@@ -59,11 +78,7 @@ const FIREBRAND_OVERRIDE_BY_BUFF = new Map<string, string>([
     ['FireBrandRank1', 'FireBrandShot1'],
     ['FireBrandRank3', 'FireBrandShot3'],
     ['FireBrandRank6', 'FireBrandShot6'],
-    ['FireBrandRank8', 'FlameAxeFireBrandShot8'],
-    ['DragonSoulEffect', 'FireBrandShot1'],
-    ['DragonSoulRank1', 'FireBrandShot1'],
-    ['DragonSoulRank3', 'FireBrandShot3'],
-    ['DragonSoulRank8', 'FlameAxeFireBrandShot8']
+    ['FireBrandRank8', 'FlameAxeFireBrandShot8']
 ]);
 
 const ACCELERANT_VALUES_BY_RANK = ['.02', '.04', '.06', '.09', '.15'];
@@ -134,6 +149,34 @@ function addTargetBuff(block: string, ...buffs: string[]): { block: string; chan
         return replaceTag(block, 'AddTargetBuff', addBuffs(match[1], ...buffs));
     }
     return upsertTagAfter(block, 'AddTargetBuff', buffs.join(','), 'PowerGroup');
+}
+
+function dragonSoulShotEffectForRank(rank: number): DragonSoulShotEffect {
+    if (rank >= 8) {
+        return { range: '800', addTargetBuff: 'Scorched' };
+    }
+    if (rank >= 6) {
+        return { aoeRadius: '120', addTargetBuff: 'Scorched,Burned' };
+    }
+    if (rank >= 3) {
+        return { aoeRadius: '105', addTargetBuff: 'Scorched' };
+    }
+    return { aoeRadius: '90', addTargetBuff: 'Scorched' };
+}
+
+function patchDragonSoulShotBlock(block: string, rank: number, stats: PatchStats): string {
+    const effect = dragonSoulShotEffectForRank(rank);
+    let next = block;
+    stats.powerBlocks += 1;
+    next = applyPatch(next, stats, removeTag(next, effect.range ? 'AoERadius' : 'Range'));
+    if (effect.range) {
+        next = applyPatch(next, stats, upsertTagAfter(next, 'Range', effect.range, 'TargetMethod'));
+    }
+    if (effect.aoeRadius) {
+        next = applyPatch(next, stats, upsertTagAfter(next, 'AoERadius', effect.aoeRadius, 'TargetMethod'));
+    }
+    next = applyPatch(next, stats, addTargetBuff(next, ...effect.addTargetBuff.split(',')));
+    return next;
 }
 
 function buildFireBrandShotPower(def: (typeof FIREBRAND_SHOTS)[number]): string {
@@ -209,7 +252,7 @@ function patchPowerBlock(powerName: string, block: string, stats: PatchStats): s
         next = applyPatch(next, stats, addTargetBuff(next, 'Weakened'));
     } else if (/^FlameStrike(?:\d+)?$/.test(powerName)) {
         stats.powerBlocks += 1;
-        next = applyPatch(next, stats, addTargetBuff(next, 'Crippled'));
+        next = applyPatch(next, stats, addTargetBuff(next, 'ConflagrationSlow'));
     } else if (/^MoltenFist(?:\d+)?$/.test(powerName)) {
         stats.powerBlocks += 1;
         const rank = rankOf(powerName, 'MoltenFist');
@@ -217,7 +260,8 @@ function patchPowerBlock(powerName: string, block: string, stats: PatchStats): s
         next = applyPatch(next, stats, addTargetBuff(next, 'Crippled', stunBuff));
     } else if (/^Pyromania(?:\d+)?$/.test(powerName)) {
         stats.powerBlocks += 1;
-        next = applyPatch(next, stats, replaceTag(next, 'ManaCost', '0'));
+        const rank = rankOf(powerName, 'Pyromania');
+        next = applyPatch(next, stats, replaceTag(next, 'ManaCost', PYROMANIA_MANA_COST_BY_RANK.get(rank) ?? '10'));
         next = applyPatch(next, stats, replaceTag(next, 'CoolDownTime', '0'));
     } else if (powerName === 'EndPyromania') {
         stats.powerBlocks += 1;
@@ -235,7 +279,7 @@ function patchPowerBlock(powerName: string, block: string, stats: PatchStats): s
             replaceTag(
                 next,
                 'Description',
-                'Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.'
+                'Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.'
             )
         );
         if (next.includes('<UpgradeDescription>Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ama savunman azalir.</UpgradeDescription>')) {
@@ -245,10 +289,12 @@ function patchPowerBlock(powerName: string, block: string, stats: PatchStats): s
                 replaceTag(
                     next,
                     'UpgradeDescription',
-                    'Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar ve Alev Damgasi menzilli etkilerini taklit eder.'
+                    'Hedeflerine ates eden bir Alev Ruhu cagirir. Sure boyunca hasarin artar.'
                 )
             );
         }
+    } else if (/^DragonSoulShot(?:\d+)?$/.test(powerName)) {
+        next = patchDragonSoulShotBlock(next, rankOf(powerName, 'DragonSoulShot'), stats);
     }
     return next;
 }
@@ -263,12 +309,21 @@ export function patchPlayerPowers(xml: string): PatchResult {
     return { xml: patchedXml, stats };
 }
 
-function buildMoltenFistStunBuffs(): string {
+function buildFlameseerUtilityBuffs(): string {
     return [
+        '\t<BuffType BuffName="ConflagrationSlow">',
+        '\t\t<BuffID>738</BuffID>',
+        '\t\t<Attack>true</Attack>',
+        '\t\t<Duration>3000</Duration>',
+        '\t\t<SpeedChange>-0.1</SpeedChange>',
+        '\t\t<StackCount>1</StackCount>',
+        '\t\t<BuffIcon>a_StatusIcon_SpeedDown</BuffIcon>',
+        '\t\t<GfxType/>',
+        '\t</BuffType>',
         '\t<BuffType BuffName="MoltenFistStun1000">',
         '\t\t<BuffID>739</BuffID>',
         '\t\t<Attack>true</Attack>',
-        '\t\t<Duration>1000</Duration>',
+        '\t\t<Duration>2000</Duration>',
         '\t\t<Effect>Stunned</Effect>',
         '\t\t<BuffIcon>a_StatusIcon_Immobile</BuffIcon>',
         '\t\t<GfxType>',
@@ -280,7 +335,7 @@ function buildMoltenFistStunBuffs(): string {
         '\t<BuffType BuffName="MoltenFistStun2000">',
         '\t\t<BuffID>740</BuffID>',
         '\t\t<Attack>true</Attack>',
-        '\t\t<Duration>2000</Duration>',
+        '\t\t<Duration>4000</Duration>',
         '\t\t<Effect>Stunned</Effect>',
         '\t\t<BuffIcon>a_StatusIcon_Immobile</BuffIcon>',
         '\t\t<GfxType>',
@@ -292,15 +347,15 @@ function buildMoltenFistStunBuffs(): string {
     ].join('\r\n');
 }
 
-function ensureMoltenFistStunBuffs(xml: string, stats: PatchStats): string {
+function ensureFlameseerUtilityBuffs(xml: string, stats: PatchStats): string {
     const cleaned = xml.replace(
-        /\r?\n\t<BuffType BuffName="MoltenFistStun(?:1000|2000)">[\s\S]*?\r?\n\t<\/BuffType>/g,
+        /\r?\n\t<BuffType BuffName="(?:ConflagrationSlow|MoltenFistStun(?:1000|2000))">[\s\S]*?\r?\n\t<\/BuffType>/g,
         ''
     );
-    const stunBuffs = buildMoltenFistStunBuffs();
+    const utilityBuffs = buildFlameseerUtilityBuffs();
     const patched = cleaned.replace(
         /(\r?\n\t<BuffType BuffName="Dazed">[\s\S]*?\r?\n\t<\/BuffType>)/,
-        `$1\r\n${stunBuffs}`
+        `$1\r\n${utilityBuffs}`
     );
     if (patched !== xml) {
         stats.changes += 1;
@@ -319,6 +374,7 @@ function patchBuffBlock(buffName: string, block: string, stats: PatchStats): str
         if (!rangedOverride) {
             stats.buffBlocks += 1;
         }
+        next = applyPatch(next, stats, removeTag(next, 'RangedOverride'));
         next = applyPatch(next, stats, removeTag(next, 'MagicDefense'));
         next = applyPatch(next, stats, removeTag(next, 'MeleeDefense'));
     }
@@ -327,8 +383,8 @@ function patchBuffBlock(buffName: string, block: string, stats: PatchStats): str
 
 export function patchPlayerBuffs(xml: string): PatchResult {
     const stats = cloneStats();
-    const withStunBuffs = ensureMoltenFistStunBuffs(xml, stats);
-    const patchedXml = withStunBuffs.replace(
+    const withUtilityBuffs = ensureFlameseerUtilityBuffs(xml, stats);
+    const patchedXml = withUtilityBuffs.replace(
         /<BuffType BuffName="([^"]+)">[\s\S]*?<\/BuffType>/g,
         (buffBlock, buffName) => patchBuffBlock(buffName, buffBlock, stats)
     );
@@ -440,7 +496,7 @@ export function verifyFlameseerImprovements(powerXml: string, buffXml: string, p
 
     for (const suffix of ['', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']) {
         assertIncludes(buffList(powerBlock(powerXml, `IridescentBurst${suffix}`), 'AddTargetBuff'), 'Weakened', `IridescentBurst${suffix}`);
-        assertIncludes(buffList(powerBlock(powerXml, `FlameStrike${suffix}`), 'AddTargetBuff'), 'Crippled', `FlameStrike${suffix}`);
+        assertIncludes(buffList(powerBlock(powerXml, `FlameStrike${suffix}`), 'AddTargetBuff'), 'ConflagrationSlow', `FlameStrike${suffix}`);
         const moltenBuffs = buffList(powerBlock(powerXml, `MoltenFist${suffix}`), 'AddTargetBuff');
         assertIncludes(moltenBuffs, 'Crippled', `MoltenFist${suffix}`);
         assertIncludes(moltenBuffs, Number(suffix || 0) >= 6 ? 'MoltenFistStun2000' : 'MoltenFistStun1000', `MoltenFist${suffix}`);
@@ -452,8 +508,10 @@ export function verifyFlameseerImprovements(powerXml: string, buffXml: string, p
 
     for (const suffix of ['', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']) {
         const pyroBlock = powerBlock(powerXml, `Pyromania${suffix}`);
-        if (tagValue(pyroBlock, 'ManaCost') !== '0') {
-            throw new Error(`Pyromania${suffix} ManaCost must be 0`);
+        const rank = Number(suffix || 0);
+        const expectedManaCost = PYROMANIA_MANA_COST_BY_RANK.get(rank) ?? '10';
+        if (tagValue(pyroBlock, 'ManaCost') !== expectedManaCost) {
+            throw new Error(`Pyromania${suffix} ManaCost must be ${expectedManaCost}`);
         }
         if (tagValue(pyroBlock, 'CoolDownTime') !== '0') {
             throw new Error(`Pyromania${suffix} should not use activation cooldown`);
@@ -470,6 +528,26 @@ export function verifyFlameseerImprovements(powerXml: string, buffXml: string, p
         }
     }
 
+    for (let rank = 0; rank <= 10; rank += 1) {
+        const powerName = rank === 0 ? 'DragonSoulShot' : `DragonSoulShot${rank}`;
+        const block = powerBlock(powerXml, powerName);
+        const effect = dragonSoulShotEffectForRank(rank);
+        if (effect.range) {
+            if (tagValue(block, 'Range') !== effect.range) {
+                throw new Error(`${powerName} Range must be ${effect.range}`);
+            }
+            if (tagValue(block, 'AoERadius')) {
+                throw new Error(`${powerName} should use piercing range instead of splash radius`);
+            }
+        }
+        if (effect.aoeRadius && tagValue(block, 'AoERadius') !== effect.aoeRadius) {
+            throw new Error(`${powerName} AoERadius must be ${effect.aoeRadius}`);
+        }
+        for (const buff of effect.addTargetBuff.split(',')) {
+            assertIncludes(buffList(block, 'AddTargetBuff'), buff, powerName);
+        }
+    }
+
     for (const [buffName, overrideName] of FIREBRAND_OVERRIDE_BY_BUFF.entries()) {
         const block = buffBlock(buffXml, buffName);
         if (tagValue(block, 'RangedOverride') !== overrideName) {
@@ -482,13 +560,19 @@ export function verifyFlameseerImprovements(powerXml: string, buffXml: string, p
         if (block.includes('<MagicDefense>') || block.includes('<MeleeDefense>')) {
             throw new Error(`${buffName} must not reduce defenses`);
         }
+        if (block.includes('<RangedOverride>')) {
+            throw new Error(`${buffName} must not override player ranged attacks`);
+        }
     }
 
-    if (tagValue(buffBlock(buffXml, 'MoltenFistStun1000'), 'Duration') !== '1000') {
-        throw new Error('MoltenFistStun1000 duration must be 1000');
+    if (tagValue(buffBlock(buffXml, 'ConflagrationSlow'), 'SpeedChange') !== '-0.1') {
+        throw new Error('ConflagrationSlow SpeedChange must be -0.1');
     }
-    if (tagValue(buffBlock(buffXml, 'MoltenFistStun2000'), 'Duration') !== '2000') {
-        throw new Error('MoltenFistStun2000 duration must be 2000');
+    if (tagValue(buffBlock(buffXml, 'MoltenFistStun1000'), 'Duration') !== '2000') {
+        throw new Error('MoltenFistStun1000 duration must be 2000');
+    }
+    if (tagValue(buffBlock(buffXml, 'MoltenFistStun2000'), 'Duration') !== '4000') {
+        throw new Error('MoltenFistStun2000 duration must be 4000');
     }
 
     for (let rank = 1; rank <= 5; rank += 1) {
