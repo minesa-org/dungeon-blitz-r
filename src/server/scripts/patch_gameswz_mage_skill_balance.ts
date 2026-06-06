@@ -339,7 +339,7 @@ function patchPowerBlock(powerName: string, block: string, stats: PatchStats): s
     next = apply(next, stats, addTargetBuff(next, "FreezeSpire10", "Chilled42", "Frigid"));
   } else if (/^PermafrostCloneExplode(?:\d+)?$/.test(powerName)) {
     stats.powerBlocks += 1;
-    next = apply(next, stats, addTargetBuff(next, "Chilblains"));
+    next = apply(next, stats, removeTargetBuff(next, "Chilblains"));
   } else if (/^IridescentBurst(?:\d+)?$/.test(powerName)) {
     stats.powerBlocks += 1;
     next = apply(next, stats, addTargetBuff(next, "Weakened"));
