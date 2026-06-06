@@ -53561,7 +53561,7 @@
 		<Height>70</Height>
 		<Flying>True</Flying>
 		<Behavior>DragonSoul</Behavior>
-		<Duration>5000</Duration>
+		<Duration>15000</Duration>
 		<SoundDeathRattle>NPC_Minion_Wisp_Fire_Death_01|NPC_Minion_Wisp_Fire_Death_02</SoundDeathRattle>
 		<SoundHitGrunt>NPC_Minion_Wisp_Fire_Grunt_01|NPC_Minion_Wisp_Fire_Grunt_02|NPC_Minion_Wisp_Fire_Grunt_03</SoundHitGrunt>
 		<SoundActivate>NPC_Minion_Wisp_Fire_Activate_01|NPC_Minion_Wisp_Fire_Activate_02|NPC_Minion_Wisp_Fire_Activate_03</SoundActivate>

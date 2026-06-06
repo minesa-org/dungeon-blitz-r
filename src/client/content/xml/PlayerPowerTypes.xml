@@ -29409,12 +29409,12 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulEffect</AddSelfBuff>
+		<AddSelfBuff>DragonSoulEffect,FireBrandRank8</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>10000</SpawnDuration>
+		<SpawnDuration>15000</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
 		<CastGfx/>
@@ -29494,14 +29494,14 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank1</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank1,FireBrandRank1</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>8000</SpawnDuration>
+		<SpawnDuration>11000</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
-		<UpgradeDescription>Summon a Spirit of Flame that shoots at your targets. Gain increased Damage but reduced Defense for the duration.</UpgradeDescription>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
+		<UpgradeDescription>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
 		<CastGfx/>
@@ -29523,13 +29523,13 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank1</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank1,FireBrandRank1</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9000</SpawnDuration>
+		<SpawnDuration>12000</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
 		<UpgradeDescription>Increased duration.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29552,13 +29552,13 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank3,FireBrandRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9000</SpawnDuration>
+		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
 		<UpgradeDescription>Increased to 20% Attack Boost while active.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29581,13 +29581,13 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank3,FireBrandRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9000</SpawnDuration>
+		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
 		<UpgradeDescription>-5 Mana Cost.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29610,13 +29610,13 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank3,FireBrandRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9000</SpawnDuration>
+		<SpawnDuration>13000</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
 		<UpgradeDescription>-2 Mana Cost. Shots add Scorch.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29639,13 +29639,13 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank3,FireBrandRank6</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9500</SpawnDuration>
+		<SpawnDuration>13500</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
 		<UpgradeDescription>Increased duration. Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29668,13 +29668,13 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank3,FireBrandRank6</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9500</SpawnDuration>
+		<SpawnDuration>13500</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
 		<UpgradeDescription>-3 Mana Cost. Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29697,13 +29697,13 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank8</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank8,FireBrandRank8</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>9500</SpawnDuration>
+		<SpawnDuration>14500</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
 		<UpgradeDescription>Increased to 30% Attack Boost while active.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29726,13 +29726,13 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank8</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank8,FireBrandRank8</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>10000</SpawnDuration>
+		<SpawnDuration>15000</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
 		<UpgradeDescription>Increased duration.</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>
@@ -29755,13 +29755,13 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank8</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank8,FireBrandRank8</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
-		<SpawnDuration>10000</SpawnDuration>
+		<SpawnDuration>15000</SpawnDuration>
 		<DisplayName>Draconic Soul</DisplayName>
 		<BasePowerName>SummonDragonSoul</BasePowerName>
-		<Description>Summon a Spirit of Flame that shoots at your targets. Gain increased damage but reduced Defense for the duration.</Description>
+		<Description>Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.</Description>
 		<UpgradeDescription>Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_DragonSoul</IconName>
 		<CastSound>CHR_FlameSeer_DraconicSoul_Summon</CastSound>

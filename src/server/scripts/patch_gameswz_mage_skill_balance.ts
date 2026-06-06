@@ -41,6 +41,9 @@ const FIREBRAND_SHOTS: FireBrandShotDef[] = [
   { name: "FlameAxeFireBrandShot8", powerID: 6146, targetMethod: "ProjectileCombo", range: 800, baseDamageMult: "1", addTargetBuff: "Scorched" },
 ];
 
+const DRAGON_SOUL_DESCRIPTION =
+  "Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.";
+
 function cloneStats(): PatchStats {
   return { ...EMPTY_STATS };
 }
@@ -244,6 +247,45 @@ function fireBrandOverrideForBuff(buffName: string): string | null {
   return null;
 }
 
+function fireBrandBuffForDragonSoulRank(rank: number): string {
+  if (rank >= 8) {
+    return "FireBrandRank8";
+  }
+  if (rank >= 6) {
+    return "FireBrandRank6";
+  }
+  if (rank >= 3) {
+    return "FireBrandRank3";
+  }
+  return "FireBrandRank1";
+}
+
+function dragonSoulSpawnDurationForRank(rank: number): string {
+  if (rank >= 8) {
+    return String(rank >= 9 ? 15000 : 14500);
+  }
+  if (rank >= 6) {
+    return "13500";
+  }
+  if (rank >= 3) {
+    return "13000";
+  }
+  if (rank >= 2) {
+    return "12000";
+  }
+  return "11000";
+}
+
+function dragonSoulBuffDurationForName(buffName: string): string {
+  if (buffName === "DragonSoulRank8" || buffName === "DragonSoulEffect") {
+    return "15000";
+  }
+  if (buffName === "DragonSoulRank3") {
+    return "13500";
+  }
+  return "12000";
+}
+
 function patchPowerBlock(powerName: string, block: string, stats: PatchStats): string {
   let next = block;
 
@@ -318,7 +360,17 @@ function patchPowerBlock(powerName: string, block: string, stats: PatchStats): s
     next = apply(next, stats, replaceTag(next, "AddTargetBuff", buff));
   } else if (/^SummonDragonSoul(?:\d+)?$/.test(powerName)) {
     stats.powerBlocks += 1;
-    next = apply(next, stats, removeSelfBuff(next, "FireBrandRank1", "FireBrandRank3", "FireBrandRank8"));
+    const rank = rankOf(powerName, "SummonDragonSoul");
+    next = apply(next, stats, addSelfBuff(next, fireBrandBuffForDragonSoulRank(rank)));
+    next = apply(next, stats, replaceTag(next, "SpawnDuration", dragonSoulSpawnDurationForRank(rank)));
+    next = apply(next, stats, replaceTag(next, "Description", DRAGON_SOUL_DESCRIPTION));
+    if (
+      next.includes(
+        "<UpgradeDescription>Summon a Spirit of Flame that shoots at your targets. Gain increased Damage but reduced Defense for the duration.</UpgradeDescription>",
+      )
+    ) {
+      next = apply(next, stats, replaceTag(next, "UpgradeDescription", DRAGON_SOUL_DESCRIPTION));
+    }
   } else if (/^Lifethirst(?:\d+)?$/.test(powerName)) {
     stats.powerBlocks += 1;
     const rank = rankOf(powerName, "Lifethirst");
@@ -389,8 +441,7 @@ function patchBuffBlock(buffName: string, block: string, stats: PatchStats): str
     stats.buffBlocks += 1;
     next = next.replace(/\r?\n\t\t<MagicDefense>[^<]+<\/MagicDefense>/, "");
     next = next.replace(/\r?\n\t\t<MeleeDefense>[^<]+<\/MeleeDefense>/, "");
-    const rank = buffName === "DragonSoulRank8" ? 8 : buffName === "DragonSoulRank3" ? 3 : 1;
-    next = apply(next, stats, replaceTag(next, "Duration", String(rank >= 8 ? 5000 : rank >= 3 ? 4000 : 3000)));
+    next = apply(next, stats, replaceTag(next, "Duration", dragonSoulBuffDurationForName(buffName)));
   } else if (/^Pyromania(?:\d+)?$/.test(buffName)) {
     stats.buffBlocks += 1;
     next = apply(next, stats, replaceTag(next, "Duration", "8000"));
@@ -512,7 +563,9 @@ function patchEntBlock(entName: string, block: string, stats: PatchStats): strin
   } else if (entName === "DragonSoul") {
     stats.entBlocks += 1;
     if (!next.includes("<Duration>")) {
-      next = apply(next, stats, upsertTagAfter(next, "Duration", "5000", "Behavior"));
+      next = apply(next, stats, upsertTagAfter(next, "Duration", "15000", "Behavior"));
+    } else {
+      next = apply(next, stats, replaceTag(next, "Duration", "15000"));
     }
   }
 

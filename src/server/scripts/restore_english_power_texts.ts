@@ -7,6 +7,8 @@ const CBQ_DIR = path.join(ROOT, "src", "client", "content", "localhost", "p", "c
 const XML_DIR = path.join(ROOT, "src", "client", "content", "xml");
 const BACKUP_SWZ = path.join(CBQ_DIR, "Game.swz.bak");
 const TEXT_TAGS = ["DisplayName", "Description", "UpgradeDescription"] as const;
+const DRAGON_SOUL_DESCRIPTION =
+  "Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.";
 
 type TextTag = (typeof TEXT_TAGS)[number];
 type TextMap = Map<string, Partial<Record<TextTag, string>>>;
@@ -83,6 +85,22 @@ function setTextForRecord(xml: string, recordTag: string, keyTag: string, key: s
   });
 }
 
+function setTextForPower(xml: string, powerName: string, tag: TextTag, value: string): string {
+  const recordPattern = new RegExp(`<Power\\b[^>]*\\bPowerName="${powerName}"[\\s\\S]*?<\\/Power>`, "g");
+  return xml.replace(recordPattern, (record) => replaceTag(record, tag, value));
+}
+
+function applyCurrentEnglishPowerDescriptions(xml: string): string {
+  let updated = xml;
+
+  for (const suffix of ["", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]) {
+    updated = setTextForPower(updated, `SummonDragonSoul${suffix}`, "Description", DRAGON_SOUL_DESCRIPTION);
+  }
+  updated = setTextForPower(updated, "SummonDragonSoul1", "UpgradeDescription", DRAGON_SOUL_DESCRIPTION);
+
+  return updated;
+}
+
 function applyCurrentEnglishTalentDescriptions(xml: string): string {
   let updated = xml;
 
@@ -143,7 +161,9 @@ function restorePowerTexts(playerPowerXml: string, powerModXml: string, backupPl
   const modTexts = collectRecordTexts(backupPowerModXml, "PowerModType", /<ModName>([^<]+)<\/ModName>/);
 
   return {
-    playerPowerXml: restoreRecordTexts(playerPowerXml, "Power", /<Power\b[^>]*\bPowerName="([^"]+)"/, powerTexts),
+    playerPowerXml: applyCurrentEnglishPowerDescriptions(
+      restoreRecordTexts(playerPowerXml, "Power", /<Power\b[^>]*\bPowerName="([^"]+)"/, powerTexts)
+    ),
     powerModXml: applyCurrentEnglishTalentDescriptions(
       restoreRecordTexts(powerModXml, "PowerModType", /<ModName>([^<]+)<\/ModName>/, modTexts)
     ),

@@ -1,0 +1,100 @@
+import { strict as assert } from "assert";
+import * as fs from "fs";
+import * as path from "path";
+import { parseSwz } from "../scripts/swzPatchUtils";
+
+const ROOT = path.resolve(__dirname, "..", "..");
+const XML_DIR = path.join(ROOT, "client", "content", "xml");
+const CBQ_DIR = path.join(ROOT, "client", "content", "localhost", "p", "cbq");
+
+const POWER_EXPECTATIONS = new Map<string, { buff: string; duration: string }>([
+  ["SummonDragonSoul", { buff: "FireBrandRank8", duration: "15000" }],
+  ["SummonDragonSoul1", { buff: "FireBrandRank1", duration: "11000" }],
+  ["SummonDragonSoul2", { buff: "FireBrandRank1", duration: "12000" }],
+  ["SummonDragonSoul3", { buff: "FireBrandRank3", duration: "13000" }],
+  ["SummonDragonSoul4", { buff: "FireBrandRank3", duration: "13000" }],
+  ["SummonDragonSoul5", { buff: "FireBrandRank3", duration: "13000" }],
+  ["SummonDragonSoul6", { buff: "FireBrandRank6", duration: "13500" }],
+  ["SummonDragonSoul7", { buff: "FireBrandRank6", duration: "13500" }],
+  ["SummonDragonSoul8", { buff: "FireBrandRank8", duration: "14500" }],
+  ["SummonDragonSoul9", { buff: "FireBrandRank8", duration: "15000" }],
+  ["SummonDragonSoul10", { buff: "FireBrandRank8", duration: "15000" }],
+]);
+
+const BUFF_DURATIONS = new Map<string, string>([
+  ["DragonSoulEffect", "15000"],
+  ["DragonSoulRank1", "12000"],
+  ["DragonSoulRank3", "13500"],
+  ["DragonSoulRank8", "15000"],
+]);
+
+function blockByPattern(xml: string, pattern: RegExp, label: string): string {
+  const match = xml.match(pattern);
+  assert(match, `${label} block must exist`);
+  return match[0];
+}
+
+function powerBlock(xml: string, powerName: string): string {
+  return blockByPattern(xml, new RegExp(`<Power PowerName="${powerName}">[\\s\\S]*?<\\/Power>`), powerName);
+}
+
+function buffBlock(xml: string, buffName: string): string {
+  return blockByPattern(xml, new RegExp(`<BuffType BuffName="${buffName}">[\\s\\S]*?<\\/BuffType>`), buffName);
+}
+
+function entBlock(xml: string, entName: string): string {
+  return blockByPattern(xml, new RegExp(`<EntType EntName="${entName}"[^>]*>[\\s\\S]*?<\\/EntType>`), entName);
+}
+
+function tagValue(block: string, tag: string): string | null {
+  return block.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`))?.[1] ?? null;
+}
+
+function assertDragonSoulData(powerXml: string, buffXml: string, entXml: string | null, label: string): void {
+  for (const [powerName, expected] of POWER_EXPECTATIONS) {
+    const block = powerBlock(powerXml, powerName);
+    const selfBuffs = tagValue(block, "AddSelfBuff")?.split(",") ?? [];
+    assert(
+      selfBuffs.includes(expected.buff),
+      `${label}: ${powerName} must add ${expected.buff} so Dragon Soul copies Fire Brand shot behavior`,
+    );
+    assert.equal(tagValue(block, "SpawnDuration"), expected.duration, `${label}: ${powerName} SpawnDuration`);
+    assert(!block.includes("reduced Defense"), `${label}: ${powerName} text must not mention reduced Defense`);
+  }
+
+  for (const [buffName, duration] of BUFF_DURATIONS) {
+    const block = buffBlock(buffXml, buffName);
+    assert.equal(tagValue(block, "Duration"), duration, `${label}: ${buffName} Duration`);
+    assert(!block.includes("<MagicDefense>"), `${label}: ${buffName} must not reduce MagicDefense`);
+    assert(!block.includes("<MeleeDefense>"), `${label}: ${buffName} must not reduce MeleeDefense`);
+  }
+
+  if (entXml) {
+    assert.equal(tagValue(entBlock(entXml, "DragonSoul"), "Duration"), "15000", `${label}: DragonSoul entity Duration`);
+  }
+}
+
+function swzChunk(swzPath: string, marker: string): string {
+  const chunk = parseSwz(swzPath).chunks.find((entry) => entry.xml.includes(marker));
+  assert(chunk, `${path.basename(swzPath)} must contain ${marker}`);
+  return chunk.xml;
+}
+
+assertDragonSoulData(
+  fs.readFileSync(path.join(XML_DIR, "PlayerPowerTypes.xml"), "utf8"),
+  fs.readFileSync(path.join(XML_DIR, "PlayerBuffTypes.xml"), "utf8"),
+  fs.readFileSync(path.join(XML_DIR, "EntTypes.xml"), "utf8"),
+  "loose XML",
+);
+
+for (const fileName of ["Game.swz", "Game.en.swz", "Game.tr.swz"]) {
+  const swzPath = path.join(CBQ_DIR, fileName);
+  assertDragonSoulData(
+    swzChunk(swzPath, "<PlayerPowerTypes"),
+    swzChunk(swzPath, "<PlayerBuffTypes"),
+    null,
+    fileName,
+  );
+}
+
+console.log("dragon_soul_firebrand_regression passed");

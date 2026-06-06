@@ -1070,7 +1070,7 @@
 	<BuffType BuffName="DragonSoulEffect">
 		<BuffID>304</BuffID>
 		<Attack>false</Attack>
-		<Duration>3000</Duration>
+		<Duration>15000</Duration>
 		<MeleeDamage>0.3</MeleeDamage>
 		<GfxType/>
 	</BuffType>
@@ -2942,21 +2942,21 @@
 	<BuffType BuffName="DragonSoulRank1">
 		<BuffID>492</BuffID>
 		<Attack>false</Attack>
-		<Duration>3000</Duration>
+		<Duration>12000</Duration>
 		<MeleeDamage>0.15</MeleeDamage>
 		<GfxType/>
 	</BuffType>
 	<BuffType BuffName="DragonSoulRank3">
 		<BuffID>493</BuffID>
 		<Attack>false</Attack>
-		<Duration>4000</Duration>
+		<Duration>13500</Duration>
 		<MeleeDamage>0.2</MeleeDamage>
 		<GfxType/>
 	</BuffType>
 	<BuffType BuffName="DragonSoulRank8">
 		<BuffID>494</BuffID>
 		<Attack>false</Attack>
-		<Duration>5000</Duration>
+		<Duration>15000</Duration>
 		<MeleeDamage>0.3</MeleeDamage>
 		<GfxType/>
 	</BuffType>
