@@ -289,14 +289,6 @@ function dragonSoulBuffDurationForName(buffName: string): string {
 function patchPowerBlock(powerName: string, block: string, stats: PatchStats): string {
   let next = block;
 
-  const patchCastList = (factor: number, minimum = 0) => {
-    const match = next.match(/<CastTime>([^<]+)<\/CastTime>/);
-    if (match) {
-      const values = numberList(match[1]).map((value) => Math.max(minimum, Math.round(value * factor)));
-      next = apply(next, stats, replaceTag(next, "CastTime", formatList(values)));
-    }
-  };
-
   if (/^FrozenWard(?:\d+)?$/.test(powerName)) {
     stats.powerBlocks += 1;
     const rank = rankOf(powerName, "FrozenWard");
