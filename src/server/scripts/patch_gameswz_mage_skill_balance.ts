@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { ensureBackup, parseSwz, SwzPatchError, writeSwz } from "./swzPatchUtils";
+import { ensureBackup, parseSwz, writeSwz } from "./swzPatchUtils";
 
 type PatchStats = {
   powerBlocks: number;
