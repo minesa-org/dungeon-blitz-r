@@ -114,10 +114,6 @@ function upsertTagAfter(block: string, tag: string, value: string, afterTag: str
   return { block: next, changed: next !== block };
 }
 
-function numberList(value: string): number[] {
-  return value.split(",").map((part) => Number(part.trim())).filter((value) => Number.isFinite(value));
-}
-
 function formatList(values: Array<number | string>): string {
   return values.map((value) => String(value)).join(",");
 }
