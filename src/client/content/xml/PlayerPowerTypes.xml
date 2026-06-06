@@ -27041,7 +27041,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,ChilblainsPermafrost</AddTargetBuff>
+		<AddTargetBuff>Chilled42,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>PermafrostClone combo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27074,7 +27074,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,ChilblainsPermafrost</AddTargetBuff>
+		<AddTargetBuff>Chilled42,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>PermafrostClone combo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27107,7 +27107,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,ChilblainsPermafrost</AddTargetBuff>
+		<AddTargetBuff>Chilled42,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>PermafrostClone combo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27140,7 +27140,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,ChilblainsPermafrost</AddTargetBuff>
+		<AddTargetBuff>Chilled42,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>PermafrostClone combo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27173,7 +27173,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,ChilblainsPermafrost</AddTargetBuff>
+		<AddTargetBuff>Chilled42,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>PermafrostClone combo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27206,7 +27206,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,ChilblainsPermafrost</AddTargetBuff>
+		<AddTargetBuff>Chilled42,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>PermafrostClone combo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27239,7 +27239,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,ChilblainsPermafrost</AddTargetBuff>
+		<AddTargetBuff>Chilled42,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>PermafrostClone combo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27272,7 +27272,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,ChilblainsPermafrost</AddTargetBuff>
+		<AddTargetBuff>Chilled42,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>PermafrostClone combo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27305,7 +27305,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,ChilblainsPermafrost</AddTargetBuff>
+		<AddTargetBuff>Chilled42,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>PermafrostClone combo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -27338,7 +27338,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Ice</DamageType>
 		<PowerGroup>PermafrostClone</PowerGroup>
-		<AddTargetBuff>Chilled42,ChilblainsPermafrost</AddTargetBuff>
+		<AddTargetBuff>Chilled42,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrostDot,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost,ChilblainsPermafrost</AddTargetBuff>
 		<BasePowerName>PermafrostCloneExplode</BasePowerName>
 		<Description>PermafrostClone combo</Description>
 		<CastAnimSource>Feet</CastAnimSource>
@@ -36486,7 +36486,7 @@
 		<DisplayName>Wail of the Banshee</DisplayName>
 		<BasePowerName>BansheeWail</BasePowerName>
 		<Description>Envoke a vengeful spirit that blasts enemies around it. Deals extra damage for unique conditions on each target.</Description>
-		<UpgradeDescription>-1 Mana. 60% Expertise bonus damage per condition. 300% bonus cap. Increased Damage #olddmg#</UpgradeDescription>
+		<UpgradeDescription>-1 Mana. 60% Expertise bonus damage per condition. 500% bonus cap. Increased Damage #olddmg#</UpgradeDescription>
 		<IconName>a_PowerIcon_PlaugeWind</IconName>
 		<RuneIcon>a_RuneIcon_07</RuneIcon>
 		<CastSound>CHR_Necromancer_BloodFrenzy_Cast_A[455]CHR_Necromancer_BloodFrenzy_Cast_B</CastSound>
