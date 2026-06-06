@@ -46,17 +46,16 @@ const PYROMANIA_MANA_COST_BY_RANK = new Map<number, string>([
 ]);
 
 const FIREBRAND_SHOTS = [
-    { name: 'FireBrandShot1', powerID: 6143, aoeRadius: 90, baseDamageMult: '1', addTargetBuff: 'Scorched' },
-    { name: 'FireBrandShot3', powerID: 6144, aoeRadius: 105, baseDamageMult: '1', addTargetBuff: 'Scorched' },
-    { name: 'FireBrandShot6', powerID: 6145, aoeRadius: 120, baseDamageMult: '0.5', addTargetBuff: 'Scorched,Burned' },
-    { name: 'FlameAxeFireBrandShot8', powerID: 6146, range: 800, baseDamageMult: '1', addTargetBuff: 'Scorched' },
-    { name: 'FlameAxeFireBrandShot8Pierce', powerID: 6147, range: 800, baseDamageMult: '0.75', addTargetBuff: 'Scorched' }
+    { name: 'FireBrandShot1', powerID: 6143, aoeRadius: 90, baseDamageMult: '1' },
+    { name: 'FireBrandShot3', powerID: 6144, aoeRadius: 105, baseDamageMult: '1' },
+    { name: 'FireBrandShot6', powerID: 6145, aoeRadius: 120, baseDamageMult: '0.5' },
+    { name: 'FlameAxeFireBrandShot8', powerID: 6146, range: 800, baseDamageMult: '1' },
+    { name: 'FlameAxeFireBrandShot8Pierce', powerID: 6147, range: 800, baseDamageMult: '0.75' }
 ];
 
 type DragonSoulShotEffect = {
     aoeRadius?: string;
     range?: string;
-    addTargetBuff: string;
 };
 
 const DRAGON_SOUL_SPAWN_DURATION_BY_RANK = new Map<number, string>([
@@ -153,15 +152,15 @@ function addTargetBuff(block: string, ...buffs: string[]): { block: string; chan
 
 function dragonSoulShotEffectForRank(rank: number): DragonSoulShotEffect {
     if (rank >= 8) {
-        return { range: '800', addTargetBuff: 'Scorched' };
+        return { range: '800' };
     }
     if (rank >= 6) {
-        return { aoeRadius: '120', addTargetBuff: 'Scorched,Burned' };
+        return { aoeRadius: '120' };
     }
     if (rank >= 3) {
-        return { aoeRadius: '105', addTargetBuff: 'Scorched' };
+        return { aoeRadius: '105' };
     }
-    return { aoeRadius: '90', addTargetBuff: 'Scorched' };
+    return { aoeRadius: '90' };
 }
 
 function patchDragonSoulShotBlock(block: string, rank: number, stats: PatchStats): string {
@@ -175,7 +174,7 @@ function patchDragonSoulShotBlock(block: string, rank: number, stats: PatchStats
     if (effect.aoeRadius) {
         next = applyPatch(next, stats, upsertTagAfter(next, 'AoERadius', effect.aoeRadius, 'TargetMethod'));
     }
-    next = applyPatch(next, stats, addTargetBuff(next, ...effect.addTargetBuff.split(',')));
+    next = applyPatch(next, stats, removeTag(next, 'AddTargetBuff'));
     return next;
 }
 
@@ -200,7 +199,6 @@ function buildFireBrandShotPower(def: (typeof FIREBRAND_SHOTS)[number]): string 
         '\t\t<ProcModifier>0</ProcModifier>',
         '\t\t<DamageType>Fire</DamageType>',
         '\t\t<PowerGroup>FireBrandShot</PowerGroup>',
-        `\t\t<AddTargetBuff>${def.addTargetBuff}</AddTargetBuff>`,
         isPiercingBasicShot ? '\t\t<DisplayName>Ates Topu</DisplayName>' : '\t\t<DisplayName>Alev Damgasi Atisi</DisplayName>',
         def.name === 'FlameAxeFireBrandShot8Pierce'
             ? '\t\t<Description>Alevgorur temel menzilli saldirisi. Ilk hedeften sonraki hedeflere azaltimli hasar verir.</Description>'
@@ -503,7 +501,10 @@ export function verifyFlameseerImprovements(powerXml: string, buffXml: string, p
     }
 
     for (const shot of FIREBRAND_SHOTS) {
-        powerBlock(powerXml, shot.name);
+        const block = powerBlock(powerXml, shot.name);
+        if (tagValue(block, 'AddTargetBuff')) {
+            throw new Error(`${shot.name} must not apply Scorched through AddTargetBuff`);
+        }
     }
 
     for (const suffix of ['', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']) {
@@ -543,8 +544,8 @@ export function verifyFlameseerImprovements(powerXml: string, buffXml: string, p
         if (effect.aoeRadius && tagValue(block, 'AoERadius') !== effect.aoeRadius) {
             throw new Error(`${powerName} AoERadius must be ${effect.aoeRadius}`);
         }
-        for (const buff of effect.addTargetBuff.split(',')) {
-            assertIncludes(buffList(block, 'AddTargetBuff'), buff, powerName);
+        if (tagValue(block, 'AddTargetBuff')) {
+            throw new Error(`${powerName} must not apply Scorched through AddTargetBuff`);
         }
     }
 
