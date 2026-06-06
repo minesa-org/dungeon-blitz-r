@@ -8,14 +8,14 @@ const XML_DIR = path.join(ROOT, "client", "content", "xml");
 const CBQ_DIR = path.join(ROOT, "client", "content", "localhost", "p", "cbq");
 
 const EXPECTED_VALUES = new Map<string, string>([
-  ["BurnDmg1", ".1"],
-  ["BurnDmg2", ".2"],
-  ["BurnDmg3", ".3"],
-  ["BurnDmg4", ".4"],
-  ["BurnDmg5", ".5"],
+  ["BurnDmg1", ".07"],
+  ["BurnDmg2", ".14"],
+  ["BurnDmg3", ".21"],
+  ["BurnDmg4", ".28"],
+  ["BurnDmg5", ".35"],
 ]);
 
-const EXPECTED_DESCRIPTION = "Increases Burn Damage@Burn Damage:, +10%, +20%, +30%, +40%, +50%";
+const EXPECTED_DESCRIPTION = "Increases Burn Damage@Burn Damage:, +7%, +14%, +21%, +28%, +35%";
 
 function blockByPattern(xml: string, pattern: RegExp, label: string): string {
   const match = xml.match(pattern);

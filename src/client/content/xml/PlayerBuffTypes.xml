@@ -973,7 +973,7 @@
 		<Attack>false</Attack>
 		<Duration>7813</Duration>
 		<RangedOverride>FireBrandShot1</RangedOverride>
-		<BuffLoc>ChestBack</BuffLoc>
+		<BuffLoc>FeetBack</BuffLoc>
 		<GfxType>
 			<AnimScale>1</AnimScale>
 			<AnimFile>SFX_2.swf</AnimFile>

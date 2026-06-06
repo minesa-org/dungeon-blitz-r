@@ -82,7 +82,9 @@ function assertDragonSoulData(powerXml: string, buffXml: string, entXml: string 
   }
 
   for (const buffName of FIREBRAND_BUFFS) {
-    assert.equal(tagValue(buffBlock(buffXml, buffName), "Duration"), FIREBRAND_BASE_DURATION, `${label}: ${buffName} Duration`);
+    const block = buffBlock(buffXml, buffName);
+    assert.equal(tagValue(block, "Duration"), FIREBRAND_BASE_DURATION, `${label}: ${buffName} Duration`);
+    assert.equal(tagValue(block, "BuffLoc"), "FeetBack", `${label}: ${buffName} BuffLoc`);
   }
 
   for (const [buffName, duration] of BUFF_DURATIONS) {

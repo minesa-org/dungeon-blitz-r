@@ -443,6 +443,7 @@ function patchBuffBlock(buffName: string, block: string, stats: PatchStats): str
   } else if (/^FireBrand(?:Rank\d+)?$/.test(buffName)) {
     stats.buffBlocks += 1;
     next = apply(next, stats, replaceTag(next, "Duration", FIREBRAND_BASE_DURATION_MS));
+    next = apply(next, stats, replaceTag(next, "BuffLoc", "FeetBack"));
     const rangedOverride = fireBrandOverrideForBuff(buffName);
     if (rangedOverride) {
       next = apply(next, stats, upsertTagAfter(next, "RangedOverride", rangedOverride, "Duration"));
@@ -475,7 +476,7 @@ export function patchPlayerBuffs(xml: string): { xml: string; stats: PatchStats 
 function patchPowerModBlock(modName: string, block: string, stats: PatchStats): string {
   let next = block;
   const valueByMod: Record<string, string[]> = {
-    BurnDmg: [".1", ".2", ".3", ".4", ".5"],
+    BurnDmg: [".07", ".14", ".21", ".28", ".35"],
     ChilblainsDmg: [".02", ".06", ".12", ".2", ".25"],
     DryIce: [".75", "1.5", "2.5", "3.75", "5"],
     IceCasket: ["1", "2", "3", "4", "5"],
@@ -484,7 +485,7 @@ function patchPowerModBlock(modName: string, block: string, stats: PatchStats): 
     PoisonDmg: [".06", ".12", ".18", ".24", ".3"],
   };
   const descriptions: Record<string, string> = {
-    BurnDmg: "Increases Burn Damage@Burn Damage:, +10%, +20%, +30%, +40%, +50%",
+    BurnDmg: "Increases Burn Damage@Burn Damage:, +7%, +14%, +21%, +28%, +35%",
     ChilblainsDmg: "Increases Chilblains Damage@Chilblains Damage:, +4%, +12%, +24%, +40%, +50%",
     DryIce: "Increases Ice damage based on your Expertise.@Damage (%Expertise):, 75%, 150%, 250%, 375%, 500%",
     IceCasket: "Increases Freeze Durability based on your Expertise.@Durability (%Expertise):, 100%, 200%, 300%, 400%, 500%",
