@@ -121,7 +121,7 @@ export class AbilityHandler {
         if (
             currentRank === 0 &&
             rank > 1 &&
-            AbilityHandler.isActiveMasterClassAbility(client.character, abilityId)
+            AbilityHandler.canInferMissingSavedRank(client.character, abilityId, rank)
         ) {
             currentRank = rank - 1;
             AbilityHandler.setLearnedAbilityRank(client.character, abilityId, currentRank);
@@ -594,6 +594,28 @@ export class AbilityHandler {
         return abilityDefs.some((def) =>
             Number(def.AbilityID ?? 0) === abilityId &&
             String((def as Record<string, unknown>).Class ?? '') === masterClassName
+        );
+    }
+
+    private static canInferMissingSavedRank(character: CharacterRecord, abilityId: number, requestedRank: number): boolean {
+        if (AbilityHandler.isActiveMasterClassAbility(character, abilityId)) {
+            return true;
+        }
+
+        const characterClass = String(character.class ?? '').toLowerCase();
+        if (!characterClass) {
+            return false;
+        }
+
+        const previousRank = requestedRank - 1;
+        if (previousRank <= 0) {
+            return false;
+        }
+
+        return abilityDefs.some((def) =>
+            Number(def.AbilityID ?? 0) === abilityId &&
+            Number(def.Rank ?? 0) === previousRank &&
+            String((def as Record<string, unknown>).BaseClass ?? '').toLowerCase() === characterClass
         );
     }
 
