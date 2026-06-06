@@ -12,7 +12,7 @@ function assert(condition: unknown, message: string): void {
 
 assert(
   hasDragonSoulCopyPowerPatch(dungeonBlitzSwfPath),
-  "DungeonBlitz.swf ActivePower.method_872 must make Dragon Soul copy the triggering player power instead of forcing DragonSoulShotN",
+  "DungeonBlitz.swf ActivePower.method_872 must make Dragon Soul copy triggering Fire Brand projectiles only",
 );
 
 console.log("dragon_soul_copy_power_regression passed");

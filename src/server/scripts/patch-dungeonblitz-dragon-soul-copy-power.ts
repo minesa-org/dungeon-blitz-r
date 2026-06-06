@@ -14,6 +14,10 @@ import {
   writeU30,
 } from "./swfPatchUtils";
 
+const DRAGON_SOUL_SHOT_BASE = "DragonSoulShot";
+const FIRE_BRAND_COPY_BASE = "FireBrand";
+const OLD_FIRE_BRAND_COPY_BASE = "FireBrandShot";
+
 const DEFAULT_SWF = path.resolve(
   __dirname,
   "..",
@@ -46,7 +50,7 @@ function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
         "  npm exec tsx src/server/scripts/patch-dungeonblitz-dragon-soul-copy-power.ts [--verify] [--swf <path>]",
         "",
         "Patches ActivePower.method_872 so Dragon Soul copies the triggering",
-        "power instead of always replacing it with DragonSoulShotN.",
+        "Fire Brand projectile instead of always replacing it with DragonSoulShotN.",
       ].join("\n"));
       process.exit(0);
     }
@@ -118,6 +122,19 @@ function buildCopyPowerAssignment(abc: ReturnType<typeof parseAbc>, originalLeng
   return Buffer.concat([assignment, Buffer.alloc(originalLength - assignment.length, 0x02)]);
 }
 
+function buildStringReplacement(abc: ReturnType<typeof parseAbc>, index: number, value: string): BytePatch {
+  const original = abc.stringValues[index];
+  const start = abc.stringLenPositions[index];
+  const end = abc.stringDataPositions[index] + Buffer.byteLength(original, "utf8");
+  return {
+    key: `ActivePower.method_872.${original}Filter`,
+    start,
+    end,
+    data: Buffer.concat([writeU30(Buffer.byteLength(value, "utf8")), Buffer.from(value, "utf8")]),
+    detail: `make Dragon Soul copy only ${value} projectiles`,
+  };
+}
+
 function isCopyPowerAssignment(abc: ReturnType<typeof parseAbc>, instructions: Instruction[], index: number): boolean {
   const first = instructions[index];
   const second = instructions[index + 1];
@@ -140,7 +157,7 @@ function findDragonSoulShotAssignment(abc: ReturnType<typeof parseAbc>, instruct
       window[1].opcode === 0x66 &&
       multiname(abc, window[1]) === "powerTypesDict" &&
       window[2].opcode === 0x2c &&
-      stringValue(abc, window[2]) === "DragonSoulShot" &&
+      stringValue(abc, window[2]) === DRAGON_SOUL_SHOT_BASE &&
       window[3].opcode === 0x62 &&
       localOperand(window[3]) === 33 &&
       window[4].opcode === 0xa0 &&
@@ -159,6 +176,23 @@ function findDragonSoulShotAssignment(abc: ReturnType<typeof parseAbc>, instruct
   return null;
 }
 
+function pushedStringIndexes(instructions: Instruction[]): number[] {
+  return instructions
+    .filter((inst) => inst.opcode === 0x2c && inst.operands[0]?.[0] === "u30")
+    .map((inst) => inst.operands[0][1]);
+}
+
+function hasFireBrandCopyFilter(abc: ReturnType<typeof parseAbc>, instructions: Instruction[]): boolean {
+  return pushedStringIndexes(instructions).some((index) => abc.stringValues[index] === FIRE_BRAND_COPY_BASE);
+}
+
+function findCurrentCopyFilterStringIndex(abc: ReturnType<typeof parseAbc>, instructions: Instruction[]): number | null {
+  const indexes = pushedStringIndexes(instructions).filter((index) =>
+    abc.stringValues[index] === DRAGON_SOUL_SHOT_BASE || abc.stringValues[index] === OLD_FIRE_BRAND_COPY_BASE
+  );
+  return indexes.length === 1 ? indexes[0] : null;
+}
+
 function hasCopyPowerPatch(abc: ReturnType<typeof parseAbc>, instructions: Instruction[]): boolean {
   for (let index = 0; index <= instructions.length - 3; index += 1) {
     if (!isCopyPowerAssignment(abc, instructions, index)) {
@@ -175,40 +209,51 @@ function hasCopyPowerPatch(abc: ReturnType<typeof parseAbc>, instructions: Instr
 export function hasDragonSoulCopyPowerPatch(swfPath: string): boolean {
   const { abc, code } = getActivePowerMethod872(swfPath);
   const instructions = disassemble(code, "ActivePower.method_872");
-  return hasCopyPowerPatch(abc, instructions);
+  return hasCopyPowerPatch(abc, instructions) && hasFireBrandCopyFilter(abc, instructions);
 }
 
 export function patchDragonSoulCopyPower(swfPath: string, verify: boolean): void {
   const { ctx, abc, methodBody, code } = getActivePowerMethod872(swfPath);
   const instructions = disassemble(code, "ActivePower.method_872");
-  if (hasCopyPowerPatch(abc, instructions)) {
-    console.log(`${swfPath}: already patched (Dragon Soul copies triggering power).`);
+  const hasCopyAssignment = hasCopyPowerPatch(abc, instructions);
+  const hasFireBrandFilter = hasFireBrandCopyFilter(abc, instructions);
+  if (hasCopyAssignment && hasFireBrandFilter) {
+    console.log(`${swfPath}: already patched (Dragon Soul copies Fire Brand projectiles only).`);
     return;
   }
 
-  const originalRange = findDragonSoulShotAssignment(abc, instructions);
-  if (!originalRange) {
-    throw new PatchError(`${swfPath}: could not find DragonSoulShotN assignment in ActivePower.method_872.`);
-  }
   if (verify) {
-    throw new PatchError(`${swfPath}: verify failed; Dragon Soul still replaces copied powers with DragonSoulShotN.`);
+    throw new PatchError(`${swfPath}: verify failed; Dragon Soul does not copy Fire Brand projectiles only.`);
   }
 
-  const originalLength = originalRange.end - originalRange.start;
-  const patches: BytePatch[] = [
-    {
+  const patches: BytePatch[] = [];
+  if (!hasCopyAssignment) {
+    const originalRange = findDragonSoulShotAssignment(abc, instructions);
+    if (!originalRange) {
+      throw new PatchError(`${swfPath}: could not find DragonSoulShotN assignment in ActivePower.method_872.`);
+    }
+    const originalLength = originalRange.end - originalRange.start;
+    patches.push({
       key: "ActivePower.method_872.dragonSoulCopyPower",
       start: methodBody.codeStart + originalRange.start,
       end: methodBody.codeStart + originalRange.end,
       data: buildCopyPowerAssignment(abc, originalLength),
-      detail: "make Dragon Soul use the triggering power",
-    },
-  ];
+      detail: "make Dragon Soul use the triggering Fire Brand projectile",
+    });
+  }
+
+  if (!hasFireBrandFilter) {
+    const filterStringIndex = findCurrentCopyFilterStringIndex(abc, instructions);
+    if (filterStringIndex === null) {
+      throw new PatchError(`${swfPath}: could not find Dragon Soul copy filter in ActivePower.method_872.`);
+    }
+    patches.push(buildStringReplacement(abc, filterStringIndex, FIRE_BRAND_COPY_BASE));
+  }
 
   ensureBackup(swfPath);
   const { body, delta } = applyPatchesToBody(ctx.body, patches);
   writeSwf(ctx, body, delta);
-  console.log(`${swfPath}: patched Dragon Soul copy-power behavior.`);
+  console.log(`${swfPath}: patched Dragon Soul Fire Brand projectile copy behavior.`);
 }
 
 if (require.main === module) {

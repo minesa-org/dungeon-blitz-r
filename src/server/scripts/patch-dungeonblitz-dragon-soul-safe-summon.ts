@@ -33,7 +33,7 @@ function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
         "  npm exec tsx src/server/scripts/patch-dungeonblitz-dragon-soul-safe-summon.ts [--verify] [--swf <path>]",
         "",
         "Compatibility wrapper for the Dragon Soul copy-power patch.",
-        "Dragon Soul must copy the triggering player power; this script no longer",
+        "Dragon Soul must copy triggering Fire Brand projectiles only; this script no longer",
         "restores the old DragonSoulShotN-only behavior.",
       ].join("\n"));
       process.exit(0);

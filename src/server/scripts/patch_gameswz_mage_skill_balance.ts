@@ -247,19 +247,6 @@ function fireBrandOverrideForBuff(buffName: string): string | null {
   return null;
 }
 
-function fireBrandBuffForDragonSoulRank(rank: number): string {
-  if (rank >= 8) {
-    return "FireBrandRank8";
-  }
-  if (rank >= 6) {
-    return "FireBrandRank6";
-  }
-  if (rank >= 3) {
-    return "FireBrandRank3";
-  }
-  return "FireBrandRank1";
-}
-
 function dragonSoulSpawnDurationForRank(rank: number): string {
   if (rank >= 8) {
     return String(rank >= 9 ? 15000 : 14500);
@@ -347,8 +334,8 @@ function patchPowerBlock(powerName: string, block: string, stats: PatchStats): s
     next = apply(next, stats, addTargetBuff(next, "Crippled"));
   } else if (/^MoltenFist(?:\d+)?$/.test(powerName)) {
     stats.powerBlocks += 1;
-    const rank = rankOf(powerName, "MoltenFist");
-    next = apply(next, stats, addTargetBuff(next, "Crippled", rank >= 7 ? "StunStrike2000" : "Dazed"));
+    next = apply(next, stats, removeTargetBuff(next, "StunStrike2000", "MoltenFistStun1000", "MoltenFistStun2000"));
+    next = apply(next, stats, addTargetBuff(next, "Crippled", "Dazed"));
   } else if (/^Pyromania(?:\d+)?$/.test(powerName)) {
     stats.powerBlocks += 1;
     next = apply(next, stats, replaceTag(next, "ManaCost", "0"));
@@ -361,7 +348,7 @@ function patchPowerBlock(powerName: string, block: string, stats: PatchStats): s
   } else if (/^SummonDragonSoul(?:\d+)?$/.test(powerName)) {
     stats.powerBlocks += 1;
     const rank = rankOf(powerName, "SummonDragonSoul");
-    next = apply(next, stats, addSelfBuff(next, fireBrandBuffForDragonSoulRank(rank)));
+    next = apply(next, stats, removeSelfBuff(next, "FireBrand", "FireBrandRank1", "FireBrandRank3", "FireBrandRank6", "FireBrandRank8"));
     next = apply(next, stats, replaceTag(next, "SpawnDuration", dragonSoulSpawnDurationForRank(rank)));
     next = apply(next, stats, replaceTag(next, "Description", DRAGON_SOUL_DESCRIPTION));
     if (
@@ -464,7 +451,7 @@ export function patchPlayerBuffs(xml: string): { xml: string; stats: PatchStats 
   const stats = cloneStats();
 
   const cleanedXml = patchedXml.replace(
-    /\r?\n\t<BuffType BuffName="(?:MeteorChannelSlow|FireBrandRank4|FireBrandRank7|DeathMarkUndeadVulnerability)">[\s\S]*?\r?\n\t<\/BuffType>/g,
+    /\r?\n\t<BuffType BuffName="(?:MeteorChannelSlow|FireBrandRank4|FireBrandRank7|DeathMarkUndeadVulnerability|MoltenFistStun1000|MoltenFistStun2000)">[\s\S]*?\r?\n\t<\/BuffType>/g,
     "",
   );
   if (cleanedXml !== patchedXml) {
@@ -584,6 +571,9 @@ export function patchEntTypes(xml: string): { xml: string; stats: PatchStats } {
 function patchFile(filePath: string, patcher: (xml: string) => { xml: string; stats: PatchStats }, verifyOnly: boolean): PatchStats {
   const original = fs.readFileSync(filePath, "utf8");
   const patched = patcher(original);
+  if (patched.xml === original) {
+    return { ...patched.stats, changes: 0 };
+  }
   if (!verifyOnly && patched.xml !== original) {
     fs.writeFileSync(filePath, patched.xml, "utf8");
   }
@@ -608,10 +598,12 @@ function patchSwz(swzPath: string, verifyOnly: boolean): PatchStats {
     }
     const original = chunk.xml;
     const patched = resource.patcher(original);
-    stats.push(patched.stats);
     if (patched.xml !== original) {
+      stats.push(patched.stats);
       chunk.xml = patched.xml;
       changed = true;
+    } else {
+      stats.push({ ...patched.stats, changes: 0 });
     }
   }
 

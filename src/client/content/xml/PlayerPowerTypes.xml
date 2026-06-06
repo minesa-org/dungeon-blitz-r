@@ -29409,7 +29409,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulEffect,FireBrandRank8</AddSelfBuff>
+		<AddSelfBuff>DragonSoulEffect</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>15000</SpawnDuration>
@@ -29494,7 +29494,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank1,FireBrandRank1</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank1</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>11000</SpawnDuration>
@@ -29523,7 +29523,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank1,FireBrandRank1</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank1</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>12000</SpawnDuration>
@@ -29552,7 +29552,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank3,FireBrandRank3</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>13000</SpawnDuration>
@@ -29581,7 +29581,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank3,FireBrandRank3</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>13000</SpawnDuration>
@@ -29610,7 +29610,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank3,FireBrandRank3</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>13000</SpawnDuration>
@@ -29639,7 +29639,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank3,FireBrandRank6</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>13500</SpawnDuration>
@@ -29668,7 +29668,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank3,FireBrandRank6</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank3</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>13500</SpawnDuration>
@@ -29697,7 +29697,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank8,FireBrandRank8</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank8</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>14500</SpawnDuration>
@@ -29726,7 +29726,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank8,FireBrandRank8</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank8</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>15000</SpawnDuration>
@@ -29755,7 +29755,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>SummonDragonSoul</PowerGroup>
-		<AddSelfBuff>DragonSoulRank8,FireBrandRank8</AddSelfBuff>
+		<AddSelfBuff>DragonSoulRank8</AddSelfBuff>
 		<SpawnedMonsters>DragonSoul</SpawnedMonsters>
 		<SpawnLimit>1</SpawnLimit>
 		<SpawnDuration>15000</SpawnDuration>
@@ -32429,7 +32429,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Burned,Crippled,StunStrike2000</AddTargetBuff>
+		<AddTargetBuff>Scorched,Burned,Crippled,Dazed</AddTargetBuff>
 		<DisplayName>Molten Fist</DisplayName>
 		<Description>Conjure a giant molten fist beneath your foes that Scorches and Burns them, then explodes for more damage.</Description>
 		<IconName>a_PowerIcon_MoltenFist</IconName>
@@ -32733,7 +32733,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Crippled,StunStrike2000</AddTargetBuff>
+		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Crippled,Dazed</AddTargetBuff>
 		<DisplayName>Molten Fist</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Conjure a giant molten fist beneath your foes that Scorches and Burns them, then explodes for more damage.</Description>
@@ -32773,7 +32773,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Crippled,StunStrike2000</AddTargetBuff>
+		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Crippled,Dazed</AddTargetBuff>
 		<DisplayName>Molten Fist</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Conjure a giant molten fist beneath your foes that Scorches and Burns them, then explodes for more damage.</Description>
@@ -32813,7 +32813,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Crippled,StunStrike2000</AddTargetBuff>
+		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Crippled,Dazed</AddTargetBuff>
 		<DisplayName>Molten Fist</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Conjure a giant molten fist beneath your foes that Scorches and Burns them, then explodes for more damage.</Description>
@@ -32853,7 +32853,7 @@
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>MoltenFist</PowerGroup>
-		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Burned,Crippled,StunStrike2000</AddTargetBuff>
+		<AddTargetBuff>Scorched,Scorched,Burned,Burned,Burned,Crippled,Dazed</AddTargetBuff>
 		<DisplayName>Molten Fist</DisplayName>
 		<BasePowerName>MoltenFist</BasePowerName>
 		<Description>Conjure a giant molten fist beneath your foes that Scorches and Burns them, then explodes for more damage.</Description>

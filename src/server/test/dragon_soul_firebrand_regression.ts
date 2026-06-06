@@ -8,17 +8,17 @@ const XML_DIR = path.join(ROOT, "client", "content", "xml");
 const CBQ_DIR = path.join(ROOT, "client", "content", "localhost", "p", "cbq");
 
 const POWER_EXPECTATIONS = new Map<string, { buff: string; duration: string }>([
-  ["SummonDragonSoul", { buff: "FireBrandRank8", duration: "15000" }],
-  ["SummonDragonSoul1", { buff: "FireBrandRank1", duration: "11000" }],
-  ["SummonDragonSoul2", { buff: "FireBrandRank1", duration: "12000" }],
-  ["SummonDragonSoul3", { buff: "FireBrandRank3", duration: "13000" }],
-  ["SummonDragonSoul4", { buff: "FireBrandRank3", duration: "13000" }],
-  ["SummonDragonSoul5", { buff: "FireBrandRank3", duration: "13000" }],
-  ["SummonDragonSoul6", { buff: "FireBrandRank6", duration: "13500" }],
-  ["SummonDragonSoul7", { buff: "FireBrandRank6", duration: "13500" }],
-  ["SummonDragonSoul8", { buff: "FireBrandRank8", duration: "14500" }],
-  ["SummonDragonSoul9", { buff: "FireBrandRank8", duration: "15000" }],
-  ["SummonDragonSoul10", { buff: "FireBrandRank8", duration: "15000" }],
+  ["SummonDragonSoul", { buff: "DragonSoulEffect", duration: "15000" }],
+  ["SummonDragonSoul1", { buff: "DragonSoulRank1", duration: "11000" }],
+  ["SummonDragonSoul2", { buff: "DragonSoulRank1", duration: "12000" }],
+  ["SummonDragonSoul3", { buff: "DragonSoulRank3", duration: "13000" }],
+  ["SummonDragonSoul4", { buff: "DragonSoulRank3", duration: "13000" }],
+  ["SummonDragonSoul5", { buff: "DragonSoulRank3", duration: "13000" }],
+  ["SummonDragonSoul6", { buff: "DragonSoulRank3", duration: "13500" }],
+  ["SummonDragonSoul7", { buff: "DragonSoulRank3", duration: "13500" }],
+  ["SummonDragonSoul8", { buff: "DragonSoulRank8", duration: "14500" }],
+  ["SummonDragonSoul9", { buff: "DragonSoulRank8", duration: "15000" }],
+  ["SummonDragonSoul10", { buff: "DragonSoulRank8", duration: "15000" }],
 ]);
 
 const BUFF_DURATIONS = new Map<string, string>([
@@ -56,10 +56,18 @@ function assertDragonSoulData(powerXml: string, buffXml: string, entXml: string 
     const selfBuffs = tagValue(block, "AddSelfBuff")?.split(",") ?? [];
     assert(
       selfBuffs.includes(expected.buff),
-      `${label}: ${powerName} must add ${expected.buff} so Dragon Soul copies Fire Brand shot behavior`,
+      `${label}: ${powerName} must add ${expected.buff}`,
+    );
+    assert(
+      !selfBuffs.some((buff) => buff === "FireBrand" || /^FireBrandRank\d+$/.test(buff)),
+      `${label}: ${powerName} must not activate Fire Brand when Dragon Soul is summoned`,
     );
     assert.equal(tagValue(block, "SpawnDuration"), expected.duration, `${label}: ${powerName} SpawnDuration`);
     assert(!block.includes("reduced Defense"), `${label}: ${powerName} text must not mention reduced Defense`);
+  }
+
+  for (const powerName of ["FireBrandShot1", "FireBrandShot3", "FireBrandShot6", "FlameAxeFireBrandShot8"]) {
+    assert.equal(tagValue(powerBlock(powerXml, powerName), "BasePowerName"), null, `${label}: ${powerName} must not add loader-risky BasePowerName`);
   }
 
   for (const [buffName, duration] of BUFF_DURATIONS) {
