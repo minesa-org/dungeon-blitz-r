@@ -99,10 +99,6 @@ function formatList(values: Array<number | string>): string {
   return values.map((value) => String(value)).join(",");
 }
 
-function scaleCsv(value: string, factor: number, maxDecimals = 3): string {
-  return formatList(numberList(value).map((item) => Number((item * factor).toFixed(maxDecimals))));
-}
-
 function addBuffs(list: string, ...buffs: string[]): string {
   const parts = list.split(",").map((part) => part.trim()).filter(Boolean);
   for (const buff of buffs) {
