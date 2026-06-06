@@ -29460,6 +29460,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
 		<IconName>a_PowerIcon_FireBall</IconName>
@@ -29784,6 +29785,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29819,6 +29821,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29854,6 +29857,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29889,6 +29893,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29924,6 +29929,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29959,6 +29965,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -29994,6 +30001,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -30029,6 +30037,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -30064,6 +30073,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -30099,6 +30109,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>CrimsonShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<BasePowerName>DragonSoulShot</BasePowerName>
 		<Description>Alevgorur temel menzilli saldirisi. Her ucuncu atis Yanma uygular ve alan hasari verme sansi tasir.</Description>
@@ -31953,6 +31964,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Alev Damgasi Atisi</DisplayName>
 		<Description>Alev Damgasi etkinken menzilli saldirilar alev alan hasari verir.</Description>
 		<IconName>a_PowerIcon_CrimsonShot</IconName>
@@ -31983,6 +31995,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Alev Damgasi Atisi</DisplayName>
 		<Description>Alev Damgasi etkinken menzilli saldirilar alev alan hasari verir.</Description>
 		<IconName>a_PowerIcon_CrimsonShot</IconName>
@@ -32013,6 +32026,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Alev Damgasi Atisi</DisplayName>
 		<Description>Alev Damgasi etkinken menzilli saldirilar alev alan hasari verir.</Description>
 		<IconName>a_PowerIcon_CrimsonShot</IconName>
@@ -32043,6 +32057,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<Description>Alevgorur temel menzilli saldirisi. Hedeflere carpinca durmak yerine iclerinden gecer.</Description>
 		<IconName>a_PowerIcon_FireBall</IconName>
@@ -32078,6 +32093,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Fire</DamageType>
 		<PowerGroup>FireBrandShot</PowerGroup>
+		<AddTargetBuff>FirstTarget:Scorched</AddTargetBuff>
 		<DisplayName>Ates Topu</DisplayName>
 		<Description>Alevgorur temel menzilli saldirisi. Ilk hedeften sonraki hedeflere azaltimli hasar verir.</Description>
 		<IconName>a_PowerIcon_FireBall</IconName>
