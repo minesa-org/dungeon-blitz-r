@@ -23735,7 +23735,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>100,200,200</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
@@ -23772,7 +23772,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>75,150,150</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
@@ -23811,7 +23811,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>75,150,150</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
@@ -23850,7 +23850,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>75,150,150</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
@@ -23889,7 +23889,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>100,200,200,200</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
@@ -23928,7 +23928,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>100,200,200,200,200</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
@@ -23967,7 +23967,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>100,200,200,200,200</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
@@ -24006,7 +24006,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>150,250,250,250,250</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
@@ -24045,7 +24045,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>150,250,250,250,250,250</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
@@ -24084,7 +24084,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>200,300,300,300,300,300</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
@@ -24123,7 +24123,7 @@
 		<TargetMethod>RangedAoE</TargetMethod>
 		<Range>500</Range>
 		<AoERadius>200,300,300,300,300,300,300</AoERadius>
-		<CastAnim>SkyPower2</CastAnim>
+		<CastAnim>RaiseArms2</CastAnim>
 		<CastTime>0,1900,0,0,0,0,0</CastTime>
 		<RecoverTime>800</RecoverTime>
 		<ReleaseTime>250</ReleaseTime>
