@@ -44,6 +44,15 @@ const FIREBRAND_SHOTS: FireBrandShotDef[] = [
 const DRAGON_SOUL_DESCRIPTION =
   "Summon a Spirit of Flame that copies your Fire Brand shots and shoots at your targets. Gain increased damage for the duration.";
 const FIREBRAND_BASE_DURATION_MS = "7813";
+const MINION_MASTER_SUMMON_POWERS = [
+  "SummonGhoul",
+  ...Array.from({ length: 10 }, (_, index) => `SummonGhoul${index + 1}`),
+  "SummonRangedGhoul",
+  ...Array.from({ length: 10 }, (_, index) => `SummonRangedGhoul${index + 1}`),
+  "InfestationSpawn",
+  ...Array.from({ length: 10 }, (_, index) => `InfestationSpawn${index + 1}`),
+  "InfestationSpawnKing",
+].join(",");
 
 function cloneStats(): PatchStats {
   return { ...EMPTY_STATS };
@@ -542,6 +551,11 @@ function patchPowerModBlock(modName: string, block: string, stats: PatchStats): 
   const minionMasterMatch = modName.match(/^MinionMaster([1-5])$/);
   if (minionMasterMatch) {
     stats.modBlocks += 1;
+    next = apply(next, stats, replaceTag(next, "ModType", "Power"));
+    next = apply(next, stats, removeTag(next, "SelfValue"));
+    next = apply(next, stats, upsertTagAfter(next, "PowerName", MINION_MASTER_SUMMON_POWERS, "ModType"));
+    next = apply(next, stats, upsertTagAfter(next, "PowerProperty", "AddSelfBuff", "PowerName"));
+    next = apply(next, stats, upsertTagAfter(next, "PowerValue", `Append:${modName}`, "PowerProperty"));
     if (minionMasterMatch[1] === "1") {
       next = apply(
         next,

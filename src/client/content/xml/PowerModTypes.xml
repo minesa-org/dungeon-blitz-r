@@ -3001,40 +3001,50 @@
 		<ModID>316</ModID>
 		<DisplayName>Minion Master</DisplayName>
 		<Description>Increased Expertise for 5 sec whenever you summon an Undead Minion@Expertise Bonus:, 1%, 2%, 3%, 4%, 5%</Description>
-		<ModType>WTF</ModType>
-		<SelfValue>MinionMaster1</SelfValue>
+		<ModType>Power</ModType>
+		<PowerName>SummonGhoul,SummonGhoul1,SummonGhoul2,SummonGhoul3,SummonGhoul4,SummonGhoul5,SummonGhoul6,SummonGhoul7,SummonGhoul8,SummonGhoul9,SummonGhoul10,SummonRangedGhoul,SummonRangedGhoul1,SummonRangedGhoul2,SummonRangedGhoul3,SummonRangedGhoul4,SummonRangedGhoul5,SummonRangedGhoul6,SummonRangedGhoul7,SummonRangedGhoul8,SummonRangedGhoul9,SummonRangedGhoul10,InfestationSpawn,InfestationSpawn1,InfestationSpawn2,InfestationSpawn3,InfestationSpawn4,InfestationSpawn5,InfestationSpawn6,InfestationSpawn7,InfestationSpawn8,InfestationSpawn9,InfestationSpawn10,InfestationSpawnKing</PowerName>
+		<PowerProperty>AddSelfBuff</PowerProperty>
+		<PowerValue>Append:MinionMaster1</PowerValue>
 		<IconName>a_Signet_MinionMaster</IconName>
 	</PowerModType>
 	<PowerModType>
 		<ModName>MinionMaster2</ModName>
 		<ModID>317</ModID>
 		<DisplayName>Minion Master</DisplayName>
-		<ModType>WTF</ModType>
-		<SelfValue>MinionMaster2</SelfValue>
+		<ModType>Power</ModType>
+		<PowerName>SummonGhoul,SummonGhoul1,SummonGhoul2,SummonGhoul3,SummonGhoul4,SummonGhoul5,SummonGhoul6,SummonGhoul7,SummonGhoul8,SummonGhoul9,SummonGhoul10,SummonRangedGhoul,SummonRangedGhoul1,SummonRangedGhoul2,SummonRangedGhoul3,SummonRangedGhoul4,SummonRangedGhoul5,SummonRangedGhoul6,SummonRangedGhoul7,SummonRangedGhoul8,SummonRangedGhoul9,SummonRangedGhoul10,InfestationSpawn,InfestationSpawn1,InfestationSpawn2,InfestationSpawn3,InfestationSpawn4,InfestationSpawn5,InfestationSpawn6,InfestationSpawn7,InfestationSpawn8,InfestationSpawn9,InfestationSpawn10,InfestationSpawnKing</PowerName>
+		<PowerProperty>AddSelfBuff</PowerProperty>
+		<PowerValue>Append:MinionMaster2</PowerValue>
 		<IconName>a_Signet_MinionMaster</IconName>
 	</PowerModType>
 	<PowerModType>
 		<ModName>MinionMaster3</ModName>
 		<ModID>318</ModID>
 		<DisplayName>Minion Master</DisplayName>
-		<ModType>WTF</ModType>
-		<SelfValue>MinionMaster3</SelfValue>
+		<ModType>Power</ModType>
+		<PowerName>SummonGhoul,SummonGhoul1,SummonGhoul2,SummonGhoul3,SummonGhoul4,SummonGhoul5,SummonGhoul6,SummonGhoul7,SummonGhoul8,SummonGhoul9,SummonGhoul10,SummonRangedGhoul,SummonRangedGhoul1,SummonRangedGhoul2,SummonRangedGhoul3,SummonRangedGhoul4,SummonRangedGhoul5,SummonRangedGhoul6,SummonRangedGhoul7,SummonRangedGhoul8,SummonRangedGhoul9,SummonRangedGhoul10,InfestationSpawn,InfestationSpawn1,InfestationSpawn2,InfestationSpawn3,InfestationSpawn4,InfestationSpawn5,InfestationSpawn6,InfestationSpawn7,InfestationSpawn8,InfestationSpawn9,InfestationSpawn10,InfestationSpawnKing</PowerName>
+		<PowerProperty>AddSelfBuff</PowerProperty>
+		<PowerValue>Append:MinionMaster3</PowerValue>
 		<IconName>a_Signet_MinionMaster</IconName>
 	</PowerModType>
 	<PowerModType>
 		<ModName>MinionMaster4</ModName>
 		<ModID>319</ModID>
 		<DisplayName>Minion Master</DisplayName>
-		<ModType>WTF</ModType>
-		<SelfValue>MinionMaster4</SelfValue>
+		<ModType>Power</ModType>
+		<PowerName>SummonGhoul,SummonGhoul1,SummonGhoul2,SummonGhoul3,SummonGhoul4,SummonGhoul5,SummonGhoul6,SummonGhoul7,SummonGhoul8,SummonGhoul9,SummonGhoul10,SummonRangedGhoul,SummonRangedGhoul1,SummonRangedGhoul2,SummonRangedGhoul3,SummonRangedGhoul4,SummonRangedGhoul5,SummonRangedGhoul6,SummonRangedGhoul7,SummonRangedGhoul8,SummonRangedGhoul9,SummonRangedGhoul10,InfestationSpawn,InfestationSpawn1,InfestationSpawn2,InfestationSpawn3,InfestationSpawn4,InfestationSpawn5,InfestationSpawn6,InfestationSpawn7,InfestationSpawn8,InfestationSpawn9,InfestationSpawn10,InfestationSpawnKing</PowerName>
+		<PowerProperty>AddSelfBuff</PowerProperty>
+		<PowerValue>Append:MinionMaster4</PowerValue>
 		<IconName>a_Signet_MinionMaster</IconName>
 	</PowerModType>
 	<PowerModType>
 		<ModName>MinionMaster5</ModName>
 		<ModID>320</ModID>
 		<DisplayName>Minion Master</DisplayName>
-		<ModType>WTF</ModType>
-		<SelfValue>MinionMaster5</SelfValue>
+		<ModType>Power</ModType>
+		<PowerName>SummonGhoul,SummonGhoul1,SummonGhoul2,SummonGhoul3,SummonGhoul4,SummonGhoul5,SummonGhoul6,SummonGhoul7,SummonGhoul8,SummonGhoul9,SummonGhoul10,SummonRangedGhoul,SummonRangedGhoul1,SummonRangedGhoul2,SummonRangedGhoul3,SummonRangedGhoul4,SummonRangedGhoul5,SummonRangedGhoul6,SummonRangedGhoul7,SummonRangedGhoul8,SummonRangedGhoul9,SummonRangedGhoul10,InfestationSpawn,InfestationSpawn1,InfestationSpawn2,InfestationSpawn3,InfestationSpawn4,InfestationSpawn5,InfestationSpawn6,InfestationSpawn7,InfestationSpawn8,InfestationSpawn9,InfestationSpawn10,InfestationSpawnKing</PowerName>
+		<PowerProperty>AddSelfBuff</PowerProperty>
+		<PowerValue>Append:MinionMaster5</PowerValue>
 		<IconName>a_Signet_MinionMaster</IconName>
 	</PowerModType>
 	<PowerModType>
