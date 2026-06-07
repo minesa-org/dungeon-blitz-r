@@ -180,6 +180,8 @@ export class Client {
     public combatStatsDirty: boolean = false;
     public allowDirtyCombatStatsRegen: boolean = false;
     public lastCombatStatsRefreshRequestAt: number = 0;
+    public lastCombatStatsSyncedAt: number = 0;
+    public pendingRespawnRequest: { usePotion: boolean; requestedAt: number } | null = null;
     public lastCombatActivityAt: number = 0;
     public lastCombatRegenTickAt: number = 0;
     public enemyDeathRegenArmed: boolean = false;
@@ -430,6 +432,8 @@ export class Client {
         this.combatStatsDirty = false;
         this.allowDirtyCombatStatsRegen = false;
         this.lastCombatStatsRefreshRequestAt = 0;
+        this.lastCombatStatsSyncedAt = 0;
+        this.pendingRespawnRequest = null;
         this.lastCombatActivityAt = 0;
         this.lastCombatRegenTickAt = 0;
         this.enemyDeathRegenArmed = false;

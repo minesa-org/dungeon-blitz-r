@@ -8,6 +8,7 @@ import { getClientLevelScope } from '../core/LevelScope';
 import { CharacterSync } from '../utils/CharacterSync';
 import { markAlertState } from '../utils/AlertState';
 import { readSavedKeyBindingsPacket, savedKeyBindingsHaveOverrides } from '../utils/KeyBindings';
+import { CombatHandler } from './CombatHandler';
 import {
     ensureActiveDungeonPotionReserved,
     getActivePotionCharges,
@@ -143,6 +144,8 @@ export class CommandHandler {
         }
         client.combatStatsDirty = false;
         client.allowDirtyCombatStatsRegen = false;
+        client.lastCombatStatsSyncedAt = Date.now();
+        CombatHandler.completePendingRespawnAfterCombatStats(client);
     }
 
     static handleSendCombatStats(client: Client, data: Buffer): void {
@@ -173,6 +176,8 @@ export class CommandHandler {
         }
         client.combatStatsDirty = false;
         client.allowDirtyCombatStatsRegen = false;
+        client.lastCombatStatsSyncedAt = Date.now();
+        CombatHandler.completePendingRespawnAfterCombatStats(client);
     }
 
     static async handleUpdateAlertState(client: Client, data: Buffer): Promise<void> {

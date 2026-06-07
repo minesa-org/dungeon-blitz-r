@@ -157,7 +157,6 @@ export class CombatHandler {
     }
 
     private static readonly PLAYER_OUT_OF_COMBAT_REGEN_DELAY_MS = 5_000;
-    private static readonly PLAYER_OUT_OF_COMBAT_REGEN_INTERVAL_MS = 1_000;
     // Original CombatState.as: REGEN_INTERVAL = 500, CANREGEN_TIME = 6000 - REGEN_INTERVAL,
     // const_1217 = 0.01 for brain/NPC entities.
     private static readonly ORIGINAL_REGEN_INTERVAL_MS = 500;
@@ -165,7 +164,6 @@ export class CombatHandler {
     private static readonly ORIGINAL_BRAIN_REGEN_RATE = 0.01;
     private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS = CombatHandler.ORIGINAL_CAN_REGEN_TIME_MS;
     private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS = CombatHandler.ORIGINAL_REGEN_INTERVAL_MS;
-    private static readonly PLAYER_REGEN_RATE = 0.1;
     private static readonly HOSTILE_REGEN_RATE = CombatHandler.ORIGINAL_BRAIN_REGEN_RATE;
     private static readonly POWER_HIT_CLIENT_AUTHORITY_BOSS_LEVELS = new Set([
         'AC_Mission5',
@@ -309,17 +307,43 @@ export class CombatHandler {
     }
 
     private static getRespawnHealAmount(client: Client): number {
-        const characterLevel = Number(client.character?.level ?? 0);
-        if (Number.isFinite(characterLevel) && characterLevel > 0) {
-            return CombatHandler.getBaseHpForLevel(characterLevel);
+        const entity = client.clientEntID > 0 ? client.entities.get(client.clientEntID) : null;
+        const levelEntity = client.clientEntID > 0
+            ? CombatHandler.resolveLevelEntity(getClientLevelScope(client), client.clientEntID)
+            : null;
+        return CombatHandler.resolvePlayerMaxHp(client, entity, levelEntity);
+    }
+
+    private static hasFreshRespawnCombatStats(client: Client, nowMs: number): boolean {
+        return !client.combatStatsDirty && nowMs - Math.max(0, client.lastCombatStatsSyncedAt) <= 1_000;
+    }
+
+    private static sendRespawnResponse(client: Client, usePotion: boolean): void {
+        const healAmount = CombatHandler.getRespawnHealAmount(client);
+
+        const bb = new BitBuffer(false);
+        bb.writeMethod24(healAmount);
+        bb.writeMethod15(usePotion);
+
+        client.sendBitBuffer(0x80, bb);
+    }
+
+    private static deferRespawnResponseForCombatStats(client: Client, usePotion: boolean, nowMs: number): void {
+        client.pendingRespawnRequest = { usePotion, requestedAt: nowMs };
+        client.combatStatsDirty = true;
+        client.allowDirtyCombatStatsRegen = false;
+        client.lastCombatStatsRefreshRequestAt = nowMs;
+        CharacterSync.requestCombatStatsRefresh(client);
+    }
+
+    static completePendingRespawnAfterCombatStats(client: Client): void {
+        const pending = client.pendingRespawnRequest;
+        if (!pending) {
+            return;
         }
 
-        const authoritativeMaxHp = Number(client.authoritativeMaxHp ?? 0);
-        if (Number.isFinite(authoritativeMaxHp) && authoritativeMaxHp > 0) {
-            return Math.round(authoritativeMaxHp);
-        }
-
-        return CombatHandler.getBaseHpForLevel(1);
+        client.pendingRespawnRequest = null;
+        CombatHandler.sendRespawnResponse(client, pending.usePotion);
     }
 
     private static getHostileBaseHpForLevel(level: number): number {
@@ -668,19 +692,12 @@ export class CombatHandler {
             return;
         }
 
-        const regenState = CombatHandler.getPendingRegenTicks(
-            Math.max(0, client.lastCombatActivityAt),
-            Math.max(0, client.lastCombatRegenTickAt),
-            nowMs,
-            CombatHandler.PLAYER_OUT_OF_COMBAT_REGEN_DELAY_MS,
-            CombatHandler.PLAYER_OUT_OF_COMBAT_REGEN_INTERVAL_MS
-        );
-        if (!regenState) {
+        const regenReadyAt = Math.max(0, client.lastCombatActivityAt) + CombatHandler.PLAYER_OUT_OF_COMBAT_REGEN_DELAY_MS;
+        if (nowMs < regenReadyAt) {
             return;
         }
 
-        const healPerTick = Math.max(1, Math.round(CombatHandler.PLAYER_REGEN_RATE * maxHp));
-        const healAmount = Math.min(maxHp - currentHp, healPerTick * regenState.ticks);
+        const healAmount = maxHp - currentHp;
         if (healAmount <= 0) {
             return;
         }
@@ -706,7 +723,7 @@ export class CombatHandler {
 
         client.authoritativeMaxHp = maxHp;
         client.authoritativeCurrentHp = nextHp;
-        client.lastCombatRegenTickAt = regenState.baseTickAt + (regenState.ticks * CombatHandler.PLAYER_OUT_OF_COMBAT_REGEN_INTERVAL_MS);
+        client.lastCombatRegenTickAt = nowMs;
 
         const payload = CombatHandler.buildCharRegenPayload(client.clientEntID, healAmount);
         client.send(0x3B, payload);
@@ -2470,34 +2487,40 @@ export class CombatHandler {
     static handleRequestRespawn(client: Client, data: Buffer): void {
         const br = new BitReader(data);
         let usePotion = br.readMethod15();
+        const nowMs = Date.now();
+        const hadPendingRespawn = Boolean(client.pendingRespawnRequest);
         if (usePotion) {
             usePotion = CombatHandler.tryConsumeRespawnPotion(client);
         }
 
-        if (!usePotion) {
+        if (!usePotion && !hadPendingRespawn) {
             noteDungeonRunDeath(client);
             client.processedRewardSources.clear();
             CombatHandler.clearLevelEnemyRewardTrackingForRespawn(client);
             CombatHandler.notePlayerDeathState(client);
         }
 
-        const healAmount = CombatHandler.getRespawnHealAmount(client);
+        if (!CombatHandler.hasFreshRespawnCombatStats(client, nowMs)) {
+            CombatHandler.deferRespawnResponseForCombatStats(client, usePotion, nowMs);
+            return;
+        }
 
-        const bb = new BitBuffer(false);
-        bb.writeMethod24(healAmount);
-        bb.writeMethod15(usePotion);
-
-        client.sendBitBuffer(0x80, bb);
+        CombatHandler.sendRespawnResponse(client, usePotion);
     }
 
     static handleRespawnBroadcast(client: Client, data: Buffer): void {
         const br = new BitReader(data);
         const entId = br.readMethod9();
-        const healAmount = Math.max(0, Math.round(br.readMethod24()));
+        const clientHealAmount = Math.max(0, Math.round(br.readMethod24()));
         const usedPotion = br.readMethod15();
         if (usedPotion) {
             CombatHandler.tryConsumeRespawnPotion(client);
         }
+
+        const isSelfRespawn = entId === client.clientEntID;
+        const healAmount = isSelfRespawn
+            ? Math.max(clientHealAmount, CombatHandler.getRespawnHealAmount(client))
+            : clientHealAmount;
 
         const ent = client.entities.get(entId);
         if (ent) {

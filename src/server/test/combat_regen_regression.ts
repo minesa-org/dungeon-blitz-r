@@ -33,6 +33,8 @@ type FakeClient = {
     combatStatsDirty: boolean;
     allowDirtyCombatStatsRegen: boolean;
     lastCombatStatsRefreshRequestAt: number;
+    lastCombatStatsSyncedAt: number;
+    pendingRespawnRequest: { usePotion: boolean; requestedAt: number } | null;
     lastCombatActivityAt: number;
     lastCombatRegenTickAt: number;
     enemyDeathRegenArmed: boolean;
@@ -99,6 +101,8 @@ function createFakeClient(token: number, name: string, roomId: number): FakeClie
         combatStatsDirty: false,
         allowDirtyCombatStatsRegen: false,
         lastCombatStatsRefreshRequestAt: 0,
+        lastCombatStatsSyncedAt: Date.now(),
+        pendingRespawnRequest: null,
         lastCombatActivityAt: 0,
         lastCombatRegenTickAt: 0,
         enemyDeathRegenArmed: false,
@@ -176,6 +180,36 @@ function parseRegenPacket(payload: Buffer): { entityId: number; amount: number }
     };
 }
 
+function parseRespawnBroadcastPacket(payload: Buffer): { entityId: number; amount: number } {
+    const br = new BitReader(payload);
+    return {
+        entityId: br.readMethod4(),
+        amount: br.readMethod24()
+    };
+}
+
+function parseRespawnRequestPacket(payload: Buffer): { amount: number; usedPotion: boolean } {
+    const br = new BitReader(payload);
+    return {
+        amount: br.readMethod24(),
+        usedPotion: br.readMethod15()
+    };
+}
+
+function buildRespawnRequestPayload(usePotion: boolean = false): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod15(usePotion);
+    return bb.toBuffer();
+}
+
+function buildRespawnBroadcastPayload(entityId: number, healAmount: number, usedPotion: boolean = false): Buffer {
+    const bb = new BitBuffer(false);
+    bb.writeMethod4(entityId);
+    bb.writeMethod24(healAmount);
+    bb.writeMethod15(usedPotion);
+    return bb.toBuffer();
+}
+
 function buildCombatStatsPayload(meleeDamage: number, magicDamage: number, maxHp: number, scale: number, revision: number): Buffer {
     const bb = new BitBuffer(false);
     bb.writeMethod9(meleeDamage);
@@ -233,8 +267,8 @@ function testPlayerAndDungeonBossRegenAfterIdle(): void {
 
     CombatHandler.processOutOfCombatRegen(levelScope, nowMs);
 
-    assert.equal(player.authoritativeCurrentHp, 700, 'player should recover 10% of max HP after the idle window');
-    assert.equal(playerEntity.hp, 700, 'player entity snapshot should track regenerated HP');
+    assert.equal(player.authoritativeCurrentHp, 1000, 'player should fully recover after the idle window');
+    assert.equal(playerEntity.hp, 1000, 'player entity snapshot should track regenerated HP');
     assert.equal(hostile.hp, 410, 'dungeon bosses should regenerate from idle time while the player is alive');
 
     const regenPackets = player.sentPackets.filter((packet) => packet.id === 0x3B);
@@ -242,7 +276,7 @@ function testPlayerAndDungeonBossRegenAfterIdle(): void {
 
     const parsedRegenPackets = regenPackets.map((packet) => parseRegenPacket(packet.payload));
     assert.deepEqual(parsedRegenPackets.filter((packet) => packet.entityId === player.clientEntID), [
-        { entityId: player.clientEntID, amount: 100 }
+        { entityId: player.clientEntID, amount: 400 }
     ]);
     assert.deepEqual(parsedRegenPackets.filter((packet) => packet.entityId === hostileId), [
         { entityId: hostileId, amount: 10 }
@@ -269,13 +303,13 @@ function testPlayerRegenUsesEntityHealEncoding(): void {
 
     CombatHandler.processOutOfCombatRegen(levelScope, nowMs);
 
-    assert.equal(player.authoritativeCurrentHp, 7109, 'player should recover 803 HP from 6306/8031 after the idle window');
+    assert.equal(player.authoritativeCurrentHp, 8031, 'player should recover to full HP after the idle window');
 
     const regenPacket = player.sentPackets.find((packet) => packet.id === 0x3B);
     assert.ok(regenPacket, 'player regen should emit the heal packet');
     assert.deepEqual(parseRegenPacket(regenPacket!.payload), {
         entityId: player.clientEntID,
-        amount: 803
+        amount: 1725
     });
 }
 
@@ -305,13 +339,13 @@ function testPlayerRegenSeedsMissingActivityAndTrustsAuthoritativeHp(): void {
 
     CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 1_000);
 
-    assert.equal(player.authoritativeCurrentHp, 700, 'player regen should use authoritative HP when entity snapshots are stale full');
-    assert.equal(playerEntity.hp, 700, 'stale player entity HP should be corrected by regen');
+    assert.equal(player.authoritativeCurrentHp, 1000, 'player regen should use authoritative HP when entity snapshots are stale full');
+    assert.equal(playerEntity.hp, 1000, 'stale player entity HP should be corrected by regen');
     const regenPacket = player.sentPackets.find((packet) => packet.id === 0x3B);
     assert.ok(regenPacket, 'seeded player regen should emit the heal packet on the next tick');
     assert.deepEqual(parseRegenPacket(regenPacket!.payload), {
         entityId: player.clientEntID,
-        amount: 100
+        amount: 400
     });
 }
 
@@ -336,19 +370,19 @@ function testAiHeartbeatContinuesPlayerRegenUntilFull(): void {
     try {
         Date.now = () => 10_000;
         AILogic.updateLevel(levelScope);
-        assert.equal(player.authoritativeCurrentHp, 7109, 'first server heartbeat tick should heal 803 HP');
+        assert.equal(player.authoritativeCurrentHp, 8031, 'first server heartbeat tick should carry the player to full HP');
 
         Date.now = () => 10_500;
         AILogic.updateLevel(levelScope);
-        assert.equal(player.authoritativeCurrentHp, 7109, 'player regen should wait for the next full second before healing again');
+        assert.equal(player.authoritativeCurrentHp, 8031, 'player should remain full after out-of-combat regen');
 
         Date.now = () => 11_000;
         AILogic.updateLevel(levelScope);
-        assert.equal(player.authoritativeCurrentHp, 7912, 'second server heartbeat tick should continue healing');
+        assert.equal(player.authoritativeCurrentHp, 8031, 'subsequent heartbeat ticks should not over-heal');
 
         Date.now = () => 12_000;
         AILogic.updateLevel(levelScope);
-        assert.equal(player.authoritativeCurrentHp, 8031, 'subsequent heartbeat ticks should carry the player to full HP');
+        assert.equal(player.authoritativeCurrentHp, 8031, 'subsequent heartbeat ticks should keep the player at full HP');
     } finally {
         Date.now = originalDateNow;
     }
@@ -409,7 +443,7 @@ function testStaleHundredHpSnapshotDoesNotShrinkPlayerRegen(): void {
     assert.ok(regenPacket, 'stale player snapshot should still emit a regen packet');
     assert.deepEqual(parseRegenPacket(regenPacket!.payload), {
         entityId: player.clientEntID,
-        amount: 803
+        amount: 7990
     });
 }
 
@@ -505,12 +539,12 @@ async function testGearChangeDirtyStatsStillAllowPlayerRegen(): Promise<void> {
         player.sentPackets.length = 0;
         AILogic.updateLevel(levelScope);
 
-        assert.equal(player.authoritativeCurrentHp, 7109, 'player regen should continue after changing gear');
+        assert.equal(player.authoritativeCurrentHp, 8031, 'player regen should continue after changing gear and fill HP');
         const regenPacket = player.sentPackets.find((packet) => packet.id === 0x3B);
         assert.ok(regenPacket, 'gear change should not prevent the regen packet');
         assert.deepEqual(parseRegenPacket(regenPacket!.payload), {
             entityId: player.clientEntID,
-            amount: 803
+            amount: 1725
         });
     } finally {
         Date.now = originalDateNow;
@@ -523,7 +557,7 @@ function testIdleWindowBlocksRegen(): void {
     const nowMs = 10_000;
     const player = createFakeClient(2, 'Beta', 5);
     player.authoritativeCurrentHp = 600;
-    player.lastCombatActivityAt = nowMs - 5750;
+    player.lastCombatActivityAt = nowMs - 4_750;
 
     attachPlayerEntity(player);
     const playerEntity = player.entities.get(player.clientEntID)!;
@@ -535,8 +569,91 @@ function testIdleWindowBlocksRegen(): void {
 
     CombatHandler.processOutOfCombatRegen(levelScope, nowMs);
 
-    assert.equal(player.authoritativeCurrentHp, 600, 'regen should not start before the first 1000ms tick is due');
+    assert.equal(player.authoritativeCurrentHp, 600, 'regen should not start before the five-second idle timer matures');
     assert.equal(player.sentPackets.length, 0, 'no regen packet should be emitted before the idle timer matures');
+}
+
+async function testSelfRespawnBroadcastRestoresFullHp(): Promise<void> {
+    resetState();
+
+    const player = createFakeClient(17, 'Rho', 35);
+    const watcher = createFakeClient(18, 'Sigma', 35);
+    player.character!.level = 2;
+    player.authoritativeMaxHp = 8031;
+    player.authoritativeCurrentHp = 0;
+
+    attachPlayerEntity(player);
+    attachPlayerEntity(watcher);
+    const playerEntity = player.entities.get(player.clientEntID)!;
+    playerEntity.hp = 0;
+    playerEntity.maxHp = 8031;
+    playerEntity.dead = true;
+    playerEntity.entState = EntityState.DEAD;
+    watcher.knownEntityIds.add(player.clientEntID);
+
+    GlobalState.sessionsByToken.set(player.token, player as never);
+    GlobalState.sessionsByToken.set(watcher.token, watcher as never);
+
+    await CombatHandler.handleRespawnBroadcast(
+        player as never,
+        buildRespawnBroadcastPayload(player.clientEntID, 1, false)
+    );
+
+    assert.equal(player.authoritativeCurrentHp, 8031, 'self respawn should restore full server-known HP');
+    assert.equal(playerEntity.hp, 8031, 'self respawn entity state should not keep the low client revive HP');
+    assert.equal(playerEntity.dead, false, 'self respawn should clear local dead state');
+
+    const respawnPacket = watcher.sentPackets
+        .filter((packet) => packet.id === 0x82)
+        .map((packet) => parseRespawnBroadcastPacket(packet.payload))
+        .find((packet) => packet.entityId === player.clientEntID);
+    assert.deepEqual(respawnPacket, {
+        entityId: player.clientEntID,
+        amount: 8031
+    });
+}
+
+async function testRespawnRequestWaitsForFreshFullKnownPlayerHp(): Promise<void> {
+    resetState();
+
+    const player = createFakeClient(19, 'Tau', 39);
+    player.character!.level = 50;
+    player.authoritativeMaxHp = 67_582;
+    player.authoritativeCurrentHp = 0;
+    player.lastCombatStatsSyncedAt = Date.now() - 5_000;
+
+    attachPlayerEntity(player);
+    const playerEntity = player.entities.get(player.clientEntID)!;
+    playerEntity.hp = 0;
+    playerEntity.maxHp = 67_582;
+    playerEntity.dead = true;
+    playerEntity.entState = EntityState.DEAD;
+
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    await CombatHandler.handleRequestRespawn(player as never, buildRespawnRequestPayload(false));
+
+    assert.equal(
+        player.sentPackets.some((packet) => packet.id === 0x80),
+        false,
+        'stale respawn requests should wait for fresh combat stats before sending revive HP'
+    );
+    assert.equal(
+        player.sentPackets.some((packet) => packet.id === 0xFB),
+        true,
+        'stale respawn requests should ask the client for current combat stats'
+    );
+    assert.ok(player.pendingRespawnRequest, 'respawn request should be remembered until combat stats arrive');
+
+    CommandHandler.handleSendCombatStats(player as never, buildCombatStatsPayload(123, 234, 88_541, 3, 12));
+
+    const respawnPacket = player.sentPackets.find((packet) => packet.id === 0x80);
+    assert.ok(respawnPacket, 'respawn request should emit the revive response packet');
+    assert.deepEqual(parseRespawnRequestPacket(respawnPacket!.payload), {
+        amount: 88_541,
+        usedPotion: false
+    });
+    assert.equal(player.pendingRespawnRequest, null, 'fresh combat stats should complete the pending respawn request');
 }
 
 async function testDeadPlayerArmsBossRegenForNextOriginalTick(): Promise<void> {
@@ -1073,6 +1190,8 @@ async function run(): Promise<void> {
     testDirtyCombatStatsBlockRegenUntilFreshSync();
     await testGearChangeDirtyStatsStillAllowPlayerRegen();
     testIdleWindowBlocksRegen();
+    await testSelfRespawnBroadcastRestoresFullHp();
+    await testRespawnRequestWaitsForFreshFullKnownPlayerHp();
     await testDeadPlayerArmsBossRegenForNextOriginalTick();
     await testClientDeadStateArmsBossRegenForNextOriginalTick();
     await testRespawnRequestMarksDeadBeforeArmingBossRegen();
