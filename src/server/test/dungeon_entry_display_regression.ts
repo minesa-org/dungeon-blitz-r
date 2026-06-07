@@ -44,6 +44,6 @@ const unknownParams = DungeonEntryDisplay.buildMomentParams('TutorialDungeonHard
 assert.match(unknownParams, /^Hard,EnemyElements=/);
 
 const clientAuthoredFallbackParams = DungeonEntryDisplay.buildMomentParams('OMM_Mission1Hard', 'Hard');
-assert.equal(clientAuthoredFallbackParams, 'Hard,EnemyElements=Life');
+assert.equal(clientAuthoredFallbackParams, 'Hard,EnemyElements=Air|Earth');
 
 console.log('dungeon_entry_display_regression: ok');

@@ -13,9 +13,9 @@ const KINGDOM_TO_ELEMENT: Record<string, string> = {
     Trog: 'Earth',
     Undead: 'Death'
 };
-const LEVEL_ELEMENT_FALLBACKS: Record<string, string> = {
-    OMM_Mission1: 'Life',
-    OMM_Mission1Hard: 'Life'
+const LEVEL_ELEMENT_FALLBACKS: Record<string, string[]> = {
+    OMM_Mission1: ['Air', 'Earth'],
+    OMM_Mission1Hard: ['Air', 'Earth']
 };
 
 function normalizeElement(value: unknown): string {
@@ -84,8 +84,10 @@ export class DungeonEntryDisplay {
         });
 
         if (sorted.length === 0) {
-            const fallback = normalizeElement(LEVEL_ELEMENT_FALLBACKS[levelName]);
-            return fallback || 'Unknown';
+            const fallback = (LEVEL_ELEMENT_FALLBACKS[levelName] ?? [])
+                .map((element) => normalizeElement(element))
+                .filter((element) => element);
+            return fallback.length > 0 ? fallback.join('|') : 'Unknown';
         }
 
         return sorted.map(([element]) => element).join('|');

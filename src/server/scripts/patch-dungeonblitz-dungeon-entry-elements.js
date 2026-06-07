@@ -105,6 +105,13 @@ function exportClass(ffdecPath, workRoot, swfPath) {
 function patchClass100(source) {
     const eol = source.includes('\r\n') ? '\r\n' : '\n';
     let patched = source;
+    const arrayDeclaration = '         var _loc8_:Array = null;';
+    if (!patched.includes(arrayDeclaration)) {
+        const stringDeclaration = '         var _loc7_:String = null;';
+        if (patched.includes(stringDeclaration)) {
+            patched = patched.replace(stringDeclaration, `${stringDeclaration}${eol}${arrayDeclaration}`);
+        }
+    }
 
     const oldTwoLine = [
         '            for each(_loc6_ in _loc2_.var_1550)',
@@ -119,6 +126,40 @@ function patchClass100(source) {
         '            if(_loc7_)',
         '            {',
         '               _loc6_ += "\\nEnemy Elements: " + _loc7_;',
+        '            }',
+        '            MathUtil.method_2(this.var_1413.am_Text,_loc6_);'
+    ].join(eol);
+
+    const oldOneLine = [
+        '            for each(_loc6_ in _loc2_.var_1550)',
+        '            {',
+        '               if(_loc6_.indexOf("EnemyElements=") == 0)',
+        '               {',
+        '                  _loc7_ = _loc6_.substr(14).split("|").join(", ") + " Creatures";',
+        '                  break;',
+        '               }',
+        '            }',
+        '            _loc6_ = "Dungeon Level: " + _loc5_;',
+        '            if(_loc7_)',
+        '            {',
+        '               _loc6_ += " - " + _loc7_;',
+        '            }',
+        '            MathUtil.method_2(this.var_1413.am_Text,_loc6_);'
+    ].join(eol);
+
+    const oldOneLineSource = [
+        '            for each(_loc6_ in _loc2_.var_1550)',
+        '            {',
+        '               if(_loc6_.indexOf("EnemyElements=") == 0)',
+        '               {',
+        '                  _loc7_ = _loc6_.substr("EnemyElements=".length).split("|").join(", ") + " Creatures";',
+        '                  break;',
+        '               }',
+        '            }',
+        '            _loc6_ = "Dungeon Level: " + _loc5_;',
+        '            if(_loc7_)',
+        '            {',
+        '               _loc6_ += " - " + _loc7_;',
         '            }',
         '            MathUtil.method_2(this.var_1413.am_Text,_loc6_);'
     ].join(eol);
@@ -145,7 +186,8 @@ function patchClass100(source) {
         '            {',
         '               if(_loc6_.indexOf("EnemyElements=") == 0)',
         '               {',
-        '                  _loc7_ = _loc6_.substr("EnemyElements=".length).split("|").join(", ") + " Creatures";',
+        '                  _loc8_ = _loc6_.substr("EnemyElements=".length).split("|");',
+        '                  _loc7_ = _loc8_.length == 2 ? _loc8_[0] + " and " + _loc8_[1] + " Creatures" : _loc8_.join(", ") + " Creatures";',
         '                  break;',
         '               }',
         '            }',
@@ -163,6 +205,14 @@ function patchClass100(source) {
         return patched;
     }
 
+    if (patched.includes(oldOneLine)) {
+        return patched.replace(oldOneLine, oneLinePatch);
+    }
+
+    if (patched.includes(oldOneLineSource)) {
+        return patched.replace(oldOneLineSource, oneLinePatch);
+    }
+
     if (patched.includes(oldTwoLine)) {
         return patched.replace(oldTwoLine, oneLinePatch);
     }
@@ -175,14 +225,15 @@ function patchClass100(source) {
     const patchedDeclaration = [
         declaration,
         '         var _loc6_:String = null;',
-        '         var _loc7_:String = null;'
+        '         var _loc7_:String = null;',
+        '         var _loc8_:Array = null;'
     ].join(eol);
 
     const levelText = '            MathUtil.method_2(this.var_1413.am_Text,"Dungeon Level: " + _loc5_);';
-    if (!source.includes(declaration)) {
+    if (!patched.includes(declaration)) {
         throw new Error('Could not find class_100 local declaration marker.');
     }
-    if (!source.includes(levelText)) {
+    if (!patched.includes(levelText)) {
         throw new Error('Could not find class_100 dungeon level text marker.');
     }
 
