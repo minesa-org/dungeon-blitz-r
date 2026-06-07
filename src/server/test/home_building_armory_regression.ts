@@ -283,6 +283,107 @@ async function testBuildingMutationBlockedAndOwnerStateReasserted(): Promise<voi
     assert.equal(ownerTower?.targetRank, 4, 'visited Home building refresh should reassert owner tower state');
 }
 
+function testBuildingRefreshReassertsInactiveClassTowers(): void {
+    const character = {
+        ...createCharacter('DariusLike'),
+        class: 'Paladin',
+        MasterClass: 5,
+        magicForge: {
+            stats_by_building: {
+                '1': 10,
+                '2': 1,
+                '3': 10,
+                '4': 10,
+                '5': 10,
+                '12': 5,
+                '13': 0
+            }
+        },
+        buildingUpgrade: { buildingID: 0, rank: 0, ReadyTime: 0 }
+    };
+    const sentPackets: SentPacket[] = [];
+    const client: FakeClient = {
+        userId: 9,
+        token: 93001,
+        character,
+        craftTownHostCharacter: null,
+        characters: [character],
+        currentLevel: 'CraftTown',
+        levelInstanceId: getCraftTownHomeInstanceId(character),
+        playerSpawned: true,
+        clientEntID: 4001,
+        entities: new Map(),
+        sentPackets,
+        sendBitBuffer(id: number, bb: BitBuffer): void {
+            sentPackets.push({ id, payload: bb.toBuffer() });
+        },
+        send(id: number, payload: Buffer): void {
+            sentPackets.push({ id, payload });
+        }
+    };
+
+    BuildingHandler.sendBuildingUpdate(client as never);
+
+    const deltas = sentPackets
+        .filter((packet) => packet.id === 0xDA)
+        .map((packet) => decodeBuildingDelta(packet.payload));
+    const ranksByBuilding = new Map(deltas.map((delta) => [delta.targetBuildingId, delta.targetRank]));
+
+    assert.equal(ranksByBuilding.get(3), 10, 'Justicar tower should still be reasserted as the active tower');
+    assert.equal(ranksByBuilding.get(4), 10, 'Sentinel tower should be reasserted even when Justicar is active');
+    assert.equal(ranksByBuilding.get(5), 10, 'Templar tower should be reasserted even when Justicar is active');
+
+    const classTowerOrder = deltas
+        .map((delta) => delta.targetBuildingId)
+        .filter((buildingId) => [3, 4, 5].includes(buildingId));
+    assert.deepEqual(
+        classTowerOrder,
+        [4, 5, 3],
+        'active Justicar tower should be the final class-tower refresh so inactive tower art cannot override it'
+    );
+}
+
+function testBuildingRefreshKeepsVisitedOwnerInactiveClassTowers(): void {
+    const client = createVisitedClient();
+    client.craftTownHostCharacter = {
+        ...createCharacter('DariusOwner'),
+        class: 'Paladin',
+        MasterClass: 4,
+        magicForge: {
+            stats_by_building: {
+                '1': 10,
+                '2': 1,
+                '3': 10,
+                '4': 9,
+                '5': 8,
+                '12': 5,
+                '13': 0
+            }
+        },
+        buildingUpgrade: { buildingID: 0, rank: 0, ReadyTime: 0 }
+    };
+
+    BuildingHandler.sendBuildingUpdate(client as never);
+
+    const deltas = client.sentPackets
+        .filter((packet) => packet.id === 0xDA)
+        .map((packet) => decodeBuildingDelta(packet.payload));
+    const ranksByBuilding = new Map(deltas.map((delta) => [delta.targetBuildingId, delta.targetRank]));
+
+    assert.equal(ranksByBuilding.get(3), 10, 'visited owner Justicar tower should be reasserted');
+    assert.equal(ranksByBuilding.get(4), 9, 'visited owner Sentinel tower should be reasserted');
+    assert.equal(ranksByBuilding.get(5), 8, 'visited owner Templar tower should be reasserted');
+
+    const classTowerOrder = deltas
+        .map((delta) => delta.targetBuildingId)
+        .filter((buildingId) => [3, 4, 5].includes(buildingId));
+    assert.deepEqual(
+        classTowerOrder,
+        [3, 5, 4],
+        'visited owner active Sentinel tower should be the final class-tower refresh'
+    );
+}
+
 function testVisitedHomeEnterWorldMarksOwnerToken(): void {
     const client = createVisitedClient();
     const packet = WorldEnter.buildEnterWorldPacket(
@@ -548,6 +649,8 @@ async function testArmoryUsesVisitedHomeHostInventory(): Promise<void> {
 async function main(): Promise<void> {
     testGuardDetectsOnlyOtherPlayersHome();
     await testBuildingMutationBlockedAndOwnerStateReasserted();
+    testBuildingRefreshReassertsInactiveClassTowers();
+    testBuildingRefreshKeepsVisitedOwnerInactiveClassTowers();
     testVisitedHomeEnterWorldMarksOwnerToken();
     testVisitedHomeTransferFallsBackToSessionHostWhenVisitMapMisses();
     testCraftTownHomeScopesAreOwnerSpecific();

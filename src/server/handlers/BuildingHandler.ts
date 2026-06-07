@@ -402,6 +402,11 @@ export class BuildingHandler {
             8: BuildingID.FlameseerTower,
             9: BuildingID.NecromancerTower
          };
+         const CLASS_TOWER_BUILDINGS: Record<string, number[]> = {
+            paladin: [BuildingID.JusticarTower, BuildingID.SentinelTower, BuildingID.TemplarTower],
+            mage: [BuildingID.FrostwardenTower, BuildingID.FlameseerTower, BuildingID.NecromancerTower],
+            rogue: [BuildingID.ExecutionerTower, BuildingID.ShadowwalkerTower, BuildingID.SoulthiefTower]
+         };
          
          const masterClassId = WorldEnter.resolveMasterClass(homeCharacter);
          const towerBuildingId = MASTERCLASS_TO_BUILDING[masterClassId] || 3;
@@ -428,9 +433,11 @@ export class BuildingHandler {
              client.sendBitBuffer(0xDA, bb);
          };
 
-         // Send updates for core buildings
-         // Python: for bid in (2, 12, tower_building_id, 1, 13):
-         const bids = [2, 12, towerBuildingId, 1, 13];
+         // Reassert every class tower. Sending only the active tower lets inactive
+         // discipline towers fall back to rank 1 after a relog/House refresh.
+         const classTowerIds = CLASS_TOWER_BUILDINGS[String(homeCharacter.class ?? '').toLowerCase()] ?? [towerBuildingId];
+         const inactiveClassTowerIds = classTowerIds.filter((buildingId) => buildingId !== towerBuildingId);
+         const bids = Array.from(new Set([2, 12, ...inactiveClassTowerIds, towerBuildingId, 1, 13]));
          for (const bid of bids) {
              sendDelta(bid, getStat(bid));
          }
