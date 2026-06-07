@@ -36914,6 +36914,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>RapierMelee</PowerGroup>
+		<AddTargetBuff>Bleeding</AddTargetBuff>
 		<DisplayName>Dagger Melee</DisplayName>
 		<CastSound>snd_pwr_melee_rogue_01|snd_pwr_melee_rogue_02|snd_pwr_melee_rogue_03</CastSound>
 		<CastGfx/>
@@ -36941,6 +36942,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SaberMelee</PowerGroup>
+		<AddTargetBuff>Bleeding</AddTargetBuff>
 		<DisplayName>Sword Melee</DisplayName>
 		<CastSound>snd_pwr_melee_rogue_01|snd_pwr_melee_rogue_02|snd_pwr_melee_rogue_03</CastSound>
 		<CastGfx/>
@@ -40449,6 +40451,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Nature</DamageType>
 		<PowerGroup>PoisonDaggers</PowerGroup>
+		<AddTargetBuff>PoisonStrike</AddTargetBuff>
 		<DisplayName>Bone Daggers</DisplayName>
 		<Description>Bone-shaped daggers favored by the Viperblade.</Description>
 		<IconName>a_PowerIcon_PoisonDagger</IconName>
@@ -40481,6 +40484,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Nature</DamageType>
 		<PowerGroup>PoisonDaggers</PowerGroup>
+		<AddTargetBuff>PoisonStrike</AddTargetBuff>
 		<DisplayName>Bone Daggers</DisplayName>
 		<BasePowerName>PoisonDagger</BasePowerName>
 		<Description>Bone-shaped daggers favored by the Viperblade.</Description>
