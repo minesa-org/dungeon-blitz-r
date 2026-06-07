@@ -341,6 +341,41 @@ async function testSentinelFormInstantIdolResearchInfersMissingSavedRank(): Prom
     assert.equal(client.sentPackets.some((packet) => packet.id === 0xBF), true);
 }
 
+async function testFlameseerCanSpeedupOtherMageDisciplineAbilityResearch(): Promise<void> {
+    for (const [abilityId, speedupCost] of [[34, 21], [106, 24]] as const) {
+        const client = createClient();
+        client.character.level = 50;
+        client.character.gold = 1000000;
+        client.character.mammothIdols = 100;
+        client.character.MasterClass = 8;
+        client.character.learnedAbilities = [
+            { abilityID: 10, rank: 1 },
+            { abilityID: 14, rank: 1 },
+            { abilityID: 58, rank: 10 },
+            { abilityID: 60, rank: 10 },
+            { abilityID: 62, rank: 10 },
+            { abilityID: 64, rank: 10 }
+        ];
+        client.character.activeAbilities = [58, 60, 64];
+        client.character.SkillResearch = {};
+
+        await withMockedCharacterSave(async () => {
+            await AbilityHandler.handleStartAbilityResearch(client as never, createAbilityStartPacket(abilityId, 2));
+            await AbilityHandler.handleSpeedupAbilityResearch(client as never, createSpeedupPacket(speedupCost));
+        });
+
+        assert.deepEqual(
+            client.character.learnedAbilities.find((ability: any) => ability.abilityID === abilityId),
+            { abilityID: abilityId, rank: 2 },
+            `Flameseer should be able to speed up off-discipline Mage ability ${abilityId}`
+        );
+        assert.deepEqual(client.character.SkillResearch, {});
+        assert.equal(client.character.mammothIdols, 100 - speedupCost);
+        assert.equal(client.sentPackets.some((packet) => packet.id === 0xB5), true);
+        assert.equal(client.sentPackets.some((packet) => packet.id === 0xBF), true);
+    }
+}
+
 async function main(): Promise<void> {
     await testDuplicateTutorialAbilityRequestCompletesWithoutGrantingExtraRank();
     await testDefaultMasterAbilityCanStartRankTwoResearch();
@@ -350,6 +385,7 @@ async function main(): Promise<void> {
     await testSentinelFormInstantIdolResearchAppliesRank();
     await testSentinelFormSpeedupResearchAppliesRank();
     await testSentinelFormInstantIdolResearchInfersMissingSavedRank();
+    await testFlameseerCanSpeedupOtherMageDisciplineAbilityResearch();
     console.log('ability_tutorial_compat_regression: ok');
 }
 

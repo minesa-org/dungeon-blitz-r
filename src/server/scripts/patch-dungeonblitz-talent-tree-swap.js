@@ -108,10 +108,37 @@ function patchSource(source) {
     ].join(eol);
 
     if (source.includes(patched)) {
-        return source;
+        return patchTalentStoneRefresh(source, eol);
     }
     if (!source.includes(original)) {
         throw new Error('Could not find LinkUpdater.method_1914 talent decode block');
+    }
+
+    return patchTalentStoneRefresh(source.replace(original, patched), eol);
+}
+
+function patchTalentStoneRefresh(source, eol) {
+    const refresh = '            this.var_1.screenSigil.Refresh();';
+    if (source.includes(refresh)) {
+        return source;
+    }
+
+    const original = [
+        '               this.var_1.bWaitingForChangeMasterClassResponse = false;',
+        '            }',
+        '         }',
+        '         else'
+    ].join(eol);
+    const patched = [
+        '               this.var_1.bWaitingForChangeMasterClassResponse = false;',
+        '            }',
+        refresh,
+        '         }',
+        '         else'
+    ].join(eol);
+
+    if (!source.includes(original)) {
+        throw new Error('Could not find LinkUpdater.method_1914 client refresh block');
     }
 
     return source.replace(original, patched);
@@ -121,7 +148,8 @@ function verifySource(source) {
     const required = [
         '_loc8_ += param1.method_6(_loc7_);',
         'class_14.var_368[_loc4_][_loc9_]',
-        'new class_148(_loc10_,_loc8_)'
+        'new class_148(_loc10_,_loc8_)',
+        'this.var_1.screenSigil.Refresh();'
     ];
 
     for (const snippet of required) {
