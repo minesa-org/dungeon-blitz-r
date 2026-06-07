@@ -8,7 +8,12 @@ import {
 import { GameData } from '../core/GameData';
 import { GlobalState } from '../core/GlobalState';
 import { isWolfsEndDungeonLevel } from '../core/WolfsEndDungeonStatsPolicy';
-import { finalizeDungeonRun, getActiveDungeonRunStats, noteDungeonRunCompletionProgress } from '../core/DungeonRunStats';
+import {
+    finalizeDungeonRun,
+    getActiveDungeonRunStats,
+    noteDungeonRunBossCutscene,
+    noteDungeonRunCompletionProgress
+} from '../core/DungeonRunStats';
 import { buildDungeonRunScoreSummary } from '../core/DungeonRunStats';
 import { EntityState, EntityTeam } from '../core/Entity';
 import { BuildingID } from '../core/Enums';
@@ -1266,10 +1271,14 @@ export class MissionHandler {
         const forceSharedDungeonCompletion = Boolean(levelScope) && client.forcedDungeonCompletionScope === levelScope;
         const defeatedDungeonBossForcesCompletion = MissionHandler.hasDefeatedDungeonBoss(client, levelScope);
 
-        const trackerCompletionPercent = Math.max(0, Number(client.character.questTrackerState ?? 0));
+        const trackerCompletionPercent = Math.max(
+            0,
+            Math.min(100, Math.round(Number(client.character.questTrackerState ?? 0) || 0))
+        );
         let effectiveCompletionPercent = isWolfsEndDungeonLevel(currentLevel)
             ? Math.max(completionPercent, trackerCompletionPercent)
             : completionPercent;
+        let scoringCompletionPercent = effectiveCompletionPercent;
         let actualKills = Math.max(requiredKills - remainingKills, 0);
         let clearedDungeon =
             effectiveCompletionPercent >= 100 ||
@@ -1289,6 +1298,13 @@ export class MissionHandler {
             forceSharedDungeonCompletionAllowed ||
             allowCraftTownTutorialClientCompletion ||
             (defeatedDungeonBossForcesCompletion && dungeonCompletionObjectivesMet);
+        if (
+            serverValidatedDungeonCompletion &&
+            trackerCompletionPercent > 0 &&
+            trackerCompletionPercent < 100
+        ) {
+            scoringCompletionPercent = trackerCompletionPercent;
+        }
 
         if (usesSharedDungeonProgress(currentLevel) && levelScope) {
             const sharedState = serverValidatedDungeonCompletion
@@ -1316,6 +1332,7 @@ export class MissionHandler {
                     MissionHandler.broadcastSharedDungeonQuestProgress(levelScope, 100);
                 } else {
                     effectiveCompletionPercent = Math.max(effectiveCompletionPercent, Number(sharedState.progress ?? 0));
+                    scoringCompletionPercent = effectiveCompletionPercent;
                 }
                 noteDungeonRunCompletionProgress(client, effectiveCompletionPercent);
                 clearedDungeon =
@@ -1445,7 +1462,8 @@ export class MissionHandler {
                 goldReward,
                 requiredKills,
                 actualKills,
-                dungeonCompleted: clearedDungeon
+                dungeonCompleted: clearedDungeon,
+                scoringCompletionPercent
             }
         );
 
@@ -1723,6 +1741,12 @@ export class MissionHandler {
 
         const isCutsceneActive = String(client.activeDungeonCutsceneScope ?? '').trim() === levelScope;
         const isBossEntity = MissionHandler.isDungeonCompletionBossEntity(triggerEntity);
+        if (isBossEntity) {
+            const bossRoomId = MissionHandler.getEntityRoomId(triggerEntity);
+            if (bossRoomId > 0) {
+                noteDungeonRunBossCutscene(levelScope, bossRoomId, Math.max(0, Math.round(Number(triggerEntity?.id ?? 0))));
+            }
+        }
         const waitForCutsceneEnd = isCutsceneActive ||
             (isBossEntity && MissionHandler.hasPostDeathBossCutscene(currentLevel));
         MissionHandler.scheduleDungeonCompletion(
@@ -1971,6 +1995,7 @@ export class MissionHandler {
         client.activeDungeonCutsceneRoomId = Math.max(0, Math.round(Number(roomId ?? 0)));
         client.lastDungeonCutsceneStartScope = scope;
         client.lastDungeonCutsceneStartAt = Date.now();
+        MissionHandler.activateBossRunStatsForCutsceneRoom(client, scope, client.activeDungeonCutsceneRoomId);
     }
 
     static noteDungeonCutsceneEnd(client: Client, roomId: number): void {
@@ -2013,6 +2038,58 @@ export class MissionHandler {
         }
 
         MissionHandler.trySchedulePostCutsceneDungeonCompletion(client, scope);
+    }
+
+    private static activateBossRunStatsForCutsceneRoom(client: Client, levelScope: string, roomId: number): void {
+        if (!client.character || !levelScope || roomId <= 0) {
+            return;
+        }
+
+        const currentLevel =
+            LevelConfig.normalizeLevelName(client.currentLevel || String(client.character.CurrentLevel?.name ?? '')) ||
+            getScopeLevelName(levelScope);
+        if (!currentLevel || !LevelConfig.isDungeonLevel(currentLevel)) {
+            return;
+        }
+
+        const bossId = MissionHandler.findDungeonBossCutsceneEntityId(client, levelScope, currentLevel, roomId);
+        if (bossId <= 0) {
+            return;
+        }
+
+        noteDungeonRunBossCutscene(levelScope, roomId, bossId);
+    }
+
+    private static findDungeonBossCutsceneEntityId(
+        client: Client,
+        levelScope: string,
+        levelName: string,
+        roomId: number
+    ): number {
+        const candidates: any[] = [
+            ...client.entities.values(),
+            ...(GlobalState.levelEntities.get(levelScope)?.values() ?? [])
+        ];
+        let fallbackBossId = 0;
+
+        for (const entity of candidates) {
+            if (!entity || entity.isPlayer || MissionHandler.getEntityRoomId(entity) !== roomId) {
+                continue;
+            }
+
+            const entityId = Math.max(0, Math.round(Number(entity.id ?? entity.entId ?? entity.EntityID ?? 0)));
+            if (entityId <= 0 || !MissionHandler.isDungeonCompletionBossEntity(entity)) {
+                continue;
+            }
+
+            if (MissionHandler.isRequiredDungeonCompletionBossEntity(levelName, entity)) {
+                return entityId;
+            }
+
+            fallbackBossId ||= entityId;
+        }
+
+        return fallbackBossId;
     }
 
     private static requiresExplicitCompletionCutsceneEnd(levelName: string | null | undefined): boolean {
@@ -2762,6 +2839,7 @@ export class MissionHandler {
             requiredKills: number;
             actualKills: number;
             dungeonCompleted: boolean;
+            scoringCompletionPercent?: number;
         }
     ): DungeonCompletionResult {
         const normalizedLevel = LevelConfig.normalizeLevelName(currentLevel) || currentLevel;
@@ -2770,7 +2848,7 @@ export class MissionHandler {
             client,
             raw.dungeonCompleted ? 'success' : 'fail',
             {
-                completionPercent: raw.completionPercent,
+                completionPercent: raw.scoringCompletionPercent ?? raw.completionPercent,
                 dungeonCompleted: raw.dungeonCompleted
             }
         );

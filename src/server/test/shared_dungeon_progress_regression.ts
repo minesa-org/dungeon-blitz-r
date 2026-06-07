@@ -930,6 +930,187 @@ async function testGoblinRiverAutoCompletesWhenSharedProgressReachesFullClear():
     assert.equal(Number(authority.character.missions['271']?.state ?? 0), 2, 'Goblin River should promote the active dungeon mission to ready-to-turn-in');
 }
 
+async function testBossOnlyCompletionUsesPartialProgressForScoreBuckets(): Promise<void> {
+    const authority = createClient(868, 'Leader', 'SRN_Mission1');
+    authority.currentRoomId = 7;
+    authority.character.questTrackerState = 8;
+    const levelScope = getClientLevelScope(authority as never);
+    const bossRoomHostile = {
+        id: 5681,
+        name: 'LizardInvader',
+        isPlayer: false,
+        team: 2,
+        entState: 0,
+        hp: 100,
+        clientSpawned: true,
+        ownerToken: authority.token,
+        roomId: 7
+    };
+    const boss = {
+        id: 5682,
+        name: 'LizardLord',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 0,
+        hp: 100,
+        clientSpawned: true,
+        ownerToken: authority.token,
+        roomId: 7
+    };
+
+    GlobalState.sessionsByToken.set(authority.token, authority as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [bossRoomHostile.id, { ...bossRoomHostile }],
+        [boss.id, { ...boss }]
+    ]));
+    syncClientDungeonRunState(authority as never);
+    authority.entities.set(bossRoomHostile.id, { ...bossRoomHostile });
+    authority.entities.set(boss.id, { ...boss });
+    noteDungeonRunEntitySeen(authority as never, bossRoomHostile.id, bossRoomHostile);
+    noteDungeonRunEntitySeen(authority as never, boss.id, boss);
+    MissionHandler.noteDungeonCutsceneStart(authority as never, 7);
+
+    noteDungeonRunCast(authority as never, {
+        sourceId: authority.clientEntID,
+        hasTargetPos: true,
+        projectileId: null,
+        isPersistent: false
+    });
+    noteDungeonRunHit(authority as never, {
+        sourceId: authority.clientEntID,
+        targetId: bossRoomHostile.id,
+        targetEntity: bossRoomHostile,
+        damage: 25
+    });
+    const bossRoomHostileDead = { ...bossRoomHostile, hp: 0, dead: true, entState: 6 };
+    noteDungeonRunKill(levelScope, [authority.character.name], bossRoomHostileDead.id, bossRoomHostileDead);
+
+    noteDungeonRunCast(authority as never, {
+        sourceId: authority.clientEntID,
+        hasTargetPos: true,
+        projectileId: null,
+        isPersistent: false
+    });
+    noteDungeonRunHit(authority as never, {
+        sourceId: authority.clientEntID,
+        targetId: boss.id,
+        targetEntity: boss,
+        damage: 25
+    });
+    const bossDead = { ...boss, hp: 0, dead: true, entState: 6 };
+    authority.entities.set(boss.id, bossDead);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [bossRoomHostile.id, bossRoomHostileDead],
+        [boss.id, bossDead]
+    ]));
+    noteDungeonRunKill(levelScope, [authority.character.name], bossDead.id, bossDead);
+
+    await MissionHandler.handleSetLevelComplete(authority as never, createLevelCompletePacket(8, 0, 2));
+    MissionHandler.noteDungeonCutsceneEnd(authority as never, 7);
+    await sleep(0);
+
+    const resultPacket = await getDungeonCompletePacket(authority);
+    assert.ok(resultPacket, 'boss-only Tower of the Tuatara completion should still send the result packet');
+    const result = parseDungeonComplete(resultPacket!.payload);
+    const summary = authority.dungeonRun.finalizedStats!.scoreSummary;
+    assert.equal(authority.dungeonRun.finalizedStats!.completionPercent, 8, 'score summary should retain the real partial dungeon progress');
+    assert.equal(authority.dungeonRun.finalizedStats!.scoreMode, 'boss_run', 'boss cutscene start should switch scoring to the boss room window');
+    assert.equal(result.kills, summary.unlockedCap.kills, 'killing all boss-room enemies should max only the boss-room kill bucket');
+    assert.equal(result.kills < summary.profile.killCap, true, 'partial boss-only completion should not use the full dungeon kill cap');
+    assert.equal(result.treasure, summary.unlockedCap.treasure, 'boss-room stats should come from the active boss window');
+    assert.equal(result.accuracy, summary.unlockedCap.accuracy, 'clean boss-room combat should score against the boss window');
+    assert.equal(result.deaths, summary.unlockedCap.deaths, 'no-death boss-room combat should keep the boss-window death score');
+}
+
+async function testForcedBossCompletionUsesBossRoomStatsWhenCutsceneStartWasMissed(): Promise<void> {
+    const authority = createClient(869, 'Leader', 'SRN_Mission1');
+    authority.currentRoomId = 7;
+    authority.character.questTrackerState = 8;
+    const levelScope = getClientLevelScope(authority as never);
+    const bossRoomHostile = {
+        id: 5691,
+        name: 'LizardInvader',
+        isPlayer: false,
+        team: 2,
+        entState: 0,
+        hp: 100,
+        clientSpawned: true,
+        ownerToken: authority.token,
+        roomId: 7
+    };
+    const boss = {
+        id: 5692,
+        name: 'LizardLord',
+        isPlayer: false,
+        team: 2,
+        entRank: 'Boss',
+        entState: 0,
+        hp: 100,
+        clientSpawned: true,
+        ownerToken: authority.token,
+        roomId: 7
+    };
+
+    GlobalState.sessionsByToken.set(authority.token, authority as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [bossRoomHostile.id, { ...bossRoomHostile }],
+        [boss.id, { ...boss }]
+    ]));
+    syncClientDungeonRunState(authority as never);
+    authority.entities.set(bossRoomHostile.id, { ...bossRoomHostile });
+    authority.entities.set(boss.id, { ...boss });
+    noteDungeonRunEntitySeen(authority as never, bossRoomHostile.id, bossRoomHostile);
+    noteDungeonRunEntitySeen(authority as never, boss.id, boss);
+
+    noteDungeonRunCast(authority as never, {
+        sourceId: authority.clientEntID,
+        hasTargetPos: true,
+        projectileId: null,
+        isPersistent: false
+    });
+    noteDungeonRunHit(authority as never, {
+        sourceId: authority.clientEntID,
+        targetId: bossRoomHostile.id,
+        targetEntity: bossRoomHostile,
+        damage: 25
+    });
+    const bossRoomHostileDead = { ...bossRoomHostile, hp: 0, dead: true, entState: 6 };
+    authority.entities.set(bossRoomHostile.id, bossRoomHostileDead);
+    noteDungeonRunKill(levelScope, [authority.character.name], bossRoomHostileDead.id, bossRoomHostileDead);
+
+    noteDungeonRunCast(authority as never, {
+        sourceId: authority.clientEntID,
+        hasTargetPos: true,
+        projectileId: null,
+        isPersistent: false
+    });
+    noteDungeonRunHit(authority as never, {
+        sourceId: authority.clientEntID,
+        targetId: boss.id,
+        targetEntity: boss,
+        damage: 25
+    });
+    const bossDead = { ...boss, hp: 0, dead: true, entState: 6 };
+    authority.entities.set(boss.id, bossDead);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([
+        [bossRoomHostile.id, bossRoomHostileDead],
+        [boss.id, bossDead]
+    ]));
+    noteDungeonRunKill(levelScope, [authority.character.name], bossDead.id, bossDead);
+
+    await MissionHandler.handleForcedDungeonBossCompletion(authority as never, bossDead);
+
+    const resultPacket = await getDungeonCompletePacket(authority);
+    assert.ok(resultPacket, 'forced boss completion should still send the result packet');
+    const result = parseDungeonComplete(resultPacket!.payload);
+    const summary = authority.dungeonRun.finalizedStats!.scoreSummary;
+    assert.equal(authority.dungeonRun.finalizedStats!.scoreMode, 'boss_run', 'forced boss completion should force boss-room scoring even if cutscene start was missed');
+    assert.equal(result.kills, summary.unlockedCap.kills, 'forced boss completion should max only the boss-room kill bucket');
+    assert.equal(result.kills < summary.profile.killCap, true, 'forced boss completion should not use the full dungeon kill cap');
+    assert.equal(result.accuracy, summary.unlockedCap.accuracy, 'forced boss completion should preserve clean boss-room accuracy');
+}
+
 async function testDreamDragonBossDeathForcesCompletionBeforeFullClear(): Promise<void> {
     const authority = createClient(870, 'Leader', 'DreamDragonDungeon');
     const levelScope = getClientLevelScope(authority as never);
@@ -1101,6 +1282,20 @@ async function main(): Promise<void> {
         GlobalState.partyByMember.clear();
         GlobalState.partyGroups.clear();
         await testGoblinRiverAutoCompletesWhenSharedProgressReachesFullClear();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.partyGroups.clear();
+        await testBossOnlyCompletionUsesPartialProgressForScoreBuckets();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.levelQuestProgress.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.partyGroups.clear();
+        await testForcedBossCompletionUsesBossRoomStatsWhenCutsceneStartWasMissed();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
