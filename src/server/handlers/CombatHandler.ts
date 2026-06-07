@@ -157,13 +157,11 @@ export class CombatHandler {
     }
 
     private static readonly PLAYER_OUT_OF_COMBAT_REGEN_DELAY_MS = 5_000;
-    // Original CombatState.as: REGEN_INTERVAL = 500, CANREGEN_TIME = 6000 - REGEN_INTERVAL,
-    // const_1217 = 0.01 for brain/NPC entities.
+    // Original CombatState.as uses 500ms regen ticks and 1% max HP per brain/NPC tick.
     private static readonly ORIGINAL_REGEN_INTERVAL_MS = 500;
-    private static readonly ORIGINAL_CAN_REGEN_TIME_MS = 6_000 - CombatHandler.ORIGINAL_REGEN_INTERVAL_MS;
     private static readonly ORIGINAL_BRAIN_REGEN_RATE = 0.01;
-    private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS = CombatHandler.ORIGINAL_CAN_REGEN_TIME_MS;
-    private static readonly HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS = CombatHandler.ORIGINAL_REGEN_INTERVAL_MS;
+    private static readonly DUNGEON_BOSS_OUT_OF_COMBAT_REGEN_DELAY_MS = 1_000;
+    private static readonly DUNGEON_BOSS_REGEN_INTERVAL_MS = CombatHandler.ORIGINAL_REGEN_INTERVAL_MS;
     private static readonly HOSTILE_REGEN_RATE = CombatHandler.ORIGINAL_BRAIN_REGEN_RATE;
     private static readonly POWER_HIT_CLIENT_AUTHORITY_BOSS_LEVELS = new Set([
         'AC_Mission5',
@@ -510,16 +508,17 @@ export class CombatHandler {
             return null;
         }
 
-        const regenReadyAt = lastCombatActivityAt + delayMs;
-        const baseTickAt = Math.max(regenReadyAt, lastRegenTickAt || regenReadyAt);
-        const elapsedMs = nowMs - baseTickAt;
-        if (elapsedMs < intervalMs) {
+        const firstTickAt = lastRegenTickAt > 0
+            ? lastRegenTickAt + intervalMs
+            : lastCombatActivityAt + delayMs;
+        const elapsedMs = nowMs - firstTickAt;
+        if (elapsedMs < 0) {
             return null;
         }
 
         return {
-            ticks: Math.floor(elapsedMs / intervalMs),
-            baseTickAt
+            ticks: Math.floor(elapsedMs / intervalMs) + 1,
+            baseTickAt: firstTickAt
         };
     }
 
@@ -747,8 +746,8 @@ export class CombatHandler {
             CombatHandler.getEntityCombatActivityAt(entity),
             CombatHandler.getEntityLastRegenTickAt(entity),
             nowMs,
-            CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS,
-            CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS
+            CombatHandler.DUNGEON_BOSS_OUT_OF_COMBAT_REGEN_DELAY_MS,
+            CombatHandler.DUNGEON_BOSS_REGEN_INTERVAL_MS
         );
         if (!regenState) {
             return;
@@ -773,7 +772,7 @@ export class CombatHandler {
 
         CombatHandler.setEntityLastRegenTickAt(
             entity,
-            regenState.baseTickAt + (regenState.ticks * CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_INTERVAL_MS)
+            regenState.baseTickAt + ((regenState.ticks - 1) * CombatHandler.DUNGEON_BOSS_REGEN_INTERVAL_MS)
         );
         CombatHandler.syncHostileHealthCopies(levelScope, entity, nextHp, healthState.maxHp);
 
@@ -1097,7 +1096,6 @@ export class CombatHandler {
 
         const levelScope = getClientLevelScope(client);
         client.enemyDeathRegenArmed = true;
-        const firstTickActivityAt = nowMs - CombatHandler.HOSTILE_OUT_OF_COMBAT_REGEN_DELAY_MS;
 
         for (const entity of CombatHandler.collectHostileRegenCandidates(levelScope)) {
             const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
@@ -1112,7 +1110,7 @@ export class CombatHandler {
                 continue;
             }
 
-            CombatHandler.setEntityCombatActivity(entity, firstTickActivityAt);
+            CombatHandler.setEntityCombatActivity(entity, nowMs);
             CombatHandler.setEntityLastRegenTickAt(entity, 0);
         }
 

@@ -269,7 +269,7 @@ function testPlayerAndDungeonBossRegenAfterIdle(): void {
 
     assert.equal(player.authoritativeCurrentHp, 1000, 'player should fully recover after the idle window');
     assert.equal(playerEntity.hp, 1000, 'player entity snapshot should track regenerated HP');
-    assert.equal(hostile.hp, 410, 'dungeon bosses should regenerate from idle time while the player is alive');
+    assert.equal(hostile.hp, 510, 'dungeon bosses should regenerate after one second out of combat');
 
     const regenPackets = player.sentPackets.filter((packet) => packet.id === 0x3B);
     assert.equal(regenPackets.length, 2, 'player should receive self and boss regen while both are idle');
@@ -279,7 +279,7 @@ function testPlayerAndDungeonBossRegenAfterIdle(): void {
         { entityId: player.clientEntID, amount: 400 }
     ]);
     assert.deepEqual(parsedRegenPackets.filter((packet) => packet.entityId === hostileId), [
-        { entityId: hostileId, amount: 10 }
+        { entityId: hostileId, amount: 110 }
     ]);
 }
 
@@ -700,10 +700,10 @@ async function testDeadPlayerArmsBossRegenForNextOriginalTick(): Promise<void> {
         assert.equal(boss.hp, 400, 'player death should arm boss regen without applying an extra immediate tick');
         assert.equal(player.enemyDeathRegenArmed, true, 'death regen should be armed until the player respawns');
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
-        assert.equal(boss.hp, 410, 'boss should receive the first original regen tick 500ms after death is processed');
+        assert.equal(boss.hp, 410, 'boss should receive the first regen tick one second after death is processed');
         const bossRegenPackets = player.sentPackets
             .filter((packet) => packet.id === 0x3B)
             .map((packet) => parseRegenPacket(packet.payload))
@@ -755,10 +755,10 @@ async function testClientDeadStateArmsBossRegenForNextOriginalTick(): Promise<vo
         assert.equal(boss.hp, 400, 'client-reported player death should arm boss regen without applying an extra immediate tick');
         assert.equal(player.enemyDeathRegenArmed, true, 'client-reported player death should keep boss regen armed until respawn');
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
-        assert.equal(boss.hp, 410, 'client-reported player death should allow the first original regen tick after 500ms');
+        assert.equal(boss.hp, 410, 'client-reported player death should allow the first regen tick after one second');
         const bossRegenPackets = player.sentPackets
             .filter((packet) => packet.id === 0x3B)
             .map((packet) => parseRegenPacket(packet.payload))
@@ -811,10 +811,10 @@ async function testRespawnRequestMarksDeadBeforeArmingBossRegen(): Promise<void>
         assert.equal(player.authoritativeCurrentHp, 0, 'respawn request should record the death before sending the revive prompt');
         assert.equal(player.enemyDeathRegenArmed, true, 'respawn request should arm boss regen until the revive broadcast arrives');
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
-        assert.equal(boss.hp, 410, 'respawn request should let the boss heal on the first original regen tick');
+        assert.equal(boss.hp, 410, 'respawn request should let the boss heal on the first one-second regen tick');
         const bossRegenPackets = player.sentPackets
             .filter((packet) => packet.id === 0x3B)
             .map((packet) => parseRegenPacket(packet.payload))
@@ -867,10 +867,10 @@ async function testRespawnDoesNotFullHealBoss(): Promise<void> {
         await CombatHandler.handleRequestRespawn(player as never, request.toBuffer());
         assert.equal(boss.hp, 400, 'respawn should not apply an immediate full or partial boss heal');
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
-        assert.equal(boss.hp, 410, 'respawn should only apply the first slow boss regen tick');
+        assert.equal(boss.hp, 410, 'respawn should only apply the first boss regen tick after one second');
         const oversizedEnemyHeals = player.sentPackets
             .filter((packet) => packet.id === 0x3B)
             .map((packet) => parseRegenPacket(packet.payload))
@@ -948,7 +948,7 @@ function createRegenHostile(id: number, name: string, roomId: number, overrides:
         dead: false,
         hp: 400,
         maxHp: 1000,
-        lastCombatActivityAt: 4_500,
+        lastCombatActivityAt: 9_500,
         lastCombatRegenTickAt: 0,
         ...overrides
     };
@@ -1012,9 +1012,17 @@ async function testDungeonBossRegenUsesFetchedBossList(): Promise<void> {
         }
         GlobalState.sessionsByToken.set(player.token, player as never);
 
+        CombatHandler.processOutOfCombatRegen(levelScope, 10_499);
+        assert.equal(boss.hp, 400, `${scenario.levelName} listed boss should not regenerate before one second out of combat`);
+        assert.equal(
+            player.sentPackets.some((packet) => packet.id === 0x3B),
+            false,
+            `${scenario.levelName} listed boss should not emit regen before one second out of combat`
+        );
+
         CombatHandler.processOutOfCombatRegen(levelScope, 10_500);
 
-        assert.equal(boss.hp, 410, `${scenario.levelName} listed boss should regenerate`);
+        assert.equal(boss.hp, 410, `${scenario.levelName} listed boss should regenerate after one second out of combat`);
         for (const entity of blockedEntities) {
             assert.equal(entity.hp, 400, `${scenario.levelName} unlisted ${entity.name} should not regenerate`);
         }
@@ -1102,10 +1110,10 @@ async function testClientOnlyBossRegenDoesNotHealNormalEnemies(): Promise<void> 
         Date.now = () => nowMs;
         await CombatHandler.handleRequestRespawn(player as never, request.toBuffer());
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
-        assert.equal(boss.hp, 410, 'client-only dungeon bosses should regenerate after player death');
+        assert.equal(boss.hp, 410, 'client-only dungeon bosses should regenerate one second after player death');
         assert.equal(normal.hp, 400, 'normal enemies should not receive boss regen');
         assert.equal(unlistedBoss.hp, 400, 'generic boss-ranked enemies should not regen unless listed for that dungeon');
         const regenPackets = player.sentPackets
@@ -1141,7 +1149,7 @@ async function testAuthoritativeDeadPlayerStateAllowsBossRegen(): Promise<void> 
         dead: false,
         hp: 400,
         maxHp: 1000,
-        lastCombatActivityAt: nowMs - 5_500,
+        lastCombatActivityAt: nowMs,
         lastCombatRegenTickAt: 0
     };
     const normalId = 900018;
@@ -1156,7 +1164,7 @@ async function testAuthoritativeDeadPlayerStateAllowsBossRegen(): Promise<void> 
         dead: false,
         hp: 400,
         maxHp: 1000,
-        lastCombatActivityAt: nowMs - 5_500,
+        lastCombatActivityAt: nowMs,
         lastCombatRegenTickAt: 0
     };
 
@@ -1169,9 +1177,9 @@ async function testAuthoritativeDeadPlayerStateAllowsBossRegen(): Promise<void> 
     player.knownEntityIds.add(normalId);
     GlobalState.sessionsByToken.set(player.token, player as never);
 
-    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 500);
+    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 1_000);
 
-    assert.equal(boss.hp, 410, 'authoritative dead player state should allow boss regen');
+    assert.equal(boss.hp, 410, 'authoritative dead player state should allow boss regen after one second');
     assert.equal(normal.hp, 400, 'authoritative dead player state should still not heal normal enemies');
     const regenPackets = player.sentPackets
         .filter((packet) => packet.id === 0x3B)
