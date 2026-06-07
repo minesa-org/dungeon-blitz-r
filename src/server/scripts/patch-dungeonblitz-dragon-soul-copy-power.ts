@@ -341,8 +341,17 @@ function findCurrentCopyFilterStringIndex(abc: ReturnType<typeof parseAbc>, inst
 }
 
 function hasCopyPowerPatch(abc: ReturnType<typeof parseAbc>, instructions: Instruction[]): boolean {
+  if (findDragonSoulShotAssignment(abc, instructions)) {
+    return false;
+  }
+
   for (let index = 0; index <= instructions.length - 3; index += 1) {
     if (!isCopyPowerAssignment(abc, instructions, index)) {
+      continue;
+    }
+    if (
+      !instructions.slice(Math.max(0, index - 40), index).some((inst) => inst.opcode === 0x2c && stringValue(abc, inst) === "SummonDragonSoul")
+    ) {
       continue;
     }
     if (
@@ -362,16 +371,15 @@ function hasCopyPowerPatch(abc: ReturnType<typeof parseAbc>, instructions: Instr
 export function hasDragonSoulCopyPowerPatch(swfPath: string): boolean {
   const { abc, code } = getActivePowerMethod872(swfPath);
   const instructions = disassemble(code, "ActivePower.method_872");
-  return hasCopyPowerPatch(abc, instructions) && hasFireBrandCopyFilter(abc, instructions) && hasBasicRangedCopyGate(abc, instructions);
+  return hasCopyPowerPatch(abc, instructions) && hasBasicRangedCopyGate(abc, instructions);
 }
 
 export function patchDragonSoulCopyPower(swfPath: string, verify: boolean): void {
   const { ctx, abc, methodBody, code } = getActivePowerMethod872(swfPath);
   const instructions = disassemble(code, "ActivePower.method_872");
   const hasCopyAssignment = hasCopyPowerPatch(abc, instructions);
-  const hasFireBrandFilter = hasFireBrandCopyFilter(abc, instructions);
   const hasBasicRangedGate = hasBasicRangedCopyGate(abc, instructions);
-  if (hasCopyAssignment && hasFireBrandFilter && hasBasicRangedGate) {
+  if (hasCopyAssignment && hasBasicRangedGate) {
     console.log(`${swfPath}: already patched (Dragon Soul copies basic ranged attacks only).`);
     return;
   }
@@ -396,12 +404,11 @@ export function patchDragonSoulCopyPower(swfPath: string, verify: boolean): void
     });
   }
 
-  if (!hasFireBrandFilter) {
+  if (!hasFireBrandCopyFilter(abc, instructions)) {
     const filterStringIndex = findCurrentCopyFilterStringIndex(abc, instructions);
-    if (filterStringIndex === null) {
-      throw new PatchError(`${swfPath}: could not find Dragon Soul copy filter in ActivePower.method_872.`);
+    if (filterStringIndex !== null) {
+      patches.push(buildStringReplacement(abc, filterStringIndex, FIRE_BRAND_COPY_BASE));
     }
-    patches.push(buildStringReplacement(abc, filterStringIndex, FIRE_BRAND_COPY_BASE));
   }
 
   if (!hasBasicRangedGate) {
