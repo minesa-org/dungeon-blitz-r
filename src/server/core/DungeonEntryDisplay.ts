@@ -125,14 +125,16 @@ export class DungeonEntryDisplay {
 
     static buildMomentParams(levelNameRaw: string | null | undefined, baseMoment: string): string {
         const levelName = LevelConfig.normalizeLevelName(levelNameRaw);
-        const baseTokens = String(baseMoment ?? '')
+        const momentTokens = String(baseMoment ?? '')
             .split(',')
             .map((token) => token.trim())
-            .filter((token) => token && token !== 'Normal' && !token.startsWith(MOMENT_PREFIX));
+            .filter((token) => token && !token.startsWith(MOMENT_PREFIX));
 
         if (!levelName || !LevelConfig.isDungeonLevel(levelName)) {
-            return baseTokens.join(',');
+            return momentTokens.filter((token) => token !== 'Normal').join(',');
         }
+
+        const baseTokens = momentTokens.length > 0 ? [...momentTokens] : ['Normal'];
 
         const elements = DungeonEntryDisplay.summarizeEnemyElements(levelName);
         if (elements) {

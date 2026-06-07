@@ -30,12 +30,16 @@ function readElements(momentParams: string): string {
 loadRuntimeData();
 
 const normalParams = DungeonEntryDisplay.buildMomentParams('BT_Mission2', '');
-assert(normalParams.startsWith('EnemyElements='));
+assert(normalParams.startsWith('Normal,EnemyElements='));
 assert.notEqual(readElements(normalParams), '');
 
 const existingMomentParams = DungeonEntryDisplay.buildMomentParams('BT_Mission2', 'Intro');
 assert(existingMomentParams.startsWith('Intro,EnemyElements='));
 assert.notEqual(readElements(existingMomentParams), '');
+
+const explicitNormalParams = DungeonEntryDisplay.buildMomentParams('BT_Mission2', 'Normal');
+assert(explicitNormalParams.startsWith('Normal,EnemyElements='));
+assert.notEqual(readElements(explicitNormalParams), '');
 
 const nonDungeonParams = DungeonEntryDisplay.buildMomentParams('CraftTown', 'Normal');
 assert.equal(nonDungeonParams, '');
