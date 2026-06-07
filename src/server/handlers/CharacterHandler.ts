@@ -1,5 +1,6 @@
 import { Client, clearKeepTutorialTimers, createKeepTutorialState } from '../core/Client';
 import { CharacterTemplates } from '../core/CharacterTemplates';
+import { DungeonEntryDisplay } from '../core/DungeonEntryDisplay';
 import { GameData } from '../core/GameData';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
@@ -982,6 +983,7 @@ export class CharacterHandler {
 
         const pendingEntry = GlobalState.pendingWorld.get(token);
         const resolvedTransferToken = pendingEntry?.syncAnchorToken || token;
+        const momentParams = DungeonEntryDisplay.buildMomentParams(currentLevelName, isHard ? "Hard" : "");
 
         const pkt = WorldEnter.buildEnterWorldPacket(
             resolvedTransferToken, // Ensure Flash client uses the Host's token for Room Event Generation Offset
@@ -992,7 +994,7 @@ export class CharacterHandler {
             runtimeMapLevel,
             runtimeBaseLevel,
             currentLevelName,
-            isHard ? "Hard" : "",
+            momentParams,
             isHard ? "Hard" : "",
             levelSpec.isDungeon,
             spawn.hasCoord,

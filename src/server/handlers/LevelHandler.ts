@@ -17,6 +17,7 @@ import {
     noteDungeonRunCompletionProgress,
     noteDungeonRunEntitySeen
 } from '../core/DungeonRunStats';
+import { DungeonEntryDisplay } from '../core/DungeonEntryDisplay';
 import { WorldEnter } from '../utils/WorldEnter';
 import { Config } from '../core/config';
 import { MissionLoader } from '../data/MissionLoader';
@@ -4163,6 +4164,7 @@ export class LevelHandler {
         const craftTownOwnerToken = isVisitedCraftTown
             ? LevelHandler.resolveVisitedCraftTownOwnerToken(newToken, hostChar)
             : undefined;
+        const momentParams = DungeonEntryDisplay.buildMomentParams(targetLevel, isHard ? "Hard" : "");
         
         const pkt = WorldEnter.buildEnterWorldPacket(
             newToken,
@@ -4177,7 +4179,7 @@ export class LevelHandler {
             runtimeMapLevel,
             runtimeBaseLevel,
             targetLevel,
-            isHard ? "Hard" : "",
+            momentParams,
             isHard ? "Hard" : "",
             levelSpec.isDungeon,
             newHasCoord, newX, newY,
