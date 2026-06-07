@@ -462,6 +462,16 @@ export class CombatHandler {
         CombatHandler.setEntityLastRegenTickAt(entity, 0);
     }
 
+    private static noteHostileAggroTarget(entity: any, targetSession: Client | null, atMs: number): void {
+        if (!entity || typeof entity !== 'object' || !targetSession?.playerSpawned || targetSession.clientEntID <= 0) {
+            return;
+        }
+
+        CombatHandler.noteHostileCombatActivity(entity, atMs);
+        entity.aggroTargetEntityId = targetSession.clientEntID;
+        entity.aggroTargetToken = targetSession.token;
+    }
+
     private static getPendingRegenTicks(
         lastCombatActivityAt: number,
         lastRegenTickAt: number,
@@ -606,10 +616,10 @@ export class CombatHandler {
             CombatHandler.notePlayerCombatActivity(targetSession, atMs);
         }
         if (hostileSource) {
-            CombatHandler.noteHostileCombatActivity(hostileSource, atMs);
+            CombatHandler.noteHostileAggroTarget(hostileSource, targetSession, atMs);
         }
         if (hostileTarget) {
-            CombatHandler.noteHostileCombatActivity(hostileTarget, atMs);
+            CombatHandler.noteHostileAggroTarget(hostileTarget, sourceSession, atMs);
         }
     }
 

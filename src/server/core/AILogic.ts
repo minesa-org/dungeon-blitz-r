@@ -8,6 +8,7 @@ import { NpcDef } from '../data/NpcLoader';
 import { Client } from './Client';
 import { sharesRoomIds } from './PartySync';
 import { getClientLevelScope, getScopeLevelName } from './LevelScope';
+import { LevelConfig } from './LevelConfig';
 
 
 export class AILogic {
@@ -23,6 +24,11 @@ export class AILogic {
     static readonly RANGED_ATTACK_RANGE = 300;
     static readonly ATTACK_COOLDOWN = 1000; // ms
     static readonly BASE_NPC_DAMAGE = 15;
+
+    private static hasCombatPull(npc: any): boolean {
+        return Math.max(0, Math.round(Number(npc?.lastCombatActivityAt ?? 0))) > 0 ||
+            Math.max(0, Math.round(Number(npc?.aggroTargetEntityId ?? 0))) > 0;
+    }
 
     // Run AI loop for all levels
     static start() {
@@ -76,12 +82,20 @@ export class AILogic {
         const npcX = npc.x || 0;
         const npcY = npc.y || 0;
         const npcRoomId = Number.isFinite(Number(npc?.roomId)) ? Number(npc.roomId) : -1;
+        const levelName = getScopeLevelName(levelScope);
         const entType = GameData.getEntType(npc.name);
         const isRanged = entType?.RangedPower ? true : false;
         const isBoss = AILogic.isBossLike(npc);
+        const isDungeonLevel = LevelConfig.isDungeonLevel(levelName);
+        const aggroTargetEntityId = Math.max(0, Math.round(Number(npc?.aggroTargetEntityId ?? 0)));
+
+        if (isDungeonLevel && !isBoss && !AILogic.hasCombatPull(npc)) {
+            return;
+        }
 
         for (const p of players) {
              if (!p.character || !p.character.CurrentLevel) continue;
+             if (!isBoss && aggroTargetEntityId > 0 && p.clientEntID !== aggroTargetEntityId) continue;
              const playerRoomId = Number.isFinite(Number(p.currentRoomId)) ? Math.round(Number(p.currentRoomId)) : -1;
              if (isBoss) {
                  if (playerRoomId < 0 || npcRoomId < 0 || playerRoomId !== Math.round(npcRoomId)) continue;

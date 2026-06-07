@@ -1,15 +1,19 @@
 import { strict as assert } from 'assert';
+import * as path from 'path';
 import { AILogic } from '../core/AILogic';
+import { LevelConfig } from '../core/LevelConfig';
 
 type FakeClient = {
+    clientEntID: number;
     currentRoomId: number;
     character: {
         CurrentLevel: { x: number; y: number };
     };
 };
 
-function createPlayer(x: number, y: number, roomId: number): FakeClient {
+function createPlayer(x: number, y: number, roomId: number, entityId: number = 3001): FakeClient {
     return {
+        clientEntID: entityId,
         currentRoomId: roomId,
         character: {
             CurrentLevel: { x, y }
@@ -31,7 +35,13 @@ function createNpc(overrides: Record<string, unknown>): any {
     };
 }
 
-function testNormalMeleeAggroStillUsesLocalRoomRadius(): void {
+function ensureLevelConfigLoaded(): void {
+    if (!LevelConfig.has('TutorialDungeon')) {
+        LevelConfig.load(path.resolve(__dirname, '../data'));
+    }
+}
+
+function testOutdoorMeleeAggroStillUsesRoomProximity(): void {
     const npc = createNpc({});
 
     AILogic.updateNpc(npc, [createPlayer(220, 0, 1) as never], 'BridgeTown');
@@ -39,7 +49,68 @@ function testNormalMeleeAggroStillUsesLocalRoomRadius(): void {
     assert.equal(
         npc.x > 0,
         true,
-        'normal melee enemies should still aggro a nearby player in the same room'
+        'outdoor melee enemies should still aggro a nearby player in the same room'
+    );
+}
+
+function testUnhitMeleeMobDoesNotAggroFromRoomProximity(): void {
+    const npc = createNpc({});
+
+    AILogic.updateNpc(npc, [createPlayer(220, 0, 1) as never], 'TutorialDungeon');
+
+    assert.equal(
+        npc.x,
+        0,
+        'unhit melee enemies should not wake just because the player is nearby in the same room'
+    );
+}
+
+function testPulledMeleeAggroStillUsesLocalRoomRadius(): void {
+    const player = createPlayer(220, 0, 1);
+    const npc = createNpc({
+        lastCombatActivityAt: Date.now(),
+        aggroTargetEntityId: player.clientEntID
+    });
+
+    AILogic.updateNpc(npc, [player as never], 'TutorialDungeon');
+
+    assert.equal(
+        npc.x > 0,
+        true,
+        'pulled melee enemies should still chase the player who hit them in the same room'
+    );
+}
+
+function testPullOnlyMovesTheHitMob(): void {
+    const player = createPlayer(220, 0, 1);
+    const pulled = createNpc({
+        id: 2001,
+        lastCombatActivityAt: Date.now(),
+        aggroTargetEntityId: player.clientEntID
+    });
+    const idle = createNpc({ id: 2002, x: 20 });
+
+    AILogic.updateNpc(pulled, [player as never], 'TutorialDungeon');
+    AILogic.updateNpc(idle, [player as never], 'TutorialDungeon');
+
+    assert.equal(pulled.x > 0, true, 'the hit mob should chase');
+    assert.equal(idle.x, 20, 'nearby unhit room mobs should remain idle');
+}
+
+function testPulledMobKeepsHitPlayerAsTarget(): void {
+    const hitter = createPlayer(-220, 0, 1, 3001);
+    const bystander = createPlayer(120, 0, 1, 3002);
+    const npc = createNpc({
+        lastCombatActivityAt: Date.now(),
+        aggroTargetEntityId: hitter.clientEntID
+    });
+
+    AILogic.updateNpc(npc, [bystander as never, hitter as never], 'TutorialDungeon');
+
+    assert.equal(
+        npc.x < 0,
+        true,
+        'pulled enemies should chase the player who hit them instead of the nearest same-room player'
     );
 }
 
@@ -75,7 +146,12 @@ function testBossAggroRequiresKnownSameRoom(): void {
 }
 
 function main(): void {
-    testNormalMeleeAggroStillUsesLocalRoomRadius();
+    ensureLevelConfigLoaded();
+    testOutdoorMeleeAggroStillUsesRoomProximity();
+    testUnhitMeleeMobDoesNotAggroFromRoomProximity();
+    testPulledMeleeAggroStillUsesLocalRoomRadius();
+    testPullOnlyMovesTheHitMob();
+    testPulledMobKeepsHitPlayerAsTarget();
     testBossAggroUsesShorterRadius();
     testBossAggroRequiresKnownSameRoom();
     console.log('combat_ai_regression: ok');
