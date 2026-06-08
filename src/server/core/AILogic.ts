@@ -6,7 +6,6 @@ import { CombatHandler } from '../handlers/CombatHandler';
 import { BitBuffer } from '../network/protocol/bitBuffer';
 import { NpcDef } from '../data/NpcLoader';
 import { Client } from './Client';
-import { EntityState } from './Entity';
 import { sharesRoomIds } from './PartySync';
 import { getClientLevelScope, getScopeLevelName } from './LevelScope';
 import { LevelConfig } from './LevelConfig';
@@ -31,35 +30,26 @@ export class AILogic {
             Math.max(0, Math.round(Number(npc?.aggroTargetEntityId ?? 0))) > 0;
     }
 
-    private static isPlayerDead(player: Client): boolean {
-        const authoritativeHp = Number((player as any)?.authoritativeCurrentHp ?? NaN);
-        if (Number.isFinite(authoritativeHp) && authoritativeHp <= 0) {
-            return true;
+    private static clearAggroTarget(npc: any): void {
+        if (!npc || typeof npc !== 'object') {
+            return;
         }
 
-        const localEntity = (player as any)?.entities?.get?.(player.clientEntID);
-        if (Boolean(localEntity?.dead) || Number(localEntity?.entState ?? EntityState.ACTIVE) === EntityState.DEAD) {
-            return true;
-        }
-
-        const levelEntity = GlobalState.levelEntities.get(getClientLevelScope(player))?.get(player.clientEntID);
-        return Boolean(levelEntity?.dead) || Number(levelEntity?.entState ?? EntityState.ACTIVE) === EntityState.DEAD;
+        npc.aggroTargetEntityId = 0;
+        npc.aggroTargetToken = 0;
+        npc.nextAttack = 0;
     }
 
-    private static clearDeadAggroTarget(npc: any, players: Client[]): void {
+    private static clearDeadAggroTarget(npc: any, players: Client[], levelScope: string): void {
         const aggroTargetEntityId = Math.max(0, Math.round(Number(npc?.aggroTargetEntityId ?? 0)));
         if (aggroTargetEntityId <= 0) {
             return;
         }
 
         const target = players.find((player) => player.clientEntID === aggroTargetEntityId);
-        if (!target || !AILogic.isPlayerDead(target)) {
-            return;
+        if (target && CombatHandler.isPlayerDeadForCombat(target, levelScope)) {
+            AILogic.clearAggroTarget(npc);
         }
-
-        npc.aggroTargetEntityId = 0;
-        delete npc.aggroTargetToken;
-        npc.nextAttack = 0;
     }
 
     // Run AI loop for all levels
@@ -119,7 +109,7 @@ export class AILogic {
         const isRanged = entType?.RangedPower ? true : false;
         const isBoss = AILogic.isBossLike(npc);
         const isDungeonLevel = LevelConfig.isDungeonLevel(levelName);
-        AILogic.clearDeadAggroTarget(npc, players);
+        AILogic.clearDeadAggroTarget(npc, players, levelScope);
         const aggroTargetEntityId = Math.max(0, Math.round(Number(npc?.aggroTargetEntityId ?? 0)));
 
         if (isDungeonLevel && !isBoss && !AILogic.hasCombatPull(npc)) {
@@ -127,31 +117,41 @@ export class AILogic {
         }
 
         for (const p of players) {
-             if (!p.character || !p.character.CurrentLevel) continue;
-             if (AILogic.isPlayerDead(p)) continue;
-             if (!isBoss && aggroTargetEntityId > 0 && p.clientEntID !== aggroTargetEntityId) continue;
-             const playerRoomId = Number.isFinite(Number(p.currentRoomId)) ? Math.round(Number(p.currentRoomId)) : -1;
-             if (isBoss) {
-                 if (playerRoomId < 0 || npcRoomId < 0 || playerRoomId !== Math.round(npcRoomId)) continue;
-             } else if (!sharesRoomIds(p.currentRoomId, npcRoomId)) {
-                 continue;
-             }
-             const px = p.character.CurrentLevel.x;
-             const py = p.character.CurrentLevel.y;
+            if (!p.character || !p.character.CurrentLevel) continue;
+            if (CombatHandler.isPlayerDeadForCombat(p, levelScope)) continue;
+            if (!isBoss && aggroTargetEntityId > 0 && p.clientEntID !== aggroTargetEntityId) continue;
+            const playerRoomId = Number.isFinite(Number(p.currentRoomId)) ? Math.round(Number(p.currentRoomId)) : -1;
+            if (isBoss) {
+                if (playerRoomId < 0 || npcRoomId < 0 || playerRoomId !== Math.round(npcRoomId)) continue;
+            } else if (!sharesRoomIds(p.currentRoomId, npcRoomId)) {
+                continue;
+            }
+            const px = p.character.CurrentLevel.x;
+            const py = p.character.CurrentLevel.y;
 
-             const dist = Math.hypot(px - npcX, py - npcY);
-             if (dist < minDist) {
-                 minDist = dist;
-                 target = p;
-             }
+            const dist = Math.hypot(px - npcX, py - npcY);
+            if (dist < minDist) {
+                minDist = dist;
+                target = p;
+            }
         }
 
-        if (!target || !target.character || !target.character.CurrentLevel) return;
+        if (!target || !target.character || !target.character.CurrentLevel) {
+            if (isBoss && aggroTargetEntityId > 0) {
+                AILogic.clearAggroTarget(npc);
+            }
+            return;
+        }
 
         const attackRange = isRanged ? AILogic.RANGED_ATTACK_RANGE : AILogic.ATTACK_RANGE;
         const aggroRadius = isBoss
             ? (isRanged ? AILogic.BOSS_RANGED_AGGRO_RADIUS : AILogic.BOSS_MELEE_AGGRO_RADIUS)
             : (isRanged ? AILogic.RANGED_AGGRO_RADIUS : AILogic.MELEE_AGGRO_RADIUS);
+
+        if (isBoss && minDist > aggroRadius) {
+            AILogic.clearAggroTarget(npc);
+            return;
+        }
 
         if (minDist <= aggroRadius) {
             const targetX = target.character.CurrentLevel.x;
