@@ -164,7 +164,7 @@
 		<DisplayName>Artery Strike</DisplayName>
 		<Description>Increases Bleed Damage@Bleed Damage:, +5%, +10%, +15%, +20%, +25%</Description>
 		<ModType>Buff</ModType>
-		<BuffName>Bleeding</BuffName>
+		<BuffName>Bleeding,ViperbladeBleeding</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
 		<BuffValue>.01</BuffValue>
 		<IconName>a_Signet_Bleed01</IconName>
@@ -174,7 +174,7 @@
 		<ModID>17</ModID>
 		<DisplayName>Artery Strike</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>Bleeding</BuffName>
+		<BuffName>Bleeding,ViperbladeBleeding</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
 		<BuffValue>.02</BuffValue>
 		<IconName>a_Signet_Bleed01</IconName>
@@ -184,7 +184,7 @@
 		<ModID>18</ModID>
 		<DisplayName>Artery Strike</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>Bleeding</BuffName>
+		<BuffName>Bleeding,ViperbladeBleeding</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
 		<BuffValue>.03</BuffValue>
 		<IconName>a_Signet_Bleed01</IconName>
@@ -194,7 +194,7 @@
 		<ModID>19</ModID>
 		<DisplayName>Artery Strike</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>Bleeding</BuffName>
+		<BuffName>Bleeding,ViperbladeBleeding</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
 		<BuffValue>.04</BuffValue>
 		<IconName>a_Signet_Bleed01</IconName>
@@ -204,7 +204,7 @@
 		<ModID>20</ModID>
 		<DisplayName>Artery Strike</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>Bleeding</BuffName>
+		<BuffName>Bleeding,ViperbladeBleeding</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
 		<BuffValue>.05</BuffValue>
 		<IconName>a_Signet_Bleed01</IconName>
@@ -266,7 +266,7 @@
 		<DisplayName>Concentrated Venom</DisplayName>
 		<Description>Increases Poison Damage@Poison Damage:, +7%, +14%, +21%, +28%, +35%</Description>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
 		<BuffValue>.07</BuffValue>
 		<IconName>a_Signet_Poison01</IconName>
@@ -276,7 +276,7 @@
 		<ModID>27</ModID>
 		<DisplayName>Concentrated Venom</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
 		<BuffValue>.14</BuffValue>
 		<IconName>a_Signet_Poison01</IconName>
@@ -286,7 +286,7 @@
 		<ModID>28</ModID>
 		<DisplayName>Concentrated Venom</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
 		<BuffValue>.21</BuffValue>
 		<IconName>a_Signet_Poison01</IconName>
@@ -296,7 +296,7 @@
 		<ModID>29</ModID>
 		<DisplayName>Concentrated Venom</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
 		<BuffValue>.28</BuffValue>
 		<IconName>a_Signet_Poison01</IconName>
@@ -306,7 +306,7 @@
 		<ModID>30</ModID>
 		<DisplayName>Concentrated Venom</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,PoisonCloud,ChaosPoison,Plagued1,Plagued2,Plagued3,Plagued4,Plagued5,Plagued6,Plagued7,Plagued8,Plagued9,Plagued10,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonCloud,RunePoisonStrike,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>DoTDamage</BuffProperty>
 		<BuffValue>.35</BuffValue>
 		<IconName>a_Signet_Poison01</IconName>
@@ -317,7 +317,7 @@
 		<DisplayName>Contact Poison</DisplayName>
 		<Description>Increases Poison Damage vs. Bleeding targets@Poison vs Bleeding:, +2%, +4%, +8%, +12%, +18%</Description>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>BleedMultiplier</BuffProperty>
 		<BuffValue>.04</BuffValue>
 		<IconName>a_Signet_Poison02</IconName>
@@ -327,7 +327,7 @@
 		<ModID>32</ModID>
 		<DisplayName>Contact Poison</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>BleedMultiplier</BuffProperty>
 		<BuffValue>.08</BuffValue>
 		<IconName>a_Signet_Poison02</IconName>
@@ -337,7 +337,7 @@
 		<ModID>33</ModID>
 		<DisplayName>Contact Poison</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>BleedMultiplier</BuffProperty>
 		<BuffValue>.16</BuffValue>
 		<IconName>a_Signet_Poison02</IconName>
@@ -347,7 +347,7 @@
 		<ModID>34</ModID>
 		<DisplayName>Contact Poison</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>BleedMultiplier</BuffProperty>
 		<BuffValue>.24</BuffValue>
 		<IconName>a_Signet_Poison02</IconName>
@@ -357,7 +357,7 @@
 		<ModID>35</ModID>
 		<DisplayName>Contact Poison</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,RunePoisonStrike,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>BleedMultiplier</BuffProperty>
 		<BuffValue>.35</BuffValue>
 		<IconName>a_Signet_Poison02</IconName>
@@ -2641,7 +2641,7 @@
 		<DisplayName>Insidious Poison</DisplayName>
 		<Description>Increases Poison Damage vs. Bound targets@Poison vs Bound:, +2%, +6%, +13%, +23%, +35%</Description>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>BoundMultiplier</BuffProperty>
 		<BuffValue>.02</BuffValue>
 		<IconName>a_Signet_InsidiousPoison</IconName>
@@ -2651,7 +2651,7 @@
 		<ModID>277</ModID>
 		<DisplayName>Insidious Poison</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>BoundMultiplier</BuffProperty>
 		<BuffValue>.06</BuffValue>
 		<IconName>a_Signet_InsidiousPoison</IconName>
@@ -2661,7 +2661,7 @@
 		<ModID>278</ModID>
 		<DisplayName>Insidious Poison</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>BoundMultiplier</BuffProperty>
 		<BuffValue>.13</BuffValue>
 		<IconName>a_Signet_InsidiousPoison</IconName>
@@ -2671,7 +2671,7 @@
 		<ModID>279</ModID>
 		<DisplayName>Insidious Poison</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>BoundMultiplier</BuffProperty>
 		<BuffValue>.23</BuffValue>
 		<IconName>a_Signet_InsidiousPoison</IconName>
@@ -2681,7 +2681,7 @@
 		<ModID>280</ModID>
 		<DisplayName>Insidious Poison</DisplayName>
 		<ModType>Buff</ModType>
-		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4</BuffName>
+		<BuffName>PoisonStrike,DaggerPoison,ChaosPoison,ThornPoison1,ThornPoison2,ThornPoison3,ThornPoison4,ViperbladePoisonStrike</BuffName>
 		<BuffProperty>BoundMultiplier</BuffProperty>
 		<BuffValue>.35</BuffValue>
 		<IconName>a_Signet_InsidiousPoison</IconName>

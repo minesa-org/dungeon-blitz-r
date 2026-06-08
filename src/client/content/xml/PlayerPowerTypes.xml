@@ -36914,7 +36914,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>RapierMelee</PowerGroup>
-		<AddTargetBuff>Bleeding</AddTargetBuff>
+		<AddTargetBuff>ViperbladeBleeding</AddTargetBuff>
 		<DisplayName>Dagger Melee</DisplayName>
 		<CastSound>snd_pwr_melee_rogue_01|snd_pwr_melee_rogue_02|snd_pwr_melee_rogue_03</CastSound>
 		<CastGfx/>
@@ -36942,7 +36942,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SaberMelee</PowerGroup>
-		<AddTargetBuff>Bleeding</AddTargetBuff>
+		<AddTargetBuff>ViperbladeBleeding</AddTargetBuff>
 		<DisplayName>Sword Melee</DisplayName>
 		<CastSound>snd_pwr_melee_rogue_01|snd_pwr_melee_rogue_02|snd_pwr_melee_rogue_03</CastSound>
 		<CastGfx/>
@@ -40451,7 +40451,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Nature</DamageType>
 		<PowerGroup>PoisonDaggers</PowerGroup>
-		<AddTargetBuff>PoisonStrike</AddTargetBuff>
+		<AddTargetBuff>ViperbladePoisonStrike</AddTargetBuff>
 		<DisplayName>Bone Daggers</DisplayName>
 		<Description>Bone-shaped daggers favored by the Viperblade.</Description>
 		<IconName>a_PowerIcon_PoisonDagger</IconName>
@@ -40484,7 +40484,7 @@
 		<ProcModifier>0</ProcModifier>
 		<DamageType>Nature</DamageType>
 		<PowerGroup>PoisonDaggers</PowerGroup>
-		<AddTargetBuff>PoisonStrike</AddTargetBuff>
+		<AddTargetBuff>ViperbladePoisonStrike</AddTargetBuff>
 		<DisplayName>Bone Daggers</DisplayName>
 		<BasePowerName>PoisonDagger</BasePowerName>
 		<Description>Bone-shaped daggers favored by the Viperblade.</Description>
@@ -40921,7 +40921,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.99</BaseDamageMult>
+		<BaseDamageMult>0.891</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
@@ -40954,7 +40954,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.77</BaseDamageMult>
+		<BaseDamageMult>0.693</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
@@ -40989,7 +40989,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.85</BaseDamageMult>
+		<BaseDamageMult>0.765</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
@@ -41024,7 +41024,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.85</BaseDamageMult>
+		<BaseDamageMult>0.765</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
@@ -41059,7 +41059,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>20</ManaCost>
-		<BaseDamageMult>0.98</BaseDamageMult>
+		<BaseDamageMult>0.882</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
@@ -41094,7 +41094,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>18</ManaCost>
-		<BaseDamageMult>0.98</BaseDamageMult>
+		<BaseDamageMult>0.882</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
@@ -41129,7 +41129,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>17</ManaCost>
-		<BaseDamageMult>0.98</BaseDamageMult>
+		<BaseDamageMult>0.882</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
@@ -41164,7 +41164,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>16</ManaCost>
-		<BaseDamageMult>0.98</BaseDamageMult>
+		<BaseDamageMult>0.882</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
@@ -41199,7 +41199,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>16</ManaCost>
-		<BaseDamageMult>1.05</BaseDamageMult>
+		<BaseDamageMult>0.945</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
@@ -41234,7 +41234,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>15</ManaCost>
-		<BaseDamageMult>1.05</BaseDamageMult>
+		<BaseDamageMult>0.945</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
@@ -41269,7 +41269,7 @@
 		<RecoverTime>420</RecoverTime>
 		<CoolDownTime>0</CoolDownTime>
 		<ManaCost>15</ManaCost>
-		<BaseDamageMult>1.14</BaseDamageMult>
+		<BaseDamageMult>1.026</BaseDamageMult>
 		<ProcModifier>1</ProcModifier>
 		<DamageType>Physical</DamageType>
 		<PowerGroup>SeveringStrikes</PowerGroup>
