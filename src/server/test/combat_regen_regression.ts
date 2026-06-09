@@ -2546,7 +2546,6 @@ async function testDungeonBossRegenUsesFetchedBossList(): Promise<void> {
             levelName: 'DreamDragonDungeon',
             bossName: 'YoungDragonDream',
             blocked: [
-                { name: 'MagmaCyclopsBoss', entRank: 'Boss' },
                 { name: 'BanditGreatSpider', entRank: 'MiniBoss' }
             ]
         },
@@ -2562,16 +2561,14 @@ async function testDungeonBossRegenUsesFetchedBossList(): Promise<void> {
             levelName: 'BT_Mission2',
             bossName: 'BanditBoss',
             blocked: [
-                { name: 'BanditGreatSpider', entRank: 'MiniBoss' },
-                { name: 'YoungDragonDream', entRank: 'Boss' }
+                { name: 'BanditGreatSpider', entRank: 'MiniBoss' }
             ]
         },
         {
             levelName: 'JC_Mini2',
             bossName: 'TowerGuard2',
             blocked: [
-                { name: 'ImperialGuard', entRank: 'Minion' },
-                { name: 'UnlistedDungeonBoss', entRank: 'Boss' }
+                { name: 'ImperialGuard', entRank: 'Minion' }
             ]
         }
     ];
@@ -2631,7 +2628,7 @@ async function testDungeonBossRegenUsesFetchedBossList(): Promise<void> {
     }
 }
 
-async function testClientOnlyBossRegenDoesNotHealNormalEnemies(): Promise<void> {
+async function testClientOnlyBossRegenHealsBossRankedEnemiesOnly(): Promise<void> {
     resetState();
     ensureOriginalGameDataLoaded();
 
@@ -2709,7 +2706,7 @@ async function testClientOnlyBossRegenDoesNotHealNormalEnemies(): Promise<void> 
 
         assert.equal(boss.hp, 420, 'client-only dungeon bosses should regenerate immediately on death and again at 1s');
         assert.equal(normal.hp, 400, 'normal enemies should not receive boss regen');
-        assert.equal(unlistedBoss.hp, 400, 'generic boss-ranked enemies should not regen unless listed for that dungeon');
+        assert.equal(unlistedBoss.hp, 420, 'generic boss-ranked dungeon enemies should receive boss regen');
         const regenPackets = player.sentPackets
             .filter((packet) => packet.id === 0x78)
             .map((packet) => parseRegenPacket(packet.payload));
@@ -2718,7 +2715,10 @@ async function testClientOnlyBossRegenDoesNotHealNormalEnemies(): Promise<void> 
             { entityId: bossId, amount: 10 }
         ]);
         assert.deepEqual(regenPackets.filter((packet) => packet.entityId === normalId), []);
-        assert.deepEqual(regenPackets.filter((packet) => packet.entityId === unlistedBossId), []);
+        assert.deepEqual(regenPackets.filter((packet) => packet.entityId === unlistedBossId), [
+            { entityId: unlistedBossId, amount: 10 },
+            { entityId: unlistedBossId, amount: 10 }
+        ]);
     } finally {
         Date.now = originalDateNow;
     }
@@ -2833,7 +2833,7 @@ async function run(): Promise<void> {
     testBossRegenUsesReducedLocalCopyWhenSharedCopyIsFull();
     testEscapedLivePlayerOutsideBossAggroDoesNotArmBossRegen();
     await testDungeonBossRegenUsesFetchedBossList();
-    await testClientOnlyBossRegenDoesNotHealNormalEnemies();
+    await testClientOnlyBossRegenHealsBossRankedEnemiesOnly();
     await testAuthoritativeDeadPlayerStateAllowsBossRegen();
     console.log('combat_regen_regression: ok');
 }

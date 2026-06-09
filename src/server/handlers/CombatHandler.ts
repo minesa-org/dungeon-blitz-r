@@ -798,20 +798,37 @@ export class CombatHandler {
     private static isDungeonBossEntity(levelScope: string, entity: any): boolean {
         const levelName = getScopeLevelName(levelScope);
         const markedRoomBoss = isRoomBossEntity(levelScope, entity);
+        const isDungeonLevel = LevelConfig.isDungeonLevel(levelName);
         if (GameData.isDungeonBossEntity(levelName, entity)) {
             return true;
         }
 
         if (
-            LevelConfig.isDungeonLevel(levelName) &&
+            isDungeonLevel &&
             CombatHandler.isKnownClientRoomBossEntity(levelName, entity)
         ) {
             return true;
         }
 
-        return LevelConfig.isDungeonLevel(levelName) &&
-            markedRoomBoss &&
-            GameData.isBossEntity(entity);
+        if (!isDungeonLevel) {
+            return false;
+        }
+
+        const entityKey = CombatHandler.normalizeCombatLookupKey(entity?.name ?? entity?.EntName ?? entity?.entName);
+        if (
+            entityKey &&
+            CombatHandler.KNOWN_ROOM_BOSS_DISPLAY_KEYS_BY_ENTITY.has(entityKey) &&
+            !CombatHandler.isKnownClientRoomBossEntity(levelName, entity) &&
+            !markedRoomBoss
+        ) {
+            return false;
+        }
+
+        if (String(GameData.getEntityRank(entity)).trim() === 'Boss') {
+            return true;
+        }
+
+        return markedRoomBoss && GameData.isBossEntity(entity);
     }
 
     private static getKnownDungeonBossHomePosition(levelScope: string, entity: any): { x: number; y: number } | null {
