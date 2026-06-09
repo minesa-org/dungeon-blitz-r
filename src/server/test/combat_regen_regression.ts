@@ -1741,6 +1741,46 @@ function testDeadPlayerInBossAggroAllowsBossRegen(): void {
     assert.deepEqual(regenPackets.filter((packet) => packet.entityId === boss.id), [{ entityId: boss.id, amount: 40 }]);
 }
 
+function testBossRegenUsesReducedLocalCopyWhenSharedCopyIsFull(): void {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const player = createFakeClient(40, 'LocalBossDamage', 57);
+    moveClientToLevel(player, 'DreamDragonDungeon');
+    player.authoritativeCurrentHp = 0;
+    player.character!.CurrentLevel = { name: 'DreamDragonDungeon', x: 120, y: 0 };
+
+    const sharedBoss = createRegenHostile(900040, 'YoungDragonDream', player.currentRoomId, {
+        x: 0,
+        y: 0,
+        hp: 1000,
+        maxHp: 1000,
+        lastCombatActivityAt: 10_000,
+        lastCombatRegenTickAt: 0
+    });
+    const localBoss = {
+        ...sharedBoss,
+        hp: 400,
+        healthDelta: -600,
+        health_delta: -600
+    };
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.set(levelScope, new Map<number, any>([[sharedBoss.id, sharedBoss]]));
+    player.entities.set(sharedBoss.id, localBoss);
+    player.knownEntityIds.add(sharedBoss.id);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    CombatHandler.processOutOfCombatRegen(levelScope, 10_500);
+
+    assert.equal(sharedBoss.hp, 420, 'boss regen should use the reduced local boss copy instead of the stale full shared copy');
+    assert.equal(localBoss.hp, 420, 'boss regen should sync the healed HP back to the local boss copy');
+    const regenPackets = player.sentPackets
+        .filter((packet) => packet.id === 0x78)
+        .map((packet) => parseRegenPacket(packet.payload));
+    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === sharedBoss.id), [{ entityId: sharedBoss.id, amount: 20 }]);
+}
+
 function testEscapedPlayerOutsideBossAggroAllowsBossRegen(): void {
     resetState();
     ensureOriginalGameDataLoaded();
@@ -2043,6 +2083,7 @@ async function run(): Promise<void> {
     await testKnownOverworldBossNameDoesNotUseDungeonBossRegen();
     testLivePlayerInBossAggroBlocksBossRegen();
     testDeadPlayerInBossAggroAllowsBossRegen();
+    testBossRegenUsesReducedLocalCopyWhenSharedCopyIsFull();
     testEscapedPlayerOutsideBossAggroAllowsBossRegen();
     await testDungeonBossRegenUsesFetchedBossList();
     await testClientOnlyBossRegenDoesNotHealNormalEnemies();

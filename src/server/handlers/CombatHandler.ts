@@ -816,6 +816,65 @@ export class CombatHandler {
         };
     }
 
+    private static collectHostileHealthCopies(levelScope: string, entity: any): any[] {
+        const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
+        if (!levelScope || entityId <= 0) {
+            return [];
+        }
+
+        const copies: any[] = [];
+        const add = (candidate: any): void => {
+            if (
+                !candidate ||
+                typeof candidate !== 'object' ||
+                Boolean(candidate.isPlayer) ||
+                Math.max(0, Math.round(Number(candidate.id ?? 0))) !== entityId
+            ) {
+                return;
+            }
+            if (!copies.includes(candidate)) {
+                copies.push(candidate);
+            }
+        };
+
+        add(entity);
+        add(GlobalState.levelEntities.get(levelScope)?.get(entityId));
+        for (const session of GlobalState.sessionsByToken.values()) {
+            if (getClientLevelScope(session) !== levelScope) {
+                continue;
+            }
+            add(session.entities.get(entityId));
+        }
+
+        return copies;
+    }
+
+    private static resolveHostileHealthStateAcrossCopies(
+        levelScope: string,
+        entity: any
+    ): { maxHp: number; currentHp: number; authoritativeKill: boolean } | null {
+        const states = CombatHandler.collectHostileHealthCopies(levelScope, entity)
+            .map((copy) => CombatHandler.getNpcHealthState(copy))
+            .filter((state): state is { maxHp: number; currentHp: number; authoritativeKill: boolean } => Boolean(state));
+        if (states.length <= 0) {
+            return CombatHandler.getNpcHealthState(entity);
+        }
+
+        const maxHp = Math.max(...states.map((state) => state.maxHp), 1);
+        const normalizedCurrents = states
+            .map((state) => Math.max(0, Math.min(maxHp, Math.round(Number(state.currentHp) || 0))));
+        const damagedCurrents = normalizedCurrents.filter((hp) => hp > 0 && hp < maxHp);
+        const currentHp = damagedCurrents.length > 0
+            ? Math.min(...damagedCurrents)
+            : Math.min(maxHp, Math.max(...normalizedCurrents));
+
+        return {
+            maxHp,
+            currentHp,
+            authoritativeKill: states.some((state) => state.authoritativeKill)
+        };
+    }
+
     private static applyNpcHealthState(entity: any, maxHp: number, currentHp: number, authoritativeKill: boolean): number {
         if (!entity || typeof entity !== 'object') {
             return 0;
@@ -1020,7 +1079,7 @@ export class CombatHandler {
             return;
         }
 
-        const healthState = CombatHandler.getNpcHealthState(entity);
+        const healthState = CombatHandler.resolveHostileHealthStateAcrossCopies(levelScope, entity);
         if (!healthState || CombatHandler.isEntityDead(entity) || healthState.currentHp <= 0 || healthState.currentHp >= healthState.maxHp) {
             return;
         }
