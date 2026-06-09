@@ -82,7 +82,12 @@ export class AILogic {
             }
         }
 
-        if (players.length === 0) return;
+        if (players.length === 0) {
+            if (CombatHandler.hasOutOfCombatRegenPresence(levelScope)) {
+                CombatHandler.processOutOfCombatRegen(levelScope, nowMs);
+            }
+            return;
+        }
         CombatHandler.processOutOfCombatRegen(levelScope, nowMs);
 
         // Iterate over Map entries to get ID and Object

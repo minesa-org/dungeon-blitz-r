@@ -82,6 +82,8 @@ type PlayerHitResolution = {
 
 type NpcHitResolution = {
     entity: any | null;
+    entityId?: number;
+    appliedDamage?: number;
     killed: boolean;
 };
 
@@ -162,17 +164,25 @@ export class CombatHandler {
     private static readonly PLAYER_OUT_OF_COMBAT_REGEN_INTERVAL_MS = 1_000;
     private static readonly PLAYER_REGEN_RATE = 0.05;
     private static readonly PLAYER_HP_LOG_THROTTLE_MS = 1_000;
-    // Bosses regenerate faster than the original brain/NPC tick when out of combat.
-    private static readonly ORIGINAL_REGEN_INTERVAL_MS = 500;
+    private static readonly BOSS_REGEN_LOG_THROTTLE_MS = 1_000;
+    private static readonly ORIGINAL_REGEN_INTERVAL_MS = 1_000;
     private static readonly DUNGEON_BOSS_OUT_OF_COMBAT_REGEN_DELAY_MS = 500;
     private static readonly DUNGEON_BOSS_REGEN_INTERVAL_MS = CombatHandler.ORIGINAL_REGEN_INTERVAL_MS;
-    private static readonly HOSTILE_REGEN_RATE = 0.02;
+    private static readonly HOSTILE_REGEN_RATE = 0.01;
     private static readonly CLIENT_HEAL_PACKET_ID = 0x78;
     private static readonly BOSS_MELEE_AGGRO_RADIUS = 180;
     private static readonly BOSS_RANGED_AGGRO_RADIUS = 260;
     private static readonly KNOWN_ROOM_BOSS_DISPLAY_KEYS_BY_ENTITY = new Map<string, ReadonlySet<string>>([
         ['dreadpaladin', new Set(['dreadpaladinlothyr'])],
+        ['dreadpaladin2', new Set(['dreadpaladinlothyr'])],
+        ['dreadpaladin3', new Set(['dreadpaladinlothyr'])],
+        ['dreadpaladin2hard', new Set(['dreadpaladinlothyr'])],
+        ['dreadpaladin3hard', new Set(['dreadpaladinlothyr'])],
         ['dreadpaladinhard', new Set(['dreadpaladinlothyr'])]
+    ]);
+    private static readonly KNOWN_ROOM_BOSS_DISPLAY_KEYS_BY_LEVEL = new Map<string, ReadonlySet<string>>([
+        ['JC_Mission1', new Set(['imperialchampion', 'imperialcommandergrahl'])],
+        ['JC_Mission1Hard', new Set(['imperialchampionhard', 'imperialcommandergrahl', 'imperialcommandergrahlhard'])]
     ]);
     private static readonly POWER_HIT_CLIENT_AUTHORITY_BOSS_LEVELS = new Set([
         'AC_Mission5',
@@ -213,6 +223,7 @@ export class CombatHandler {
         68109, 71338, 74723, 78271, 81989, 85887
     ] as const;
     private static readonly recentPlayerHpLogs = new Map<string, number>();
+    private static readonly recentBossRegenLogs = new Map<string, number>();
 
     private static getEntityKey(levelName: string, entityId: number): string {
         return `${levelName}:${entityId}`;
@@ -455,12 +466,35 @@ export class CombatHandler {
             .replace(/[^a-z0-9]+/g, '');
     }
 
-    private static isKnownClientRoomBossEntity(entity: any): boolean {
+    private static getKnownClientRoomBossLookupKeys(entity: any): string[] {
+        const keys = [
+            entity?.name,
+            entity?.EntName,
+            entity?.entName,
+            entity?.roomBossName,
+            entity?.displayName,
+            entity?.DisplayName,
+            entity?.characterName,
+            entity?.character_name
+        ]
+            .map((value) => CombatHandler.normalizeCombatLookupKey(value))
+            .filter((value) => value.length > 0);
+
+        return [...new Set(keys)];
+    }
+
+    private static isKnownClientRoomBossEntity(levelName: string, entity: any): boolean {
         const entityKey = CombatHandler.normalizeCombatLookupKey(entity?.name ?? entity?.EntName ?? entity?.entName);
         const bossNameKey = CombatHandler.normalizeCombatLookupKey(
-            entity?.roomBossName ?? entity?.displayName ?? entity?.DisplayName
+            entity?.roomBossName ?? entity?.displayName ?? entity?.DisplayName ?? entity?.characterName ?? entity?.character_name
         );
-        return Boolean(entityKey && bossNameKey && CombatHandler.KNOWN_ROOM_BOSS_DISPLAY_KEYS_BY_ENTITY.get(entityKey)?.has(bossNameKey));
+        if (entityKey && bossNameKey && CombatHandler.KNOWN_ROOM_BOSS_DISPLAY_KEYS_BY_ENTITY.get(entityKey)?.has(bossNameKey)) {
+            return true;
+        }
+
+        const normalizedLevelName = LevelConfig.normalizeLevelName(levelName) || levelName;
+        const knownLevelKeys = CombatHandler.KNOWN_ROOM_BOSS_DISPLAY_KEYS_BY_LEVEL.get(normalizedLevelName);
+        return Boolean(knownLevelKeys && CombatHandler.getKnownClientRoomBossLookupKeys(entity).some((key) => knownLevelKeys.has(key)));
     }
 
     private static buildCharRegenPayload(entityId: number, amount: number): Buffer {
@@ -498,6 +532,42 @@ export class CombatHandler {
             .join(' ');
         console.log(
             `[CombatRegen][${label}] player=${characterName} token=${client.token} ent=${client.clientEntID} level=${levelScope} ${formattedDetails}`
+        );
+    }
+
+    private static logBossRegen(
+        label: string,
+        levelScope: string,
+        entity: any,
+        details: Record<string, unknown> = {},
+        throttleMs: number = CombatHandler.BOSS_REGEN_LOG_THROTTLE_MS,
+        nowMs: number = Date.now()
+    ): void {
+        const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
+        const reason = String(details.reason ?? '');
+        const key = `${levelScope}:${entityId}:${label}:${reason}`;
+        if (throttleMs > 0) {
+            const previousAt = Math.max(0, Number(CombatHandler.recentBossRegenLogs.get(key) ?? 0));
+            if (nowMs - previousAt < throttleMs) {
+                return;
+            }
+            CombatHandler.recentBossRegenLogs.set(key, nowMs);
+        }
+
+        const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? 'unknown').replace(/\s+/g, '_');
+        const displayName = String(
+            entity?.roomBossName ??
+            entity?.displayName ??
+            entity?.DisplayName ??
+            entity?.characterName ??
+            entity?.character_name ??
+            ''
+        ).replace(/\s+/g, '_');
+        const formattedDetails = Object.entries(details)
+            .map(([detailKey, value]) => `${detailKey}=${String(value)}`)
+            .join(' ');
+        console.log(
+            `[CombatRegen][${label}] level=${levelScope || 'none'} boss=${entityName} display=${displayName || 'none'} ent=${entityId} ${formattedDetails}`
         );
     }
 
@@ -734,8 +804,7 @@ export class CombatHandler {
 
         if (
             LevelConfig.isDungeonLevel(levelName) &&
-            markedRoomBoss &&
-            CombatHandler.isKnownClientRoomBossEntity(entity)
+            CombatHandler.isKnownClientRoomBossEntity(levelName, entity)
         ) {
             return true;
         }
@@ -776,6 +845,14 @@ export class CombatHandler {
         return Math.max(1, Math.round(CombatHandler.getHostileBaseHpForLevel(rawLevel) * hitPointScale));
     }
 
+    private static getNpcHealthDelta(entity: any): number {
+        const deltas = [entity?.healthDelta, entity?.health_delta]
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value))
+            .map((value) => Math.round(value));
+        return deltas.length > 0 ? Math.min(...deltas) : 0;
+    }
+
     private static getNpcHealthState(entity: any): { maxHp: number; currentHp: number; authoritativeKill: boolean } | null {
         if (!entity || entity.isPlayer) {
             return null;
@@ -801,12 +878,15 @@ export class CombatHandler {
             return null;
         }
 
+        const healthDelta = CombatHandler.getNpcHealthDelta(entity);
+        const deltaHp = healthDelta < 0 ? maxHp + healthDelta : NaN;
         let currentHp = 0;
-        if (Number.isFinite(rawHp)) {
+        if (Number.isFinite(rawHp) && Number.isFinite(deltaHp)) {
+            currentHp = Math.min(Math.round(rawHp), Math.round(deltaHp));
+        } else if (Number.isFinite(rawHp)) {
             currentHp = Math.round(rawHp);
         } else {
-            const healthDelta = Math.round(Number(entity.healthDelta ?? entity.health_delta ?? 0));
-            currentHp = maxHp + Math.min(0, healthDelta);
+            currentHp = Number.isFinite(deltaHp) ? Math.round(deltaHp) : maxHp;
         }
 
         return {
@@ -816,21 +896,216 @@ export class CombatHandler {
         };
     }
 
-    private static collectHostileHealthCopies(levelScope: string, entity: any): any[] {
+    private static getHostileIdentityKeys(entity: any): string[] {
+        const keys = [
+            entity?.name,
+            entity?.EntName,
+            entity?.entName,
+            entity?.characterName,
+            entity?.character_name,
+            entity?.displayName,
+            entity?.DisplayName,
+            entity?.roomBossName
+        ]
+            .map((value) => CombatHandler.normalizeCombatLookupKey(value))
+            .filter((value) => value.length > 0);
+
+        return [...new Set(keys)];
+    }
+
+    private static isEquivalentHostileEntity(levelScope: string, sourceEntity: any, candidate: any): boolean {
+        if (
+            !levelScope ||
+            !sourceEntity ||
+            !candidate ||
+            Boolean(sourceEntity.isPlayer) ||
+            Boolean(candidate.isPlayer) ||
+            Number(sourceEntity.team ?? 0) !== EntityTeam.ENEMY ||
+            Number(candidate.team ?? 0) !== EntityTeam.ENEMY
+        ) {
+            return false;
+        }
+
+        const sourceId = Math.max(0, Math.round(Number(sourceEntity.id ?? 0)));
+        const candidateId = Math.max(0, Math.round(Number(candidate.id ?? 0)));
+        if (sourceId > 0 && sourceId === candidateId) {
+            return true;
+        }
+
+        const sourceRoomId = Math.round(Number(sourceEntity.roomId ?? -1));
+        const candidateRoomId = Math.round(Number(candidate.roomId ?? -1));
+        if (sourceRoomId >= 0 && candidateRoomId >= 0 && sourceRoomId !== candidateRoomId) {
+            return false;
+        }
+
+        const sourceDisplayKey = CombatHandler.normalizeCombatLookupKey(
+            sourceEntity.roomBossName ?? sourceEntity.displayName ?? sourceEntity.DisplayName ?? sourceEntity.characterName ?? sourceEntity.character_name
+        );
+        const candidateDisplayKey = CombatHandler.normalizeCombatLookupKey(
+            candidate.roomBossName ?? candidate.displayName ?? candidate.DisplayName ?? candidate.characterName ?? candidate.character_name
+        );
+        if (sourceDisplayKey && candidateDisplayKey && sourceDisplayKey !== candidateDisplayKey) {
+            return false;
+        }
+
+        const sourceKeys = CombatHandler.getHostileIdentityKeys(sourceEntity);
+        const candidateKeys = new Set(CombatHandler.getHostileIdentityKeys(candidate));
+        return sourceKeys.some((key) => candidateKeys.has(key));
+    }
+
+    private static findEquivalentLevelHostile(levelScope: string, sourceEntity: any): any | null {
+        if (!levelScope || !sourceEntity || Boolean(sourceEntity.isPlayer) || Number(sourceEntity.team ?? 0) !== EntityTeam.ENEMY) {
+            return null;
+        }
+
+        const levelMap = GlobalState.levelEntities.get(levelScope);
+        if (!levelMap) {
+            return null;
+        }
+
+        const sourceId = Math.max(0, Math.round(Number(sourceEntity.id ?? 0)));
+        const sourceIsBoss = CombatHandler.isDungeonBossEntity(levelScope, sourceEntity);
+        let bestMatch: any | null = null;
+        let bestScore = -1;
+
+        for (const candidate of levelMap.values()) {
+            const candidateId = Math.max(0, Math.round(Number(candidate?.id ?? 0)));
+            if (candidateId <= 0 || candidateId === sourceId) {
+                continue;
+            }
+            if (!CombatHandler.isEquivalentHostileEntity(levelScope, sourceEntity, candidate)) {
+                continue;
+            }
+
+            const candidateIsBoss = CombatHandler.isDungeonBossEntity(levelScope, candidate);
+            if (!sourceIsBoss && !candidateIsBoss) {
+                continue;
+            }
+
+            const sourceX = Number(sourceEntity.x ?? NaN);
+            const sourceY = Number(sourceEntity.y ?? NaN);
+            const candidateX = Number(candidate.x ?? NaN);
+            const candidateY = Number(candidate.y ?? NaN);
+            const hasPositions = Number.isFinite(sourceX) && Number.isFinite(sourceY) && Number.isFinite(candidateX) && Number.isFinite(candidateY);
+            const distanceScore = hasPositions
+                ? Math.max(0, 10_000 - Math.round(((sourceX - candidateX) ** 2) + ((sourceY - candidateY) ** 2)))
+                : 0;
+            const score = (candidateIsBoss ? 100_000 : 0) + distanceScore;
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = candidate;
+            }
+        }
+
+        return bestMatch;
+    }
+
+    private static resolveClientHostileEntityAlias(client: Client, levelScope: string, entityId: number): number {
+        const localId = Math.max(0, Math.round(Number(entityId) || 0));
+        if (
+            !levelScope ||
+            localId <= 0 ||
+            localId === Math.max(0, Math.round(Number(client?.clientEntID ?? 0))) ||
+            CombatHandler.resolveLevelEntity(levelScope, localId)
+        ) {
+            return localId;
+        }
+
+        const localEntity = client.entities.get(localId);
+        if (localEntity && (Boolean(localEntity?.isPlayer) || Number(localEntity?.team ?? 0) !== EntityTeam.ENEMY)) {
+            return localId;
+        }
+
+        const explicitCanonicalId = Math.max(
+            0,
+            Math.round(Number(localEntity?.canonicalEntityId ?? localEntity?.sharedCanonicalId ?? 0))
+        );
+        if (explicitCanonicalId > 0 && CombatHandler.resolveLevelEntity(levelScope, explicitCanonicalId)) {
+            EntityHandler.rememberEntityAlias(client, localId, explicitCanonicalId);
+            return explicitCanonicalId;
+        }
+
+        const canonicalEntity = CombatHandler.findEquivalentLevelHostile(levelScope, localEntity);
+        const canonicalId = Math.max(0, Math.round(Number(canonicalEntity?.id ?? 0)));
+        if (canonicalId > 0) {
+            EntityHandler.rememberEntityAlias(client, localId, canonicalId);
+            return canonicalId;
+        }
+
+        const roomBoss = CombatHandler.findSingleRoomBossForUnknownClientHostile(client, levelScope);
+        const roomBossId = Math.max(0, Math.round(Number(roomBoss?.id ?? 0)));
+        if (roomBossId > 0) {
+            EntityHandler.rememberEntityAlias(client, localId, roomBossId);
+            CombatHandler.logBossRegen('boss-hp-report-alias', levelScope, roomBoss, {
+                rawEntityId: localId,
+                entityId: roomBossId,
+                reason: 'single-room-boss'
+            }, 0);
+            return roomBossId;
+        }
+
+        return localId;
+    }
+
+    private static findSingleRoomBossForUnknownClientHostile(client: Client, levelScope: string): any | null {
+        if (!levelScope) {
+            return null;
+        }
+
+        const levelMap = GlobalState.levelEntities.get(levelScope);
+        if (!levelMap) {
+            return null;
+        }
+
+        const clientRoomId = Math.round(Number(client?.currentRoomId ?? -1));
+        const candidates: any[] = [];
+        const seenIds = new Set<number>();
+        for (const entity of levelMap.values()) {
+            const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
+            if (
+                entityId <= 0 ||
+                seenIds.has(entityId) ||
+                Boolean(entity?.isPlayer) ||
+                Number(entity?.team ?? 0) !== EntityTeam.ENEMY ||
+                !CombatHandler.isDungeonBossEntity(levelScope, entity)
+            ) {
+                continue;
+            }
+
+            const entityRoomId = Math.round(Number(entity?.roomId ?? -1));
+            if (clientRoomId >= 0 && entityRoomId >= 0 && !sharesRoomIds(clientRoomId, entityRoomId)) {
+                continue;
+            }
+
+            seenIds.add(entityId);
+            candidates.push(entity);
+        }
+
+        return candidates.length === 1 ? candidates[0] : null;
+    }
+
+    private static collectHostileHealthCopies(levelScope: string, entity: any, includeEquivalent: boolean = false): any[] {
         const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
         if (!levelScope || entityId <= 0) {
             return [];
         }
 
         const copies: any[] = [];
-        const add = (candidate: any): void => {
+        const add = (candidate: any, ownerSession: Client | null = null): void => {
             if (
                 !candidate ||
                 typeof candidate !== 'object' ||
                 Boolean(candidate.isPlayer) ||
-                Math.max(0, Math.round(Number(candidate.id ?? 0))) !== entityId
+                (
+                    Math.max(0, Math.round(Number(candidate.id ?? 0))) !== entityId &&
+                    (!includeEquivalent || !CombatHandler.isEquivalentHostileEntity(levelScope, entity, candidate))
+                )
             ) {
                 return;
+            }
+            const candidateId = Math.max(0, Math.round(Number(candidate.id ?? 0)));
+            if (ownerSession && candidateId > 0 && candidateId !== entityId) {
+                EntityHandler.rememberEntityAlias(ownerSession, candidateId, entityId);
             }
             if (!copies.includes(candidate)) {
                 copies.push(candidate);
@@ -843,17 +1118,88 @@ export class CombatHandler {
             if (getClientLevelScope(session) !== levelScope) {
                 continue;
             }
-            add(session.entities.get(entityId));
+            add(session.entities.get(entityId), session);
+            if (includeEquivalent) {
+                for (const candidate of session.entities.values()) {
+                    add(candidate, session);
+                }
+            }
         }
 
         return copies;
+    }
+
+    private static isSessionPresentForHostileRegen(session: Client, levelScope: string): boolean {
+        if (!session?.character || !levelScope || getClientLevelScope(session) !== levelScope) {
+            return false;
+        }
+        if (session.playerSpawned) {
+            return true;
+        }
+
+        return Boolean(session.enemyDeathRegenArmed) &&
+            Math.max(0, Math.round(Number(session.clientEntID ?? 0))) > 0 &&
+            Boolean(session.currentLevel);
+    }
+
+    static hasOutOfCombatRegenPresence(levelScope: string): boolean {
+        if (!levelScope) {
+            return false;
+        }
+
+        for (const session of GlobalState.sessionsByToken.values()) {
+            if (CombatHandler.isSessionPresentForHostileRegen(session, levelScope)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static getDeathRegenArmKeyForPlayer(client: Client): string {
+        return `${client.token}:${client.clientEntID}`;
+    }
+
+    private static getHostileDeathRegenArmKey(entity: any): string {
+        return String(entity?.deathRegenArmedForPlayerKey ?? '').trim();
+    }
+
+    private static isHostileDeathRegenArmed(entity: any): boolean {
+        return CombatHandler.getHostileDeathRegenArmKey(entity).length > 0;
+    }
+
+    private static isDeathArmedViewerForHostile(viewer: Client, entity: any): boolean {
+        return Boolean(viewer?.enemyDeathRegenArmed) &&
+            CombatHandler.getHostileDeathRegenArmKey(entity) === CombatHandler.getDeathRegenArmKeyForPlayer(viewer);
+    }
+
+    private static setHostileDeathRegenArm(levelScope: string, entity: any, armKey: string): void {
+        for (const copy of CombatHandler.collectHostileHealthCopies(levelScope, entity, true)) {
+            copy.deathRegenArmedForPlayerKey = armKey;
+        }
+    }
+
+    private static clearHostileDeathRegenArm(levelScope: string, entity: any, armKey: string): void {
+        if (!armKey) {
+            return;
+        }
+
+        for (const copy of CombatHandler.collectHostileHealthCopies(levelScope, entity, true)) {
+            if (CombatHandler.getHostileDeathRegenArmKey(copy) === armKey) {
+                delete copy.deathRegenArmedForPlayerKey;
+            }
+        }
     }
 
     private static resolveHostileHealthStateAcrossCopies(
         levelScope: string,
         entity: any
     ): { maxHp: number; currentHp: number; authoritativeKill: boolean } | null {
-        const states = CombatHandler.collectHostileHealthCopies(levelScope, entity)
+        const states = CombatHandler.collectHostileHealthCopies(
+            levelScope,
+            entity,
+            CombatHandler.isDungeonBossEntity(levelScope, entity)
+        )
             .map((copy) => CombatHandler.getNpcHealthState(copy))
             .filter((state): state is { maxHp: number; currentHp: number; authoritativeKill: boolean } => Boolean(state));
         if (states.length <= 0) {
@@ -910,7 +1256,8 @@ export class CombatHandler {
         }
 
         const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '').trim();
-        return CombatHandler.POWER_HIT_CLIENT_AUTHORITY_BOSS_NAMES.has(entityName);
+        return CombatHandler.POWER_HIT_CLIENT_AUTHORITY_BOSS_NAMES.has(entityName) ||
+            CombatHandler.isKnownClientRoomBossEntity(levelName, entity);
     }
 
     private static noteCombatInteraction(levelScope: string, sourceId: number, targetId: number, fallbackClient: Client, atMs: number = Date.now()): void {
@@ -1081,14 +1428,51 @@ export class CombatHandler {
 
         const healthState = CombatHandler.resolveHostileHealthStateAcrossCopies(levelScope, entity);
         if (!healthState || CombatHandler.isEntityDead(entity) || healthState.currentHp <= 0 || healthState.currentHp >= healthState.maxHp) {
+            CombatHandler.logBossRegen('boss-regen-skip', levelScope, entity, {
+                reason: !healthState
+                    ? 'no-health'
+                    : CombatHandler.isEntityDead(entity) || healthState.currentHp <= 0
+                        ? 'dead'
+                        : 'full',
+                currentHp: healthState?.currentHp ?? 0,
+                maxHp: healthState?.maxHp ?? 0,
+                entityHp: Math.round(Number(entity?.hp ?? 0)),
+                healthDelta: CombatHandler.getNpcHealthDelta(entity),
+                roomId: Math.round(Number(entity?.roomId ?? -1))
+            }, CombatHandler.BOSS_REGEN_LOG_THROTTLE_MS, nowMs);
             return;
         }
         if (CombatHandler.hasLivingHostileAggroTarget(levelScope, entity)) {
+            CombatHandler.logBossRegen('boss-regen-skip', levelScope, entity, {
+                reason: 'living-aggro-target',
+                currentHp: healthState.currentHp,
+                maxHp: healthState.maxHp,
+                aggroTargetEntityId: Math.round(Number(entity?.aggroTargetEntityId ?? 0)),
+                aggroTargetToken: Math.round(Number(entity?.aggroTargetToken ?? 0))
+            }, CombatHandler.BOSS_REGEN_LOG_THROTTLE_MS, nowMs);
             return;
         }
 
         if (CombatHandler.hasLivePlayerInBossAggro(levelScope, entity)) {
             CombatHandler.noteHostileCombatActivity(entity, nowMs);
+            CombatHandler.logBossRegen('boss-regen-skip', levelScope, entity, {
+                reason: 'live-player-aggro',
+                currentHp: healthState.currentHp,
+                maxHp: healthState.maxHp,
+                aggroTargetEntityId: Math.round(Number(entity?.aggroTargetEntityId ?? 0)),
+                aggroTargetToken: Math.round(Number(entity?.aggroTargetToken ?? 0))
+            }, CombatHandler.BOSS_REGEN_LOG_THROTTLE_MS, nowMs);
+            return;
+        }
+
+        if (!CombatHandler.isHostileDeathRegenArmed(entity)) {
+            CombatHandler.logBossRegen('boss-regen-skip', levelScope, entity, {
+                reason: 'death-not-armed',
+                currentHp: healthState.currentHp,
+                maxHp: healthState.maxHp,
+                healthDelta: CombatHandler.getNpcHealthDelta(entity),
+                roomId: Math.round(Number(entity?.roomId ?? -1))
+            }, CombatHandler.BOSS_REGEN_LOG_THROTTLE_MS, nowMs);
             return;
         }
 
@@ -1100,6 +1484,16 @@ export class CombatHandler {
             CombatHandler.DUNGEON_BOSS_REGEN_INTERVAL_MS
         );
         if (!regenState) {
+            CombatHandler.logBossRegen('boss-regen-wait', levelScope, entity, {
+                currentHp: healthState.currentHp,
+                maxHp: healthState.maxHp,
+                lastCombatAt: CombatHandler.getEntityCombatActivityAt(entity),
+                lastTickAt: CombatHandler.getEntityLastRegenTickAt(entity),
+                dueAt: CombatHandler.getEntityLastRegenTickAt(entity) > 0
+                    ? CombatHandler.getEntityLastRegenTickAt(entity) + CombatHandler.DUNGEON_BOSS_REGEN_INTERVAL_MS
+                    : CombatHandler.getEntityCombatActivityAt(entity) + CombatHandler.DUNGEON_BOSS_OUT_OF_COMBAT_REGEN_DELAY_MS,
+                nowMs
+            }, CombatHandler.BOSS_REGEN_LOG_THROTTLE_MS, nowMs);
             return;
         }
 
@@ -1127,29 +1521,40 @@ export class CombatHandler {
         CombatHandler.syncHostileHealthCopies(levelScope, entity, nextHp, healthState.maxHp);
 
         const payload = CombatHandler.buildCharRegenPayload(Number(entity.id ?? 0), actualHeal);
-        CombatHandler.broadcastHostileRegenPacket(levelScope, entity, payload);
+        const viewers = CombatHandler.broadcastHostileRegenPacket(levelScope, entity, payload);
+        CombatHandler.logBossRegen('boss-regen-heal', levelScope, entity, {
+            previousHp: healthState.currentHp,
+            healAmount: actualHeal,
+            nextHp,
+            maxHp: healthState.maxHp,
+            ticks: regenState.ticks,
+            viewers
+        }, 0, nowMs);
     }
 
-    private static broadcastHostileRegenPacket(levelScope: string, entity: any, payload: Buffer): void {
+    private static broadcastHostileRegenPacket(levelScope: string, entity: any, payload: Buffer): number {
         if (!levelScope) {
-            return;
+            return 0;
         }
 
         const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
         if (entityId <= 0) {
-            return;
+            return 0;
         }
 
+        let viewers = 0;
         const sourceRoomId = Number.isFinite(Number(entity?.roomId)) ? Number(entity.roomId) : -1;
         for (const viewer of GlobalState.sessionsByToken.values()) {
-            if (!viewer.playerSpawned || getClientLevelScope(viewer) !== levelScope) {
+            if (!CombatHandler.isSessionPresentForHostileRegen(viewer, levelScope)) {
                 continue;
             }
-            if (sourceRoomId >= 0 && !sharesRoomIds(viewer.currentRoomId, sourceRoomId)) {
+            const isDeathArmedViewer = CombatHandler.isDeathArmedViewerForHostile(viewer, entity);
+            if (!isDeathArmedViewer && sourceRoomId >= 0 && !sharesRoomIds(viewer.currentRoomId, sourceRoomId)) {
                 continue;
             }
 
             const canResolveEntity =
+                isDeathArmedViewer ||
                 CombatHandler.canViewerResolveCombatEntity(viewer, levelScope, entityId) ||
                 viewer.entities.has(entityId) ||
                 viewer.knownEntityIds.has(entityId);
@@ -1161,7 +1566,10 @@ export class CombatHandler {
                 CombatHandler.CLIENT_HEAL_PACKET_ID,
                 CombatHandler.translateOutboundPacketForViewer(viewer, CombatHandler.CLIENT_HEAL_PACKET_ID, payload)
             );
+            viewers++;
         }
+
+        return viewers;
     }
 
     private static syncHostileHealthCopies(levelScope: string, sourceEntity: any, currentHp: number, maxHp: number): void {
@@ -1172,7 +1580,15 @@ export class CombatHandler {
 
         const healthDelta = currentHp - maxHp;
         const apply = (entity: any): void => {
-            if (!entity || typeof entity !== 'object' || entity.isPlayer || Number(entity.id ?? 0) !== entityId) {
+            if (
+                !entity ||
+                typeof entity !== 'object' ||
+                entity.isPlayer ||
+                (
+                    Number(entity.id ?? 0) !== entityId &&
+                    !CombatHandler.isEquivalentHostileEntity(levelScope, sourceEntity, entity)
+                )
+            ) {
                 return;
             }
             entity.maxHp = maxHp;
@@ -1186,6 +1602,11 @@ export class CombatHandler {
         };
 
         apply(GlobalState.levelEntities.get(levelScope)?.get(entityId));
+        if (CombatHandler.isDungeonBossEntity(levelScope, sourceEntity)) {
+            for (const copy of CombatHandler.collectHostileHealthCopies(levelScope, sourceEntity, true)) {
+                apply(copy);
+            }
+        }
         for (const session of GlobalState.sessionsByToken.values()) {
             if (getClientLevelScope(session) !== levelScope) {
                 continue;
@@ -1197,13 +1618,26 @@ export class CombatHandler {
     private static collectHostileRegenCandidates(levelScope: string): any[] {
         const candidates: any[] = [];
         const seenIds = new Set<number>();
-        const add = (entity: any): void => {
+        const add = (entity: any, ownerSession: Client | null = null): void => {
             const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
-            if (entityId <= 0 || seenIds.has(entityId)) {
+            if (entityId <= 0) {
                 return;
             }
-            seenIds.add(entityId);
-            candidates.push(entity);
+
+            const canonicalId = ownerSession
+                ? CombatHandler.resolveClientHostileEntityAlias(ownerSession, levelScope, entityId)
+                : entityId;
+            const candidate = canonicalId !== entityId
+                ? CombatHandler.resolveLevelEntity(levelScope, canonicalId) ?? ownerSession?.entities.get(canonicalId) ?? entity
+                : entity;
+            const candidateId = Math.max(0, Math.round(Number(candidate?.id ?? canonicalId)));
+            const seenId = candidateId > 0 ? candidateId : canonicalId;
+            if (seenId <= 0 || seenIds.has(seenId)) {
+                return;
+            }
+
+            seenIds.add(seenId);
+            candidates.push(candidate);
         };
 
         const levelMap = GlobalState.levelEntities.get(levelScope);
@@ -1214,11 +1648,11 @@ export class CombatHandler {
         }
 
         for (const session of GlobalState.sessionsByToken.values()) {
-            if (!session.playerSpawned || getClientLevelScope(session) !== levelScope) {
+            if (!CombatHandler.isSessionPresentForHostileRegen(session, levelScope)) {
                 continue;
             }
             for (const entity of session.entities.values()) {
-                add(entity);
+                add(entity, session);
             }
         }
 
@@ -1419,8 +1853,17 @@ export class CombatHandler {
     }
 
     private static resolveClientEntityAliases(client: Client, info: PowerHitRelayInfo): PowerHitRelayInfo {
-        const targetId = EntityHandler.resolveEntityAlias(client, info.targetId);
-        const sourceId = EntityHandler.resolveEntityAlias(client, info.sourceId);
+        const levelScope = getClientLevelScope(client);
+        const targetId = CombatHandler.resolveClientHostileEntityAlias(
+            client,
+            levelScope,
+            EntityHandler.resolveEntityAlias(client, info.targetId)
+        );
+        const sourceId = CombatHandler.resolveClientHostileEntityAlias(
+            client,
+            levelScope,
+            EntityHandler.resolveEntityAlias(client, info.sourceId)
+        );
         if (targetId === info.targetId && sourceId === info.sourceId) {
             return info;
         }
@@ -1501,14 +1944,15 @@ export class CombatHandler {
         CombatHandler.broadcastEntityViewPacket(levelScope, entity, 0x07, payload, [entityId]);
     }
 
-    private static armBossRegenForPlayerDeath(client: Client, nowMs: number = Date.now()): void {
+    private static armBossRegenForPlayerDeath(client: Client, nowMs: number = Date.now(), forceRearm: boolean = false): void {
         if (!client.currentLevel) {
             return;
         }
 
         const levelScope = getClientLevelScope(client);
         client.enemyDeathRegenArmed = true;
-        const deathRegenArmKey = `${client.token}:${client.clientEntID}`;
+        const deathRegenArmKey = CombatHandler.getDeathRegenArmKeyForPlayer(client);
+        let armedBossCount = 0;
 
         for (const entity of CombatHandler.collectHostileRegenCandidates(levelScope)) {
             const entityId = Math.max(0, Math.round(Number(entity?.id ?? 0)));
@@ -1526,11 +1970,31 @@ export class CombatHandler {
             const alreadyArmedForThisDeath = String(entity.deathRegenArmedForPlayerKey ?? '') === deathRegenArmKey;
             CombatHandler.clearHostileAggroTargetForPlayer(entity, client);
             CombatHandler.returnHostileToRoomBossHome(levelScope, entity);
-            if (!alreadyArmedForThisDeath) {
-                entity.deathRegenArmedForPlayerKey = deathRegenArmKey;
-                CombatHandler.setEntityCombatActivity(entity, nowMs);
+            if (forceRearm || !alreadyArmedForThisDeath) {
+                CombatHandler.setHostileDeathRegenArm(levelScope, entity, deathRegenArmKey);
+                CombatHandler.setEntityCombatActivity(
+                    entity,
+                    Math.max(1, nowMs - CombatHandler.DUNGEON_BOSS_OUT_OF_COMBAT_REGEN_DELAY_MS)
+                );
                 CombatHandler.setEntityLastRegenTickAt(entity, 0);
             }
+            armedBossCount++;
+            CombatHandler.logBossRegen('boss-regen-arm', levelScope, entity, {
+                player: String(client.character?.name ?? 'unknown').replace(/\s+/g, '_'),
+                playerToken: client.token,
+                playerEnt: client.clientEntID,
+                alreadyArmed: alreadyArmedForThisDeath,
+                currentHp: Math.round(Number(entity?.hp ?? 0)),
+                maxHp: Math.round(Number(entity?.maxHp ?? 0)),
+                healthDelta: CombatHandler.getNpcHealthDelta(entity),
+                roomId: Math.round(Number(entity?.roomId ?? -1))
+            }, 0, nowMs);
+        }
+
+        if (armedBossCount <= 0) {
+            console.log(
+                `[CombatRegen][boss-regen-arm-none] player=${String(client.character?.name ?? 'unknown').replace(/\s+/g, '_')} token=${client.token} ent=${client.clientEntID} level=${levelScope}`
+            );
         }
 
         for (const entity of CombatHandler.collectHostileRegenCandidates(levelScope)) {
@@ -1544,6 +2008,8 @@ export class CombatHandler {
         }
 
         const levelScope = getClientLevelScope(client);
+        const wasAlreadyDead = CombatHandler.isPlayerSessionDead(client);
+        const deathRegenWasArmed = Boolean(client.enemyDeathRegenArmed);
         const entity = client.entities.get(client.clientEntID);
         if (entity && typeof entity === 'object') {
             entity.dead = true;
@@ -1559,11 +2025,20 @@ export class CombatHandler {
         }
 
         client.authoritativeCurrentHp = 0;
-        CombatHandler.armBossRegenForPlayerDeath(client, nowMs);
+        CombatHandler.armBossRegenForPlayerDeath(client, nowMs, !wasAlreadyDead || !deathRegenWasArmed);
     }
 
     private static clearEnemyDeathRegenArm(client: Client): void {
         client.enemyDeathRegenArmed = false;
+        const levelScope = getClientLevelScope(client);
+        if (!levelScope) {
+            return;
+        }
+
+        const deathRegenArmKey = CombatHandler.getDeathRegenArmKeyForPlayer(client);
+        for (const entity of CombatHandler.collectHostileRegenCandidates(levelScope)) {
+            CombatHandler.clearHostileDeathRegenArm(levelScope, entity, deathRegenArmKey);
+        }
     }
 
     private static clearLevelEnemyRewardTrackingForRespawn(client: Client): void {
@@ -1812,6 +2287,14 @@ export class CombatHandler {
 
     private static canViewerResolveCombatEntity(viewer: Client, levelScope: string, entityId: number): boolean {
         if (entityId <= 0) {
+            return true;
+        }
+
+        const localEntityId = EntityHandler.resolveEntityLocalId(viewer, entityId);
+        if (
+            localEntityId !== entityId &&
+            (viewer.entities.has(localEntityId) || viewer.knownEntityIds.has(localEntityId))
+        ) {
             return true;
         }
 
@@ -2450,6 +2933,8 @@ export class CombatHandler {
         if (!levelName || targetId <= 0 || damage <= 0) {
             return {
                 entity: null,
+                entityId: targetId,
+                appliedDamage: 0,
                 killed: false
             };
         }
@@ -2458,14 +2943,20 @@ export class CombatHandler {
         if (!entity || entity.isPlayer) {
             return {
                 entity: null,
+                entityId: targetId,
+                appliedDamage: 0,
                 killed: false
             };
         }
 
-        const healthState = CombatHandler.getNpcHealthState(entity);
+        const healthState = CombatHandler.isDungeonBossEntity(levelName, entity)
+            ? CombatHandler.resolveHostileHealthStateAcrossCopies(levelName, entity)
+            : CombatHandler.getNpcHealthState(entity);
         if (!healthState) {
             return {
                 entity,
+                entityId: targetId,
+                appliedDamage: 0,
                 killed: false
             };
         }
@@ -2482,6 +2973,7 @@ export class CombatHandler {
         const nextHp = Math.max(minHpAfterHit, healthState.currentHp - appliedDamage);
 
         CombatHandler.applyNpcHealthState(entity, healthState.maxHp, nextHp, authoritativeKill);
+        CombatHandler.syncHostileHealthCopies(levelName, entity, nextHp, healthState.maxHp);
 
         if (usesSharedDungeonProgress(getScopeLevelName(levelName))) {
             noteSharedDungeonHostileState(levelName, targetId, entity);
@@ -2490,6 +2982,8 @@ export class CombatHandler {
 
         return {
             entity,
+            entityId: Math.max(0, Math.round(Number(entity.id ?? targetId))),
+            appliedDamage,
             killed: authoritativeKill &&
                 wasAlive &&
                 (Boolean(entity.dead) || Number(entity.entState ?? EntityState.ACTIVE) === EntityState.DEAD)
@@ -3055,14 +3549,87 @@ export class CombatHandler {
         CombatHandler.broadcastToSameLevel(getClientLevelScope(client), 0x82, bb.toBuffer(), [entId], client);
     }
 
+    private static recordClientHostileHpDelta(
+        client: Client,
+        levelScope: string,
+        rawEntityId: number,
+        entityId: number,
+        entity: any,
+        amount: number
+    ): boolean {
+        if (!levelScope || entityId <= 0 || amount === 0) {
+            return false;
+        }
+
+        const levelEntity = CombatHandler.resolveLevelEntity(levelScope, entityId);
+        const targetEntity = entity ?? levelEntity;
+        if (
+            !targetEntity ||
+            Boolean(targetEntity?.isPlayer) ||
+            Number(targetEntity?.team ?? 0) !== EntityTeam.ENEMY ||
+            !CombatHandler.isDungeonBossEntity(levelScope, targetEntity)
+        ) {
+            return false;
+        }
+
+        const healthState = CombatHandler.resolveHostileHealthStateAcrossCopies(levelScope, targetEntity);
+        if (!healthState || healthState.maxHp <= 0) {
+            CombatHandler.logBossRegen('boss-hp-report-skip', levelScope, targetEntity, {
+                reason: 'no-health',
+                rawEntityId,
+                entityId,
+                amount,
+                player: String(client.character?.name ?? 'unknown').replace(/\s+/g, '_')
+            });
+            return true;
+        }
+
+        const authoritativeKill = healthState.authoritativeKill &&
+            !CombatHandler.shouldDeferPowerHitKillToClient(levelScope, targetEntity);
+        const minHp = authoritativeKill ? 0 : 1;
+        const nextHp = Math.max(minHp, Math.min(healthState.maxHp, healthState.currentHp + amount));
+
+        if (amount < 0) {
+            const nowMs = Date.now();
+            for (const copy of CombatHandler.collectHostileHealthCopies(levelScope, targetEntity)) {
+                CombatHandler.setEntityCombatActivity(copy, nowMs);
+                CombatHandler.setEntityLastRegenTickAt(copy, 0);
+            }
+        }
+
+        if (nextHp !== healthState.currentHp) {
+            CombatHandler.applyNpcHealthState(targetEntity, healthState.maxHp, nextHp, authoritativeKill);
+            CombatHandler.syncHostileHealthCopies(levelScope, targetEntity, nextHp, healthState.maxHp);
+        }
+
+        CombatHandler.logBossRegen('boss-hp-report', levelScope, targetEntity, {
+            rawEntityId,
+            entityId,
+            amount,
+            previousHp: healthState.currentHp,
+            nextHp,
+            maxHp: healthState.maxHp,
+            authoritativeKill,
+            player: String(client.character?.name ?? 'unknown').replace(/\s+/g, '_')
+        }, 0);
+        return true;
+    }
+
     static handleCharRegen(client: Client, data: Buffer): void {
         const br = new BitReader(data);
         const rawEntityId = br.readMethod9();
         const amount = Math.round(br.readMethod24());
-        const entityId = EntityHandler.resolveEntityAlias(client, rawEntityId);
         const levelScope = getClientLevelScope(client);
+        const entityId = CombatHandler.resolveClientHostileEntityAlias(
+            client,
+            levelScope,
+            EntityHandler.resolveEntityAlias(client, rawEntityId)
+        );
         const entity = client.entities.get(entityId) ?? CombatHandler.resolveLevelEntity(levelScope, entityId);
         if (!EntityHandler.isClientOwnPlayerEntity(client, levelScope, entityId, entity)) {
+            if (CombatHandler.recordClientHostileHpDelta(client, levelScope, rawEntityId, entityId, entity, amount)) {
+                return;
+            }
             CombatHandler.logPlayerHp('client-hp-ignored', client, {
                 reason: 'not-own-player',
                 rawEntityId,

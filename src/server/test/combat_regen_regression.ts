@@ -42,6 +42,7 @@ type FakeClient = {
     processedRewardSources: Set<string>;
     pendingLoot: Map<number, any>;
     knownEntityIds: Set<number>;
+    entityIdAliases: Map<number, number>;
     entities: Map<number, any>;
     sentPackets: SentPacket[];
     send: (id: number, payload: Buffer) => void;
@@ -111,6 +112,7 @@ function createFakeClient(token: number, name: string, roomId: number): FakeClie
         processedRewardSources: new Set<string>(),
         pendingLoot: new Map<number, any>(),
         knownEntityIds: new Set<number>(),
+        entityIdAliases: new Map<number, number>(),
         entities: new Map<number, any>(),
         sentPackets,
         send(id: number, payload: Buffer) {
@@ -282,7 +284,7 @@ function buildUpdateSingleGearPayload(entityId: number, slot: number, gearId: nu
     return bb.toBuffer();
 }
 
-function testPlayerAndDungeonBossRegenAfterIdle(): void {
+function testPlayerRegenAfterIdleDoesNotHealBossWithoutDeath(): void {
     resetState();
     ensureOriginalGameDataLoaded();
 
@@ -323,18 +325,16 @@ function testPlayerAndDungeonBossRegenAfterIdle(): void {
 
     assert.equal(player.authoritativeCurrentHp, 700, 'player should recover 5% max HP per second after the idle window');
     assert.equal(playerEntity.hp, 700, 'player entity snapshot should track regenerated HP');
-    assert.equal(hostile.hp, 640, 'dungeon bosses should regenerate every 500ms at 2% max HP');
+    assert.equal(hostile.hp, 400, 'dungeon bosses should not regenerate from idle ticks until a player death arms them');
 
     const regenPackets = player.sentPackets.filter((packet) => packet.id === 0x78);
-    assert.equal(regenPackets.length, 2, 'player should receive self and boss regen while both are idle');
+    assert.equal(regenPackets.length, 1, 'player should receive self regen without boss regen while the player is alive');
 
     const parsedRegenPackets = regenPackets.map((packet) => parseRegenPacket(packet.payload));
     assert.deepEqual(parsedRegenPackets.filter((packet) => packet.entityId === player.clientEntID), [
         { entityId: player.clientEntID, amount: 100 }
     ]);
-    assert.deepEqual(parsedRegenPackets.filter((packet) => packet.entityId === hostileId), [
-        { entityId: hostileId, amount: 240 }
-    ]);
+    assert.deepEqual(parsedRegenPackets.filter((packet) => packet.entityId === hostileId), []);
 }
 
 function testPlayerRegenUsesEntityHealEncoding(): void {
@@ -411,13 +411,13 @@ function testDungeonBossRegenWaitsForAggroTargetDeath(): void {
     assert.equal(Number(boss.aggroTargetEntityId ?? 0), 0, 'dead aggro target should be cleared');
     assert.equal(Number(boss.nextAttack ?? 0), 0, 'pending boss attack should be cleared when the aggro target dies');
 
-    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 500);
-    assert.equal(boss.hp, 420, 'boss should regenerate once the aggro target is dead and the 500ms tick matures');
+    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 1_000);
+    assert.equal(boss.hp, 420, 'boss should regenerate immediately on death and again at the 1s cadence tick');
     const bossRegenPackets = player.sentPackets
         .filter((packet) => packet.id === 0x78)
         .map((packet) => parseRegenPacket(packet.payload))
         .filter((packet) => packet.entityId === bossId);
-    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 20 }]);
+    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }, { entityId: bossId, amount: 10 }]);
 }
 
 async function testRoomBossInfoAllowsTanjaRegenAfterPlayerDeath(): Promise<void> {
@@ -494,13 +494,13 @@ async function testRoomBossInfoAllowsTanjaRegenAfterPlayerDeath(): Promise<void>
     await CombatHandler.handlePowerCast(player as never, buildPowerCastPayload(bossId, 1234));
     assert.equal(player.sentPackets.length, sentBeforeSuppressedCast, 'dead-player room boss power casts should not be relayed');
 
-    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 500);
-    assert.equal(boss.hp, 420, 'room-boss-marked Tanja should regenerate 2% after the 500ms death tick');
+    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 1_000);
+    assert.equal(boss.hp, 420, 'room-boss-marked Tanja should regenerate immediately on death and again at 1s');
     const bossRegenPackets = player.sentPackets
         .filter((packet) => packet.id === 0x78)
         .map((packet) => parseRegenPacket(packet.payload))
         .filter((packet) => packet.entityId === bossId);
-    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 20 }]);
+    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }, { entityId: bossId, amount: 10 }]);
 }
 
 async function testKnownTanjaBossRegenWithoutRoomBossPacket(): Promise<void> {
@@ -554,13 +554,288 @@ async function testKnownTanjaBossRegenWithoutRoomBossPacket(): Promise<void> {
     await CombatHandler.handlePowerCast(player as never, buildPowerCastPayload(bossId, 1234));
     assert.equal(player.sentPackets.length, sentBeforeSuppressedCast, 'known Tanja power casts should be suppressed after player death');
 
-    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 500);
-    assert.equal(boss.hp, 420, 'known Tanja should regenerate 2% after the 500ms death tick without room boss info');
+    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 1_000);
+    assert.equal(boss.hp, 420, 'known Tanja should regenerate immediately on death and again at 1s without room boss info');
     const bossRegenPackets = player.sentPackets
         .filter((packet) => packet.id === 0x78)
         .map((packet) => parseRegenPacket(packet.payload))
         .filter((packet) => packet.entityId === bossId);
-    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 20 }]);
+    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }, { entityId: bossId, amount: 10 }]);
+}
+
+function testDeathArmedTanjaContinuesRegenWhenPlayerNoLongerSpawned(): void {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 35_500;
+    const player = createFakeClient(53, 'TanjaDefeatOverlay', 3);
+    moveClientToLevel(player, 'JC_Mini2');
+    attachPlayerEntity(player);
+    player.character!.CurrentLevel = { name: 'JC_Mini2', x: 900, y: -20 };
+
+    const bossId = 910053;
+    const boss = createRegenHostile(bossId, 'TowerGuard2', player.currentRoomId, {
+        displayName: 'Tanja, The 2nd Daughter',
+        x: 900,
+        y: -20,
+        hp: 400,
+        maxHp: 1000,
+        lastCombatActivityAt: nowMs - 5_000,
+        aggroTargetEntityId: player.clientEntID,
+        aggroTargetToken: player.token,
+        nextAttack: nowMs
+    });
+    const levelScope = getClientLevelScope(player as never);
+    player.entities.set(boss.id, boss);
+    player.knownEntityIds.add(boss.id);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    const originalDateNow = Date.now;
+    try {
+        Date.now = () => nowMs;
+        CombatHandler.notePlayerDeathState(player as never, Date.now());
+        assert.equal(boss.hp, 410, 'Tanja should get the immediate death regen tick');
+        assert.equal(player.enemyDeathRegenArmed, true, 'death-armed boss regen should remain active after defeat');
+
+        player.sentPackets.length = 0;
+        player.playerSpawned = false;
+        Date.now = () => nowMs + 1_000;
+        AILogic.updateLevel(levelScope);
+
+        assert.equal(boss.hp, 420, 'Tanja should keep healing on the 1s AI heartbeat even if the defeated player is no longer spawned');
+        const bossRegenPackets = player.sentPackets
+            .filter((packet) => packet.id === 0x78)
+            .map((packet) => parseRegenPacket(packet.payload))
+            .filter((packet) => packet.entityId === bossId);
+        assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }]);
+    } finally {
+        Date.now = originalDateNow;
+    }
+}
+
+function testDeathArmedTanjaRegenBroadcastsToDefeatedViewerAfterRoomStateChanges(): void {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 35_650;
+    const player = createFakeClient(56, 'TanjaDefeatRoomMismatch', 3);
+    moveClientToLevel(player, 'JC_Mini2');
+    attachPlayerEntity(player);
+    player.character!.CurrentLevel = { name: 'JC_Mini2', x: 900, y: -20 };
+
+    const bossId = 910056;
+    const boss = createRegenHostile(bossId, 'TowerGuard2', 0, {
+        x: 900,
+        y: -20,
+        hp: 400,
+        maxHp: 1000,
+        lastCombatActivityAt: nowMs - 5_000,
+        aggroTargetEntityId: player.clientEntID,
+        aggroTargetToken: player.token,
+        nextAttack: nowMs
+    });
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(boss.id, boss);
+    player.entities.set(boss.id, boss);
+    player.knownEntityIds.add(boss.id);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    CombatHandler.notePlayerDeathState(player as never, nowMs);
+    assert.equal(boss.hp, 410, 'Tanja should get the immediate death regen tick');
+
+    player.sentPackets.length = 0;
+    player.playerSpawned = false;
+    player.currentRoomId = 99;
+    player.knownEntityIds.clear();
+
+    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 1_000);
+
+    assert.equal(boss.hp, 420, 'Tanja should keep healing after the defeated client room state changes');
+    const bossRegenPackets = player.sentPackets
+        .filter((packet) => packet.id === 0x78)
+        .map((packet) => parseRegenPacket(packet.payload))
+        .filter((packet) => packet.entityId === bossId);
+    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }]);
+}
+
+function testSecondTanjaDeathRearmsExistingDeathRegenKey(): void {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 35_700;
+    const player = createFakeClient(57, 'TanjaSecondDeath', 3);
+    moveClientToLevel(player, 'JC_Mini2');
+    attachPlayerEntity(player);
+    player.character!.CurrentLevel = { name: 'JC_Mini2', x: 900, y: -20 };
+
+    const bossId = 910057;
+    const boss = createRegenHostile(bossId, 'TowerGuard2', player.currentRoomId, {
+        x: 900,
+        y: -20,
+        hp: 400,
+        maxHp: 1000,
+        lastCombatActivityAt: nowMs - 5_000,
+        aggroTargetEntityId: player.clientEntID,
+        aggroTargetToken: player.token,
+        nextAttack: nowMs
+    });
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(boss.id, boss);
+    player.entities.set(boss.id, boss);
+    player.knownEntityIds.add(boss.id);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    CombatHandler.notePlayerDeathState(player as never, nowMs);
+    assert.equal(boss.hp, 410, 'first Tanja death should apply the immediate 1% regen tick');
+
+    const playerEntity = player.entities.get(player.clientEntID)!;
+    playerEntity.dead = false;
+    playerEntity.entState = EntityState.ACTIVE;
+    playerEntity.hp = 1000;
+    const levelPlayerEntity = GlobalState.levelEntities.get(levelScope)!.get(player.clientEntID)!;
+    levelPlayerEntity.dead = false;
+    levelPlayerEntity.entState = EntityState.ACTIVE;
+    levelPlayerEntity.hp = 1000;
+    player.enemyDeathRegenArmed = false;
+    player.authoritativeCurrentHp = 0;
+    player.playerSpawned = true;
+
+    boss.hp = 350;
+    boss.healthDelta = -650;
+    boss.health_delta = -650;
+    boss.aggroTargetEntityId = player.clientEntID;
+    boss.aggroTargetToken = player.token;
+    player.sentPackets.length = 0;
+
+    CombatHandler.notePlayerDeathState(player as never, nowMs + 250);
+
+    assert.equal(boss.hp, 360, 'second Tanja death should re-arm the same boss key and apply a fresh 1% tick');
+    const bossRegenPackets = player.sentPackets
+        .filter((packet) => packet.id === 0x78)
+        .map((packet) => parseRegenPacket(packet.payload))
+        .filter((packet) => packet.entityId === bossId);
+    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }]);
+}
+
+function testUnknownClientTanjaHpDeltaSeedsCanonicalBossDeathRegen(): void {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 35_750;
+    const player = createFakeClient(54, 'TanjaUnknownClientHpDelta', 3);
+    moveClientToLevel(player, 'JC_Mini2');
+    attachPlayerEntity(player);
+    player.character!.CurrentLevel = { name: 'JC_Mini2', x: 900, y: -20 };
+
+    const bossId = 910054;
+    const unknownClientBossId = 14506265;
+    const maxHp = 403_680;
+    const damage = 120_000;
+    const boss = createRegenHostile(bossId, 'TowerGuard2', player.currentRoomId, {
+        x: 900,
+        y: -20,
+        hp: maxHp,
+        maxHp,
+        healthDelta: 0,
+        health_delta: 0,
+        lastCombatActivityAt: 0,
+        aggroTargetEntityId: player.clientEntID,
+        aggroTargetToken: player.token,
+        nextAttack: nowMs
+    });
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(boss.id, boss);
+    player.knownEntityIds.add(unknownClientBossId);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    const originalDateNow = Date.now;
+    try {
+        Date.now = () => nowMs;
+        CombatHandler.handleCharRegen(player as never, buildClientCharRegenPayload(unknownClientBossId, -damage));
+
+        assert.equal(
+            player.entityIdAliases.get(unknownClientBossId),
+            boss.id,
+            'unknown client-local Tanja HP report should alias to the only dungeon boss in the player room'
+        );
+        assert.equal(boss.hp, maxHp - damage, 'unknown client-local Tanja HP loss should seed canonical boss HP');
+        assert.equal(boss.health_delta, -damage, 'unknown client-local Tanja HP loss should update canonical health delta');
+
+        CombatHandler.notePlayerDeathState(player as never, nowMs + 1_000);
+
+        const expectedHeal = Math.round(maxHp * 0.01);
+        assert.equal(boss.hp, maxHp - damage + expectedHeal, 'unknown-id seeded Tanja should heal after player death');
+        const bossRegenPackets = player.sentPackets
+            .filter((packet) => packet.id === 0x78)
+            .map((packet) => parseRegenPacket(packet.payload))
+            .filter((packet) => packet.entityId === unknownClientBossId);
+        assert.deepEqual(bossRegenPackets, [{ entityId: unknownClientBossId, amount: expectedHeal }]);
+    } finally {
+        Date.now = originalDateNow;
+    }
+}
+
+async function testUnknownClientTanjaHitSeedsCanonicalBossDeathRegen(): Promise<void> {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 35_850;
+    const player = createFakeClient(55, 'TanjaUnknownClientHit', 3);
+    moveClientToLevel(player, 'JC_Mini2');
+    attachPlayerEntity(player);
+    player.character!.CurrentLevel = { name: 'JC_Mini2', x: 900, y: -20 };
+
+    const bossId = 910055;
+    const unknownClientBossId = 14506265;
+    const maxHp = 403_680;
+    const damage = 120_000;
+    const boss = createRegenHostile(bossId, 'TowerGuard2', player.currentRoomId, {
+        x: 900,
+        y: -20,
+        hp: maxHp,
+        maxHp,
+        healthDelta: 0,
+        health_delta: 0,
+        lastCombatActivityAt: 0,
+        aggroTargetEntityId: player.clientEntID,
+        aggroTargetToken: player.token,
+        nextAttack: nowMs
+    });
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(boss.id, boss);
+    player.knownEntityIds.add(unknownClientBossId);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    const originalDateNow = Date.now;
+    try {
+        Date.now = () => nowMs;
+        await CombatHandler.handlePowerHit(
+            player as never,
+            buildPowerHitPayload(unknownClientBossId, player.clientEntID, damage, 77)
+        );
+
+        assert.equal(
+            player.entityIdAliases.get(unknownClientBossId),
+            boss.id,
+            'unknown client-local Tanja hit target should alias to the only dungeon boss in the player room'
+        );
+        assert.equal(boss.hp, maxHp - damage, 'unknown client-local Tanja hit damage should seed canonical boss HP');
+        assert.equal(boss.health_delta, -damage, 'unknown client-local Tanja hit damage should update canonical health delta');
+
+        CombatHandler.notePlayerDeathState(player as never, nowMs + 1_000);
+
+        const expectedHeal = Math.round(maxHp * 0.01);
+        assert.equal(boss.hp, maxHp - damage + expectedHeal, 'unknown-hit seeded Tanja should heal after player death');
+        const bossRegenPackets = player.sentPackets
+            .filter((packet) => packet.id === 0x78)
+            .map((packet) => parseRegenPacket(packet.payload))
+            .filter((packet) => packet.entityId === unknownClientBossId);
+        assert.deepEqual(bossRegenPackets, [{ entityId: unknownClientBossId, amount: expectedHeal }]);
+    } finally {
+        Date.now = originalDateNow;
+    }
 }
 
 async function testRoomBossMarkedDreadPaladinLothyrRegensAfterPlayerDeath(): Promise<void> {
@@ -612,14 +887,74 @@ async function testRoomBossMarkedDreadPaladinLothyrRegensAfterPlayerDeath(): Pro
     assert.equal(Number(boss.aggroTargetEntityId ?? 0), 0, 'Lothyr should clear the dead player as aggro target');
     assert.equal(Number(boss.nextAttack ?? 0), 0, 'Lothyr should stop queued attacks when the player dies');
 
-    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 500);
+    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 1_000);
 
-    assert.equal(boss.hp, 420, 'room-boss-marked Lothyr should regenerate 2% after the 500ms death tick');
+    assert.equal(boss.hp, 420, 'room-boss-marked Lothyr should regenerate immediately on death and again at 1s');
     assert.equal(normal.hp, 400, 'unmarked Dread Paladins should remain excluded from boss regen');
     const regenPackets = player.sentPackets
         .filter((packet) => packet.id === 0x78)
         .map((packet) => parseRegenPacket(packet.payload));
-    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === boss.id), [{ entityId: boss.id, amount: 20 }]);
+    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === boss.id), [
+        { entityId: boss.id, amount: 10 },
+        { entityId: boss.id, amount: 10 }
+    ]);
+    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === normal.id), []);
+}
+
+function testKnownLothyrBossRegenWithoutRoomBossPacket(): void {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 37_000;
+    const player = createFakeClient(41, 'LothyrNoRoomBossInfo', 58);
+    moveClientToLevel(player, 'AC_Mission2');
+    attachPlayerEntity(player);
+    player.authoritativeCurrentHp = 1000;
+    player.character!.CurrentLevel = { name: 'AC_Mission2', x: 900, y: -20 };
+
+    const bossId = 900041;
+    const boss = createRegenHostile(bossId, 'DreadPaladin2', player.currentRoomId, {
+        displayName: 'Dread Paladin Lothyr',
+        x: 900,
+        y: -20,
+        lastCombatActivityAt: nowMs - 5_000,
+        aggroTargetEntityId: player.clientEntID,
+        aggroTargetToken: player.token,
+        nextAttack: nowMs
+    });
+    const normal = createRegenHostile(900042, 'DreadPaladin3', player.currentRoomId, {
+        displayName: 'Dread Paladin',
+        x: 1040,
+        y: -20,
+        lastCombatActivityAt: nowMs - 5_000
+    });
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(boss.id, boss);
+    GlobalState.levelEntities.get(levelScope)!.set(normal.id, normal);
+    player.knownEntityIds.add(boss.id);
+    player.knownEntityIds.add(normal.id);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    CombatHandler.processOutOfCombatRegen(levelScope, nowMs);
+    assert.equal(boss.hp, 400, 'known Lothyr should not regenerate while its aggro target is alive');
+    assert.equal(normal.hp, 400, 'normal Dread Paladins should not regenerate as bosses');
+
+    CombatHandler.notePlayerDeathState(player as never, nowMs);
+    assert.equal(Number(boss.aggroTargetEntityId ?? 0), 0, 'known Lothyr should clear the dead player as aggro target');
+    assert.equal(Number(boss.nextAttack ?? 0), 0, 'known Lothyr should clear queued attacks when the player dies');
+
+    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 1_000);
+
+    assert.equal(boss.hp, 420, 'known Lothyr should regenerate immediately on death and again at 1s without room boss info');
+    assert.equal(normal.hp, 400, 'normal Dread Paladins should remain excluded from boss regen');
+    const regenPackets = player.sentPackets
+        .filter((packet) => packet.id === 0x78)
+        .map((packet) => parseRegenPacket(packet.payload));
+    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === boss.id), [
+        { entityId: boss.id, amount: 10 },
+        { entityId: boss.id, amount: 10 }
+    ]);
     assert.deepEqual(regenPackets.filter((packet) => packet.entityId === normal.id), []);
 }
 
@@ -680,13 +1015,13 @@ async function testRoomBossInfoBeforeSpawnStillAllowsTanjaRegenAfterPlayerDeath(
     assert.equal(Number(boss.x ?? 0), 900, 'late-spawned Tanja should return to the saved home X');
     assert.equal(Number(boss.y ?? 0), -20, 'late-spawned Tanja should return to the saved home Y');
 
-    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 500);
-    assert.equal(boss.hp, 420, 'late-spawned room-boss-marked Tanja should regenerate 2% after the 500ms death tick');
+    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 1_000);
+    assert.equal(boss.hp, 420, 'late-spawned room-boss-marked Tanja should regenerate immediately on death and again at 1s');
     const bossRegenPackets = player.sentPackets
         .filter((packet) => packet.id === 0x78)
         .map((packet) => parseRegenPacket(packet.payload))
         .filter((packet) => packet.entityId === bossId);
-    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 20 }]);
+    assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }, { entityId: bossId, amount: 10 }]);
 }
 
 function testPlayerRegenSeedsMissingActivityAndTrustsAuthoritativeHp(): void {
@@ -1424,20 +1759,20 @@ async function testDeadPlayerArmsBossRegenForNextBossTick(): Promise<void> {
         Date.now = () => nowMs;
         await CombatHandler.handleRequestRespawn(player as never, request.toBuffer());
 
-        assert.equal(boss.hp, 400, 'player death should arm boss regen without applying an extra immediate tick');
+        assert.equal(boss.hp, 410, 'player death should apply the first boss regen tick immediately');
         assert.equal(player.enemyDeathRegenArmed, true, 'death regen should be armed until the player respawns');
         assert.equal(Number(boss.aggroTargetEntityId ?? 0), 0, 'boss should clear the dead player as its aggro target');
         assert.equal(Number(boss.nextAttack ?? 0), 0, 'boss should stop queued attacks when its target dies');
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
-        assert.equal(boss.hp, 420, 'boss should receive the first regen tick 500ms after death is processed');
+        assert.equal(boss.hp, 420, 'boss should continue regenerating 1s after the immediate death tick');
         const bossRegenPackets = player.sentPackets
             .filter((packet) => packet.id === 0x78)
             .map((packet) => parseRegenPacket(packet.payload))
             .filter((packet) => packet.entityId === bossId);
-        assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 20 }]);
+        assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }, { entityId: bossId, amount: 10 }]);
     } finally {
         Date.now = originalDateNow;
     }
@@ -1481,18 +1816,18 @@ async function testClientDeadStateArmsBossRegenForNextBossTick(): Promise<void> 
             buildIncrementalStatePayload(player.clientEntID, EntityState.DEAD)
         );
 
-        assert.equal(boss.hp, 400, 'client-reported player death should arm boss regen without applying an extra immediate tick');
+        assert.equal(boss.hp, 410, 'client-reported player death should apply the first boss regen tick immediately');
         assert.equal(player.enemyDeathRegenArmed, true, 'client-reported player death should keep boss regen armed until respawn');
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
-        assert.equal(boss.hp, 420, 'client-reported player death should allow the first regen tick after 500ms');
+        assert.equal(boss.hp, 420, 'client-reported player death should keep the 1s regen cadence after the immediate tick');
         const bossRegenPackets = player.sentPackets
             .filter((packet) => packet.id === 0x78)
             .map((packet) => parseRegenPacket(packet.payload))
             .filter((packet) => packet.entityId === bossId);
-        assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 20 }]);
+        assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }, { entityId: bossId, amount: 10 }]);
     } finally {
         Date.now = originalDateNow;
     }
@@ -1536,19 +1871,19 @@ async function testRespawnRequestMarksDeadBeforeArmingBossRegen(): Promise<void>
         Date.now = () => nowMs;
         await CombatHandler.handleRequestRespawn(player as never, request.toBuffer());
 
-        assert.equal(boss.hp, 400, 'respawn request should mark the player dead before arming boss regen');
+        assert.equal(boss.hp, 410, 'respawn request should mark the player dead and apply the first boss regen tick');
         assert.equal(player.authoritativeCurrentHp, 0, 'respawn request should record the death before sending the revive prompt');
         assert.equal(player.enemyDeathRegenArmed, true, 'respawn request should arm boss regen until the revive broadcast arrives');
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
-        assert.equal(boss.hp, 420, 'respawn request should let the boss heal on the first 500ms regen tick');
+        assert.equal(boss.hp, 420, 'respawn request should keep boss regen ticking 1s after the immediate death tick');
         const bossRegenPackets = player.sentPackets
             .filter((packet) => packet.id === 0x78)
             .map((packet) => parseRegenPacket(packet.payload))
             .filter((packet) => packet.entityId === bossId);
-        assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 20 }]);
+        assert.deepEqual(bossRegenPackets, [{ entityId: bossId, amount: 10 }, { entityId: bossId, amount: 10 }]);
     } finally {
         Date.now = originalDateNow;
     }
@@ -1594,17 +1929,409 @@ async function testRespawnDoesNotFullHealBoss(): Promise<void> {
     try {
         Date.now = () => nowMs;
         await CombatHandler.handleRequestRespawn(player as never, request.toBuffer());
-        assert.equal(boss.hp, 400, 'respawn should not apply an immediate full or partial boss heal');
+        assert.equal(boss.hp, 410, 'respawn should apply exactly one immediate boss regen tick, not a full heal');
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
-        assert.equal(boss.hp, 420, 'respawn should only apply the first boss regen tick after 500ms');
+        assert.equal(boss.hp, 420, 'respawn should continue normal boss regen 1s after the immediate death tick');
         const oversizedEnemyHeals = player.sentPackets
             .filter((packet) => packet.id === 0x78)
             .map((packet) => parseRegenPacket(packet.payload))
             .filter((packet) => packet.entityId === bossId && packet.amount > 1000);
         assert.deepEqual(oversizedEnemyHeals, [], 'respawn should not send a full-bar enemy heal packet');
+    } finally {
+        Date.now = originalDateNow;
+    }
+}
+
+async function testWelcomePartyBossGetsDeathRegenBeforeQuickRespawn(): Promise<void> {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const cases: Array<{ levelName: string; bossName: string; normalName: string; bossOverrides?: Record<string, unknown> }> = [
+        { levelName: 'JC_Mission1', bossName: 'ImperialChampion', normalName: 'ImperialGuard' },
+        {
+            levelName: 'JC_Mission1',
+            bossName: 'ImperialCommanderGrahl',
+            normalName: 'ImperialGuard',
+            bossOverrides: { characterName: 'Imperial Commander Grahl' }
+        },
+        {
+            levelName: 'JC_Mission1',
+            bossName: 'ImperialGuard',
+            normalName: 'ImperialGuard',
+            bossOverrides: { characterName: ',Imperial Commander Grahl' }
+        },
+        { levelName: 'JC_Mission1Hard', bossName: 'ImperialChampionHard', normalName: 'ImperialGuardHard' },
+        {
+            levelName: 'JC_Mission1Hard',
+            bossName: 'ImperialCommanderGrahl',
+            normalName: 'ImperialGuardHard',
+            bossOverrides: { characterName: ',Imperial Commander Grahl' }
+        },
+        {
+            levelName: 'JC_Mission1Hard',
+            bossName: 'ImperialCommanderGrahlHard',
+            normalName: 'ImperialGuardHard',
+            bossOverrides: { characterName: ',Imperial Commander Grahl' }
+        }
+    ];
+
+    for (const [index, scenario] of cases.entries()) {
+        resetState();
+
+        const nowMs = 52_000 + (index * 10_000);
+        const player = createFakeClient(43 + index, `GrahlQuickRespawn${index}`, 14);
+        moveClientToLevel(player, scenario.levelName);
+        attachPlayerEntity(player);
+        player.character!.CurrentLevel = { name: scenario.levelName, x: 900, y: -20 };
+
+        const bossId = 900043 + index;
+        const boss = createRegenHostile(bossId, scenario.bossName, player.currentRoomId, {
+            x: 900,
+            y: -20,
+            lastCombatActivityAt: nowMs - 100,
+            aggroTargetEntityId: player.clientEntID,
+            aggroTargetToken: player.token,
+            nextAttack: nowMs,
+            ...(scenario.bossOverrides ?? {})
+        });
+        const normal = createRegenHostile(bossId + 100, scenario.normalName, player.currentRoomId, {
+            x: 960,
+            y: -20,
+            lastCombatActivityAt: nowMs - 100
+        });
+
+        const levelScope = getClientLevelScope(player as never);
+        GlobalState.levelEntities.get(levelScope)!.set(boss.id, boss);
+        GlobalState.levelEntities.get(levelScope)!.set(normal.id, normal);
+        player.knownEntityIds.add(boss.id);
+        player.knownEntityIds.add(normal.id);
+        GlobalState.sessionsByToken.set(player.token, player as never);
+
+        const originalDateNow = Date.now;
+        try {
+            Date.now = () => nowMs;
+            await CombatHandler.handleRequestRespawn(player as never, buildRespawnRequestPayload(false));
+
+            assert.equal(boss.hp, 410, `${scenario.levelName} Grahl should receive a visible death regen tick immediately`);
+            assert.equal(normal.hp, 400, `${scenario.levelName} normal Imperial enemies should not receive boss death regen`);
+
+            Date.now = () => nowMs + 10;
+            CombatHandler.handleRespawnBroadcast(
+                player as never,
+                buildRespawnBroadcastPayload(player.clientEntID, player.authoritativeMaxHp, false)
+            );
+
+            Date.now = () => nowMs + 1_000;
+            CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
+
+            assert.equal(
+                boss.hp,
+                410,
+                `${scenario.levelName} quick respawn should not erase the immediate Grahl regen tick`
+            );
+            const bossRegenPackets = player.sentPackets
+                .filter((packet) => packet.id === 0x78)
+                .map((packet) => parseRegenPacket(packet.payload))
+                .filter((packet) => packet.entityId === boss.id);
+            assert.deepEqual(bossRegenPackets, [{ entityId: boss.id, amount: 10 }]);
+        } finally {
+            Date.now = originalDateNow;
+        }
+    }
+}
+
+function testClientBossHpDeltaSeedsWelcomePartyDeathRegen(): void {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 113_000;
+    const player = createFakeClient(49, 'GrahlClientHpDelta', 14);
+    moveClientToLevel(player, 'JC_Mission1');
+    attachPlayerEntity(player);
+    player.character!.CurrentLevel = { name: 'JC_Mission1', x: 900, y: -20 };
+
+    const bossId = 900049;
+    const boss = createRegenHostile(bossId, 'ImperialCommanderGrahl', player.currentRoomId, {
+        characterName: ',Imperial Commander Grahl',
+        x: 900,
+        y: -20,
+        hp: 1000,
+        maxHp: 1000,
+        lastCombatActivityAt: 0,
+        aggroTargetEntityId: player.clientEntID,
+        aggroTargetToken: player.token,
+        nextAttack: nowMs
+    });
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(boss.id, boss);
+    player.entities.set(boss.id, boss);
+    player.knownEntityIds.add(boss.id);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    const originalDateNow = Date.now;
+    try {
+        Date.now = () => nowMs;
+        CombatHandler.handleCharRegen(player as never, buildClientCharRegenPayload(boss.id, -800));
+
+        assert.equal(boss.hp, 200, 'client-reported Grahl HP loss should seed server boss HP');
+        assert.equal(boss.health_delta, -800, 'client-reported Grahl HP loss should update server health delta');
+
+        Date.now = () => nowMs + 1_000;
+        CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
+
+        assert.equal(boss.hp, 200, 'client-reported Grahl HP loss should not heal Grahl before player death');
+        assert.deepEqual(
+            player.sentPackets
+                .filter((packet) => packet.id === 0x78)
+                .map((packet) => parseRegenPacket(packet.payload))
+                .filter((packet) => packet.entityId === boss.id),
+            [],
+            'damaging Grahl while alive should not emit boss heal packets'
+        );
+
+        Date.now = () => nowMs + 1_000;
+        CombatHandler.notePlayerDeathState(player as never, Date.now());
+
+        assert.equal(boss.hp, 210, 'seeded Grahl HP should receive the immediate death regen tick');
+        const bossRegenPackets = player.sentPackets
+            .filter((packet) => packet.id === 0x78)
+            .map((packet) => parseRegenPacket(packet.payload))
+            .filter((packet) => packet.entityId === boss.id);
+        assert.deepEqual(bossRegenPackets, [{ entityId: boss.id, amount: 10 }]);
+    } finally {
+        Date.now = originalDateNow;
+    }
+}
+
+function testPrimeBuilderDeathRegenUsesLocalHealthDeltaWhenSharedCopyIsFull(): void {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 114_000;
+    const player = createFakeClient(50, 'PrimeBuilderLocalDelta', 0);
+    moveClientToLevel(player, 'SD_Mission6');
+    attachPlayerEntity(player);
+    player.character!.CurrentLevel = { name: 'SD_Mission6', x: 600, y: -20 };
+
+    const bossId = 900050;
+    const maxHp = 403_680;
+    const damagedHp = 200_000;
+    const sharedBoss = createRegenHostile(bossId, 'GolemLord', player.currentRoomId, {
+        characterName: 'GolemLord',
+        displayName: 'The Prime Builder',
+        x: 600,
+        y: -20,
+        hp: maxHp,
+        maxHp,
+        lastCombatActivityAt: nowMs - 5_000,
+        aggroTargetEntityId: player.clientEntID,
+        aggroTargetToken: player.token,
+        nextAttack: nowMs
+    });
+    const localBoss = {
+        ...sharedBoss,
+        hp: maxHp,
+        healthDelta: damagedHp - maxHp,
+        health_delta: damagedHp - maxHp
+    };
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(sharedBoss.id, sharedBoss);
+    player.entities.set(sharedBoss.id, localBoss);
+    player.knownEntityIds.add(sharedBoss.id);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    CombatHandler.notePlayerDeathState(player as never, nowMs);
+
+    const expectedHeal = Math.round(maxHp * 0.01);
+    const expectedHp = damagedHp + expectedHeal;
+    assert.equal(sharedBoss.hp, expectedHp, 'Prime Builder regen should use local healthDelta when shared boss HP is full');
+    assert.equal(localBoss.hp, expectedHp, 'Prime Builder regen should sync healed HP back to the local boss copy');
+    const bossRegenPackets = player.sentPackets
+        .filter((packet) => packet.id === 0x78)
+        .map((packet) => parseRegenPacket(packet.payload))
+        .filter((packet) => packet.entityId === sharedBoss.id);
+    assert.deepEqual(bossRegenPackets, [{ entityId: sharedBoss.id, amount: expectedHeal }]);
+}
+
+function testTanjaDeathRegenUsesSnakeCaseHealthDeltaWhenCamelCaseIsStale(): void {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 114_500;
+    const player = createFakeClient(52, 'TanjaSnakeCaseDelta', 0);
+    moveClientToLevel(player, 'JC_Mini2');
+    attachPlayerEntity(player);
+    player.character!.CurrentLevel = { name: 'JC_Mini2', x: 900, y: -20 };
+
+    const bossId = 14_546_880;
+    const maxHp = 403_680;
+    const damagedHp = 200_000;
+    const sharedBoss = createRegenHostile(bossId, 'TowerGuard2', player.currentRoomId, {
+        x: 900,
+        y: -20,
+        hp: maxHp,
+        maxHp,
+        healthDelta: 0,
+        health_delta: 0,
+        lastCombatActivityAt: nowMs - 5_000,
+        aggroTargetEntityId: player.clientEntID,
+        aggroTargetToken: player.token,
+        nextAttack: nowMs
+    });
+    const localBoss = {
+        ...sharedBoss,
+        hp: maxHp,
+        healthDelta: 0,
+        health_delta: damagedHp - maxHp
+    };
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(sharedBoss.id, sharedBoss);
+    player.entities.set(sharedBoss.id, localBoss);
+    player.knownEntityIds.add(sharedBoss.id);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    CombatHandler.notePlayerDeathState(player as never, nowMs);
+
+    const expectedHeal = Math.round(maxHp * 0.01);
+    const expectedHp = damagedHp + expectedHeal;
+    assert.equal(sharedBoss.hp, expectedHp, 'Tanja regen should use negative health_delta even when healthDelta is stale zero');
+    assert.equal(localBoss.hp, expectedHp, 'Tanja regen should sync the healed HP back to the local boss copy');
+    const bossRegenPackets = player.sentPackets
+        .filter((packet) => packet.id === 0x78)
+        .map((packet) => parseRegenPacket(packet.payload))
+        .filter((packet) => packet.entityId === sharedBoss.id);
+    assert.deepEqual(bossRegenPackets, [{ entityId: sharedBoss.id, amount: expectedHeal }]);
+}
+
+async function testScarabScorpionLocalHitSeedsCanonicalBossDeathRegen(): Promise<void> {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 115_000;
+    const player = createFakeClient(51, 'ScarabLocalHit', 0);
+    moveClientToLevel(player, 'SD_Mission2');
+    attachPlayerEntity(player);
+    player.character!.CurrentLevel = { name: 'SD_Mission2', x: 700, y: -20 };
+
+    const canonicalBossId = 900051;
+    const localBossId = 910051;
+    const maxHp = 403_680;
+    const damage = 200_000;
+    const sharedBoss = createRegenHostile(canonicalBossId, 'ScarabScorpion', player.currentRoomId, {
+        characterName: 'ScarabScorpion',
+        displayName: 'Enormous Sandspawn',
+        x: 700,
+        y: -20,
+        hp: maxHp,
+        maxHp,
+        lastCombatActivityAt: nowMs - 5_000
+    });
+    const localBoss = {
+        ...sharedBoss,
+        id: localBossId,
+        hp: maxHp,
+        healthDelta: 0,
+        health_delta: 0
+    };
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(sharedBoss.id, sharedBoss);
+    player.entities.set(localBoss.id, localBoss);
+    player.knownEntityIds.add(localBoss.id);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    await CombatHandler.handlePowerHit(
+        player as never,
+        buildPowerHitPayload(localBoss.id, player.clientEntID, damage, 77)
+    );
+
+    assert.equal(
+        player.entityIdAliases.get(localBoss.id),
+        sharedBoss.id,
+        'local ScarabScorpion hit target should be aliased to the canonical boss'
+    );
+    assert.equal(sharedBoss.hp, maxHp - damage, 'canonical ScarabScorpion HP should track local-id hit damage');
+    assert.equal(localBoss.hp, maxHp - damage, 'local ScarabScorpion HP should sync after canonical hit damage');
+
+    CombatHandler.notePlayerDeathState(player as never, nowMs);
+
+    const expectedHeal = Math.round(maxHp * 0.01);
+    assert.equal(sharedBoss.hp, maxHp - damage + expectedHeal, 'damaged ScarabScorpion should heal after player death');
+    const bossRegenPackets = player.sentPackets
+        .filter((packet) => packet.id === 0x78)
+        .map((packet) => parseRegenPacket(packet.payload))
+        .filter((packet) => packet.entityId === localBoss.id);
+    assert.deepEqual(bossRegenPackets, [{ entityId: localBoss.id, amount: expectedHeal }]);
+}
+
+function testScarabScorpionLocalHpDeltaSeedsCanonicalBossDeathRegen(): void {
+    resetState();
+    ensureOriginalGameDataLoaded();
+
+    const nowMs = 116_000;
+    const player = createFakeClient(52, 'ScarabLocalHpDelta', 0);
+    moveClientToLevel(player, 'SD_Mission2');
+    attachPlayerEntity(player);
+    player.character!.CurrentLevel = { name: 'SD_Mission2', x: 700, y: -20 };
+
+    const canonicalBossId = 900052;
+    const localBossId = 910052;
+    const maxHp = 403_680;
+    const damage = 200_000;
+    const sharedBoss = createRegenHostile(canonicalBossId, 'ScarabScorpion', player.currentRoomId, {
+        characterName: 'ScarabScorpion',
+        displayName: 'Enormous Sandspawn',
+        x: 700,
+        y: -20,
+        hp: maxHp,
+        maxHp,
+        lastCombatActivityAt: 0,
+        aggroTargetEntityId: player.clientEntID,
+        aggroTargetToken: player.token
+    });
+    const localBoss = {
+        ...sharedBoss,
+        id: localBossId,
+        hp: maxHp,
+        healthDelta: 0,
+        health_delta: 0
+    };
+
+    const levelScope = getClientLevelScope(player as never);
+    GlobalState.levelEntities.get(levelScope)!.set(sharedBoss.id, sharedBoss);
+    player.entities.set(localBoss.id, localBoss);
+    player.knownEntityIds.add(localBoss.id);
+    GlobalState.sessionsByToken.set(player.token, player as never);
+
+    const originalDateNow = Date.now;
+    try {
+        Date.now = () => nowMs;
+        CombatHandler.handleCharRegen(player as never, buildClientCharRegenPayload(localBoss.id, -damage));
+
+        assert.equal(
+            player.entityIdAliases.get(localBoss.id),
+            sharedBoss.id,
+            'local ScarabScorpion HP report target should be aliased to the canonical boss'
+        );
+        assert.equal(sharedBoss.hp, maxHp - damage, 'canonical ScarabScorpion HP should track local-id HP delta');
+        assert.equal(localBoss.hp, maxHp - damage, 'local ScarabScorpion HP should sync after canonical HP delta');
+
+        Date.now = () => nowMs + 1_000;
+        CombatHandler.notePlayerDeathState(player as never, Date.now());
+
+        const expectedHeal = Math.round(maxHp * 0.01);
+        assert.equal(sharedBoss.hp, maxHp - damage + expectedHeal, 'HP-delta seeded ScarabScorpion should heal after player death');
+        const bossRegenPackets = player.sentPackets
+            .filter((packet) => packet.id === 0x78)
+            .map((packet) => parseRegenPacket(packet.payload))
+            .filter((packet) => packet.entityId === localBoss.id);
+        assert.deepEqual(bossRegenPackets, [{ entityId: localBoss.id, amount: expectedHeal }]);
     } finally {
         Date.now = originalDateNow;
     }
@@ -1651,7 +2378,7 @@ async function testKnownOverworldBossNameDoesNotUseDungeonBossRegen(): Promise<v
         Date.now = () => nowMs;
         await CombatHandler.handleRequestRespawn(player as never, request.toBuffer());
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
         assert.equal(boss.hp, 400, 'known non-dungeon levels should not count dungeon boss names for boss regen');
@@ -1725,7 +2452,8 @@ function testDeadPlayerInBossAggroAllowsBossRegen(): void {
 
     const boss = createRegenHostile(900021, 'YoungDragonDream', player.currentRoomId, {
         x: 0,
-        y: 0
+        y: 0,
+        deathRegenArmedForPlayerKey: `${player.token}:${player.clientEntID}`
     });
     const levelScope = getClientLevelScope(player as never);
     GlobalState.levelEntities.set(levelScope, new Map<number, any>([[boss.id, boss]]));
@@ -1734,11 +2462,11 @@ function testDeadPlayerInBossAggroAllowsBossRegen(): void {
 
     CombatHandler.processOutOfCombatRegen(levelScope, 10_500);
 
-    assert.equal(boss.hp, 440, 'dead players inside boss aggro should allow boss regen');
+    assert.equal(boss.hp, 410, 'dead players inside boss aggro should allow boss regen');
     const regenPackets = player.sentPackets
         .filter((packet) => packet.id === 0x78)
         .map((packet) => parseRegenPacket(packet.payload));
-    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === boss.id), [{ entityId: boss.id, amount: 40 }]);
+    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === boss.id), [{ entityId: boss.id, amount: 10 }]);
 }
 
 function testBossRegenUsesReducedLocalCopyWhenSharedCopyIsFull(): void {
@@ -1756,11 +2484,12 @@ function testBossRegenUsesReducedLocalCopyWhenSharedCopyIsFull(): void {
         hp: 1000,
         maxHp: 1000,
         lastCombatActivityAt: 10_000,
-        lastCombatRegenTickAt: 0
+        lastCombatRegenTickAt: 0,
+        deathRegenArmedForPlayerKey: `${player.token}:${player.clientEntID}`
     });
     const localBoss = {
         ...sharedBoss,
-        hp: 400,
+        hp: 1000,
         healthDelta: -600,
         health_delta: -600
     };
@@ -1773,15 +2502,15 @@ function testBossRegenUsesReducedLocalCopyWhenSharedCopyIsFull(): void {
 
     CombatHandler.processOutOfCombatRegen(levelScope, 10_500);
 
-    assert.equal(sharedBoss.hp, 420, 'boss regen should use the reduced local boss copy instead of the stale full shared copy');
-    assert.equal(localBoss.hp, 420, 'boss regen should sync the healed HP back to the local boss copy');
+    assert.equal(sharedBoss.hp, 410, 'boss regen should use the reduced local health delta instead of the stale full shared copy');
+    assert.equal(localBoss.hp, 410, 'boss regen should sync the healed HP back to the full-hp local boss copy');
     const regenPackets = player.sentPackets
         .filter((packet) => packet.id === 0x78)
         .map((packet) => parseRegenPacket(packet.payload));
-    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === sharedBoss.id), [{ entityId: sharedBoss.id, amount: 20 }]);
+    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === sharedBoss.id), [{ entityId: sharedBoss.id, amount: 10 }]);
 }
 
-function testEscapedPlayerOutsideBossAggroAllowsBossRegen(): void {
+function testEscapedLivePlayerOutsideBossAggroDoesNotArmBossRegen(): void {
     resetState();
     ensureOriginalGameDataLoaded();
 
@@ -1802,11 +2531,11 @@ function testEscapedPlayerOutsideBossAggroAllowsBossRegen(): void {
 
     CombatHandler.processOutOfCombatRegen(levelScope, 10_500);
 
-    assert.equal(boss.hp, 440, 'players outside boss aggro should allow boss regen');
+    assert.equal(boss.hp, 400, 'live players outside boss aggro should not arm boss regen');
     const regenPackets = player.sentPackets
         .filter((packet) => packet.id === 0x78)
         .map((packet) => parseRegenPacket(packet.payload));
-    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === boss.id), [{ entityId: boss.id, amount: 40 }]);
+    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === boss.id), []);
 }
 
 async function testDungeonBossRegenUsesFetchedBossList(): Promise<void> {
@@ -1856,7 +2585,9 @@ async function testDungeonBossRegenUsesFetchedBossList(): Promise<void> {
         player.enemyDeathRegenArmed = true;
 
         const bossId = 910000 + (scenarioIndex * 10);
-        const boss = createRegenHostile(bossId, scenario.bossName, player.currentRoomId);
+        const boss = createRegenHostile(bossId, scenario.bossName, player.currentRoomId, {
+            deathRegenArmedForPlayerKey: `${player.token}:${player.clientEntID}`
+        });
         const blockedEntities = scenario.blocked.map((blocked, blockedIndex) => createRegenHostile(
             bossId + blockedIndex + 1,
             blocked.name,
@@ -1876,16 +2607,16 @@ async function testDungeonBossRegenUsesFetchedBossList(): Promise<void> {
         GlobalState.sessionsByToken.set(player.token, player as never);
 
         CombatHandler.processOutOfCombatRegen(levelScope, 9_999);
-        assert.equal(boss.hp, 400, `${scenario.levelName} listed boss should not regenerate before 500ms out of combat`);
+        assert.equal(boss.hp, 400, `${scenario.levelName} death-armed listed boss should not regenerate before 500ms`);
         assert.equal(
             player.sentPackets.some((packet) => packet.id === 0x78),
             false,
-            `${scenario.levelName} listed boss should not emit regen before 500ms out of combat`
+            `${scenario.levelName} death-armed listed boss should not emit regen before 500ms`
         );
 
         CombatHandler.processOutOfCombatRegen(levelScope, 10_000);
 
-        assert.equal(boss.hp, 420, `${scenario.levelName} listed boss should regenerate after 500ms out of combat`);
+        assert.equal(boss.hp, 410, `${scenario.levelName} death-armed listed boss should regenerate after 500ms`);
         for (const entity of blockedEntities) {
             assert.equal(entity.hp, 400, `${scenario.levelName} unlisted ${entity.name} should not regenerate`);
         }
@@ -1893,7 +2624,7 @@ async function testDungeonBossRegenUsesFetchedBossList(): Promise<void> {
         const regenPackets = player.sentPackets
             .filter((packet) => packet.id === 0x78)
             .map((packet) => parseRegenPacket(packet.payload));
-        assert.deepEqual(regenPackets.filter((packet) => packet.entityId === boss.id), [{ entityId: boss.id, amount: 20 }]);
+        assert.deepEqual(regenPackets.filter((packet) => packet.entityId === boss.id), [{ entityId: boss.id, amount: 10 }]);
         for (const entity of blockedEntities) {
             assert.deepEqual(regenPackets.filter((packet) => packet.entityId === entity.id), []);
         }
@@ -1973,16 +2704,19 @@ async function testClientOnlyBossRegenDoesNotHealNormalEnemies(): Promise<void> 
         Date.now = () => nowMs;
         await CombatHandler.handleRequestRespawn(player as never, request.toBuffer());
 
-        Date.now = () => nowMs + 500;
+        Date.now = () => nowMs + 1_000;
         CombatHandler.processOutOfCombatRegen(levelScope, Date.now());
 
-        assert.equal(boss.hp, 420, 'client-only dungeon bosses should regenerate 500ms after player death');
+        assert.equal(boss.hp, 420, 'client-only dungeon bosses should regenerate immediately on death and again at 1s');
         assert.equal(normal.hp, 400, 'normal enemies should not receive boss regen');
         assert.equal(unlistedBoss.hp, 400, 'generic boss-ranked enemies should not regen unless listed for that dungeon');
         const regenPackets = player.sentPackets
             .filter((packet) => packet.id === 0x78)
             .map((packet) => parseRegenPacket(packet.payload));
-        assert.deepEqual(regenPackets.filter((packet) => packet.entityId === bossId), [{ entityId: bossId, amount: 20 }]);
+        assert.deepEqual(regenPackets.filter((packet) => packet.entityId === bossId), [
+            { entityId: bossId, amount: 10 },
+            { entityId: bossId, amount: 10 }
+        ]);
         assert.deepEqual(regenPackets.filter((packet) => packet.entityId === normalId), []);
         assert.deepEqual(regenPackets.filter((packet) => packet.entityId === unlistedBossId), []);
     } finally {
@@ -2013,7 +2747,8 @@ async function testAuthoritativeDeadPlayerStateAllowsBossRegen(): Promise<void> 
         hp: 400,
         maxHp: 1000,
         lastCombatActivityAt: nowMs,
-        lastCombatRegenTickAt: 0
+        lastCombatRegenTickAt: 0,
+        deathRegenArmedForPlayerKey: `${player.token}:${player.clientEntID}`
     };
     const normalId = 900018;
     const normal = {
@@ -2040,24 +2775,30 @@ async function testAuthoritativeDeadPlayerStateAllowsBossRegen(): Promise<void> 
     player.knownEntityIds.add(normalId);
     GlobalState.sessionsByToken.set(player.token, player as never);
 
-    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 500);
+    CombatHandler.processOutOfCombatRegen(levelScope, nowMs + 1_000);
 
-    assert.equal(boss.hp, 420, 'authoritative dead player state should allow boss regen after 500ms');
+    assert.equal(boss.hp, 410, 'authoritative dead player state should allow boss regen after 1s');
     assert.equal(normal.hp, 400, 'authoritative dead player state should still not heal normal enemies');
     const regenPackets = player.sentPackets
         .filter((packet) => packet.id === 0x78)
         .map((packet) => parseRegenPacket(packet.payload));
-    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === bossId), [{ entityId: bossId, amount: 20 }]);
+    assert.deepEqual(regenPackets.filter((packet) => packet.entityId === bossId), [{ entityId: bossId, amount: 10 }]);
     assert.deepEqual(regenPackets.filter((packet) => packet.entityId === normalId), []);
 }
 
 async function run(): Promise<void> {
-    testPlayerAndDungeonBossRegenAfterIdle();
+    testPlayerRegenAfterIdleDoesNotHealBossWithoutDeath();
     testPlayerRegenUsesEntityHealEncoding();
     testDungeonBossRegenWaitsForAggroTargetDeath();
     await testRoomBossInfoAllowsTanjaRegenAfterPlayerDeath();
     await testKnownTanjaBossRegenWithoutRoomBossPacket();
+    testDeathArmedTanjaContinuesRegenWhenPlayerNoLongerSpawned();
+    testDeathArmedTanjaRegenBroadcastsToDefeatedViewerAfterRoomStateChanges();
+    testSecondTanjaDeathRearmsExistingDeathRegenKey();
+    testUnknownClientTanjaHpDeltaSeedsCanonicalBossDeathRegen();
+    await testUnknownClientTanjaHitSeedsCanonicalBossDeathRegen();
     await testRoomBossMarkedDreadPaladinLothyrRegensAfterPlayerDeath();
+    testKnownLothyrBossRegenWithoutRoomBossPacket();
     await testRoomBossInfoBeforeSpawnStillAllowsTanjaRegenAfterPlayerDeath();
     testPlayerRegenSeedsMissingActivityAndTrustsAuthoritativeHp();
     testPlayerRegenTrustsDamagedDefaultAuthoritativeHpOverStaleFullSnapshot();
@@ -2080,11 +2821,17 @@ async function run(): Promise<void> {
     await testClientDeadStateArmsBossRegenForNextBossTick();
     await testRespawnRequestMarksDeadBeforeArmingBossRegen();
     await testRespawnDoesNotFullHealBoss();
+    await testWelcomePartyBossGetsDeathRegenBeforeQuickRespawn();
+    testClientBossHpDeltaSeedsWelcomePartyDeathRegen();
+    testPrimeBuilderDeathRegenUsesLocalHealthDeltaWhenSharedCopyIsFull();
+    testTanjaDeathRegenUsesSnakeCaseHealthDeltaWhenCamelCaseIsStale();
+    await testScarabScorpionLocalHitSeedsCanonicalBossDeathRegen();
+    testScarabScorpionLocalHpDeltaSeedsCanonicalBossDeathRegen();
     await testKnownOverworldBossNameDoesNotUseDungeonBossRegen();
     testLivePlayerInBossAggroBlocksBossRegen();
     testDeadPlayerInBossAggroAllowsBossRegen();
     testBossRegenUsesReducedLocalCopyWhenSharedCopyIsFull();
-    testEscapedPlayerOutsideBossAggroAllowsBossRegen();
+    testEscapedLivePlayerOutsideBossAggroDoesNotArmBossRegen();
     await testDungeonBossRegenUsesFetchedBossList();
     await testClientOnlyBossRegenDoesNotHealNormalEnemies();
     await testAuthoritativeDeadPlayerStateAllowsBossRegen();

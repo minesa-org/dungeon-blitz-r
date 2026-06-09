@@ -3715,7 +3715,7 @@ export class LevelHandler {
             !LevelHandler.isDreadfoldGateUnlocked(client, currentLevel, doorId, rawTargetLevel)
         ) {
             console.log(`[Level] Open Door ${doorId} in ${currentLevel} blocked until Capstone is completed`);
-            LevelHandler.sendDeniedDoorResponse(client, doorId, rawTargetLevel, LevelHandler.DREADFOLD_GATE_LOCKED_MESSAGE);
+            LevelHandler.sendDeniedDoorResponse(client, doorId, rawTargetLevel, LevelHandler.DREADFOLD_GATE_LOCKED_MESSAGE, true);
             return;
         }
 
@@ -3724,7 +3724,7 @@ export class LevelHandler {
             !LevelHandler.isStoryAreaEntryUnlocked(client, currentLevel, rawTargetLevel)
         ) {
             console.log(`[Level] Open Door ${doorId} in ${currentLevel} blocked until the required story area mission is claimed`);
-            LevelHandler.sendDeniedDoorResponse(client, doorId, rawTargetLevel, LevelHandler.LOCKED_STORY_AREA_ENTRY_MESSAGE);
+            LevelHandler.sendDeniedDoorResponse(client, doorId, rawTargetLevel, LevelHandler.LOCKED_STORY_AREA_ENTRY_MESSAGE, true);
             return;
         }
 
@@ -3733,7 +3733,7 @@ export class LevelHandler {
             !LevelHandler.isDungeonEntryUnlocked(client, currentLevel, rawTargetLevel)
         ) {
             console.log(`[Level] Open Door ${doorId} in ${currentLevel} blocked until the matching dungeon quest is accepted`);
-            LevelHandler.sendDeniedDoorResponse(client, doorId, rawTargetLevel, LevelHandler.LOCKED_DUNGEON_ENTRY_MESSAGE);
+            LevelHandler.sendDeniedDoorResponse(client, doorId, rawTargetLevel, LevelHandler.LOCKED_DUNGEON_ENTRY_MESSAGE, true);
             return;
         }
 
