@@ -1340,7 +1340,7 @@ async function testLockedDungeonTransferRequestIsBlocked(): Promise<void> {
     assert.equal(client.mountTransferGraceUntil, 0);
 }
 
-async function testPartyTeleportCanJoinLockedDungeonTransfer(): Promise<void> {
+async function testPartyTeleportCannotBypassLockedDungeonTransfer(): Promise<void> {
     const client = createClient();
     client.token = 3002;
     client.userId = 42;
@@ -1370,20 +1370,35 @@ async function testPartyTeleportCanJoinLockedDungeonTransfer(): Promise<void> {
     );
 
     const enterWorldPacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x21);
-    assert.ok(
+    assert.equal(
         enterWorldPacket,
-        'party teleport into an existing dungeon should bypass the starter unlock gate'
+        undefined,
+        'party teleport into an existing dungeon must not bypass the starter unlock gate'
     );
-    assert.equal(parseEnterWorldLevelPacket(enterWorldPacket.payload).internalName, 'CH_MiniMission9');
+
+    const lockedDoorStatePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x42);
+    assert.ok(lockedDoorStatePacket);
+    assert.deepEqual(parseDoorStatePacket(lockedDoorStatePacket.payload), {
+        doorId: 0,
+        state: 4,
+        target: 'CH_MiniMission9'
+    });
+    const lockedDialoguePacket = client.sentPackets.find((packet: { id: number }) => packet.id === 0x76);
+    assert.ok(lockedDialoguePacket);
+    assert.deepEqual(parseRoomThoughtPacket(lockedDialoguePacket.payload), {
+        entityId: 452,
+        text: "^tI haven't unlocked this dungeon yet."
+    });
 
     const pendingTransfer = Array.from(GlobalState.pendingWorld.values()).find((entry) =>
         entry.character?.name === 'HillPartyJoiner' &&
         entry.targetLevel === 'CH_MiniMission9'
     );
-    assert.ok(pendingTransfer, 'party join transfer should store reconnect state for the dungeon world');
-    assert.equal(pendingTransfer?.levelInstanceId, 'party-dungeon-join');
-    assert.equal(pendingTransfer?.syncRoomId, 2);
-    assert.deepEqual(pendingTransfer?.syncStartedRoomIds, [0, 2]);
+    assert.equal(pendingTransfer, undefined, 'denied party dungeon transfer should not store reconnect state');
+    assert.equal(GlobalState.pendingTeleports.has(client.token), false, 'denied party dungeon transfer should consume the pending teleport');
+    assert.equal(client.lastDoorId, -1);
+    assert.equal(client.lastDoorTargetLevel, '');
+    assert.equal(client.mountTransferGraceUntil, 0);
 }
 
 function testRecoverTransferSessionStateRepairsCraftTownEntryLoop(): void {
@@ -3011,7 +3026,7 @@ async function main(): Promise<void> {
         testLockedDungeonDoorReportsLockedAndDoesNotOpen();
         testLockedDungeonDoorClearsStaleTransferTarget();
         await testLockedDungeonTransferRequestIsBlocked();
-        await testPartyTeleportCanJoinLockedDungeonTransfer();
+        await testPartyTeleportCannotBypassLockedDungeonTransfer();
 
         GlobalState.sessionsByToken.clear();
         GlobalState.sessionsByUserId.clear();

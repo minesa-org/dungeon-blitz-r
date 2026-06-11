@@ -1095,6 +1095,10 @@ async function testHostileHitsCanKillPlayersAndStayRoomScoped(): Promise<void> {
     );
     assert.equal(otherRoomStranger.sentPackets.some((packet) => packet.id === 0x78), false);
 
+    sameRoomWatcher.sentPackets.length = 0;
+    partyOtherRoom.sentPackets.length = 0;
+    otherRoomStranger.sentPackets.length = 0;
+
     const incoming = new BitBuffer(false);
     incoming.writeMethod4(victim.clientEntID);
     incoming.writeMethod24(11240);
@@ -1106,6 +1110,25 @@ async function testHostileHitsCanKillPlayersAndStayRoomScoped(): Promise<void> {
     assert.equal(victim.entities.get(victim.clientEntID)?.dead, false);
     assert.equal(sameRoomWatcher.sentPackets.some((packet) => packet.id === 0x82), true);
     assert.equal(otherRoomStranger.sentPackets.some((packet) => packet.id === 0x82), true);
+    const partyRespawnSnapshot = partyOtherRoom.sentPackets
+        .filter((packet) => packet.id === 0x0F)
+        .map((packet) => parsePlayerSnapshot(packet.payload))
+        .find((snapshot) => snapshot.entityId === victim.clientEntID);
+    assert.notEqual(
+        partyRespawnSnapshot,
+        undefined,
+        'party members in a different room should receive an updated player snapshot after respawn'
+    );
+    assert.equal(
+        partyRespawnSnapshot?.entState,
+        EntityState.ACTIVE,
+        'the party portrait snapshot should mark the revived player active'
+    );
+    assert.equal(
+        partyRespawnSnapshot?.healthDelta,
+        0,
+        'the party portrait snapshot should carry restored HP after respawn'
+    );
 }
 
 async function testHostileHitsDoNotEchoPowerHitBackToLocalVictimWhenDamageMatches(): Promise<void> {

@@ -20,6 +20,7 @@ type FakeClient = {
     playerSpawned: boolean;
     clientEntID: number;
     knownEntityIds: Set<number>;
+    entityIdAliases: Map<number, number>;
     entities: Map<number, any>;
     sentPackets: SentPacket[];
     send: (id: number, payload: Buffer) => void;
@@ -44,6 +45,7 @@ function createFakeClient(name: string): FakeClient {
         playerSpawned: true,
         clientEntID: 0,
         knownEntityIds: new Set<number>(),
+        entityIdAliases: new Map<number, number>(),
         entities: new Map<number, any>(),
         sentPackets,
         send(id: number, payload: Buffer) {
@@ -268,11 +270,11 @@ function testDungeonPartyAuthoritySuppressesDuplicateHostileSpawns(): void {
     const levelMap = GlobalState.levelEntities.get('TutorialDungeon');
     assert.equal(suppressed, true, 'follower hostile spawn should be suppressed when a party authority already owns the room');
     assert.equal(levelMap?.size, 1, 'duplicate dungeon hostile should not be added as a second shared entity');
-    assert.deepEqual(follower.sentPackets.map((packet) => packet.id), [0x0D, 0x0F]);
-    assert.equal(parseDestroyEntityId(follower.sentPackets[0]!.payload), 3301);
+    assert.deepEqual(follower.sentPackets.map((packet) => packet.id), []);
     assert.equal(follower.knownEntityIds.has(canonical.id), true);
     assert.equal(follower.knownEntityIds.has(3301), false);
-    assert.equal(follower.entities.has(3301), false);
+    assert.equal(follower.entities.get(3301)?.sharedCanonicalId, canonical.id);
+    assert.equal(follower.entityIdAliases.get(3301), canonical.id);
 }
 
 function testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns(): void {
@@ -328,15 +330,14 @@ function testOutdoorPartyAuthoritySuppressesDuplicateNpcSpawns(): void {
     );
 
     const levelMap = GlobalState.levelEntities.get('NewbieRoad');
-    assert.equal(suppressed, true, 'follower NPC spawn should be suppressed when a party authority already owns the room');
-    assert.equal(levelMap?.size, 1, 'duplicate outdoor NPC should not be added as a second shared entity');
-    assert.deepEqual(follower.sentPackets.map((packet) => packet.id), [0x0D, 0x0F]);
-    assert.equal(parseDestroyEntityId(follower.sentPackets[0]!.payload), 3401);
-    assert.equal(follower.knownEntityIds.has(canonical.id), true);
+    assert.equal(suppressed, false, 'private outdoor NPC spawns should not collapse to a party canonical entity');
+    assert.equal(levelMap?.size, 1, 'the owner NPC should remain isolated in the shared level map');
+    assert.deepEqual(follower.sentPackets, [], 'private outdoor NPCs should not emit destroy/adopt packets to party peers');
+    assert.equal(follower.knownEntityIds.has(canonical.id), false);
     assert.equal(follower.entities.has(3401), false);
 }
 
-function testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns(): void {
+function testDungeonPartyAuthorityLeavesTargetDummySpawnsLocal(): void {
     const owner = createFakeClient('Alpha');
     const follower = createFakeClient('Beta');
 
@@ -388,11 +389,21 @@ function testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns(): void {
         duplicate
     );
 
-    assert.equal(suppressed, true, 'target dummy spawns should collapse to the first shared authority');
-    assert.deepEqual(follower.sentPackets.map((packet) => packet.id), [0x0D, 0x0F]);
-    assert.equal(parseDestroyEntityId(follower.sentPackets[0]!.payload), 3450);
-    assert.equal(follower.knownEntityIds.has(canonical.id), true);
+    assert.equal(suppressed, false, 'target dummy spawns should remain local client actors');
+    assert.equal(
+        EntityHandler.shouldRelayEntityToOtherClients('TutorialDungeon', duplicate),
+        false,
+        'target dummy spawns should not be relayed to non-owner clients'
+    );
+    assert.equal(
+        EntityHandler.shouldMirrorClientSpawnEntityToParty('TutorialDungeon', duplicate),
+        false,
+        'target dummy spawns should not be mirrored into party shared authority'
+    );
+    assert.deepEqual(follower.sentPackets.map((packet) => packet.id), []);
+    assert.equal(follower.knownEntityIds.has(canonical.id), false);
     assert.equal(follower.entities.has(3450), false);
+    assert.equal(follower.entityIdAliases.has(3450), false);
 }
 
 function testCraftTownTutorialSameIdDuplicateDoesNotForceDestroyRespawn(): void {
@@ -441,7 +452,7 @@ function testCraftTownTutorialSameIdDuplicateDoesNotForceDestroyRespawn(): void 
     assert.equal(follower.entities.has(canonical.id), false);
 }
 
-function testSoloDungeonHostileReferencePromotesToPartyJoinerSeed(): void {
+function testSoloDungeonHostileReferencePromotesWithoutEagerJoinerSeed(): void {
     const owner = createFakeClient('Alpha');
     const joiner = createFakeClient('Beta');
 
@@ -473,9 +484,13 @@ function testSoloDungeonHostileReferencePromotesToPartyJoinerSeed(): void {
 
     (EntityHandler as any).sendExistingVisibleClientSpawnEntitiesToJoiner(joiner as never);
 
-    assert.deepEqual(joiner.sentPackets.map((packet) => packet.id), [0x0F]);
+    assert.deepEqual(
+        joiner.sentPackets.map((packet) => packet.id),
+        [],
+        'live shared hostiles should wait for the joiner client spawn before canonical adoption to avoid duplicates'
+    );
     assert.equal(canonical.ownerPartyId, 96, 'solo hostile reference should be promoted to party ownership once the dungeon becomes party-shared');
-    assert.equal(joiner.knownEntityIds.has(canonical.id), true);
+    assert.equal(joiner.knownEntityIds.has(canonical.id), false);
 }
 
 function testSoloDungeonNpcReferencePromotesToPartyJoinerSeed(): void {
@@ -677,7 +692,7 @@ function testOutdoorHostileIncrementalUpdatesDoNotRelayToPeers(): void {
     );
 }
 
-function testOutdoorHostileIncrementalUpdatesRelayToPartyPeers(): void {
+function testOutdoorHostileIncrementalUpdatesDoNotRelayToPartyPeers(): void {
     const sender = createFakeClient('Alpha');
     const watcher = createFakeClient('Beta');
 
@@ -713,10 +728,10 @@ function testOutdoorHostileIncrementalUpdatesRelayToPartyPeers(): void {
         buildIncrementalUpdatePayload(hostile.id, 12, -4, 3)
     );
 
-    assert.deepEqual(
-        watcher.sentPackets.map((packet) => packet.id),
-        [0x0F, 0x07],
-        'party peers should receive outdoor hostile movement as shared enemy state'
+    assert.equal(
+        watcher.sentPackets.some((packet) => packet.id === 0x07 || packet.id === 0x0F),
+        false,
+        'shared outdoor hostile movement should remain client-local even for party mates in the same level'
     );
 }
 
@@ -771,7 +786,7 @@ function main(): void {
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        try { console.log('Running ' + 'testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns();'); testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns(); } catch(e) { console.error('FAILED: ' + 'testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns();'); console.error(e); process.exit(1); }
+        try { console.log('Running ' + 'testDungeonPartyAuthorityLeavesTargetDummySpawnsLocal();'); testDungeonPartyAuthorityLeavesTargetDummySpawnsLocal(); } catch(e) { console.error('FAILED: ' + 'testDungeonPartyAuthorityLeavesTargetDummySpawnsLocal();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
@@ -781,7 +796,7 @@ function main(): void {
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        try { console.log('Running ' + 'testSoloDungeonHostileReferencePromotesToPartyJoinerSeed();'); testSoloDungeonHostileReferencePromotesToPartyJoinerSeed(); } catch(e) { console.error('FAILED: ' + 'testSoloDungeonHostileReferencePromotesToPartyJoinerSeed();'); console.error(e); process.exit(1); }
+        try { console.log('Running ' + 'testSoloDungeonHostileReferencePromotesWithoutEagerJoinerSeed();'); testSoloDungeonHostileReferencePromotesWithoutEagerJoinerSeed(); } catch(e) { console.error('FAILED: ' + 'testSoloDungeonHostileReferencePromotesWithoutEagerJoinerSeed();'); console.error(e); process.exit(1); }
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
@@ -806,7 +821,7 @@ function main(): void {
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        try { console.log('Running ' + 'testOutdoorHostileIncrementalUpdatesRelayToPartyPeers();'); testOutdoorHostileIncrementalUpdatesRelayToPartyPeers(); } catch(e) { console.error('FAILED: ' + 'testOutdoorHostileIncrementalUpdatesRelayToPartyPeers();'); console.error(e); process.exit(1); }
+        try { console.log('Running ' + 'testOutdoorHostileIncrementalUpdatesDoNotRelayToPartyPeers();'); testOutdoorHostileIncrementalUpdatesDoNotRelayToPartyPeers(); } catch(e) { console.error('FAILED: ' + 'testOutdoorHostileIncrementalUpdatesDoNotRelayToPartyPeers();'); console.error(e); process.exit(1); }
     } finally {
         GlobalState.levelEntities = levelEntities;
         GlobalState.sessionsByToken = sessionsByToken;

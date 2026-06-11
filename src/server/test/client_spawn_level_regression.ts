@@ -922,7 +922,7 @@ function testOutdoorHostileSpawnsShareWithParty(): void {
     assert.equal(follower.entities.get(3402)?.sharedCanonicalId, canonical.id);
 }
 
-function testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns(): void {
+function testDungeonPartyAuthorityLeavesTargetDummySpawnsLocal(): void {
     const owner = createFakeClient('Alpha');
     const follower = createFakeClient('Beta');
 
@@ -974,11 +974,21 @@ function testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns(): void {
         duplicate
     );
 
-    assert.equal(suppressed, true, 'target dummy spawns should collapse to the first shared authority');
+    assert.equal(suppressed, false, 'target dummy spawns should remain local client actors');
+    assert.equal(
+        EntityHandler.shouldRelayEntityToOtherClients('TutorialDungeon', duplicate),
+        false,
+        'target dummy spawns should not be relayed to non-owner clients'
+    );
+    assert.equal(
+        EntityHandler.shouldMirrorClientSpawnEntityToParty('TutorialDungeon', duplicate),
+        false,
+        'target dummy spawns should not be mirrored into party shared authority'
+    );
     assert.deepEqual(follower.sentPackets.map((packet) => packet.id), []);
-    assert.equal(follower.knownEntityIds.has(canonical.id), true);
-    assert.equal(follower.entities.get(3450)?.sharedCanonicalId, canonical.id);
-    assert.equal(follower.entityIdAliases.get(3450), canonical.id);
+    assert.equal(follower.knownEntityIds.has(canonical.id), false);
+    assert.equal(follower.entities.has(3450), false);
+    assert.equal(follower.entityIdAliases.has(3450), false);
 }
 
 function testCraftTownTutorialSameIdDuplicateDoesNotForceDestroyRespawn(): void {
@@ -2815,6 +2825,25 @@ function testPartyMemberOutsideLevelScopeDoesNotScaleHostiles(): void {
     assert.equal(hostile.level, 12, 'party members outside the live level scope should not scale current enemies');
 }
 
+function testClientSpawnPartyBonusLevelsStayWithinClientCap(): void {
+    const low = createFakeClient('Lowbie', 12);
+    const high = createFakeClient('Fifty', 50);
+    low.currentLevel = 'NewbieRoad';
+    high.currentLevel = 'NewbieRoad';
+
+    GlobalState.sessionsByToken.set(low.token, low as never);
+    GlobalState.sessionsByToken.set(high.token, high as never);
+    GlobalState.partyByMember.set('lowbie', 308);
+    GlobalState.partyByMember.set('fifty', 308);
+    GlobalState.partyGroups.set(308, { id: 308, leader: 'Lowbie', members: ['Lowbie', 'Fifty'], locked: false });
+
+    const mapLevel = LevelConfig.get('NewbieRoad').mapId;
+    const bonusLevels = EntityHandler.getClientSpawnPartyBonusLevels(low as never, 'NewbieRoad');
+
+    assert.equal(mapLevel + bonusLevels, 50, 'client-spawn display level should cap at the max player level');
+    assert.ok(bonusLevels >= 0, 'client-spawn bonus levels should never go negative');
+}
+
 function testJoiningHighLevelPartyMemberRescalesExistingDungeonHostiles(): void {
     const low = createFakeClient('Lowbie', 12);
     const high = createFakeClient('Fifty', 50);
@@ -3050,7 +3079,7 @@ async function main(): Promise<void> {
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
         GlobalState.partyByMember.clear();
-        testDungeonPartyAuthoritySuppressesDuplicateTargetDummySpawns();
+        testDungeonPartyAuthorityLeavesTargetDummySpawnsLocal();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();
@@ -3233,6 +3262,12 @@ async function main(): Promise<void> {
         GlobalState.partyByMember.clear();
         GlobalState.partyGroups.clear();
         testPartyMemberOutsideLevelScopeDoesNotScaleHostiles();
+
+        GlobalState.levelEntities.clear();
+        GlobalState.sessionsByToken.clear();
+        GlobalState.partyByMember.clear();
+        GlobalState.partyGroups.clear();
+        testClientSpawnPartyBonusLevelsStayWithinClientCap();
 
         GlobalState.levelEntities.clear();
         GlobalState.sessionsByToken.clear();

@@ -32,6 +32,7 @@ import { ensureSigilStoreAlertState } from '../utils/AlertState';
 import { getCraftTownHomeInstanceId, isVisitingAnotherPlayersCraftTown } from '../utils/HomeVisitGuard';
 import {
     createDungeonInstanceId,
+    areClientsInSameLevelScope,
     getClientLevelScope,
     getScopeLevelInstanceId,
     getScopeLevelName,
@@ -107,6 +108,35 @@ export class CharacterHandler {
 
     private static normalizeCharacterName(value: string | null | undefined): string {
         return String(value || '').trim().toLowerCase();
+    }
+
+    private static resolvePaperDollCharacter(client: Client, requestedName: string): Character | null {
+        const normalizedName = CharacterHandler.normalizeCharacterName(requestedName);
+        if (!normalizedName) {
+            return null;
+        }
+
+        const localCharacter = client.characters.find((entry) =>
+            CharacterHandler.normalizeCharacterName(entry?.name) === normalizedName
+        ) ?? (
+            client.character && CharacterHandler.normalizeCharacterName(client.character.name) === normalizedName
+                ? client.character
+                : null
+        );
+        if (localCharacter) {
+            return localCharacter;
+        }
+
+        for (const session of GlobalState.sessionsByToken.values()) {
+            if (!session?.character || CharacterHandler.normalizeCharacterName(session.character.name) !== normalizedName) {
+                continue;
+            }
+            if (session === client || areClientsInSameParty(client, session) || areClientsInSameLevelScope(client, session)) {
+                return session.character;
+            }
+        }
+
+        return null;
     }
 
     private static isPlaceholderCharacterName(value: string | null | undefined): boolean {
@@ -546,15 +576,7 @@ export class CharacterHandler {
     static handlePaperDollRequest(client: Client, data: Buffer): void {
         const br = new BitReader(data);
         const requestedName = br.readMethod26();
-        const normalizedName = CharacterHandler.normalizeCharacterName(requestedName);
-
-        const character = client.characters.find((entry) =>
-            CharacterHandler.normalizeCharacterName(entry?.name) === normalizedName
-        ) ?? (
-            client.character && CharacterHandler.normalizeCharacterName(client.character.name) === normalizedName
-                ? client.character
-                : null
-        );
+        const character = CharacterHandler.resolvePaperDollCharacter(client, requestedName);
 
         if (!character) {
             client.send(0x1A, Buffer.alloc(0));

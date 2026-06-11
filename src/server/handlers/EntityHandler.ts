@@ -115,6 +115,19 @@ export class EntityHandler {
         return /^HomeDummy[123]$/.test(String(entity?.name ?? entity?.EntName ?? entity?.entName ?? ''));
     }
 
+    static isDummyEntity(entity: any): boolean {
+        const entityName = String(entity?.name ?? entity?.EntName ?? entity?.entName ?? '');
+        if (/^(?:HomeDummy[123]|IntroDummy\d+|IntroDummyFlier|EmperorDummyHard?|TargetDummy)$/i.test(entityName)) {
+            return true;
+        }
+
+        const entType = EntityHandler.getEntityType(entity);
+        const behavior = String(entity?.Behavior ?? entity?.behavior ?? entType?.Behavior ?? entType?.behavior ?? '')
+            .trim()
+            .toLowerCase();
+        return behavior === 'dummy' || behavior === 'homedummy' || behavior === 'npcdummy';
+    }
+
     private static shouldDeferLiveSharedHostileSeedToJoiner(joiner: Client, entity: any): boolean {
         return Boolean(joiner.currentLevel) &&
             EntityHandler.isPartySharedClientSpawnHostile(joiner.currentLevel, entity) &&
@@ -170,7 +183,7 @@ export class EntityHandler {
     }
 
     private static isRuntimeScaledHostile(levelName: string | null | undefined, entity: any): boolean {
-        if (!levelName || !entity || entity.isPlayer || Number(entity?.team ?? 0) !== 2) {
+        if (!levelName || !entity || entity.isPlayer || Number(entity?.team ?? 0) !== 2 || EntityHandler.isDummyEntity(entity)) {
             return false;
         }
 
@@ -382,17 +395,21 @@ export class EntityHandler {
     }
 
     static getClientSpawnPartyBonusLevels(client: Client, levelName: string | null | undefined): number {
-        if (!levelName || !EntityHandler.usesClientSpawn(levelName)) {
+        const normalizedLevelName =
+            LevelConfig.normalizeLevelName(levelName || '') ||
+            String(levelName ?? '').trim();
+        if (!normalizedLevelName || !EntityHandler.usesClientSpawn(normalizedLevelName)) {
             return 0;
         }
 
-        const levelSpec = LevelConfig.get(levelName);
-        const baseLevel = EntityHandler.clampEntityLevel(
-            levelSpec.mapId || levelSpec.baseId || client.character?.level || 1,
+        const levelSpec = LevelConfig.get(normalizedLevelName);
+        const mapLevel = EntityHandler.clampEntityLevel(
+            levelSpec.mapId || client.character?.level || 1,
             client.character?.level ?? 1
         );
-        const scaling = EntityHandler.getPartyScalingForClient(client, baseLevel);
-        return Math.max(0, scaling.runtimeLevel - baseLevel);
+        const scaling = EntityHandler.getPartyScalingForClient(client, mapLevel);
+        const maxBonusLevels = Math.max(0, 50 - mapLevel);
+        return Math.max(0, Math.min(maxBonusLevels, scaling.runtimeLevel - mapLevel));
     }
 
     static rescalePartyEnemiesForMembers(memberNames: Iterable<string | null | undefined>): number {
@@ -496,6 +513,10 @@ export class EntityHandler {
     private static isPrivateClientSpawnOutdoorEntity(levelName: string | null | undefined, entity: any): boolean {
         if (!levelName || !entity?.clientSpawned || entity?.isPlayer) {
             return false;
+        }
+
+        if (EntityHandler.isDummyEntity(entity)) {
+            return true;
         }
 
         if (levelName === 'CraftTownTutorial') {

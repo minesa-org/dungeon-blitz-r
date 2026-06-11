@@ -3066,6 +3066,14 @@ export class LevelHandler {
         return LevelHandler.isStoryAreaEntryUnlocked(client, currentLevel, targetLevelRaw);
     }
 
+    private static shouldBypassTransferUnlockChecks(targetLevel: string, teleportOverride: PendingTeleport | null | undefined): boolean {
+        if (!teleportOverride) {
+            return false;
+        }
+
+        return targetLevel === 'CraftTown';
+    }
+
     private static sendDoorState(client: Client, doorId: number, state: number, targetLevel: string): void {
         const bb = new BitBuffer();
         bb.writeMethod4(doorId);
@@ -4026,7 +4034,8 @@ export class LevelHandler {
             targetLevel = safeFallback;
         }
 
-        if (!teleportOverride && !LevelHandler.isDreadfoldGateTransferUnlocked(client, targetLevel)) {
+        const bypassUnlockChecks = LevelHandler.shouldBypassTransferUnlockChecks(targetLevel, teleportOverride);
+        if (!bypassUnlockChecks && !LevelHandler.isDreadfoldGateTransferUnlocked(client, targetLevel)) {
             console.log(`[Level] Transfer to ${targetLevel} blocked until Capstone is completed`);
             LevelHandler.sendDeniedDoorResponse(
                 client,
@@ -4038,7 +4047,7 @@ export class LevelHandler {
             return;
         }
 
-        if (!teleportOverride && !LevelHandler.isStoryAreaTransferUnlocked(client, targetLevel)) {
+        if (!bypassUnlockChecks && !LevelHandler.isStoryAreaTransferUnlocked(client, targetLevel)) {
             console.log(`[Level] Transfer to ${targetLevel} blocked until the required story area mission is claimed`);
             LevelHandler.sendDeniedDoorResponse(
                 client,
@@ -4050,7 +4059,7 @@ export class LevelHandler {
             return;
         }
 
-        if (!teleportOverride && !LevelHandler.isDungeonEntryUnlocked(client, client.currentLevel || '', targetLevel)) {
+        if (!bypassUnlockChecks && !LevelHandler.isDungeonEntryUnlocked(client, client.currentLevel || '', targetLevel)) {
             console.log(`[Level] Transfer to ${targetLevel} blocked until the matching dungeon quest is accepted`);
             LevelHandler.sendDeniedDoorResponse(
                 client,

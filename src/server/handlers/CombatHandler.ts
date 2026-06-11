@@ -2491,6 +2491,25 @@ export class CombatHandler {
         CombatHandler.broadcastToCombatRoom(targetSession, 0x07, payload, false, [targetSession.clientEntID]);
     }
 
+    private static broadcastPartyPlayerSnapshot(targetSession: Client): void {
+        if (!targetSession.playerSpawned || !targetSession.currentLevel || targetSession.clientEntID <= 0) {
+            return;
+        }
+
+        for (const other of GlobalState.sessionsByToken.values()) {
+            if (
+                other === targetSession ||
+                !other.playerSpawned ||
+                !areClientsInSameParty(targetSession, other) ||
+                !areClientsInSameLevelScope(targetSession, other)
+            ) {
+                continue;
+            }
+
+            EntityHandler.sendPlayerSnapshotToClient(other, targetSession);
+        }
+    }
+
     private static getEntityPosition(entity: any): CombatPoint | null {
         if (!entity || typeof entity !== 'object') {
             return null;
@@ -3435,9 +3454,16 @@ export class CombatHandler {
                 CombatHandler.broadcastPlayerHpDelta(targetSession, -resolution.appliedDamage);
             }
 
+            if (resolution.appliedDamage > 0 && !resolution.killed) {
+                CombatHandler.broadcastPartyPlayerSnapshot(targetSession);
+            }
+
             if (resolution.killed) {
                 CombatHandler.armBossRegenForPlayerDeath(targetSession);
                 CombatHandler.broadcastPlayerState(targetSession, EntityState.DEAD, isHostileNpcSource);
+                if (!isHostileNpcSource) {
+                    CombatHandler.broadcastPartyPlayerSnapshot(targetSession);
+                }
                 EquipmentHandler.broadcastGearChange(targetSession, true);
             }
         } else {
@@ -3682,6 +3708,7 @@ export class CombatHandler {
             const facingLeft = Boolean(ent?.facingLeft ?? false);
             const statePayload = CombatHandler.buildEntityStatePayload(client.clientEntID, EntityState.ACTIVE, facingLeft);
             CombatHandler.broadcastToSameLevel(getClientLevelScope(client), 0x07, statePayload, [client.clientEntID], client);
+            CombatHandler.broadcastPartyPlayerSnapshot(client);
             EquipmentHandler.broadcastGearChange(client, true);
         }
 

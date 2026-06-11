@@ -4,9 +4,11 @@ import { Character } from '../database/Database';
 import { JsonAdapter } from '../database/JsonAdapter';
 import { MissionLoader } from '../data/MissionLoader';
 import { MissionID } from '../data/runtime';
+import { GlobalState } from '../core/GlobalState';
 import { AbilityHandler } from '../handlers/AbilityHandler';
 import { CharacterHandler } from '../handlers/CharacterHandler';
 import { MissionHandler } from '../handlers/MissionHandler';
+import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 
 function createCharacter(name: string): Character {
@@ -128,6 +130,55 @@ function testPaperDollPacketNormalizesLegacyLowercaseGender(): void {
     assert.equal(br.readMethod13(), 'GenderNormalize');
     assert.equal(br.readMethod13(), 'Mage');
     assert.equal(br.readMethod13(), 'Male');
+}
+
+async function testPaperDollRequestServesActivePartyMember(): Promise<void> {
+    const requesterCharacter = createCharacter('InspectRequester');
+    const targetCharacter = createCharacter('InspectTarget');
+    const requesterPackets: Array<{ id: number; payload: Buffer }> = [];
+
+    const requester = {
+        token: 8101,
+        character: requesterCharacter,
+        characters: [requesterCharacter],
+        currentLevel: 'NewbieRoad',
+        levelInstanceId: '',
+        send(id: number, payload: Buffer): void {
+            requesterPackets.push({ id, payload });
+        },
+        sendBitBuffer(id: number, bb: { toBuffer(): Buffer }): void {
+            requesterPackets.push({ id, payload: bb.toBuffer() });
+        }
+    };
+
+    const target = {
+        token: 8102,
+        character: targetCharacter,
+        characters: [targetCharacter],
+        currentLevel: 'NewbieRoad',
+        levelInstanceId: ''
+    };
+
+    const packet = new BitBuffer();
+    packet.writeMethod26('InspectTarget');
+
+    try {
+        GlobalState.sessionsByToken.set(requester.token, requester as never);
+        GlobalState.sessionsByToken.set(target.token, target as never);
+        GlobalState.partyByMember.set('inspectrequester', 88);
+        GlobalState.partyByMember.set('inspecttarget', 88);
+
+        await CharacterHandler.handlePaperDollRequest(requester as never, packet.toBuffer());
+    } finally {
+        GlobalState.sessionsByToken.delete(requester.token);
+        GlobalState.sessionsByToken.delete(target.token);
+        GlobalState.partyByMember.delete('inspectrequester');
+        GlobalState.partyByMember.delete('inspecttarget');
+    }
+
+    const response = requesterPackets.find((entry) => entry.id === 0x1A);
+    assert.ok(response, 'paper-doll request should return a 0x1A response for active party members');
+    assert.ok(response.payload.length > 0, 'active party-member paper-doll response should not be empty');
 }
 
 function testCraftTownLoginRepairsCompletedKeepQuestProgress(): void {
@@ -460,6 +511,7 @@ async function main(): Promise<void> {
     await testReloadCurrentCharacterFromSaveKeepsUnsavedCharacterWhenMissingOnDisk();
     testAbilityRepairSyncsUnlockedActiveAbilityIntoLearnedAbilities();
     testPaperDollPacketNormalizesLegacyLowercaseGender();
+    await testPaperDollRequestServesActivePartyMember();
     testCraftTownLoginRepairsCompletedKeepQuestProgress();
     testCraftTownLoginMarksClearedKeepQuestReadyToTurnIn();
     testNewbieRoadLoginRepairsCompletedKeepQuestProgress();

@@ -6,6 +6,7 @@ import { MissionDef, MissionLoader } from '../data/MissionLoader';
 import { BuildingID, ClassID, MasterClassID } from '../core/Enums';
 import { GameData } from '../core/GameData';
 import { GlobalState } from '../core/GlobalState';
+import { LevelConfig } from '../core/LevelConfig';
 import { normalizeFriendEntries } from '../core/SocialState';
 import { normalizeGender } from './normalizeGender';
 import { getVisibleConsumableCount, reconcileConsumableSelectionState } from './ConsumableState';
@@ -63,6 +64,29 @@ export class WorldEnter {
 
     private static asArray(value: unknown): any[] {
         return Array.isArray(value) ? value : [];
+    }
+
+    private static clampPlayerLevel(value: unknown, fallbackLevel: number = 1): number {
+        const fallback = Math.max(1, Math.min(50, Math.round(Number(fallbackLevel) || 1)));
+        const level = Math.round(Number(value));
+        if (!Number.isFinite(level) || level <= 0) {
+            return fallback;
+        }
+
+        return Math.max(1, Math.min(50, level));
+    }
+
+    private static clampClientSpawnBonusLevels(value: unknown, targetLevel: string): number {
+        const normalizedTarget =
+            LevelConfig.normalizeLevelName(targetLevel || '') ||
+            String(targetLevel ?? '').trim();
+        const targetSpec = normalizedTarget ? LevelConfig.get(normalizedTarget) : null;
+        const mapLevel = targetSpec && targetSpec.mapId > 0
+            ? WorldEnter.clampPlayerLevel(targetSpec.mapId)
+            : 0;
+        const maxBonusLevels = mapLevel > 0 ? Math.max(0, 50 - mapLevel) : 50;
+        const bonus = Math.round(Number(value) || 0);
+        return Math.max(0, Math.min(maxBonusLevels, bonus));
     }
 
     private static normalizeCraftTownOwnerToken(ownerToken: number | null | undefined, transferToken: number): number {
@@ -524,11 +548,15 @@ export class WorldEnter {
     ): BitBuffer {
         const bb = new BitBuffer();
         const now = Math.floor(Date.now() / 1000);
-        const normalizedLevel = GameData.getPlayerLevelFromXp(Math.max(0, Number(character.xp ?? 0)));
+        const normalizedLevel = WorldEnter.clampPlayerLevel(GameData.getPlayerLevelFromXp(Math.max(0, Number(character.xp ?? 0))));
         WorldEnter.ensureSelectedDisciplineTower(character);
         ensureSigilStoreAlertState(character);
         if (Number(character.level ?? 1) !== normalizedLevel) {
             character.level = normalizedLevel;
+        }
+        const safeCharacterLevel = WorldEnter.clampPlayerLevel(character.level, normalizedLevel);
+        if (Number(character.level ?? 1) !== safeCharacterLevel) {
+            character.level = safeCharacterLevel;
         }
         reconcileConsumableSelectionState(character);
         const equippedGears = WorldEnter.asArray(character.equippedGears);
@@ -540,8 +568,8 @@ export class WorldEnter {
         const safeStatsByBuilding = buildingState.statsByBuilding;
         const safeBuildingUpgrade = buildingState.buildingUpgrade;
 
-        hpScaling = Math.max(0, Math.min(hpScaling, 3));
-        bonusLevels = Math.max(0, Math.min(bonusLevels, 0xFFFFFFFF));
+        hpScaling = Math.max(0, Math.min(Math.round(Number(hpScaling) || 0), 3));
+        bonusLevels = WorldEnter.clampClientSpawnBonusLevels(bonusLevels, targetLevel);
 
         bb.writeMethod4(transferToken);
         bb.writeMethod4(now);
@@ -581,7 +609,7 @@ export class WorldEnter {
             bb.writeMethod11(Number(colors[1] ?? 0), 8);
         }
 
-        bb.writeMethod6(Number(character.level ?? 1), 6);
+        bb.writeMethod6(safeCharacterLevel, 6);
         bb.writeMethod4(Number(character.xp ?? 0));
         bb.writeMethod4(Number(character.gold ?? 0));
         bb.writeMethod4(Number(character.craftXP ?? 0));
@@ -767,7 +795,7 @@ export class WorldEnter {
                 if (session?.character) {
                     isOnline = true;
                     className = String(session.character.class ?? '');
-                    level = Number(session.character.level ?? 1);
+                    level = WorldEnter.clampPlayerLevel(session.character.level);
                 }
 
                 bb.writeMethod13(friendName);
@@ -990,7 +1018,7 @@ export class WorldEnter {
                 const member = WorldEnter.asRecord(rawMember);
                 bb.writeMethod13(String(member.name ?? ''));
                 bb.writeMethod6(Number(member.classID ?? 0), 2);
-                bb.writeMethod6(Number(member.level ?? 1), 6);
+                bb.writeMethod6(WorldEnter.clampPlayerLevel(member.level), 6);
                 bb.writeMethod6(Number(member.rank ?? 0), 3);
             }
         }
