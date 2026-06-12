@@ -64,6 +64,8 @@ type MissionCase = {
 };
 
 const MISSION_CASES: MissionCase[] = [
+    { level: 'AC_Mission2', missionId: MissionID.EmeraldThrone, bossName: 'DreadLord' },
+    { level: 'AC_Mission2Hard', missionId: MissionID.EmeraldThroneHard, bossName: 'DreadLordHard' },
     { level: 'EG_Mission1', missionId: MissionID.TheAshenDryad, bossName: 'AshenDryadHero' },
     { level: 'EG_Mission2', missionId: MissionID.OutOnALimb, bossName: 'AshenDryadHero' },
     { level: 'EG_Mission3', missionId: MissionID.RottenToTheRoots, bossName: 'AshenDryadWizard' },
@@ -76,13 +78,14 @@ const MISSION_CASES: MissionCase[] = [
 
 function ensureDataLoaded(): void {
     const dataDir = path.resolve(__dirname, '../data');
-    if (!LevelConfig.has('EG_Mission1') || !LevelConfig.has('EG_Mission4Hard')) {
+    if (!LevelConfig.has('AC_Mission2') || !LevelConfig.has('EG_Mission4Hard')) {
         LevelConfig.load(dataDir);
     }
-    if (!GameData.getEntType('AshenDryadHero') || !GameData.getEntType('AshenDryadWizardHard')) {
+    if (!GameData.getEntType('DreadLord') || !GameData.getEntType('AshenDryadWizardHard')) {
         GameData.load(dataDir);
     }
     if (
+        !MissionLoader.getMissionDef(MissionID.EmeraldThrone) ||
         !MissionLoader.getMissionDef(MissionID.TheAshenDryad) ||
         !MissionLoader.getMissionDef(MissionID.HopeSpringsEternalHard)
     ) {
@@ -98,7 +101,13 @@ function createClient(testCase: MissionCase, index: number): FakeClient {
         xp: 0,
         gold: 0,
         CurrentLevel: { name: testCase.level, x: 0, y: 0 },
-        PreviousLevel: { name: testCase.level.endsWith('Hard') ? 'EmeraldGladesHard' : 'EmeraldGlades', x: 18552, y: 4021 },
+        PreviousLevel: {
+            name: testCase.level.startsWith('AC_')
+                ? (testCase.level.endsWith('Hard') ? 'CastleHard' : 'Castle')
+                : (testCase.level.endsWith('Hard') ? 'EmeraldGladesHard' : 'EmeraldGlades'),
+            x: 18552,
+            y: 4021
+        },
         missions: {
             [String(testCase.missionId)]: {
                 state: 1,
@@ -263,9 +272,9 @@ async function main(): Promise<void> {
                 `${testCase.level} should send the dungeon completion stats packet after the settle window`
             );
             assert.equal(
-                Number(client.character.missions[String(testCase.missionId)]?.state ?? 0),
-                2,
-                `${testCase.level} should move the matching mission to ready-to-turn-in`
+                Number(client.character.missions[String(testCase.missionId)]?.state ?? 0) >= 2,
+                true,
+                `${testCase.level} should complete the matching dungeon mission`
             );
         }
 

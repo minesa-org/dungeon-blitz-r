@@ -137,6 +137,8 @@ export class MissionHandler {
     private static readonly DUNGEONS_REQUIRING_BOSS_DEFEAT = new Set([
         'AC_Mission6',
         'AC_Mission6Hard',
+        'AC_Mission2',
+        'AC_Mission2Hard',
         'AC_Mission5',
         'AC_Mission5Hard',
         'CH_Mission1',
@@ -155,6 +157,8 @@ export class MissionHandler {
         'SRN_Mission4Hard'
     ]);
     private static readonly REQUIRED_DUNGEON_BOSS_NAMES_BY_LEVEL: Record<string, ReadonlySet<string>> = {
+        AC_Mission2: new Set(['DreadLord']),
+        AC_Mission2Hard: new Set(['DreadLordHard']),
         AC_Mission5: new Set(['AncientDragonBlack', 'AncientDragonSilver']),
         AC_Mission5Hard: new Set(['AncientDragonBlackHard', 'AncientDragonSilverHard']),
         AC_Mission6: new Set(['NephitLargeEye']),
