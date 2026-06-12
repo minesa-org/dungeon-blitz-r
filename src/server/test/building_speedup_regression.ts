@@ -21,6 +21,8 @@ type FakeClient = {
     sendBitBuffer(id: number, bb: BitBuffer): void;
 };
 
+const EXPECTED_CRAFT_TOWN_REASSERT_DELTA_COUNT = 7;
+
 function createCharacter(): Character {
     return {
         name: 'Neodevil',
@@ -109,7 +111,7 @@ async function testBuildingSpeedupCompletesUpgradeAndReassertsCraftTownState(): 
     assert.equal(client.sentPackets.some((packet) => packet.id === 0xD8), true, 'speedup should complete the upgrade');
     assert.equal(
         client.sentPackets.filter((packet) => packet.id === 0xDA).length,
-        5,
+        EXPECTED_CRAFT_TOWN_REASSERT_DELTA_COUNT,
         'speedup should immediately reassert CraftTown building state'
     );
 }
@@ -135,7 +137,7 @@ async function testOfflineExpiredBuildingUpgradeAppliesOnSync(): Promise<void> {
     );
     assert.equal(
         client.sentPackets.filter((packet) => packet.id === 0xDA).length,
-        5,
+        EXPECTED_CRAFT_TOWN_REASSERT_DELTA_COUNT,
         'offline completed building upgrade should reassert CraftTown building state without scaffolding'
     );
     const tomePacket = client.sentPackets
@@ -171,7 +173,7 @@ async function testDuplicateBuiltTomeUpgradeRequestIsIgnoredAndReassertsHomeStat
     );
     assert.equal(
         client.sentPackets.filter((packet) => packet.id === 0xDA).length,
-        5,
+        EXPECTED_CRAFT_TOWN_REASSERT_DELTA_COUNT,
         'duplicate built Tome request should reassert existing CraftTown building state'
     );
 }
@@ -244,7 +246,7 @@ async function testBuildingCancelClearsSavedProgressAndReassertsHomeState(): Pro
     assert.deepEqual(client.character.buildingUpgrade, { buildingID: 0, rank: 0, ReadyTime: 0 });
     assert.equal(
         client.sentPackets.filter((packet) => packet.id === 0xDA).length,
-        5,
+        EXPECTED_CRAFT_TOWN_REASSERT_DELTA_COUNT,
         'cancel should immediately reassert CraftTown building state'
     );
 }
@@ -273,7 +275,7 @@ async function testDuplicateSpeedupRequestReplaysCompletionForBuiltTome(): Promi
     );
     assert.equal(
         client.sentPackets.filter((packet) => packet.id === 0xDA).length,
-        5,
+        EXPECTED_CRAFT_TOWN_REASSERT_DELTA_COUNT,
         'duplicate speedup request should reassert CraftTown building state'
     );
 }
@@ -300,7 +302,7 @@ function testCraftTownSpawnRefreshSendsImmediateBuildingReassert(): void {
 
     assert.equal(
         client.sentPackets.filter((packet) => packet.id === 0xDA).length,
-        5,
+        EXPECTED_CRAFT_TOWN_REASSERT_DELTA_COUNT,
         'CraftTown spawn should immediately resend home building state'
     );
     assert.deepEqual(observedDelays, [1200, 2800]);
