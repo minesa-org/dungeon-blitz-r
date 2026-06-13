@@ -7,6 +7,7 @@ import { BitReader } from '../network/protocol/bitReader';
 import { CharmID } from '../data/runtime/Charms';
 import { ConsumableID } from '../data/runtime/Consumables';
 import { MaterialID } from '../data/runtime/Materials';
+import { MissionID } from '../data/runtime';
 
 type SentPacket = {
     id: number;
@@ -439,6 +440,9 @@ async function testTutorialCharmForgeSpeedupAcceptsZeroCostBeforeFreeBoundary():
     const client = createClient();
     client.currentLevel = 'CraftTown';
     client.character.questTrackerState = 100;
+    client.character.missions = {
+        [String(MissionID.ClearYourHouse)]: { state: 2 }
+    };
     client.character.magicForge = {
         stats_by_building: { '2': 1 },
         primary: CharmID.Trog01,
@@ -462,6 +466,63 @@ async function testTutorialCharmForgeSpeedupAcceptsZeroCostBeforeFreeBoundary():
     assert.equal((client.character.forgeFreeSpeedupUses as Record<string, boolean>)?.tutorial_charm, true);
     assert.equal(client.sentPackets.some((packet) => packet.id === 0xB5), false);
     assert.ok(client.sentPackets.find((packet) => packet.id === 0xCD), 'tutorial charm free speedup should complete before the normal free window');
+}
+
+async function testCompletedTutorialCharmForgeRejectsZeroCostBeforeFreeBoundary(): Promise<void> {
+    const client = createClient();
+    client.currentLevel = 'CraftTown';
+    client.character.questTrackerState = 100;
+    client.character.missions = {
+        [String(MissionID.ClearYourHouse)]: { state: 3 }
+    };
+    client.character.magicForge = {
+        stats_by_building: { '2': 1 },
+        primary: CharmID.Trog01,
+        secondary: 2,
+        secondary_tier: 1,
+        usedlist: 1 << 1,
+        ReadyTime: Math.floor(Date.now() / 1000) + 1200,
+        forge_roll_a: 0,
+        forge_roll_b: 0,
+        is_extended_forge: false
+    };
+
+    await withMockedCharacterSave(async () => {
+        await ForgeHandler.handleForgeSpeedUpPacket(client as never, createForgeSpeedupPacket(0));
+    });
+
+    assert.notEqual(client.character.magicForge?.ReadyTime, 0);
+    assert.notEqual((client.character.forgeFreeSpeedupUses as Record<string, boolean>)?.tutorial_charm, true);
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0xCD), false, 'completed tutorial should not allow tutorial charm free speedup');
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0xB5), false);
+}
+
+async function testCompletedTutorialStartForgeDoesNotStoreTutorialFreeSpeedup(): Promise<void> {
+    const client = createClient();
+    client.currentLevel = 'CraftTown';
+    client.character.questTrackerState = 100;
+    client.character.missions = {
+        [String(MissionID.ClearYourHouse)]: { state: 3 }
+    };
+    client.character.magicForge = {
+        ...client.character.magicForge,
+        stats_by_building: { '2': 1 }
+    } as any;
+
+    await withMockedCharacterSave(async () =>
+        withCapturedTimers(async () =>
+            withPatchedRandom([1], async () => {
+                await ForgeHandler.handleStartForge(
+                    client as never,
+                    createStartForgePacket(CharmID.Trog01, [], [false, false, false, false])
+                );
+            })
+        )
+    );
+
+    assert.equal(client.character.magicForge?.primary, CharmID.Trog01);
+    assert.equal((client.character.magicForge as any)?.free_speedup_reason, '');
+    assert.ok(Number(client.character.magicForge?.ReadyTime ?? 0) > Math.floor(Date.now() / 1000) + 180);
 }
 
 async function testFirstRespecStoneSpeedupAcceptsZeroCostBeforeFreeBoundary(): Promise<void> {
@@ -714,6 +775,8 @@ async function main(): Promise<void> {
     await testForgeSpeedupAcceptsZeroCostInFreeWindow();
     await testCharmForgeSpeedupAcceptsZeroCostAtClientFreeBoundary();
     await testTutorialCharmForgeSpeedupAcceptsZeroCostBeforeFreeBoundary();
+    await testCompletedTutorialCharmForgeRejectsZeroCostBeforeFreeBoundary();
+    await testCompletedTutorialStartForgeDoesNotStoreTutorialFreeSpeedup();
     await testFirstRespecStoneSpeedupAcceptsZeroCostBeforeFreeBoundary();
     await testSecondRespecStoneSpeedupRejectsZeroCostBeforeFreeBoundary();
     await testForgeSpeedupZeroCostAfterReadySendsCompletedResult();

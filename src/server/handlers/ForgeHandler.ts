@@ -7,6 +7,7 @@ import { BitBuffer } from '../network/protocol/bitBuffer';
 import { BitReader } from '../network/protocol/bitReader';
 import { CharmID } from '../data/runtime/Charms';
 import { ConsumableID, ConsumableType } from '../data/runtime/Consumables';
+import { MissionID } from '../data/runtime';
 import { PetHandler } from './PetHandler';
 import { sendConsumableUpdate } from '../utils/ConsumableState';
 import { normalizeCharacterMaterials } from '../utils/MaterialInventory';
@@ -30,6 +31,8 @@ type ForgeState = {
 type FreeSpeedupReason = 'tutorial_charm' | 'first_respec_stone';
 
 export class ForgeHandler {
+    private static readonly MISSION_NOT_STARTED = 0;
+    private static readonly MISSION_CLAIMED = 3;
     private static readonly FORGE_REROLL_COSTS = [1, 2, 3, 4, 5, 7, 10, 13, 16, 20] as const;
     private static readonly FORGE_DURATIONS_BY_SIZE = [1800, 4800, 10800, 21600, 36000, 64800, 96000, 144000, 192000, 288000] as const;
     private static readonly FORGE_XP_BY_SIZE = [8, 22, 50, 101, 171, 310, 462, 697, 945, 1442] as const;
@@ -303,6 +306,19 @@ export class ForgeHandler {
         );
     }
 
+    private static getMissionState(character: any, missionId: number): number {
+        const missions = character?.missions && typeof character.missions === 'object' && !Array.isArray(character.missions)
+            ? character.missions as Record<string, any>
+            : {};
+        const entry = missions[String(missionId)];
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+            return ForgeHandler.MISSION_NOT_STARTED;
+        }
+
+        const state = Number(entry.state ?? ForgeHandler.MISSION_NOT_STARTED);
+        return Number.isFinite(state) ? state : ForgeHandler.MISSION_NOT_STARTED;
+    }
+
     private static isCraftTownTutorialForgeContext(client: Client): boolean {
         if (!client.character) {
             return false;
@@ -314,6 +330,14 @@ export class ForgeHandler {
         }
 
         if (Number(client.character?.questTrackerState ?? 0) < 100) {
+            return false;
+        }
+
+        const clearYourHouseState = ForgeHandler.getMissionState(client.character, MissionID.ClearYourHouse);
+        if (
+            clearYourHouseState <= ForgeHandler.MISSION_NOT_STARTED ||
+            clearYourHouseState >= ForgeHandler.MISSION_CLAIMED
+        ) {
             return false;
         }
 
