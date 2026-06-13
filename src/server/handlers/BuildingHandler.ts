@@ -27,7 +27,7 @@ const buildingDefsByKey = new Map<string, BuildingDef>(
 );
 
 export class BuildingHandler {
-    private static readonly MAX_BUILDING_UPGRADE_SECONDS = 3 * 24 * 60 * 60;
+    private static readonly MAX_BUILDING_UPGRADE_SECONDS = 4 * 24 * 60 * 60;
     private static readonly CRAFT_TOWN_REFRESH_RETRY_DELAYS_MS = [1200, 2800];
 
     private static rejectVisitedHomeMutation(client: Client, action: string): boolean {

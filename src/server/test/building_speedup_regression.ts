@@ -256,7 +256,7 @@ async function testBuildingUpgradePersistsGoldPurchaseAndRealReadyTime(): Promis
         { buildingID: 1, rank: 2 }
     );
     assert.ok(
-        Number(client.character.buildingUpgrade?.ReadyTime ?? 0) >= beforeStart + 3600,
+        Number(client.character.buildingUpgrade?.ReadyTime ?? 0) >= beforeStart + (4 * 60 * 60),
         'building upgrade should persist the real BuildingTypes upgrade timer'
     );
 }

@@ -21,7 +21,15 @@ const DEFAULT_SWF_CANDIDATES = [
 ];
 const DEFAULT_SWF = DEFAULT_SWF_CANDIDATES.find((candidate) => fs.existsSync(candidate)) ?? DEFAULT_SWF_CANDIDATES[0];
 
-const RESPEC_FORGE_SECONDS = 259200;
+const OLD_FORCED_RESPEC_SECONDS = 259200;
+const NORMAL_RESPEC_SECONDS = 180;
+const EXTENDED_RESPEC_SECONDS = 86400;
+
+type RespecSlot = {
+  label: "normal-first" | "extended" | "active-fallback";
+  expectedSeconds: number;
+  instruction: Instruction;
+};
 
 function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
   let swfPath = DEFAULT_SWF;
@@ -42,9 +50,8 @@ function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
         "Usage:",
         "  ts-node src/server/scripts/patch-dungeonblitz-respec-forge-duration.ts [--verify] [--swf <path>]",
         "",
-        "Patches DungeonBlitz.swf so Respec Stone forge progress uses 3 days",
-        "instead of the old four-day class_64.const_1073 value or 3-minute",
-        "Game.const_181 fallback.",
+        "Patches DungeonBlitz.swf so the first local Respec Stone forge uses 3 minutes,",
+        "while active/extended Respec Stone duration paths use 24 hours.",
       ].join("\n"));
       process.exit(0);
     }
@@ -55,16 +62,8 @@ function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
   return { swfPath, verify };
 }
 
-function u30Name(abc: ReturnType<typeof parseAbc>, inst: Instruction | undefined): string | null {
-  const operand = inst?.operands[0];
-  if (!operand || operand[0] !== "u30") {
-    return null;
-  }
-  return abc.multinameNames[operand[1]] ?? null;
-}
-
 function pushIntValue(abc: ReturnType<typeof parseAbc>, inst: Instruction | undefined): number | null {
-  const operand = inst?.operands[0];
+  const operand = inst?.operands?.[0];
   if (!inst || inst.opcode !== 0x2d || !operand || operand[0] !== "u30") {
     return null;
   }
@@ -79,12 +78,27 @@ function nopPaddedPushInt(valueIndex: number, oldLength: number): Buffer {
   return Buffer.concat([pushInt, Buffer.alloc(oldLength - pushInt.length, 0x02)]);
 }
 
+function getIntIndex(abc: ReturnType<typeof parseAbc>, value: number): number {
+  const index = abc.intValues.findIndex((entry) => entry === value);
+  if (index < 0) {
+    throw new PatchError(`Could not find int constant ${value}.`);
+  }
+  return index;
+}
+
+function findRespecSlots(instructions: Instruction[]): Instruction[] {
+  return instructions.filter((inst, index) =>
+    inst.opcode === 0x2d &&
+    instructions[index + 1]?.opcode === 0x02 &&
+    instructions[index + 2]?.opcode === 0x02
+  );
+}
+
 function findPatches(swfPath: string): {
   patches: BytePatch[];
-  oldFirstCraftShortcutCount: number;
-  oldExtendedCount: number;
-  oldFallbackCount: number;
   patchedCount: number;
+  oldForcedCount: number;
+  slotValues: number[];
 } {
   const ctx = parseSwf(swfPath);
   const abc = parseAbc(ctx);
@@ -107,114 +121,70 @@ function findPatches(swfPath: string): {
     throw new PatchError("Could not find class_86.GetTimeAfterBonuses body.");
   }
 
-  const threeDayIndex = abc.intValues.findIndex((value) => value === RESPEC_FORGE_SECONDS);
-  if (threeDayIndex < 0) {
-    throw new PatchError(`Could not find int constant ${RESPEC_FORGE_SECONDS}.`);
-  }
-
   const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
   const instructions = disassemble(code, "class_86.GetTimeAfterBonuses");
-  const patches: BytePatch[] = [];
-  let oldFirstCraftShortcutCount = 0;
-  let oldExtendedCount = 0;
-  let oldFallbackCount = 0;
-  let patchedCount = 0;
-  let seenRespecBranch = false;
+  const directSlots = findRespecSlots(instructions).filter((inst) => {
+    const value = pushIntValue(abc, inst);
+    return value === OLD_FORCED_RESPEC_SECONDS || value === NORMAL_RESPEC_SECONDS || value === EXTENDED_RESPEC_SECONDS;
+  });
 
-  for (let index = 0; index < instructions.length - 2; index += 1) {
-    const first = instructions[index];
-    const second = instructions[index + 1];
-    const third = instructions[index + 2];
-
-    if (
-      first.opcode === 0x60 &&
-      u30Name(abc, first) === "Game" &&
-      second.opcode === 0x66 &&
-      u30Name(abc, second) === "const_181" &&
-      !seenRespecBranch
-    ) {
-      const oldLength = first.size + second.size;
-      patches.push({
-        key: `class_86.GetTimeAfterBonuses.firstCraftShortcut.${methodBody.codeStart + first.offset}`,
-        start: methodBody.codeStart + first.offset,
-        end: methodBody.codeStart + second.offset + second.size,
-        data: nopPaddedPushInt(threeDayIndex, oldLength),
-        detail: "remove 3 minute first-craft shortcut from Respec Stone duration path",
-      });
-      oldFirstCraftShortcutCount += 1;
-      continue;
-    }
-
-    if (pushIntValue(abc, first) === RESPEC_FORGE_SECONDS && !seenRespecBranch) {
-      patchedCount += 1;
-      continue;
-    }
-
-    if (
-      first.opcode === 0x60 &&
-      u30Name(abc, first) === "class_64" &&
-      second.opcode === 0x66 &&
-      u30Name(abc, second) === "const_1073" &&
-      third.opcode === 0x48
-    ) {
-      seenRespecBranch = true;
-      const oldLength = first.size + second.size;
-      patches.push({
-        key: `class_86.GetTimeAfterBonuses.respecForgeDuration.${methodBody.codeStart + first.offset}`,
-        start: methodBody.codeStart + first.offset,
-        end: methodBody.codeStart + second.offset + second.size,
-        data: nopPaddedPushInt(threeDayIndex, oldLength),
-        detail: "return 3 days for Respec Stone extended forge duration",
-      });
-      oldExtendedCount += 1;
-      continue;
-    }
-
-    if (
-      first.opcode === 0x60 &&
-      u30Name(abc, first) === "Game" &&
-      second.opcode === 0x66 &&
-      u30Name(abc, second) === "const_181" &&
-      third.opcode === 0x48
-    ) {
-      if (seenRespecBranch || patchedCount > 0) {
-        const oldLength = first.size + second.size;
-        patches.push({
-          key: `class_86.GetTimeAfterBonuses.respecForgeFallback.${methodBody.codeStart + first.offset}`,
-          start: methodBody.codeStart + first.offset,
-          end: methodBody.codeStart + second.offset + second.size,
-          data: nopPaddedPushInt(threeDayIndex, oldLength),
-          detail: "return 3 days for Respec Stone initial local forge duration",
-        });
-        oldFallbackCount += 1;
-      }
-      continue;
-    }
-
-    if (
-      pushIntValue(abc, first) === RESPEC_FORGE_SECONDS &&
-      second.opcode === 0x02 &&
-      third.opcode === 0x02 &&
-      instructions[index + 3]?.opcode === 0x48
-    ) {
-      patchedCount += 1;
-    }
+  if (directSlots.length !== 3) {
+    throw new PatchError(`Expected three direct Respec forge duration slots, found ${directSlots.length}.`);
   }
 
-  return { patches, oldFirstCraftShortcutCount, oldExtendedCount, oldFallbackCount, patchedCount };
+  const desiredSlots: RespecSlot[] = [
+    { label: "normal-first", expectedSeconds: NORMAL_RESPEC_SECONDS, instruction: directSlots[0] },
+    { label: "extended", expectedSeconds: EXTENDED_RESPEC_SECONDS, instruction: directSlots[1] },
+    { label: "active-fallback", expectedSeconds: EXTENDED_RESPEC_SECONDS, instruction: directSlots[2] },
+  ];
+  const indexes = {
+    [NORMAL_RESPEC_SECONDS]: getIntIndex(abc, NORMAL_RESPEC_SECONDS),
+    [EXTENDED_RESPEC_SECONDS]: getIntIndex(abc, EXTENDED_RESPEC_SECONDS),
+  } as Record<number, number>;
+
+  const patches: BytePatch[] = [];
+  let patchedCount = 0;
+  let oldForcedCount = 0;
+  const slotValues: number[] = [];
+
+  for (const slot of desiredSlots) {
+    const currentValue = pushIntValue(abc, slot.instruction);
+    slotValues.push(Number(currentValue ?? 0));
+
+    if (currentValue === slot.expectedSeconds) {
+      patchedCount += 1;
+      continue;
+    }
+
+    if (
+      currentValue === OLD_FORCED_RESPEC_SECONDS ||
+      (slot.expectedSeconds === EXTENDED_RESPEC_SECONDS && currentValue === NORMAL_RESPEC_SECONDS)
+    ) {
+      oldForcedCount += 1;
+      patches.push({
+        key: `class_86.GetTimeAfterBonuses.respec.${slot.label}.${methodBody.codeStart + slot.instruction.offset}`,
+        start: methodBody.codeStart + slot.instruction.offset,
+        end: methodBody.codeStart + slot.instruction.offset + slot.instruction.size,
+        data: nopPaddedPushInt(indexes[slot.expectedSeconds], slot.instruction.size),
+        detail: `set ${slot.label} Respec Stone forge duration to ${slot.expectedSeconds} seconds`,
+      });
+      continue;
+    }
+
+    throw new PatchError(
+      `Unexpected ${slot.label} Respec forge duration ${currentValue}; expected ${slot.expectedSeconds}, ${NORMAL_RESPEC_SECONDS}, or ${OLD_FORCED_RESPEC_SECONDS}.`,
+    );
+  }
+
+  return { patches, patchedCount, oldForcedCount, slotValues };
 }
 
 function patchSwf(swfPath: string, verify: boolean): void {
   const firstPass = findPatches(swfPath);
   if (verify) {
-    if (
-      firstPass.oldFirstCraftShortcutCount > 0 ||
-      firstPass.oldExtendedCount > 0 ||
-      firstPass.oldFallbackCount > 0 ||
-      firstPass.patchedCount !== 3
-    ) {
+    if (firstPass.oldForcedCount > 0 || firstPass.patchedCount !== 3) {
       throw new PatchError(
-        `Respec forge duration patch missing: oldFirstCraftShortcut=${firstPass.oldFirstCraftShortcutCount}, oldExtended=${firstPass.oldExtendedCount}, oldFallback=${firstPass.oldFallbackCount}, patched=${firstPass.patchedCount}`,
+        `Respec forge duration patch missing: oldForced=${firstPass.oldForcedCount}, patched=${firstPass.patchedCount}, values=${firstPass.slotValues.join(",")}`,
       );
     }
     console.log("Respec forge duration patch verified.");
@@ -227,12 +197,8 @@ function patchSwf(swfPath: string, verify: boolean): void {
       return;
     }
     throw new PatchError(
-      `Expected Respec forge duration patch points, found oldFirstCraftShortcut=${firstPass.oldFirstCraftShortcutCount}, oldExtended=${firstPass.oldExtendedCount}, oldFallback=${firstPass.oldFallbackCount}, patched=${firstPass.patchedCount}`,
+      `Expected Respec forge duration patch points, found oldForced=${firstPass.oldForcedCount}, patched=${firstPass.patchedCount}, values=${firstPass.slotValues.join(",")}`,
     );
-  }
-
-  if (firstPass.patches.length > 3) {
-    throw new PatchError(`Expected at most three Respec forge duration patches, found ${firstPass.patches.length}`);
   }
 
   const ctx = parseSwf(swfPath);
@@ -244,14 +210,9 @@ function patchSwf(swfPath: string, verify: boolean): void {
   writeSwf(ctx, body, delta);
 
   const secondPass = findPatches(swfPath);
-  if (
-    secondPass.oldFirstCraftShortcutCount > 0 ||
-    secondPass.oldExtendedCount > 0 ||
-    secondPass.oldFallbackCount > 0 ||
-    secondPass.patchedCount !== 3
-  ) {
+  if (secondPass.oldForcedCount > 0 || secondPass.patchedCount !== 3) {
     throw new PatchError(
-      `Respec forge duration patch did not verify after write: oldFirstCraftShortcut=${secondPass.oldFirstCraftShortcutCount}, oldExtended=${secondPass.oldExtendedCount}, oldFallback=${secondPass.oldFallbackCount}, patched=${secondPass.patchedCount}`,
+      `Respec forge duration patch did not verify after write: oldForced=${secondPass.oldForcedCount}, patched=${secondPass.patchedCount}, values=${secondPass.slotValues.join(",")}`,
     );
   }
 

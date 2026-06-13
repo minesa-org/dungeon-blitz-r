@@ -315,12 +315,12 @@ async function testBuildingUpgradeTimeUsesRankSchedule(): Promise<void> {
 
     const readyTime = Number(client.character.buildingUpgrade?.ReadyTime ?? 0);
     assert.ok(
-        readyTime >= before + (1 * 60 * 60),
-        'rank 2 home building upgrade should use the configured one-hour timer'
+        readyTime >= before + (4 * 60 * 60),
+        'rank 2 home building upgrade should use the configured four-hour timer'
     );
     assert.ok(
-        readyTime <= Math.floor(Date.now() / 1000) + (1 * 60 * 60) + 5,
-        'rank 2 home building upgrade should not exceed the configured one-hour timer'
+        readyTime <= Math.floor(Date.now() / 1000) + (4 * 60 * 60) + 5,
+        'rank 2 home building upgrade should not exceed the configured four-hour timer'
     );
 }
 

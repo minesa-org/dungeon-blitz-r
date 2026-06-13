@@ -8,6 +8,7 @@ import { CharmID } from '../data/runtime/Charms';
 import { ConsumableID } from '../data/runtime/Consumables';
 import { MaterialID } from '../data/runtime/Materials';
 import { MissionID } from '../data/runtime';
+import { WorldEnter } from '../utils/WorldEnter';
 
 type SentPacket = {
     id: number;
@@ -295,7 +296,80 @@ async function testStartForgePrunesZeroCountMaterials(): Promise<void> {
     assert.deepEqual(client.character.materials, [], 'spent or already-empty material stacks should not remain in inventory');
 }
 
-async function testStartRespecStoneUsesThreeDayDuration(): Promise<void> {
+async function testNormalCharmDurationsUseModernSizeSchedule(): Promise<void> {
+    const expectations = [
+        { charmId: CharmID.Trog01, baseSeconds: 300 },
+        { charmId: CharmID.Trog10, baseSeconds: 86400 }
+    ] as const;
+
+    for (const expectation of expectations) {
+        const client = createClient();
+        client.character.craftTalentPoints = [0, 0, 0, 0, 0];
+        const nowSeconds = 1_700_000_000;
+        const packet = createStartForgePacket(expectation.charmId, [], [false, false, false, false]);
+        const expectedDuration = Math.ceil(expectation.baseSeconds * 0.95);
+
+        await withMockedDateNow(nowSeconds * 1000, async () =>
+            withMockedCharacterSave(async () =>
+                withCapturedTimers(async (_callbacks, delays) =>
+                    withPatchedRandom([1], async () => {
+                        await ForgeHandler.handleStartForge(client as never, packet);
+                        assert.equal(client.character.magicForge?.primary, expectation.charmId);
+                        assert.equal(client.character.magicForge?.ReadyTime, nowSeconds + expectedDuration);
+                        assert.equal(delays[0], expectedDuration * 1000);
+                    })
+                )
+            )
+        );
+    }
+}
+
+async function testCharmRemoverUsesTwelveHourDuration(): Promise<void> {
+    const client = createClient();
+    const nowSeconds = 1_700_000_000;
+    const packet = createStartForgePacket(CharmID.CharmRemover, [], [false, false, false, false]);
+
+    await withMockedDateNow(nowSeconds * 1000, async () =>
+        withMockedCharacterSave(async () =>
+            withCapturedTimers(async (_callbacks, delays) =>
+                withPatchedRandom([1], async () => {
+                    await ForgeHandler.handleStartForge(client as never, packet);
+                    assert.equal(client.character.magicForge?.primary, CharmID.CharmRemover);
+                    assert.equal(client.character.magicForge?.ReadyTime, nowSeconds + 43200);
+                    assert.equal(delays[0], 43200000);
+                })
+            )
+        )
+    );
+}
+
+async function testSyncClampsExistingCharmRemoverForgeToTwelveHours(): Promise<void> {
+    const client = createClient();
+    const nowSeconds = 1_700_000_000;
+    client.character.magicForge = {
+        stats_by_building: { '2': 5 },
+        primary: CharmID.CharmRemover,
+        secondary: 0,
+        secondary_tier: 0,
+        usedlist: 0,
+        ReadyTime: nowSeconds + 86400,
+        forge_roll_a: 0,
+        forge_roll_b: 0,
+        is_extended_forge: false
+    };
+
+    await withMockedDateNow(nowSeconds * 1000, async () =>
+        withMockedCharacterSave(async () =>
+            withCapturedTimers(async (_callbacks, delays) => {
+                await ForgeHandler.syncCompletionState(client as never);
+                assert.equal(client.character.magicForge?.ReadyTime, nowSeconds + 43200);
+                assert.equal(delays[0], 43200000);
+            })
+        )
+    );
+}
+
+async function testStartRespecStoneUsesOriginalThreeMinuteDuration(): Promise<void> {
     const client = createClient();
     const nowSeconds = 1_700_000_000;
     const packet = createStartForgePacket(CharmID.RespecStone, [], [false, false, false, false]);
@@ -306,10 +380,101 @@ async function testStartRespecStoneUsesThreeDayDuration(): Promise<void> {
                 withPatchedRandom([1], async () => {
                     await ForgeHandler.handleStartForge(client as never, packet);
                     assert.equal(client.character.magicForge?.primary, CharmID.RespecStone);
-                    assert.equal(client.character.magicForge?.ReadyTime, nowSeconds + 259200);
-                    assert.equal(client.character.magicForge?.is_extended_forge, true);
+                    assert.equal(client.character.magicForge?.ReadyTime, nowSeconds + 180);
+                    assert.equal(client.character.magicForge?.is_extended_forge, false);
                     assert.equal((client.character.magicForge as any)?.free_speedup_reason, '');
-                    assert.equal(delays[0], 259200000);
+                    assert.equal(delays[0], 180000);
+                })
+            )
+        )
+    );
+}
+
+async function testSyncKeepsExtendedRespecWhenLegacyFlagIsFalse(): Promise<void> {
+    const client = createClient();
+    const nowSeconds = 1_700_000_000;
+    (client.character as any).forgeMilestones = { initial_respec_stone_crafted: true };
+    client.character.magicForge = {
+        stats_by_building: { '2': 5 },
+        primary: CharmID.RespecStone,
+        secondary: 0,
+        secondary_tier: 0,
+        usedlist: 0,
+        ReadyTime: nowSeconds + 120,
+        forge_roll_a: 0,
+        forge_roll_b: 0,
+        is_extended_forge: false
+    } as any;
+    (client.character.magicForge as any).respec_started_time = nowSeconds - 20;
+    (client.character.magicForge as any).respec_duration_seconds = 86400;
+
+    await withMockedDateNow(nowSeconds * 1000, async () =>
+        withMockedCharacterSave(async () =>
+            withCapturedTimers(async (_callbacks, delays) => {
+                await ForgeHandler.syncCompletionState(client as never);
+                assert.equal(client.character.magicForge?.is_extended_forge, true);
+                assert.equal((client.character.magicForge as any)?.respec_duration_seconds, 86400);
+                assert.equal(client.character.magicForge?.ReadyTime, nowSeconds + 120);
+                assert.equal(delays[0], 120000);
+            })
+        )
+    );
+}
+
+function testWorldEnterMarksNextRespecAsExtendedAfterMilestone(): void {
+    const character = createCharacter();
+    (character as any).forgeMilestones = { initial_respec_stone_crafted: true };
+    character.magicForge = {
+        stats_by_building: { '2': 5 },
+        primary: 0,
+        secondary: 0,
+        secondary_tier: 0,
+        usedlist: 0,
+        ReadyTime: 0,
+        forge_roll_a: 0,
+        forge_roll_b: 0,
+        is_extended_forge: false
+    };
+
+    assert.equal((WorldEnter as any).shouldUseExtendedRespecForge(character, character.magicForge), true);
+}
+
+async function testStartRespecStoneUsesTwentyFourHoursAfterInitialCraft(): Promise<void> {
+    const client = createClient();
+    const nowSeconds = 1_700_000_000;
+    (client.character as any).forgeMilestones = { initial_respec_stone_crafted: true };
+    const packet = createStartForgePacket(CharmID.RespecStone, [], [false, false, false, false]);
+
+    await withMockedDateNow(nowSeconds * 1000, async () =>
+        withMockedCharacterSave(async () =>
+            withCapturedTimers(async (_callbacks, delays) =>
+                withPatchedRandom([1], async () => {
+                    await ForgeHandler.handleStartForge(client as never, packet);
+                    assert.equal(client.character.magicForge?.primary, CharmID.RespecStone);
+                    assert.equal(client.character.magicForge?.ReadyTime, nowSeconds + 86400);
+                    assert.equal(client.character.magicForge?.is_extended_forge, true);
+                    assert.equal((client.character.magicForge as any)?.respec_duration_seconds, 86400);
+                    assert.equal(delays[0], 86400000);
+                })
+            )
+        )
+    );
+}
+
+async function testStartRespecStoneMigratesExistingInventoryToTwentyFourHours(): Promise<void> {
+    const client = createClient();
+    const nowSeconds = 1_700_000_000;
+    client.character.charms = [{ charmID: CharmID.RespecStone, count: 1 }];
+    const packet = createStartForgePacket(CharmID.RespecStone, [], [false, false, false, false]);
+
+    await withMockedDateNow(nowSeconds * 1000, async () =>
+        withMockedCharacterSave(async () =>
+            withCapturedTimers(async (_callbacks, delays) =>
+                withPatchedRandom([1], async () => {
+                    await ForgeHandler.handleStartForge(client as never, packet);
+                    assert.equal(client.character.magicForge?.ReadyTime, nowSeconds + 86400);
+                    assert.equal(client.character.magicForge?.is_extended_forge, true);
+                    assert.equal(delays[0], 86400000);
                 })
             )
         )
@@ -526,10 +691,9 @@ async function testCompletedTutorialStartForgeDoesNotStoreTutorialFreeSpeedup():
     assert.ok(Number(client.character.magicForge?.ReadyTime ?? 0) > Math.floor(Date.now() / 1000) + 180);
 }
 
-async function testRespecStoneZeroCostPacketUsesAuthoritativeThreeDaySpeedupCost(): Promise<void> {
+async function testRespecStoneZeroCostPacketUsesOriginalFreeWindow(): Promise<void> {
     const client = createClient();
     client.character.mammothIdols = 300;
-    const now = Math.floor(Date.now() / 1000);
     client.character.magicForge = {
         stats_by_building: { '2': 5 },
         primary: CharmID.RespecStone,
@@ -539,22 +703,22 @@ async function testRespecStoneZeroCostPacketUsesAuthoritativeThreeDaySpeedupCost
         ReadyTime: Math.floor(Date.now() / 1000) + 120,
         forge_roll_a: 0,
         forge_roll_b: 0,
-        is_extended_forge: true
-    };
+        is_extended_forge: false
+    } as any;
+    (client.character.magicForge as any).respec_duration_seconds = 180;
+    (client.character.magicForge as any).respec_started_time = Math.floor(Date.now() / 1000);
 
     await withMockedCharacterSave(async () => {
         await ForgeHandler.handleForgeSpeedUpPacket(client as never, createForgeSpeedupPacket(0));
     });
 
-    assert.equal(client.character.mammothIdols, 84);
+    assert.equal(client.character.mammothIdols, 300);
     assert.equal(client.character.magicForge?.ReadyTime, 0);
-    assert.equal((client.character.magicForge as any)?.respec_duration_seconds, 259200);
-    assert.ok(Number((client.character.magicForge as any)?.respec_started_time ?? 0) >= now);
-    assert.equal(client.sentPackets.some((packet) => packet.id === 0xB5), true, 'Respec Stone stale free speedup should charge the authoritative 3 day cost');
-    assert.equal(client.sentPackets.some((packet) => packet.id === 0xCD), true, 'Respec Stone speedup should complete after charging the authoritative 3 day cost');
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0xB5), false, 'Respec Stone inside the original 3 minute window should stay free');
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0xCD), true, 'Respec Stone speedup should complete inside the original free window');
 }
 
-async function testRespecStonePaidPacketUsesAuthoritativeThreeDaySpeedupCost(): Promise<void> {
+async function testCompletedInitialRespecPersistsMilestone(): Promise<void> {
     const client = createClient();
     client.character.mammothIdols = 300;
     client.character.magicForge = {
@@ -563,7 +727,32 @@ async function testRespecStonePaidPacketUsesAuthoritativeThreeDaySpeedupCost(): 
         secondary: 0,
         secondary_tier: 0,
         usedlist: 0,
-        ReadyTime: Math.floor(Date.now() / 1000) + 259200,
+        ReadyTime: Math.floor(Date.now() / 1000) + 120,
+        forge_roll_a: 0,
+        forge_roll_b: 0,
+        is_extended_forge: false
+    } as any;
+    (client.character.magicForge as any).respec_duration_seconds = 180;
+    (client.character.magicForge as any).respec_started_time = Math.floor(Date.now() / 1000);
+
+    await withMockedCharacterSave(async () => {
+        await ForgeHandler.handleForgeSpeedUpPacket(client as never, createForgeSpeedupPacket(0));
+    });
+
+    assert.equal((client.character as any).forgeMilestones?.initial_respec_stone_crafted, true);
+}
+
+async function testExtendedRespecStoneUsesTwentyFourHourAuthoritativeSpeedupCost(): Promise<void> {
+    const client = createClient();
+    client.character.mammothIdols = 300;
+    const now = Math.floor(Date.now() / 1000);
+    client.character.magicForge = {
+        stats_by_building: { '2': 5 },
+        primary: CharmID.RespecStone,
+        secondary: 0,
+        secondary_tier: 0,
+        usedlist: 0,
+        ReadyTime: now + 120,
         forge_roll_a: 0,
         forge_roll_b: 0,
         is_extended_forge: true
@@ -573,9 +762,11 @@ async function testRespecStonePaidPacketUsesAuthoritativeThreeDaySpeedupCost(): 
         await ForgeHandler.handleForgeSpeedUpPacket(client as never, createForgeSpeedupPacket(3));
     });
 
-    assert.equal(client.character.mammothIdols, 84);
+    assert.equal(client.character.mammothIdols, 228);
     assert.equal(client.character.magicForge?.ReadyTime, 0);
-    assert.equal(client.sentPackets.some((packet) => packet.id === 0xCD), true, 'Respec Stone paid speedup should complete after charging the authoritative 3 day cost');
+    assert.equal((client.character.magicForge as any)?.respec_duration_seconds, 86400);
+    assert.ok(Number((client.character.magicForge as any)?.respec_started_time ?? 0) >= now);
+    assert.equal(client.sentPackets.some((packet) => packet.id === 0xCD), true, 'Extended Respec Stone paid speedup should complete after charging the authoritative 24 hour cost');
     assert.equal(client.sentPackets.some((packet) => packet.id === 0xB5), true, 'Respec Stone speedup should emit an idol purchase using the authoritative cost');
 }
 
@@ -770,7 +961,14 @@ async function testScheduledForgeCompletionRearmsWhenTimerFiresBeforeReadySecond
 async function main(): Promise<void> {
     await testStartForgeConsumesInputsAndQueuesState();
     await testStartForgePrunesZeroCountMaterials();
-    await testStartRespecStoneUsesThreeDayDuration();
+    await testNormalCharmDurationsUseModernSizeSchedule();
+    await testCharmRemoverUsesTwelveHourDuration();
+    await testSyncClampsExistingCharmRemoverForgeToTwelveHours();
+    await testStartRespecStoneUsesOriginalThreeMinuteDuration();
+    await testSyncKeepsExtendedRespecWhenLegacyFlagIsFalse();
+    testWorldEnterMarksNextRespecAsExtendedAfterMilestone();
+    await testStartRespecStoneUsesTwentyFourHoursAfterInitialCraft();
+    await testStartRespecStoneMigratesExistingInventoryToTwentyFourHours();
     await testForgeSpeedupCompletesImmediatelyAndSendsResultPacket();
     await testForgeSpeedupRejectsZeroCostBeforeReady();
     await testForgeSpeedupAcceptsZeroCostInFreeWindow();
@@ -778,8 +976,9 @@ async function main(): Promise<void> {
     await testTutorialCharmForgeSpeedupAcceptsZeroCostBeforeFreeBoundary();
     await testCompletedTutorialCharmForgeRejectsZeroCostBeforeFreeBoundary();
     await testCompletedTutorialStartForgeDoesNotStoreTutorialFreeSpeedup();
-    await testRespecStoneZeroCostPacketUsesAuthoritativeThreeDaySpeedupCost();
-    await testRespecStonePaidPacketUsesAuthoritativeThreeDaySpeedupCost();
+    await testRespecStoneZeroCostPacketUsesOriginalFreeWindow();
+    await testCompletedInitialRespecPersistsMilestone();
+    await testExtendedRespecStoneUsesTwentyFourHourAuthoritativeSpeedupCost();
     await testForgeSpeedupZeroCostAfterReadySendsCompletedResult();
     await testCollectForgeCharmAwardsCharmAndCraftXp();
     await testForgeRerollPreservesTierAndUpdatesUsedlist();
