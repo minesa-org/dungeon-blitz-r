@@ -47,8 +47,9 @@ function parseArgs(argv: string[]): { swfPath: string; verify: boolean } {
         "Usage:",
         "  ts-node src/server/scripts/patch-dungeonblitz-respec-forge-duration.ts [--verify] [--swf <path>]",
         "",
-        "Patches DungeonBlitz.swf so the Respec Stone special forge progress",
-        "uses three days instead of the old four-day class_64.const_1073 value.",
+        "Patches DungeonBlitz.swf so Respec Stone forge progress uses three days",
+        "instead of the old four-day class_64.const_1073 value or 3-minute",
+        "Game.const_181 fallback.",
       ].join("\n"));
       process.exit(0);
     }
@@ -83,7 +84,12 @@ function nopPaddedPushInt(valueIndex: number, oldLength: number): Buffer {
   return Buffer.concat([pushInt, Buffer.alloc(oldLength - pushInt.length, 0x02)]);
 }
 
-function findPatches(swfPath: string): { patches: BytePatch[]; oldCount: number; patchedCount: number } {
+function findPatches(swfPath: string): {
+  patches: BytePatch[];
+  oldExtendedCount: number;
+  oldFallbackCount: number;
+  patchedCount: number;
+} {
   const ctx = parseSwf(swfPath);
   const abc = parseAbc(ctx);
   const classIndex = classIndexByName(abc, "class_86");
@@ -113,8 +119,10 @@ function findPatches(swfPath: string): { patches: BytePatch[]; oldCount: number;
   const code = ctx.body.subarray(methodBody.codeStart, methodBody.codeStart + methodBody.codeLen);
   const instructions = disassemble(code, "class_86.GetTimeAfterBonuses");
   const patches: BytePatch[] = [];
-  let oldCount = 0;
+  let oldExtendedCount = 0;
+  let oldFallbackCount = 0;
   let patchedCount = 0;
+  let seenRespecBranch = false;
 
   for (let index = 0; index < instructions.length - 2; index += 1) {
     const first = instructions[index];
@@ -128,6 +136,7 @@ function findPatches(swfPath: string): { patches: BytePatch[]; oldCount: number;
       u30Name(abc, second) === "const_1073" &&
       third.opcode === 0x48
     ) {
+      seenRespecBranch = true;
       const oldLength = first.size + second.size;
       patches.push({
         key: `class_86.GetTimeAfterBonuses.respecForgeDuration.${methodBody.codeStart + first.offset}`,
@@ -136,7 +145,28 @@ function findPatches(swfPath: string): { patches: BytePatch[]; oldCount: number;
         data: nopPaddedPushInt(threeDayIndex, oldLength),
         detail: "return three days for Respec Stone extended forge duration",
       });
-      oldCount += 1;
+      oldExtendedCount += 1;
+      continue;
+    }
+
+    if (
+      first.opcode === 0x60 &&
+      u30Name(abc, first) === "Game" &&
+      second.opcode === 0x66 &&
+      u30Name(abc, second) === "const_181" &&
+      third.opcode === 0x48
+    ) {
+      if (seenRespecBranch || patchedCount > 0) {
+        const oldLength = first.size + second.size;
+        patches.push({
+          key: `class_86.GetTimeAfterBonuses.respecForgeFallback.${methodBody.codeStart + first.offset}`,
+          start: methodBody.codeStart + first.offset,
+          end: methodBody.codeStart + second.offset + second.size,
+          data: nopPaddedPushInt(threeDayIndex, oldLength),
+          detail: "return three days for Respec Stone initial local forge duration",
+        });
+        oldFallbackCount += 1;
+      }
       continue;
     }
 
@@ -150,15 +180,15 @@ function findPatches(swfPath: string): { patches: BytePatch[]; oldCount: number;
     }
   }
 
-  return { patches, oldCount, patchedCount };
+  return { patches, oldExtendedCount, oldFallbackCount, patchedCount };
 }
 
 function patchSwf(swfPath: string, verify: boolean): void {
   const firstPass = findPatches(swfPath);
   if (verify) {
-    if (firstPass.oldCount > 0 || firstPass.patchedCount !== 1) {
+    if (firstPass.oldExtendedCount > 0 || firstPass.oldFallbackCount > 0 || firstPass.patchedCount !== 2) {
       throw new PatchError(
-        `Respec forge duration patch missing: old=${firstPass.oldCount}, patched=${firstPass.patchedCount}`,
+        `Respec forge duration patch missing: oldExtended=${firstPass.oldExtendedCount}, oldFallback=${firstPass.oldFallbackCount}, patched=${firstPass.patchedCount}`,
       );
     }
     console.log("Respec forge duration patch verified.");
@@ -166,17 +196,17 @@ function patchSwf(swfPath: string, verify: boolean): void {
   }
 
   if (firstPass.patches.length === 0) {
-    if (firstPass.patchedCount === 1) {
+    if (firstPass.patchedCount === 2) {
       console.log("Respec forge duration patch already applied.");
       return;
     }
     throw new PatchError(
-      `Expected one Respec forge duration patch point, found old=${firstPass.oldCount}, patched=${firstPass.patchedCount}`,
+      `Expected Respec forge duration patch points, found oldExtended=${firstPass.oldExtendedCount}, oldFallback=${firstPass.oldFallbackCount}, patched=${firstPass.patchedCount}`,
     );
   }
 
-  if (firstPass.patches.length !== 1) {
-    throw new PatchError(`Expected one Respec forge duration patch, found ${firstPass.patches.length}`);
+  if (firstPass.patches.length > 2) {
+    throw new PatchError(`Expected at most two Respec forge duration patches, found ${firstPass.patches.length}`);
   }
 
   const ctx = parseSwf(swfPath);
@@ -188,9 +218,9 @@ function patchSwf(swfPath: string, verify: boolean): void {
   writeSwf(ctx, body, delta);
 
   const secondPass = findPatches(swfPath);
-  if (secondPass.oldCount > 0 || secondPass.patchedCount !== 1) {
+  if (secondPass.oldExtendedCount > 0 || secondPass.oldFallbackCount > 0 || secondPass.patchedCount !== 2) {
     throw new PatchError(
-      `Respec forge duration patch did not verify after write: old=${secondPass.oldCount}, patched=${secondPass.patchedCount}`,
+      `Respec forge duration patch did not verify after write: oldExtended=${secondPass.oldExtendedCount}, oldFallback=${secondPass.oldFallbackCount}, patched=${secondPass.patchedCount}`,
     );
   }
 
